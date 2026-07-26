@@ -1,4 +1,4 @@
-# LCCoding 1.1.0
+# LCCoding 1.1.1
 
 LCCoding 是一套 **人负责产品、AI 负责工程** 的人机协同开发方法。
 
@@ -7,7 +7,7 @@ LCCoding 是一套 **人负责产品、AI 负责工程** 的人机协同开发�
 ```text
 Calabash：先建立，并在全过程持续演化
                     ↕
-Workflow 能力端 ← Feature Integration → UI 用户端
+Workflow 能力端 ← Feature Integration → UI 多角色产品界面端
                     ↕
                  拟真世界
                     ↓
@@ -15,6 +15,18 @@ Workflow 能力端 ← Feature Integration → UI 用户端
                     ↓
              影响分析与同步迭代
 ```
+
+## 1.1.1 补充：多角色 UI 范围
+
+`UI` 不只指用户客户端，也包括所有角色能看到并操作的产品界面：
+
+- 客户端/用户端；
+- 员工、运营、客服、审核、履约等后台端；
+- 管理员配置端；
+- 通知、审批、审计、状态展示等可见界面。
+
+如果某个 Feature 依赖员工或管理员动作，这些后台界面必须进入 UI Map、
+Simulation、AI Verification 和 Integration Baseline Lock，不能被当成纯工程附属物。
 
 ## 1.1.0 新增：连接基座锁定
 
@@ -28,7 +40,7 @@ Calabash = 持续演化并记录影响
 ```
 
 UI 在设计阶段可以充分迭代；一旦进入某个 Feature 的连接阶段，Owner 已接受的
-UI 就成为固定施工目标。AI 必须让 Workflow 和工程实现去适配 UI，不得为了容易
+多角色 UI 界面就成为固定施工目标。AI 必须让 Workflow 和工程实现去适配 UI，不得为了容易
 实现而改布局、删功能、换交互、改名称或降低产品质量。
 
 只有两种方式可以改变锁定 UI：

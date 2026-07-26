@@ -13,6 +13,10 @@
 | Calabash | | | |
 | Workflow | | | |
 | UI / locked baseline | | | |
+| Customer/client surfaces | | | |
+| Staff/operator surfaces | | | |
+| Administrator/configuration surfaces | | | |
+| Notification/status/audit surfaces | | | |
 | Simulation | | | |
 | Feature Slices | | | |
 | Shared Capabilities | | | |

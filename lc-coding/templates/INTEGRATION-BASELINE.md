@@ -13,12 +13,17 @@
 - UI artifact/reference:
 - Git commit/version:
 - Baseline hash:
-- Routes/screens:
-- Locked layout:
-- Locked visual direction:
-- Locked copy/naming:
-- Locked interactions:
-- Locked states:
+- Actor surfaces:
+  - Customer/client:
+  - Staff/operator:
+  - Administrator/configuration:
+  - Notification/status/audit:
+- Routes/screens by actor surface:
+- Locked layout by actor surface:
+- Locked visual direction by actor surface:
+- Locked copy/naming by actor surface:
+- Locked interactions by actor surface:
+- Locked states by actor surface:
 - Explicitly editable regions:
 
 ## Workflow Adjustment Envelope
@@ -32,6 +37,7 @@
 
 - Simulation version:
 - Scenario packs:
+- Roles and permissions represented:
 - Expected visible evidence:
 
 ## Lock Verification

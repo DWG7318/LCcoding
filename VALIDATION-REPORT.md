@@ -1,13 +1,15 @@
-# LCCoding 1.1.0 Validation Report
+# LCCoding 1.1.1 Validation Report
 
-- Specification version: 1.1.0
+- Specification version: 1.1.1
 - Integration Baseline Lock: PASS
 - UI default lock: PASS
+- Multi-role UI surface scope: PASS
 - Baseline Change Request template: PASS
 - Baseline lock violation rule: PASS
 - Referenced method files present: PASS
-- Python compilation: PASS
-- Project bootstrap: PASS
-- Project validation: PASS
-- Git staging/commit simulation: PASS
-- Git tree: 9d9392cfe064fa299b1cbcc6676ad602f18951d7
+- Required files present: PASS
+- Legacy `user-visible` wording removed: PASS
+- Git whitespace check: PASS
+- Python compilation: NOT RUN in this environment
+- Project bootstrap: NOT RUN in this environment
+- Project validation: NOT RUN in this environment

@@ -21,7 +21,7 @@ def main():
     defaults={
       'PROJECT-START.md':f'# Project Start\n\n- Project: {a.name}\n- Profile: `{a.profile}`\n- Calabash baseline:\n',
       'WORKFLOW-MAP.md':'# Workflow Map\n',
-      'UI-MAP.md':'# UI Map\n',
+      'UI-MAP.md':'# UI Map\n\n## Actor Surfaces\n\n| Surface | Actor | Purpose | Data Visible | Actions | Lock State |\n|---|---|---|---|---|---|\n| Customer/client | | | | | |\n| Staff/operator | | | | | |\n| Administrator/configuration | | | | | |\n| Notification/status/audit | | | | | |\n',
       'SHARED-CAPABILITIES.md':'# Shared Capabilities\n',
       'slices/INDEX.md':'# Feature Slice Index\n',
     }
@@ -30,7 +30,7 @@ def main():
         if not p.exists(): p.write_text(content,encoding='utf-8')
     for d in ['impact','evidence','observations','reviews','release','baselines']:
         (lc/d).mkdir(exist_ok=True)
-    status={'project':a.name,'profile':a.profile,'version':'1.1.0','active_slice':None,'integration_baseline':None}
+    status={'project':a.name,'profile':a.profile,'version':'1.1.1','active_slice':None,'integration_baseline':None}
     (lc/'status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(f'LCCODING_BOOTSTRAPPED {root}')
 if __name__=='__main__': main()

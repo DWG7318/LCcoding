@@ -10,9 +10,14 @@
 | ID | Role | Characteristics | Permissions | Typical History |
 |---|---|---|---|---|
 
+## Actor Surfaces
+
+| Surface ID | Actor | Purpose | Data Visible | Actions | Failure/Recovery |
+|---|---|---|---|---|---|
+
 ## Scenario Packs
 
-| Pack ID | User Task | Starting State | Volume/Density | Expected Workflow | Expected UI | Failure/Recovery | Reset |
+| Pack ID | Actor Task | Starting State | Volume/Density | Expected Workflow | Expected UI/Surfaces | Failure/Recovery | Reset |
 |---|---|---|---|---|---|---|---|
 
 ## Devices, Tools, and External Dependencies

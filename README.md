@@ -3,9 +3,21 @@
 **Owner-led, AI-executed product development.**
 
 LCCoding starts from a living Calabash, designs Workflow and UI as two ends, builds a
-realistic Simulation World, and advances through user-visible end-to-end Feature Slices.
+realistic Simulation World, and advances through actor-visible end-to-end Feature Slices.
 AI performs engineering, verification, impact analysis, regression, and synchronization;
 the Owner controls product decisions and acceptance.
+
+## 1.1.1 — Multi-role UI scope
+
+`UI` means every actor-facing product surface, not only the customer/client interface:
+
+- customer or client app surfaces;
+- staff, operator, support, and fulfillment consoles;
+- administrator panels and configuration surfaces;
+- notification, approval, audit, and status surfaces.
+
+When a Feature Slice depends on staff or administrator action, those internal surfaces
+must be mapped, simulated, verified, and protected by the same baseline rules.
 
 ## 1.1.0 — Integration Baseline Lock
 

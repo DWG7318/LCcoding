@@ -13,7 +13,7 @@
 
 - Product direction:
 - Workflow decisions:
-- UI/UX decisions:
+- UI/UX and actor-surface decisions:
 - Material trade-offs:
 - Owner Acceptance:
 
@@ -28,14 +28,15 @@
 
 ## Integration lock policy
 
-- Default locked base: `UI`
+- Default locked base: `UI`, including every in-scope customer, staff, administrator,
+  notification, audit, and status surface.
 - UI may change during Integration only through an Owner-approved Baseline Change Request.
 - Workflow may change only inside the declared adjustment envelope or through impact analysis.
 - Unapproved locked-UI changes invalidate the candidate.
 
 ## Protected artifacts
 
-- Accepted UI references:
+- Accepted UI references by actor surface:
 - Accepted Workflow contracts:
 - Forbidden scope:
 

@@ -3,11 +3,16 @@
 - Slice ID:
 - Title:
 - State: `DRAFT`
-- User/role:
-- User-visible outcome:
+- Actor/role:
+- Actor-visible outcome:
 - Calabash baseline/trace:
 - Workflow area:
 - UI surface:
+- Actor surfaces:
+  - Customer/client:
+  - Staff/operator:
+  - Administrator/configuration:
+  - Notification/status/audit:
 - Simulation scenario pack:
 - Shared capabilities:
 - Impact Analysis:
@@ -18,7 +23,7 @@
 ## End-to-End Claim
 
 ```text
-user intent
+actor intent
 → UI interaction
 → integration
 → Workflow
@@ -36,19 +41,20 @@ user intent
 
 ## UI Contract
 
+- Actors covered:
 - Entry state:
 - Interaction:
 - Loading/empty/error states:
 - Final visible result:
 - Accepted visual reference:
-- Allowed UI scope:
-- Forbidden UI scope:
+- Allowed UI scope by actor surface:
+- Forbidden UI scope by actor surface:
 
 ## Baseline Lock
 
-- Immutable UI reference/hash:
-- Locked UI scope:
-- Editable UI scope:
+- Immutable UI references/hashes:
+- Locked UI scope by actor surface:
+- Editable UI scope by actor surface:
 - Workflow adjustment envelope:
 - Change Request, if any:
 
@@ -69,6 +75,7 @@ user intent
 
 - Starting scenario:
 - Steps to experience:
+- Actor surfaces to inspect:
 - Decisions requested from Owner:
 
 ## Completion

@@ -1,6 +1,6 @@
 ---
 name: lc-coding
-description: Use when an Owner wants to direct AI or coding agents through an Owner-led product-development method; when Calabash, Workflow, UI, realistic simulation data, vertical Feature integration, impact analysis, AI Verification, Owner Acceptance, global consistency, convergence, or SLK/CLK/GLK execution must be coordinated without losing product direction.
+description: Use when an Owner wants to direct AI or coding agents through an Owner-led product-development method; when Calabash, Workflow, multi-role UI/product surfaces, realistic simulation data, vertical Feature integration, impact analysis, AI Verification, Owner Acceptance, global consistency, convergence, or SLK/CLK/GLK execution must be coordinated without losing product direction.
 ---
 
 # LCCoding
@@ -10,8 +10,8 @@ description: Use when an Owner wants to direct AI or coding agents through an Ow
 - Product name: `LCCoding`.
 - Skill invocation: `$lc-coding`.
 - Skill folder: `lc-coding/`.
-- Intended repository: `https://github.com/DWG7318/LCCoding`.
-- Current specification version: `1.1.0`.
+- Intended repository: `https://github.com/DWG7318/LCcoding`.
+- Current specification version: `1.1.1`.
 - Version source: repository `VERSION` file.
 
 LCCoding is an Owner-led, AI-executed product-development method. It is a Human–AI
@@ -23,7 +23,7 @@ framework, or replacement for Calabash, SLK, CLK, or GLK.
 ```text
 Calabash first and continuously living
                 ↕
-Workflow end  ← Feature Integration →  UI end
+Workflow end  ← Feature Integration →  UI / surface end
                 ↕
           Simulation world
                 ↓
@@ -34,9 +34,9 @@ Workflow end  ← Feature Integration →  UI end
 
 - `Calabash` is the product-definition axis.
 - `Workflow` is the capability end.
-- `UI` is the user-delivery end.
+- `UI` is the actor-facing product surface end.
 - `Simulation` makes the product world observable before production reality exists.
-- `Feature Integration` connects one user-visible capability through every required
+- `Feature Integration` connects one actor-visible capability through every required
   layer.
 - `AI Verification` proves the implementation satisfies the frozen claim.
 - `Owner Acceptance` decides whether the product experience and definition are right.
@@ -87,7 +87,7 @@ Every active LCCoding project keeps:
   WORKING-CONTRACT.md              # project-specific Human–AI contract
   PROJECT-START.md                 # project identity, profile, constraints
   WORKFLOW-MAP.md                  # capability end
-  UI-MAP.md                        # user-delivery end
+  UI-MAP.md                        # actor-facing product surfaces
   SIMULATION-WORLD.md              # realistic product world
   SHARED-CAPABILITIES.md           # reusable capability registry
   status.json                      # current project navigation state
@@ -138,7 +138,7 @@ Required minimum:
 - one Feature Slice;
 - focused Simulation scenarios;
 - impact and reuse checks;
-- AI Verification and Owner Acceptance when user-visible.
+- AI Verification and Owner Acceptance when actor-visible.
 
 ### PRODUCT
 
@@ -200,20 +200,30 @@ Define what the product can actually do:
 
 ### UI End
 
-Define what each user sees and can accomplish:
+Define what each relevant actor sees and can accomplish. `UI` includes all product
+surfaces, not only the customer/client interface:
 
+- customer or client app surfaces;
+- staff, operator, support, review, fulfillment, and finance consoles;
+- administrator and configuration surfaces;
+- notification, approval, audit, and status surfaces;
 - role-specific entry points;
 - pages, panels, states, and information hierarchy;
 - action affordances and feedback;
 - loading, empty, success, error, recovery, and permission states;
 - accepted visual direction and protected UI scope;
-- the visible completion of the user's task.
+- the visible completion of the actor's task.
 
 Neither end may be treated as a decorative layer over the other.
 
 An accepted UI is a protected product artifact. AI must not broadly redesign, restyle,
 rename, or restructure accepted UI outside the active Feature Slice without a material
 Owner decision and impact analysis.
+
+Internal staff and administrator UIs are first-class product surfaces. If a Feature
+depends on internal action, queue handling, approval, configuration, audit, or recovery,
+those surfaces must be mapped, simulated, verified, and protected by the same rules as
+customer-facing UI.
 
 An accepted Workflow is also protected. AI must not change product behavior merely to
 make implementation easier. Record `WORKFLOW_CONTRACT_CONFLICT` when the frozen
@@ -252,12 +262,12 @@ Read `references/simulation-world.md`.
 
 ## Product Progress Unit — Feature Slice
 
-LCCoding measures progress in user-visible, end-to-end capability slices.
+LCCoding measures progress in actor-visible, end-to-end capability slices.
 
 A valid Feature Slice connects:
 
 ```text
-user intent
+actor intent
 → UI entry and interaction
 → integration boundary
 → Workflow capability
@@ -337,17 +347,17 @@ Simulation = VERSIONED_MUTABLE
 Calabash = LIVING_WITH_IMPACT_TRACE
 ```
 
-The UI is the default fixed target because it represents the Owner-approved user-facing
+The UI is the default fixed target because it represents the Owner-approved actor-facing
 outcome. During integration, AI must make the engineering and Workflow implementation
-reach that target rather than simplifying, redesigning, renaming, deleting, or moving the
-UI to reduce implementation difficulty.
+reach every locked role surface in that target rather than simplifying, redesigning,
+renaming, deleting, or moving UI to reduce implementation difficulty.
 
 Every locked baseline records:
 
 - Feature Slice identity;
 - accepted UI reference, Git commit, artifact path, or reproducible snapshot;
 - baseline hash or immutable version identifier;
-- locked and explicitly editable UI surfaces;
+- locked and explicitly editable UI surfaces by actor and context;
 - accepted interaction, content, and state behavior;
 - Workflow contract and allowed controlled adjustments;
 - Simulation scenario-pack version;
@@ -547,8 +557,9 @@ A slice or project is not complete merely because tests pass.
 
 Convergence requires proof that:
 
-- the intended user task completes end to end;
-- UI and Workflow agree;
+- the intended actor tasks complete end to end;
+- UI and Workflow agree across every in-scope customer, staff, administrator,
+  notification, audit, and status surface;
 - realistic Simulation scenarios pass;
 - no critical UI is empty, dead, misleading, or mock-only;
 - shared capabilities remain coherent;
@@ -616,7 +627,7 @@ completion.
 
 Read `references/loop-method-integration.md`.
 
-## Forty-Eight Hard Rules
+## Forty-Nine Hard Rules
 
 1. LCCoding is an Owner-led working method, not an autonomous product authority.
 2. Human product decisions and AI engineering duties must remain explicit.
@@ -627,7 +638,7 @@ Read `references/loop-method-integration.md`.
 7. Accepted UI cannot be broadly redesigned outside declared scope.
 8. Product-facing work requires a realistic Simulation World or equivalent reality.
 9. Simulated success must never be presented as real integration.
-10. Product progress is measured by user-visible end-to-end Feature Slices.
+10. Product progress is measured by actor-visible end-to-end Feature Slices.
 11. A component, API, table, refactor, or test group is not automatically a Feature Slice.
 12. Enabling work does not count as product progress until consumed by a named slice.
 13. Every slice must trace to Calabash.
@@ -660,12 +671,13 @@ Read `references/loop-method-integration.md`.
 40. A Loop execution verdict cannot replace Owner product acceptance.
 41. Every Feature Integration must declare an immutable Integration Baseline.
 42. UI is locked by default during Integration.
-43. Integration must adapt engineering and controlled Workflow details to the locked UI target.
-44. AI may not reduce implementation difficulty by redesigning or simplifying locked UI.
-45. Every baseline lock must identify an immutable UI reference and its allowed editable scope.
-46. A locked-baseline conflict requires a Baseline Change Request, impact analysis, and Owner approval.
-47. Unapproved locked-UI modification invalidates the implementation candidate and its acceptance claim.
-48. A new design iteration supersedes an accepted baseline only through explicit versioning and traceable approval.
+43. UI includes customer, staff, administrator, notification, audit, and status surfaces when they are in scope.
+44. Integration must adapt engineering and controlled Workflow details to the locked UI target.
+45. AI may not reduce implementation difficulty by redesigning or simplifying locked UI.
+46. Every baseline lock must identify immutable UI references and allowed editable scope by actor surface.
+47. A locked-baseline conflict requires a Baseline Change Request, impact analysis, and Owner approval.
+48. Unapproved locked-UI modification invalidates the implementation candidate and its acceptance claim.
+49. A new design iteration supersedes an accepted baseline only through explicit versioning and traceable approval.
 
 ## Required Outputs
 
@@ -694,7 +706,7 @@ For a substantial project, produce or maintain:
 - Letting AI redesign accepted UI while “integrating.”
 - Calling backend completion product completion.
 - Counting tests, files, or commits as product progress.
-- Splitting work by technical layer instead of user-visible capability.
+- Splitting work by technical layer instead of actor-visible capability.
 - Reusing mocks after the real integration should exist.
 - Asking the Owner to approve routine technical actions.
 - Updating one page without analyzing prior accepted slices.
