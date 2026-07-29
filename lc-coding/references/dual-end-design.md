@@ -1,10 +1,8 @@
-# Dual-End Design
+# Workflow and UI Dual-End Design
 
-Workflow defines what the product can do. UI defines what relevant actors see and
-accomplish. UI includes customer/client interfaces, staff and operator consoles,
-administrator panels, notifications, audit views, and status surfaces when they are part
-of the product behavior.
+Workflow and UI are equal product ends.
 
-Both ends are designed with heavy Owner participation. Neither is a decorative
-afterthought. Before Integration, the Feature UI across every in-scope actor surface is
-accepted and captured as the default locked target.
+Workflow defines capability, state, rules, authority, side effects, failure, and recovery.
+UI defines every actor-facing entry, action, state, feedback, permission, and accepted visual result.
+
+Use IDs and traces rather than copying the same actor, state, and rule definitions into multiple documents. A mismatch is recorded once and resolved across both ends.

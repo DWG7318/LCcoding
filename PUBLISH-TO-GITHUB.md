@@ -1,19 +1,16 @@
-# Publish LCCoding 1.1.1 to GitHub
+# Publish to GitHub
+
+From the extracted repository root:
 
 ```bash
-unzip LCCoding-1.1.1-github.zip
-cd LCCoding-1.1.1-github
-
 git init
 git add .
-git commit -m "feat: release LCCoding 1.1.1"
+git commit -m "release: LCCoding 2.0.0"
 git branch -M main
-git remote add origin https://github.com/DWG7318/LCcoding.git
+git remote add origin <OWNER-CONFIRMED-REPOSITORY>
 git push -u origin main
-
-git tag -a v1.1.1 -m "LCCoding 1.1.1"
-git push origin v1.1.1
+git tag -a v2.0.0 -m "LCCoding 2.0.0"
+git push origin v2.0.0
 ```
 
-If the repository already exists, copy the files into a clean branch, review the diff,
-commit, merge, and tag `v1.1.1`.
+Before creating or changing repository visibility, obtain the Owner's explicit Public/Private decision.

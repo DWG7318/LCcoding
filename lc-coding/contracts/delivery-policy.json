@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "per_delivery_confirmation_required": true,
+  "defaults_are_recommendations": true,
+  "recommended_runtime": "Ubuntu",
+  "docker_required": false,
+  "recommended_source_code_included": false,
+  "owner_locked_default_exclusions": [
+    "LCagent",
+    "LCapi",
+    "LCCoding",
+    "Calabash",
+    "SLK",
+    "CLK",
+    "GLK",
+    "Project Intelligence",
+    "Canonical Assets",
+    "Development Evidence"
+  ],
+  "prohibited_rights": [
+    "resale",
+    "redistribution",
+    "sublicense",
+    "repackaging",
+    "unauthorized_modification",
+    "reverse_engineering",
+    "transfer",
+    "control_removal"
+  ],
+  "required_decision_groups": [
+    "delivery_model",
+    "assets",
+    "source_and_modification_rights",
+    "runtime_and_infrastructure",
+    "data",
+    "internal_dependencies",
+    "license",
+    "operations"
+  ]
+}

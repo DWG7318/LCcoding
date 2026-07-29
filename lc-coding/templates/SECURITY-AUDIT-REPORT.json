@@ -1,0 +1,23 @@
+{
+  "audit_id": "",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "audit_mode": "CENTRALIZED_FINAL_ACCEPTED_CANDIDATE",
+  "pre_audit_loop_owner_acceptance_receipts": [],
+  "security_auditor": {
+    "agent_id": "",
+    "context_id": "",
+    "workspace_id": "",
+    "independent": false,
+    "prior_roles": []
+  },
+  "audit_scope": {
+    "status": "PENDING",
+    "attack_surfaces": [],
+    "exclusions": []
+  },
+  "reused_security_evidence": [],
+  "new_checks": [],
+  "findings": [],
+  "issued_at": ""
+}

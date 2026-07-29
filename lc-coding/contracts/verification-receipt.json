@@ -1,0 +1,40 @@
+{
+  "required": [
+    "receipt_id",
+    "layer",
+    "claim_id",
+    "claim_version",
+    "candidate_id",
+    "candidate_hash",
+    "authority",
+    "verdict"
+  ],
+  "layers": [
+    "D0",
+    "D1",
+    "D2",
+    "D3"
+  ],
+  "verdicts": [
+    "PASS",
+    "FAIL",
+    "BLOCKED"
+  ],
+  "repeated_check_required_fields": [
+    "source_layer",
+    "reason",
+    "scope_difference",
+    "risk",
+    "result"
+  ],
+  "independence_required_for": [
+    "D1",
+    "D2",
+    "D3"
+  ],
+  "independence_fields": [
+    "executor_context_id",
+    "verification_context_id",
+    "verification_workspace_id"
+  ]
+}

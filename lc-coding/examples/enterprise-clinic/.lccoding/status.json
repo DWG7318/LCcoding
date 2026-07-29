@@ -1,0 +1,27 @@
+{
+  "project_id": "clinic-demo",
+  "updated_at": "2026-07-29T00:00:00Z",
+  "proposal": "READY",
+  "initialization": "PASS",
+  "calabash_draft": "DONE",
+  "workflow": "DONE",
+  "ui": "LOCKED",
+  "simulation": "SCN-APPT-01 v3",
+  "mandatory_calabash_upgrade": "PASS",
+  "product_baseline": "PB-001",
+  "active_slice": "FS-001",
+  "integration_baseline": "IB-001",
+  "active_runs": [],
+  "final_verification": "PASS",
+  "delivery": "PREPARING",
+  "last_material_change": "FS-001 accepted",
+  "next_action": "prepare Delivery Manifest",
+  "blockers": [],
+  "loop_owner_acceptances": [
+    "LOOP_OWNER_ACCEPTED"
+  ],
+  "all_required_runs_accepted": "PASS",
+  "centralized_security_audit": "COMPLETE",
+  "vulnerability_closure": "VULNERABILITY_CLOSED",
+  "post_security_owner_acceptance": "POST_SECURITY_OWNER_ACCEPTED"
+}

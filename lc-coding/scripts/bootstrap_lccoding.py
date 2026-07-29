@@ -1,36 +1,55 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import argparse, json, shutil
+import argparse, json, shutil, datetime
 
-FILES = {
- 'WORKING-CONTRACT.md':'WORKING-CONTRACT.md',
- 'SIMULATION-WORLD.md':'SIMULATION-WORLD.md',
-}
+ROOT_DIRS = ['slices','impact','evidence','reviews','release','runs','security','delivery']
+
+def copy_template(src_root, name, dst):
+    src = src_root / 'templates' / name
+    if src.exists() and not dst.exists():
+        shutil.copy2(src, dst)
 
 def main():
-    ap=argparse.ArgumentParser()
+    ap = argparse.ArgumentParser()
     ap.add_argument('--project', required=True)
     ap.add_argument('--name', required=True)
-    ap.add_argument('--profile', default='PRODUCT', choices=['EXPRESS','PRODUCT','SYSTEM'])
-    a=ap.parse_args()
-    root=Path(a.project).resolve(); lc=root/'.lccoding'; lc.mkdir(parents=True,exist_ok=True)
-    tpl=Path(__file__).resolve().parents[1]/'templates'
-    for out,src in FILES.items():
-        dst=lc/out
-        if not dst.exists(): shutil.copy2(tpl/src,dst)
-    defaults={
-      'PROJECT-START.md':f'# Project Start\n\n- Project: {a.name}\n- Profile: `{a.profile}`\n- Calabash baseline:\n',
-      'WORKFLOW-MAP.md':'# Workflow Map\n',
-      'UI-MAP.md':'# UI Map\n\n## Actor Surfaces\n\n| Surface | Actor | Purpose | Data Visible | Actions | Lock State |\n|---|---|---|---|---|---|\n| Customer/client | | | | | |\n| Staff/operator | | | | | |\n| Administrator/configuration | | | | | |\n| Notification/status/audit | | | | | |\n',
-      'SHARED-CAPABILITIES.md':'# Shared Capabilities\n',
-      'slices/INDEX.md':'# Feature Slice Index\n',
-    }
-    for rel,content in defaults.items():
-        p=lc/rel; p.parent.mkdir(parents=True,exist_ok=True)
-        if not p.exists(): p.write_text(content,encoding='utf-8')
-    for d in ['impact','evidence','observations','reviews','release','baselines']:
+    ap.add_argument('--repository', required=True)
+    ap.add_argument('--visibility', choices=['public','private'], required=True)
+    ap.add_argument('--owner', default='OWNER')
+    args = ap.parse_args()
+
+    project = Path(args.project).resolve()
+    project.mkdir(parents=True, exist_ok=True)
+    lc = project / '.lccoding'
+    lc.mkdir(exist_ok=True)
+    for d in ROOT_DIRS:
         (lc/d).mkdir(exist_ok=True)
-    status={'project':a.name,'profile':a.profile,'version':'1.1.1','active_slice':None,'integration_baseline':None}
-    (lc/'status.json').write_text(json.dumps(status,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print(f'LCCODING_BOOTSTRAPPED {root}')
-if __name__=='__main__': main()
+
+    skill_root = Path(__file__).resolve().parents[1]
+    mappings = {
+        'OWNER-POLICY.md':'OWNER-POLICY.md', 'PROJECT-PROFILE.md':'PROJECT-PROFILE.md',
+        'PROJECT-FINGERPRINT.json':'PROJECT-FINGERPRINT.json', 'PROJECT-HEALTH.json':'PROJECT-HEALTH.json',
+        'AGENT-RULE.md':'AGENT-RULE.md', 'CANONICAL-MANIFEST.json':'CANONICAL-MANIFEST.json',
+        'INTERPRETATION-LOCK.json':'INTERPRETATION-LOCK.json', 'PROPOSAL-READINESS.md':'PROPOSAL-READINESS.md',
+        'WORKING-CONTRACT.md':'WORKING-CONTRACT.md','WORKFLOW-MAP.md':'WORKFLOW-MAP.md',
+        'UI-MAP.md':'UI-MAP.md','SIMULATION-WORLD.md':'SIMULATION-WORLD.md','STATUS.json':'status.json','PHASE-STATUS.json':'PHASE-STATUS.json'
+    }
+    for src, dst in mappings.items():
+        copy_template(skill_root, src, lc/dst)
+
+    start = {
+        'project_id': project.name,
+        'name': args.name,
+        'owner': args.owner,
+        'repository': args.repository,
+        'visibility': args.visibility,
+        'initial_version': '0.0.1',
+        'created_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'status': 'INITIALIZED'
+    }
+    (lc/'PROJECT-START.json').write_text(json.dumps(start, indent=2), encoding='utf-8')
+    (project/'VERSION').write_text('0.0.1\n', encoding='utf-8') if not (project/'VERSION').exists() else None
+    print(lc)
+
+if __name__ == '__main__':
+    main()

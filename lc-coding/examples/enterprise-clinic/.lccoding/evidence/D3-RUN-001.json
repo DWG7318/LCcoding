@@ -1,0 +1,31 @@
+{
+  "receipt_id": "VR-D3-001",
+  "layer": "D3",
+  "claim_id": "RUN-001",
+  "claim_version": "1",
+  "candidate_id": "CAND-001",
+  "candidate_hash": "abc123",
+  "environment_id": "ubuntu-dev-001",
+  "authority": "Fresh Run Verification",
+  "reused_evidence": [
+    "D0-001",
+    "D1-001",
+    "D2-001"
+  ],
+  "new_evidence": [
+    "end-to-end appointment path",
+    "locked UI identity",
+    "persisted state"
+  ],
+  "repeated_checks": [],
+  "coverage": [
+    "FS-001"
+  ],
+  "risks_remaining": [],
+  "verdict": "PASS",
+  "issued_at": "2026-07-29T00:00:00Z",
+  "executor_context_id": "worker-run-001",
+  "verification_context_id": "fresh-d3-001",
+  "verification_workspace_id": "verify-ws-001",
+  "model_binding_id": "verification-model-001"
+}

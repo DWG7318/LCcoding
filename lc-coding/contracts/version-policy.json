@@ -1,0 +1,8 @@
+{
+  "initial": "0.0.1",
+  "small": "commit_only",
+  "medium_pattern": "0.0.x",
+  "large_pattern": "0.x.1",
+  "restricted_threshold": "1.0.1",
+  "restricted_authority": "OWNER"
+}
