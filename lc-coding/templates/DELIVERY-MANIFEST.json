@@ -1,0 +1,17 @@
+{
+  "delivery_id": "",
+  "project_id": "",
+  "product_version": "",
+  "candidate_id": "",
+  "included": [],
+  "excluded": [],
+  "internal_dependencies": [],
+  "runtime_certification": "",
+  "license_policy": "",
+  "package_hashes": {},
+  "verification_receipts": [],
+  "owner_approval": "PENDING",
+  "delivery_decision_id": "",
+  "delivery_method_confirmed": false,
+  "qa_status": "PENDING"
+}

@@ -1,0 +1,25 @@
+{
+  "current_phase": "INITIAL",
+  "phases": {
+    "INITIAL": {
+      "status": "ACTIVE",
+      "exit_gate": "PENDING"
+    },
+    "PRODUCT_FORMATION": {
+      "status": "PENDING",
+      "exit_gate": "PENDING"
+    },
+    "ENGINEERING_RUNS": {
+      "status": "PENDING",
+      "per_run_acceptances": [],
+      "aggregate_exit_gate": "PENDING"
+    },
+    "DELIVERY_PREPARATION": {
+      "status": "PENDING",
+      "exit_gate": "PENDING"
+    }
+  },
+  "updated_at": "",
+  "evidence": [],
+  "blockers": []
+}

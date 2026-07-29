@@ -1,0 +1,33 @@
+{
+  "project_id": "",
+  "updated_at": "",
+  "current_phase": "INITIAL",
+  "phase_gates": {
+    "INITIAL_READY": "PENDING",
+    "CALABASH_UPGRADE_READY": "PENDING",
+    "ALL_REQUIRED_RUNS_ACCEPTED": "PENDING",
+    "DELIVERY_READY": "PENDING"
+  },
+  "proposal": "PENDING",
+  "initialization": "PENDING",
+  "calabash_draft": "PENDING",
+  "workflow": "PENDING",
+  "ui": "PENDING",
+  "simulation": "PENDING",
+  "mandatory_calabash_upgrade": "PENDING",
+  "product_baseline": "PENDING",
+  "active_slice": null,
+  "integration_baseline": null,
+  "active_runs": [],
+  "loop_owner_acceptances": [],
+  "all_required_runs_accepted": "PENDING",
+  "centralized_security_audit": "PENDING",
+  "security_remediation": "PENDING",
+  "vulnerability_closure": "PENDING",
+  "post_security_owner_acceptance": "PENDING",
+  "delivery_method_qa": "PENDING",
+  "delivery": "PENDING",
+  "last_material_change": "",
+  "next_action": "",
+  "blockers": []
+}

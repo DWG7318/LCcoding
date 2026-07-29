@@ -1,9 +1,5 @@
 # Simulation World
 
-Create a resettable, versioned, realistic product world with representative users, staff
-roles, administrator roles, data density, time, permissions, failures, devices, and
-recovery paths. Simulation exists for product observation and design, not merely tests.
+A scenario is defined once and reused through product design, Integration, D0–D3, Loop Owner Acceptance, centralized security threat/abuse review when relevant, and Post-Security Owner Acceptance.
 
-When a Feature depends on internal action, include the internal queues, permissions,
-back-office states, configuration surfaces, audit trails, and recovery cases needed to
-observe it. Simulated success must be visibly distinguished from real integration.
+Do not create separate duplicate scenario catalogs when they represent the same product situation. Increase fidelity or add security-specific abuse cases by versioned delta.

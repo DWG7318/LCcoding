@@ -1,0 +1,9 @@
+{
+  "project_id": "clinic-demo",
+  "name": "Enterprise Clinic",
+  "owner": "OWNER",
+  "repository": "DWG7318/enterprise-clinic",
+  "visibility": "private",
+  "initial_version": "0.0.1",
+  "status": "INITIALIZED"
+}

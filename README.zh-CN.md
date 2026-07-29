@@ -1,70 +1,184 @@
-# LCCoding 1.1.1
+# LCCoding 2.0.0
 
-LCCoding 是一套 **人负责产品、AI 负责工程** 的人机协同开发方法。
+**由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
-## 主结构
-
-```text
-Calabash：先建立，并在全过程持续演化
-                    ↕
-Workflow 能力端 ← Feature Integration → UI 多角色产品界面端
-                    ↕
-                 拟真世界
-                    ↓
-           AI Verification + Owner 验收
-                    ↓
-             影响分析与同步迭代
-```
-
-## 1.1.1 补充：多角色 UI 范围
-
-`UI` 不只指用户客户端，也包括所有角色能看到并操作的产品界面：
-
-- 客户端/用户端；
-- 员工、运营、客服、审核、履约等后台端；
-- 管理员配置端；
-- 通知、审批、审计、状态展示等可见界面。
-
-如果某个 Feature 依赖员工或管理员动作，这些后台界面必须进入 UI Map、
-Simulation、AI Verification 和 Integration Baseline Lock，不能被当成纯工程附属物。
-
-## 1.1.0 新增：连接基座锁定
-
-连接阶段必须牺牲一端的灵活性，才能让工作收敛。默认规则是：
+## 主干不变
 
 ```text
-UI = 锁定
-Workflow = 受控可调整
-Simulation = 版本化可调整
-Calabash = 持续演化并记录影响
+Owner Proposal
+      ↓
+Proposal Readiness Check
+      ↓
+Project Initialization
+      ↓
+Calabash Draft
+      ↓
+Workflow 能力端 ↔ UI 产品呈现端
+                 ↕
+          Simulation World
+      ↓
+Mandatory Calabash Upgrade
+      ↓
+Product Baseline
+      ↓
+Feature Slice
+      ↓
+锁定 UI 的 Feature Integration
+      ↓
+SLK / CLK / GLK
+      ↓
+独立、分层、尽量不重复的 Verification
+      ↓
+Owner Acceptance
+      ↓
+Delivery
 ```
 
-UI 在设计阶段可以充分迭代；一旦进入某个 Feature 的连接阶段，Owner 已接受的
-多角色 UI 界面就成为固定施工目标。AI 必须让 Workflow 和工程实现去适配 UI，不得为了容易
-实现而改布局、删功能、换交互、改名称或降低产品质量。
 
-只有两种方式可以改变锁定 UI：
+主干节点没有增加；具体含义是：
 
-1. Owner 主动要求；
-2. AI 提交 `BASELINE_CHANGE_REQUEST`，说明冲突、证据、替代方案和影响范围，
-   获得 Owner 明确批准。
+- 每个正常 Loop Run 在 `SLK / CLK / GLK` 内部完成 `D0–D3 → Loop Owner Acceptance`；
+- 所有正常 Run 验收后，主干中的 `Verification` 承载集中漏洞审计、修复、独立复验与关闭；
+- 主干中的 `Owner Acceptance` 是安全修复后的 Post-Security Owner Acceptance；
+- Delivery 先做当前客户的 Delivery Method Q&A。
 
-未经批准修改锁定 UI，记为 `BASELINE_LOCK_VIOLATION`，该候选不能验收。
+这里需要特别说明：**SLK、CLK、GLK 内部本来就有 Owner/Human Acceptance，而且必须保留。**它不是 Handoff，也不能被 LCCoding 合并成最后一次大验收。
 
-## 初始化
+## 两种 Owner Acceptance
 
-```bash
-python lc-coding/scripts/bootstrap_lccoding.py \
-  --project /path/to/project \
-  --name "项目名称" \
-  --profile PRODUCT
+### 1. Loop Owner Acceptance
+
+每个正常的 SLK、CLK、GLK Run 在 D3 通过后，由该 Run 的 Supervisor 组织 Owner 验收。
+
+```text
+Run D3 PASS
+      ↓
+Supervisor 准备候选、账号、场景和步骤
+      ↓
+LOOP_OWNER_ACCEPTANCE
 ```
 
-## 关键模板
+一个 Feature Slice 包含多个 Run 时，Owner 按 Run 分段验收。每次只看一个已经完成的小范围结果，不把所有内容堆到项目末尾。
 
-- `FEATURE-SLICE.md`：端到端功能切片
-- `INTEGRATION-BASELINE.md`：连接基座与 UI 锁定记录
-- `BASELINE-CHANGE-REQUEST.md`：基座解锁/变更申请
-- `SIMULATION-WORLD.md`：拟真世界
-- `IMPACT-ANALYSIS.md`：影响分析
-- `WORKING-CONTRACT.md`：人机工作契约
+有效结果：
+
+```text
+LOOP_OWNER_ACCEPTED
+LOOP_PRODUCT_REWORK
+LOOP_PRODUCT_DEFINITION_CHANGE
+LOOP_OWNER_DEFERRED
+```
+
+只有所有 Required Run 都取得 `LOOP_OWNER_ACCEPTED`，才形成进入集中安全阶段的 Accepted Candidate。
+
+### 2. Post-Security Owner Acceptance
+
+所有正常 Run 验收完成后，立即进行一次集中的漏洞审计。漏洞修复会改变最终 Candidate，因此安全闭环后必须再进行一次 Owner Acceptance。
+
+这一次不是重验整个项目，而是：
+
+- 复用全部 Loop Owner Acceptance Receipt；
+- 只检查安全修复影响到的 UI、Workflow 和关键路径；
+- 对没有改变的已验收区域不重复验收；
+- 至少走一条关键端到端 Smoke Route；
+- 确认安全修复没有破坏此前接受的产品行为。
+
+输出：
+
+```text
+POST_SECURITY_OWNER_ACCEPTED
+POST_SECURITY_PRODUCT_REWORK
+POST_SECURITY_OWNER_DEFERRED
+```
+
+## 四个阶段
+
+阶段只是给主干分段，不创建第二套生命周期：
+
+| 阶段 | 覆盖范围 | 出口 Gate |
+|---|---|---|
+| `INITIAL` | Owner Proposal、PRC、Project Initialization | `INITIAL_READY`，进入 Calabash Draft |
+| `PRODUCT_FORMATION` | Calabash Draft、Workflow、UI、Simulation World | `CALABASH_UPGRADE_READY`，进入 Mandatory Calabash Upgrade |
+| `ENGINEERING_RUNS` | Calabash Upgrade、Product Baseline、Feature Slice、Integration、单个 Loop Run、D0–D3 | 每个 Run 输出 `LOOP_OWNER_ACCEPTANCE_READY`；全部通过后输出 `ALL_REQUIRED_RUNS_ACCEPTED` |
+| `DELIVERY_PREPARATION` | 集中漏洞审计、修复、独立复验、Post-Security Owner Acceptance、交付方式问答和 Package 检查 | `DELIVERY_READY` |
+
+`ENGINEERING_RUNS` 是可重复阶段：一个 Run 验收后，如果还有 Run，就继续下一轮；不会等到所有 Run 做完以后才让 Owner 一次性验收。
+
+## 集中漏洞检测与排除
+
+漏洞检测不分散成多次正式安全验收，而是在所有正常 Run 已经 Owner-Accepted 后集中进行一次。
+
+### 独立 Security Auditor
+
+必须建立一个新的独立 Security Auditor Agent：
+
+- 未参与该 Candidate 的 Worker 工作；
+- 未担任 Checker；
+- 未签发 D2/D3；
+- 未担任 Run Supervisor；
+- 未替 Owner 做前面的产品验收；
+- 使用独立 Context、Workspace 和 Evidence。
+
+Security Auditor 负责审计和复验，**不能自己修自己发现的问题**。
+
+### 集中流程
+
+```text
+ALL_REQUIRED_RUNS_ACCEPTED
+      ↓
+CENTRALIZED_VULNERABILITY_AUDIT
+      ↓
+Security Findings
+      ↓
+独立工程角色完成 Security Remediation
+      ↓
+Security Auditor Re-audit
+      ↓
+VULNERABILITY_CLOSED
+      ↓
+POST_SECURITY_OWNER_ACCEPTANCE
+      ↓
+Delivery Method Q&A
+```
+
+第一次集中审计要覆盖最终 Accepted Candidate 的完整已定义攻击面，不只是增量扫描。D0–D3 已有的安全证据可以复用，但它们不能替代集中安全结论。
+
+修复后只重跑被修改 Candidate 影响到的 D0–D3 Evidence 和安全检查；Security Auditor 负责最终复验并签发 Closure Receipt。
+
+以下问题必须关闭：
+
+- Critical / High 漏洞；
+- Secret Exposure；
+- Authentication Bypass；
+- Privilege Escalation；
+- Cross-customer / Cross-tenant Data Leakage。
+
+## Verification 去重
+
+```text
+D0  Worker Self-Check
+D1  Checker CELL Acceptance
+D2  独立 GO Verification
+D3  独立 Stage / Run / Final Verification
+```
+
+每层只验证自己的 Claim。高层引用低层 Receipt，只在 Candidate 改变、证据过期或矛盾、环境变化、组合改变结果、回归范围扩大或存在明确风险时重复检查。
+
+正式漏洞审计不嵌入每个 D0–D3 层级。局部安全断言可以存在，但集中 Security Auditor 才拥有最终漏洞结论权。
+
+## 交付方式确认
+
+Post-Security Owner Acceptance 通过后，必须针对当前客户执行 Delivery Method Q&A，不能盲目套用默认方式。
+
+AI 先读取 Owner Policy、Project Profile、客户合同和已确认事项，只询问本次尚未确定的内容，并给出推荐答案与选项。至少确认：
+
+- SaaS、我方托管、客户私有部署、安装包或其他模式；
+- 实际包含和排除的资产；
+- 源码、修改权、转移权和部署范围；
+- Runtime、基础设施和网络；
+- 数据迁移、备份和责任；
+- LCagent、LCapi 等内部依赖如何使用但不交付；
+- License、期限、席位、站点、升级、支持和维护；
+- 上线、回滚、凭证和后续运维。
+
+内部 LC 资产禁交付规则仍然是 Owner Policy，不作为普通客户选项。

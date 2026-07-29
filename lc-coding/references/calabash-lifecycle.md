@@ -1,6 +1,10 @@
-# Calabash Lifecycle
+# Calabash Lifecycle in LCCoding
 
-Start from an initial frozen baseline. Throughout Workflow design, UI design, Simulation,
-Integration, Verification, and acceptance, confirmed learning updates the living lineage.
-Material changes require impact analysis and a Git-traceable amendment. Active work must
-identify the exact revision it follows.
+LCCoding coordinates two Calabash moments:
+
+1. `Calabash Draft`, before dual-end design is complete;
+2. `Mandatory Calabash Upgrade`, after Workflow/UI/Simulation learning and before Product Baseline.
+
+Confirmed learning may update the working lineage during design. The Mandatory Upgrade is the formal consolidation gate; it consumes existing decisions/findings and must not repeat Proposal discovery.
+
+Calabash internal seven-layer governance remains defined by the Calabash standard.

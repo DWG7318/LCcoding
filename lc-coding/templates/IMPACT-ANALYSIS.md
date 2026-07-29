@@ -1,36 +1,15 @@
 # Impact Analysis
 
-- Analysis ID:
-- Proposed change:
-- Reason/evidence:
-- Recommendation:
-- Owner decision required: `YES | NO`
-
-## Affected Areas
-
-| Area | Impact | Required Action | Evidence/Owner |
-|---|---|---|---|
-| Calabash | | | |
-| Workflow | | | |
-| UI / locked baseline | | | |
-| Customer/client surfaces | | | |
-| Staff/operator surfaces | | | |
-| Administrator/configuration surfaces | | | |
-| Notification/status/audit surfaces | | | |
-| Simulation | | | |
-| Feature Slices | | | |
-| Shared Capabilities | | | |
-| Data/Contracts | | | |
-| Verification/Regression | | | |
-| SLK/CLK/GLK | | | |
-| Release/Rollback | | | |
-
-## Coherent Change Set
-
-1. 
-
-## Synchronization Receipt
-
-- Completed changes:
-- Remaining impact debt:
-- Git commit:
+- Analysis ID / version:
+- Trigger / proposed change:
+- Baseline and Slice:
+- Affected Calabash:
+- Affected Workflow:
+- Affected UI:
+- Affected Simulation scenarios:
+- Affected shared capabilities / data / APIs:
+- Affected accepted Slices / Runs / evidence:
+- Regression scope:
+- Release / rollback:
+- Delta history:
+- Owner decision:

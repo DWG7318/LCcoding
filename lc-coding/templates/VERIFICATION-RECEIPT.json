@@ -1,0 +1,21 @@
+{
+  "receipt_id": "",
+  "layer": "D0|D1|D2|D3",
+  "claim_id": "",
+  "claim_version": "",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "environment_id": "",
+  "authority": "",
+  "reused_evidence": [],
+  "new_evidence": [],
+  "repeated_checks": [],
+  "coverage": [],
+  "risks_remaining": [],
+  "verdict": "PENDING",
+  "issued_at": "",
+  "executor_context_id": "",
+  "verification_context_id": "",
+  "verification_workspace_id": "",
+  "model_binding_id": ""
+}

@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "mainline_unchanged": true,
+  "phases": [
+    {
+      "id": "INITIAL",
+      "start": "PROPOSAL_READINESS",
+      "end_before": "CALABASH_DRAFT",
+      "exit_gate": "INITIAL_READY"
+    },
+    {
+      "id": "PRODUCT_FORMATION",
+      "start": "CALABASH_DRAFT",
+      "end_before": "MANDATORY_CALABASH_UPGRADE",
+      "exit_gate": "CALABASH_UPGRADE_READY"
+    },
+    {
+      "id": "ENGINEERING_RUNS",
+      "start": "MANDATORY_CALABASH_UPGRADE",
+      "repeatable": true,
+      "per_run_end_before": "LOOP_OWNER_ACCEPTANCE",
+      "per_run_exit_gate": "LOOP_OWNER_ACCEPTANCE_READY",
+      "per_run_acceptance_receipt": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
+      "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED"
+    },
+    {
+      "id": "DELIVERY_PREPARATION",
+      "start_after": "ALL_REQUIRED_RUNS_ACCEPTED",
+      "end_before": "DELIVERY",
+      "required_subgates": [
+        "CENTRALIZED_VULNERABILITY_AUDIT",
+        "SECURITY_REMEDIATION",
+        "INDEPENDENT_SECURITY_REAUDIT",
+        "VULNERABILITY_CLOSURE",
+        "POST_SECURITY_OWNER_ACCEPTANCE",
+        "DELIVERY_METHOD_QA",
+        "DELIVERY_PACKAGE_GUARD"
+      ],
+      "exit_gate": "DELIVERY_READY"
+    }
+  ]
+}

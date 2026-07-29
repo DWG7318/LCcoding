@@ -1,0 +1,21 @@
+{
+  "delivery_decision_id": "",
+  "delivery_id": "",
+  "customer": "",
+  "candidate_id": "",
+  "owner_policy_version": "",
+  "locked_exclusions": [],
+  "decisions": {
+    "delivery_model": null,
+    "assets": null,
+    "source_and_modification_rights": null,
+    "runtime_and_infrastructure": null,
+    "data": null,
+    "internal_dependencies": null,
+    "license": null,
+    "operations": null
+  },
+  "qa_status": "PENDING",
+  "owner_confirmed": false,
+  "confirmed_at": ""
+}

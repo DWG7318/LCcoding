@@ -1,0 +1,21 @@
+{
+  "project_id": "",
+  "updated_at": "",
+  "repository": "PENDING",
+  "agents_rule": "PENDING",
+  "skills": "PENDING",
+  "canonical_lock": "PENDING",
+  "code_graph": "PENDING",
+  "code_search": "PENDING",
+  "lsp": "PENDING",
+  "quality_intelligence": "PENDING",
+  "calabash_draft": "PENDING",
+  "workflow": "PENDING",
+  "ui": "PENDING",
+  "simulation": "PENDING",
+  "product_baseline": "PENDING",
+  "active_slice": null,
+  "active_run": null,
+  "delivery": "PENDING",
+  "blockers": []
+}

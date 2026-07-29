@@ -1,0 +1,49 @@
+{
+  "name": "LCCoding",
+  "version": "2.0.0",
+  "skill": "lc-coding",
+  "invocation": "$lc-coding",
+  "mainline": [
+    "PRC",
+    "Project Initialization",
+    "Calabash Draft",
+    "Workflow/UI/Simulation",
+    "Mandatory Calabash Upgrade",
+    "Product Baseline",
+    "Feature Slice",
+    "UI-locked Integration",
+    "SLK/CLK/GLK",
+    "Layered Verification",
+    "Owner Acceptance",
+    "Delivery"
+  ],
+  "verification": [
+    "D0",
+    "D1",
+    "D2",
+    "D3"
+  ],
+  "default_runtime": null,
+  "docker_required": false,
+  "repository_complete": true,
+  "phase_overlay": [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "ENGINEERING_RUNS",
+    "DELIVERY_PREPARATION"
+  ],
+  "sole_human_acceptance": "Owner Acceptance",
+  "loop_terminal_handoff": "ACCEPTANCE_HANDOFF_READY",
+  "vulnerability_closure_required": true,
+  "delivery_method_qa_required": true,
+  "recommended_runtime": "Ubuntu",
+  "acceptance_model": {
+    "normal_runs": "LOOP_OWNER_ACCEPTANCE_PER_RUN",
+    "security_final": "POST_SECURITY_OWNER_ACCEPTANCE"
+  },
+  "security_model": {
+    "mode": "CENTRALIZED",
+    "position": "AFTER_ALL_REQUIRED_RUNS_ACCEPTED",
+    "auditor": "INDEPENDENT"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "lccoding": {
+    "version": "2.0.0",
+    "hash": ""
+  },
+  "calabash": {
+    "version": "",
+    "hash": ""
+  },
+  "slk": {
+    "version": "",
+    "hash": ""
+  },
+  "clk": {
+    "version": "",
+    "hash": ""
+  },
+  "glk": {
+    "version": "",
+    "hash": ""
+  },
+  "compatibility": "PENDING",
+  "load_order": [
+    "LCCoding",
+    "Project Agent Rule",
+    "Calabash",
+    "Selected Loop",
+    "Project Artifacts",
+    "Repository"
+  ]
+}
