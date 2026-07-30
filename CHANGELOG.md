@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.0
+
+### Existing engineering intake
+
+- Added NEW and EXISTING modes inside Project Initialization without changing the mainline.
+- Preserved existing repositories, history, versions, materials, and valid evidence instead of resetting or rebuilding by default.
+- Bound inherited completion claims to `CLAIMED_UNATTESTED` until current evidence is established.
+- Added Owner continuation decisions and UI-anchored, evidence-backed reconstruction through existing project artifacts.
+
+### Proportional depth
+
+- Kept every mandatory mainline node while making analysis, material, and evidence depth proportional to five Project Fingerprint factors.
+- Kept `recommended_loop` separate as execution topology only.
+- Clarified that sufficient evidence is reused, concise work remains truthful, and high-risk work deepens coverage.
+
+### Learning return
+
+- Clarified that Product learning may be blank and returns only when it changes future governance.
+- Reused one existing canonical artifact; no learning phase, repository, directory, or mandatory document was added.
+
 ## 2.0.0
 
 ### Preserved

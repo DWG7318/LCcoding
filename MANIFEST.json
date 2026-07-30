@@ -1,6 +1,6 @@
 {
   "name": "LCCoding",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "skill": "lc-coding",
   "invocation": "$lc-coding",
   "mainline": [
@@ -26,6 +26,28 @@
   "default_runtime": null,
   "docker_required": false,
   "repository_complete": true,
+  "project_initialization_modes": [
+    "NEW",
+    "EXISTING"
+  ],
+  "existing_completion_claim": "CLAIMED_UNATTESTED",
+  "mainline_depth_policy": {
+    "mandatory_nodes_fixed": true,
+    "factors": [
+      "product_uncertainty",
+      "system_coupling",
+      "real_risk",
+      "irreversibility",
+      "novelty"
+    ],
+    "reuse_sufficient_evidence": true,
+    "recommended_loop_is_topology_only": true
+  },
+  "learning_return": {
+    "optional": true,
+    "consequential_only": true,
+    "target": "ONE_EXISTING_CANONICAL_ARTIFACT"
+  },
   "phase_overlay": [
     "INITIAL",
     "PRODUCT_FORMATION",

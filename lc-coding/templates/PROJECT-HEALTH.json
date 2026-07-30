@@ -1,6 +1,10 @@
 {
   "project_id": "",
   "updated_at": "",
+  "initialization_mode": "NEW|EXISTING",
+  "continuity_decision": "PENDING",
+  "completion_claim_status": "PENDING",
+  "existing_project_classification": "PENDING",
   "repository": "PENDING",
   "agents_rule": "PENDING",
   "skills": "PENDING",

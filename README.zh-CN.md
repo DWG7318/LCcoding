@@ -1,4 +1,4 @@
-# LCCoding 2.0.0
+# LCCoding 2.1.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -43,6 +43,16 @@ Delivery
 - Delivery 先做当前客户的 Delivery Method Q&A。
 
 这里需要特别说明：**SLK、CLK、GLK 内部本来就有 Owner/Human Acceptance，而且必须保留。**它不是 Handoff，也不能被 LCCoding 合并成最后一次大验收。
+
+## 既有工程接管
+
+Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增加新生命周期。EXISTING 保留原有仓库、Git 历史、当前版本、材料和可信证据；旧有“已完成”只能记为 `CLAIMED_UNATTESTED`，不能直接越过 LCCoding 的证据边界。
+
+进入工程前，Owner 决定 `CONTINUE`、`NARROW_REDIRECT`、`HOLD` 或 `TERMINATE`。可运行 UI 是 Owner 理解现状的第一认知锚点，但不是完成证据；AI 必须从可见入口反向还原 Workflow、状态、数据、权限、异常与恢复，并为不可见行为提供独立证据。只有真实缺口才进入现有 Feature Slice 与 Loop Run。
+
+## 固定主干、按风险调深浅
+
+所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
 
 ## 两种 Owner Acceptance
 

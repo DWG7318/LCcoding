@@ -9,6 +9,8 @@
 - Affected Simulation scenarios:
 - Affected shared capabilities / data / APIs:
 - Affected accepted Slices / Runs / evidence:
+- Existing evidence reused / unknown / contradicted:
+- Fingerprint complexity and proportional-depth response:
 - Regression scope:
 - Release / rollback:
 - Delta history:

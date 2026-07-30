@@ -1,9 +1,9 @@
 ---
 name: lc-coding
-description: Use when an Owner wants AI to develop an enterprise product through Proposal Readiness, project initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
+description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.0.0
+# LCCoding 2.1.0
 
 ## Canonical mainline
 
@@ -45,15 +45,29 @@ Owner decides product meaning. AI completes routine engineering autonomously ins
 
 1. Run Proposal Readiness once over all supplied material.
 2. Ask only blocking gaps; persist answers and never re-ask without contradictory evidence.
-3. Initialize Git/GitHub, Agents Rule, skills, capabilities, canonical lock, profile, fingerprint, and health.
-4. Revalidate only changed initialization inputs.
+3. Select NEW or EXISTING Project Initialization.
+4. For NEW, initialize Git/GitHub and version `0.0.1`. For EXISTING, preserve repository/history/version/materials and record current HEAD/candidate before adding LCCoding artifacts.
+5. Initialize or reuse Agents Rule, skills, capabilities, canonical lock, profile, fingerprint, and health.
+6. Revalidate only changed initialization inputs.
+
+## Existing engineering intake
+
+- Treat inherited completion as `CLAIMED_UNATTESTED` until candidate identity and evidence coverage are valid.
+- Present facts and obtain Owner `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`; do not optimize the Owner's product direction.
+- Use runnable UI as the first Owner-visible cognition anchor, not proof. Trace it to Workflow, state, data, permissions, exceptions, recovery, and independently evidenced invisible behavior.
+- Reuse trustworthy evidence; unknown remains unknown. Route only real gaps into existing Feature Slices and Loop Runs.
+- Classify the result as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`.
+
+## Fixed mainline, proportional depth
+
+Keep every mandatory mainline node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology only.
 
 ## Product formation
 
 1. Create Calabash Draft from the ready Proposal.
 2. Develop Workflow and UI as equal ends.
 3. Build one versioned Simulation World and reuse scenario IDs downstream.
-4. Synchronize confirmed learning into Calabash lineage.
+4. Synchronize only consequential learning into one existing canonical artifact; the field may be blank when no future decision, constraint, check, template, or reuse rule changes.
 5. Run Mandatory Calabash Upgrade before Product Baseline.
 6. Freeze Product Baseline.
 
@@ -136,7 +150,7 @@ Ubuntu remains the preferred recommendation where suitable. Docker is not requir
 
 ## Version policy
 
-- initial `0.0.1`;
+- NEW initial `0.0.1`; EXISTING preserves its declared version or records `UNKNOWN`;
 - small upgrade: commit only;
 - medium: `0.0.x`;
 - large: `0.x.1`;

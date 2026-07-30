@@ -1,10 +1,12 @@
-# LCCoding Standard Specification 2.0.0
+# LCCoding Standard Specification 2.1.0
 
 ## 1. Scope
 
 LCCoding governs an Owner-led, AI-executed enterprise product-development lifecycle. It coordinates proposal readiness, project initialization, Calabash evolution, Workflow/UI dual-end design, Simulation, Feature Integration, Loop Engineering, Verification, Owner Acceptance, and protected Delivery.
 
 This specification does not redefine the internal rules of Calabash, SLK, CLK, or GLK. It defines their place, inputs, outputs, and handoff conditions inside LCCoding.
+
+LCCoding remains portable across Agent platforms. Runtime, session control, and Agent execution kernels are outside its method responsibility.
 
 ## 2. Mainline
 
@@ -46,6 +48,18 @@ The mainline is grouped into four phases. Phases are navigation and exit-gate bo
 
 A phase exit gate must reference the same canonical artifacts already produced by the mainline; it must not copy or redefine them.
 
+### 2.2 Fixed coverage, proportional depth
+
+All mandatory mainline nodes remain. Their analysis, material, and evidence depth is proportional to:
+
+- product uncertainty;
+- system coupling;
+- real risk;
+- irreversibility;
+- novelty.
+
+`Project Fingerprint.complexity` records these factors and the resulting depth rationale and coverage. Existing sufficient evidence must be cited and reused. All-low work may be concise; any non-low factor requires a rationale, and any high factor requires explicit deeper analysis, material, or evidence. Adjusting depth never deletes a node, weakens an authority boundary, or permits an empty completion artifact. `recommended_loop` remains independent and selects execution topology only.
+
 ## 3. Owner and AI authority
 
 ### Owner authority
@@ -60,6 +74,7 @@ The Owner decides:
 - version promotion and release;
 - delivery scope, customer rights, runtime, and cost;
 - final Owner Acceptance.
+- continuation, narrowing/redirection, holding, or termination of an existing project.
 
 ### AI duty
 
@@ -103,19 +118,36 @@ PRC does not replace the Owner's proposal work and must not repeatedly re-interv
 
 ## 5. Project Initialization
 
-Project Initialization prepares one durable enterprise project environment.
+Project Initialization prepares one durable enterprise project environment in `NEW` or `EXISTING` mode.
 
 Required results:
 
 - independent Git repository;
 - independent GitHub repository;
 - Owner-confirmed Public or Private visibility;
-- initial commit and version `0.0.1`;
+- initial commit and version `0.0.1` for NEW, or preserved repository history and declared version for EXISTING;
 - platform-appropriate Agents Rule;
 - required skills installed and version-locked: LCCoding, Calabash, SLK, CLK, GLK;
 - Project Intelligence capability manifest;
 - Canonical Manifest and Interpretation Lock;
 - Project Profile, Project Fingerprint, and Project Health.
+
+### Existing engineering mode
+
+EXISTING mode covers half-complete, near-complete, claimed-complete but unattested, dormant, and redirected engineering projects. It is an initialization mode, not a new phase, lifecycle, or mainline.
+
+The mode must:
+
+1. freeze and record the current repository, Git HEAD, declared version or `UNKNOWN`, materials, runnable candidate, and available evidence before engineering;
+2. preserve Git/GitHub identity, history, files, versions, and verified assets, without resetting to `0.0.1`;
+3. record inherited completion claims as `CLAIMED_UNATTESTED`, never as a LCCoding gate receipt;
+4. give the Owner the current facts and obtain `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE` before engineering;
+5. use runnable UI as the first Owner-visible cognition anchor, not completion evidence;
+6. trace visible entries back through Workflow, state, data, permissions, failure/recovery, and independent evidence for invisible behavior;
+7. reuse valid evidence under the normal identity, contract, environment, currency, authority, and contradiction rules; unknown remains unknown;
+8. convert only uncovered or contradicted claims into existing Feature Slices and SLK/CLK/GLK Runs.
+
+Project Health classifies the intake as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`. Continued work follows the unchanged mainline and existing Calabash, Workflow/UI/Simulation, Product Baseline, Impact Analysis, D0–D3, Owner Acceptance, security, and Delivery rules.
 
 ### Capability-first tooling
 
@@ -227,6 +259,8 @@ A UI change requires `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, a
 Before a material change, AI creates one Impact Analysis covering the affected Calabash, Workflow, UI, Simulation, Feature Slices, shared capabilities, data, Verification, Loop plans, release, and rollback.
 
 Downstream stages reference and update that analysis by delta. They do not recreate a full impact report unless scope, baseline, or architecture changes materially.
+
+Product learning may be blank. Return it only when it changes a future decision, constraint, check, template, or evidence-reuse rule, and update one existing canonical artifact. LCCoding does not create a retrospective phase, learning repository, learning directory, or mandatory learning document.
 
 Shared-capability search is performed once per Slice/Run and repeated only when dependency scope changes.
 
@@ -415,7 +449,8 @@ Delivery verification checks package integrity, exclusions, runtime, license bin
 ## 16. Version governance
 
 ```text
-Initial project version: 0.0.1
+Initial NEW project version: 0.0.1
+EXISTING project version: preserve the declared version; record UNKNOWN rather than invent one
 Small upgrade: commit only; no version bump
 Medium upgrade: 0.0.2, 0.0.3, ...
 Large upgrade: 0.1.1, 0.2.1, ...
@@ -432,3 +467,5 @@ LCCoding minimizes:
 - external friction: repeated Owner questions, scans, network calls, model calls, tools, tokens, and handoffs.
 
 Friction reduction never authorizes deletion of Workflow, UI, Simulation, Mandatory Calabash Upgrade, independent Verification, Owner Acceptance, or Delivery protection.
+
+Friction reduction also requires reuse of sufficient evidence and proportional depth. It never authorizes shallow treatment of real risk or empty artifacts that merely imitate the mainline.

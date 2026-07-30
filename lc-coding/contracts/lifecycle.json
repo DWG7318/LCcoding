@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "mainline": [
     "PROPOSAL_READINESS",
     "PROJECT_INITIALIZATION",
@@ -28,6 +28,11 @@
     "OWNER_ACCEPTANCE": "DELIVERY"
   },
   "semantic_bindings": {
+    "PROJECT_INITIALIZATION": [
+      "NEW_OR_EXISTING_MODE",
+      "OWNER_CONTINUITY_DECISION_FOR_EXISTING",
+      "INHERITED_COMPLETION_IS_UNATTESTED"
+    ],
     "LOOP_ENGINEERING": [
       "D0_D3_PER_RUN",
       "LOOP_OWNER_ACCEPTANCE_PER_NORMAL_RUN",

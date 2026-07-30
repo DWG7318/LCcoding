@@ -1,8 +1,10 @@
-# LCCoding Constitution 2.0.0
+# LCCoding Constitution 2.1.0
 
 ## Identity
 
 LCCoding is an Owner-led, AI-executed enterprise product-development method. It governs the path from a sufficiently mature proposal to a protected customer delivery.
+
+LCCoding is an Agent-platform-independent methodology. It defines product governance and evidence boundaries; it does not own runtime, session control, or an Agent execution kernel.
 
 ## Frozen mainline
 
@@ -42,6 +44,16 @@ The mainline is unchanged. Its operational meaning is:
 - after all required normal Runs are Owner-accepted, LCCoding performs one centralized independent vulnerability audit and remediation closure;
 - the mainline Owner Acceptance is the distinct Post-Security Owner Acceptance of the final remediated candidate;
 - Delivery begins only after that acceptance and customer-specific Delivery Method Q&A.
+
+## Existing engineering mode
+
+Project Initialization may admit an existing engineering project without creating a new lifecycle. LCCoding preserves its repository, history, declared version, materials, and valid evidence. A prior completion statement is only `CLAIMED_UNATTESTED` until the current candidate, coverage, authority, and evidence are independently established.
+
+Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`. Runnable UI may anchor Owner understanding but is not completion proof; Workflow, state, data, permissions, failure/recovery, and invisible behavior still require trace and evidence. Only real gaps enter the existing Feature Slice and Loop path.
+
+## Fixed mainline, proportional depth
+
+Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
 
 ## Four-phase overlay
 
@@ -102,3 +114,4 @@ The phase overlay is navigation and gating only. `ENGINEERING_RUNS` repeats unti
 - Delivery method is confirmed for each customer through Owner Q&A; defaults are recommendations, while Owner-locked exclusions remain mandatory.
 - Delivery exposes the product, not the internal LC development system.
 - Every addition must reduce internal or external engineering friction.
+- Project Fingerprint complexity governs depth; `recommended_loop` governs execution topology only.

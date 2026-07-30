@@ -9,7 +9,19 @@
   "api_contracts": [],
   "external_dependencies": [],
   "repository_shape": "",
-  "complexity": "",
+  "complexity": {
+    "product_uncertainty": "UNKNOWN",
+    "system_coupling": "UNKNOWN",
+    "real_risk": "UNKNOWN",
+    "irreversibility": "UNKNOWN",
+    "novelty": "UNKNOWN"
+  },
+  "depth": {
+    "rationale": "",
+    "analysis": [],
+    "materials": [],
+    "evidence": []
+  },
   "recommended_loop": "",
   "evidence": []
 }

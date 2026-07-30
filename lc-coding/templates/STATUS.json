@@ -1,6 +1,10 @@
 {
   "project_id": "",
   "updated_at": "",
+  "initialization_mode": "NEW|EXISTING",
+  "continuity_decision": "PENDING",
+  "existing_project_attestation": "PENDING",
+  "existing_project_classification": "PENDING",
   "current_phase": "INITIAL",
   "phase_gates": {
     "INITIAL_READY": "PENDING",
