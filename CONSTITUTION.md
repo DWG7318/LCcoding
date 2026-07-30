@@ -53,7 +53,7 @@ Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HO
 
 ## Fixed mainline, proportional depth
 
-Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
+Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. `UNKNOWN` is recorded without being normalized to low, requires conservative deeper coverage, and blocks a sufficient final depth judgment until assessed. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
 
 ## Four-phase overlay
 

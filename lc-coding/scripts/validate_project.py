@@ -4,7 +4,7 @@ import argparse, json
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
-COMPLEXITY_LEVELS={'LOW','MEDIUM','HIGH'}
+COMPLEXITY_LEVELS={'LOW','MEDIUM','HIGH','UNKNOWN'}
 
 def validate_complexity_depth(fingerprint):
     errors=[]
@@ -12,15 +12,19 @@ def validate_complexity_depth(fingerprint):
     depth=fingerprint.get('depth',{})
     if not isinstance(complexity,dict):
         return ['Project Fingerprint complexity must record five factors']
-    values=[]
+    values=[]; unresolved=[]
     for factor in COMPLEXITY_FACTORS:
         value=str(complexity.get(factor,'')).upper()
         if value not in COMPLEXITY_LEVELS: errors.append('invalid complexity factor '+factor)
-        else: values.append(value)
+        else:
+            values.append(value)
+            if value=='UNKNOWN': unresolved.append(factor)
+    if unresolved:
+        errors.append('complexity unresolved for '+', '.join(unresolved)+'; requires depth assessment')
     if any(value!='LOW' for value in values) and not depth.get('rationale'):
         errors.append('non-low complexity requires a depth rationale')
-    if 'HIGH' in values and not any(depth.get(name) for name in ['analysis','materials','evidence']):
-        errors.append('high complexity requires deeper coverage in analysis, materials, or evidence')
+    if any(value in {'HIGH','UNKNOWN'} for value in values) and not any(depth.get(name) for name in ['analysis','materials','evidence']):
+        errors.append('high or unresolved complexity requires deeper coverage in analysis, materials, or evidence')
     return errors
 
 def main():

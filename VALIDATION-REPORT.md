@@ -33,6 +33,7 @@ Validated corrections:
 - inherited completion remains `CLAIMED_UNATTESTED` pending current evidence;
 - Owner continuity decision and UI-anchored product reconstruction are required before gap work;
 - all mandatory nodes remain while five complexity factors govern proportional depth;
+- template-default `UNKNOWN` is identified as unresolved, requires assessment and deeper coverage, and cannot become an all-low or sufficient final depth judgment;
 - `recommended_loop` remains execution-topology-only;
 - Product learning may be blank and consequential learning updates one existing canonical artifact;
 - no learning phase, repository, directory, or mandatory document was introduced;

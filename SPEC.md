@@ -58,7 +58,7 @@ All mandatory mainline nodes remain. Their analysis, material, and evidence dept
 - irreversibility;
 - novelty.
 
-`Project Fingerprint.complexity` records these factors and the resulting depth rationale and coverage. Existing sufficient evidence must be cited and reused. All-low work may be concise; any non-low factor requires a rationale, and any high factor requires explicit deeper analysis, material, or evidence. Adjusting depth never deletes a node, weakens an authority boundary, or permits an empty completion artifact. `recommended_loop` remains independent and selects execution topology only.
+`Project Fingerprint.complexity` records these factors and the resulting depth rationale and coverage. `UNKNOWN` is an allowed unresolved intake state, not a sufficient final depth judgment: it requires depth assessment, a rationale, and explicit deeper analysis, material, or evidence until resolved. Existing sufficient evidence must be cited and reused. All-low work may be concise; any other resolved factor requires a rationale, and any high factor requires explicit deeper coverage. Adjusting depth never deletes a node, weakens an authority boundary, or permits an empty completion artifact. `recommended_loop` remains independent and selects execution topology only.
 
 ## 3. Owner and AI authority
 

@@ -12,4 +12,4 @@ Capabilities are prepared once and invoked only when useful.
 
 No tool is run merely because it is installed. The active claim and risk determine tool use. Docker is not a default dependency.
 
-`Project Fingerprint.complexity` records product uncertainty, system coupling, real risk, irreversibility, and novelty to govern analysis, material, and evidence depth. `recommended_loop` remains separate and selects execution topology only.
+`Project Fingerprint.complexity` records product uncertainty, system coupling, real risk, irreversibility, and novelty to govern analysis, material, and evidence depth. `UNKNOWN` is a valid unresolved record but cannot support final depth sufficiency: assess it, record a rationale, and provide deeper analysis, material, or evidence until resolved. `recommended_loop` remains separate and selects execution topology only.

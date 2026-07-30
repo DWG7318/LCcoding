@@ -52,7 +52,7 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 固定主干、按风险调深浅
 
-所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
+所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。`UNKNOWN` 是允许记录的待判定状态，必须继续评估并采用保守的更深覆盖，不能被视为 all-low 或最终充分判断。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
 
 ## 两种 Owner Acceptance
 

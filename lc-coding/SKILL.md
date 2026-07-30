@@ -60,7 +60,7 @@ Owner decides product meaning. AI completes routine engineering autonomously ins
 
 ## Fixed mainline, proportional depth
 
-Keep every mandatory mainline node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology only.
+Keep every mandatory mainline node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Record `UNKNOWN` as unresolved, require depth assessment plus conservative rationale and coverage, and do not treat it as a sufficient final judgment or all-low work. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology only.
 
 ## Product formation
 

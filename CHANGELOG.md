@@ -14,6 +14,7 @@
 - Kept every mandatory mainline node while making analysis, material, and evidence depth proportional to five Project Fingerprint factors.
 - Kept `recommended_loop` separate as execution topology only.
 - Clarified that sufficient evidence is reused, concise work remains truthful, and high-risk work deepens coverage.
+- Preserved template-default `UNKNOWN` as an unresolved state that requires depth assessment and conservative coverage rather than being rejected or treated as all-low.
 
 ### Learning return
 

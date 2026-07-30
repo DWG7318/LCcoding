@@ -21,7 +21,7 @@ Do not reset the project to `0.0.1`, rewrite history, treat UI as completion pro
 
 ## Proportional depth
 
-Update Project Fingerprint to record product uncertainty, system coupling, real risk, irreversibility, and novelty. Record the resulting depth rationale and any deeper analysis, material, or evidence coverage. Keep every mandatory mainline node and keep `recommended_loop` topology-only.
+Update Project Fingerprint to record product uncertainty, system coupling, real risk, irreversibility, and novelty. Template-default `UNKNOWN` is a valid unresolved record, but it requires assessment, rationale, and conservative deeper coverage before depth can be judged sufficient. Record the resulting depth rationale and any deeper analysis, material, or evidence coverage. Keep every mandatory mainline node and keep `recommended_loop` topology-only.
 
 ## Learning return
 

@@ -37,7 +37,7 @@ The Owner chooses `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE` before e
 
 ## Fixed mainline, proportional depth
 
-Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` remains topology-only.
+Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. `UNKNOWN` is a recorded pending state that requires assessment and conservative deeper coverage; it is never treated as all-low or a sufficient final judgment. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` remains topology-only.
 
 ## Four-phase overlay
 
