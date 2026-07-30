@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.1.0
+# LCCoding Constitution 2.2.0
 
 ## Identity
 
@@ -49,11 +49,17 @@ The mainline is unchanged. Its operational meaning is:
 
 Project Initialization may admit an existing engineering project without creating a new lifecycle. LCCoding preserves its repository, history, declared version, materials, and valid evidence. A prior completion statement is only `CLAIMED_UNATTESTED` until the current candidate, coverage, authority, and evidence are independently established.
 
-Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`. Runnable UI may anchor Owner understanding but is not completion proof; Workflow, state, data, permissions, failure/recovery, and invisible behavior still require trace and evidence. Only real gaps enter the existing Feature Slice and Loop path.
+Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`. Runnable UI may anchor Owner understanding but is not completion proof; Workflow, state, data, permissions, failure/recovery, and invisible behavior still require trace and evidence. Takeover remains inside Project Initialization and outputs only `READY`, `BLOCKED`, or `NOT_CONTINUING`. Only real gaps enter the existing Feature Slice and Loop path.
+
+`status.json` is the one authoritative durable project status. Project Health is assessment evidence and `PHASE-STATUS.json` is derived from status. None may contain runtime, session, Agent, queue, retry, model, hook, or orchestration state.
 
 ## Fixed mainline, proportional depth
 
 Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. `UNKNOWN` is recorded without being normalized to low, requires conservative deeper coverage, and blocks a sufficient final depth judgment until assessed. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
+
+Before Loop execution, the Feature Slice must pass product-level execution coverage preflight. Unproven cross-layer wiring requires a first thin production-quality proving Run or cited sufficient evidence. LCCoding specifies admission and handoff; the selected Loop owns all internal execution decomposition.
+
+Owner gaps retain one trace from source Acceptance through candidate/scenario, Impact or Calabash route, correction Run, affected D0–D3, delta re-verification, and delta re-acceptance. Open blocking gaps prevent aggregate acceptance.
 
 ## Four-phase overlay
 
@@ -115,3 +121,6 @@ The phase overlay is navigation and gating only. `ENGINEERING_RUNS` repeats unti
 - Delivery exposes the product, not the internal LC development system.
 - Every addition must reduce internal or external engineering friction.
 - Project Fingerprint complexity governs depth; `recommended_loop` governs execution topology only.
+- `status.json` is authoritative; Project Health is evidence; Phase Status is derived.
+- Feature Slice readiness is decided before execution without importing GO/CELL internals.
+- Owner gaps close only on evidenced correction and Owner re-acceptance.

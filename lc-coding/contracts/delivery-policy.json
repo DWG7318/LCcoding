@@ -1,5 +1,5 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "per_delivery_confirmation_required": true,
   "defaults_are_recommendations": true,
   "recommended_runtime": "Ubuntu",

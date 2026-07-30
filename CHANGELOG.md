@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.2.0
+
+### Takeover and canonical status
+
+- Added `READY`, `BLOCKED`, and `NOT_CONTINUING` takeover readiness inside EXISTING Project Initialization without adding a phase.
+- Made `status.json` the single authoritative durable project status; Project Health remains assessment evidence and `PHASE-STATUS.json` is derived.
+- Explicitly excluded runtime, session, Agent, queue, retry, model, hook, and orchestration state.
+
+### Slice admission and Owner gap closure
+
+- Added product-level Feature Slice Execution Coverage Preflight before SLK/CLK/GLK handoff.
+- Required deeper evidence or smaller independently verifiable Runs for `HIGH/UNKNOWN` complexity.
+- Added a first production-quality proving Run only when cross-layer wiring lacks trustworthy proof.
+- Added stable Owner gap lineage through Impact/Calabash routing, correction Run, affected D0–D3, delta re-verification, and Owner re-acceptance.
+- Kept Loop internals, runtime state, centralized security, and Delivery boundaries unchanged.
+
 ## 2.1.0
 
 ### Existing engineering intake

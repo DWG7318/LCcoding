@@ -1,8 +1,16 @@
 {
+  "record_role": "AUTHORITATIVE_PROJECT_STATUS",
+  "status_schema_version": "2.2.0",
   "project_id": "",
   "updated_at": "",
   "initialization_mode": "NEW|EXISTING",
   "continuity_decision": "PENDING",
+  "takeover_readiness": "NOT_APPLICABLE",
+  "canonical_candidate": {
+    "repository": "",
+    "version": "",
+    "commit": ""
+  },
   "existing_project_attestation": "PENDING",
   "existing_project_classification": "PENDING",
   "current_phase": "INITIAL",
@@ -24,6 +32,7 @@
   "integration_baseline": null,
   "active_runs": [],
   "loop_owner_acceptances": [],
+  "open_owner_gaps": [],
   "all_required_runs_accepted": "PENDING",
   "centralized_security_audit": "PENDING",
   "security_remediation": "PENDING",
@@ -33,5 +42,6 @@
   "delivery": "PENDING",
   "last_material_change": "",
   "next_action": "",
+  "evidence_pointers": [],
   "blockers": []
 }

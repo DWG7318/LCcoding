@@ -91,15 +91,32 @@ with tempfile.TemporaryDirectory() as td:
     assert start["initialization_mode"] == "EXISTING"
     assert start["source_version"] == "7.4.2"
     assert start["source_head"] == head_before
+    assert start["source_candidate"] == {
+        "repository": "owner/existing",
+        "version": "7.4.2",
+        "commit": head_before,
+    }
     assert start["continuity_decision"] == "NARROW_REDIRECT"
     assert start["reported_project_state"] == "COMPLETE"
     assert start["completion_claim_status"] == "CLAIMED_UNATTESTED"
     assert start["attestation_status"] == "PENDING"
+    assert start["historical_materials_status"] == "PENDING"
+    assert start["historical_materials"] == []
+    assert start["evidence_inventory_status"] == "PENDING"
+    assert start["evidence_inventory"] == []
+    assert start["product_mainline_status"] == "PENDING"
+    assert start["product_mainline_evidence"] == []
+    assert start["takeover_readiness"] == "BLOCKED"
 
     status = json.loads((lc / "status.json").read_text(encoding="utf-8"))
     health = json.loads((lc / "PROJECT-HEALTH.json").read_text(encoding="utf-8"))
     assert status["existing_project_attestation"] == "PENDING"
     assert status["initialization"] == "EXISTING_INTAKE_PENDING"
+    assert status["record_role"] == "AUTHORITATIVE_PROJECT_STATUS"
+    assert status["takeover_readiness"] == "BLOCKED"
+    assert status["canonical_candidate"] == start["source_candidate"]
+    assert health["record_role"] == "ASSESSMENT_EVIDENCE"
+    assert health["takeover_readiness"] == "BLOCKED"
     assert health["existing_project_classification"] == "PENDING"
 
 print("PASS: existing project intake preserves history, version, and evidence boundary")

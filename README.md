@@ -1,4 +1,4 @@
-# LCCoding 2.1.0
+# LCCoding 2.2.0
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -35,9 +35,17 @@ Project Initialization supports `NEW` and `EXISTING` modes without adding a life
 
 The Owner chooses `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE` before engineering. Runnable UI is the first Owner-visible cognition anchor, not completion proof; it is traced back to Workflow, state, data, permissions, failure/recovery, and evidence for invisible behavior. Only real gaps enter normal Feature Slices and Loop Runs.
 
+Takeover stays inside Project Initialization and ends as `READY`, `BLOCKED`, or `NOT_CONTINUING`. `status.json` is the single authoritative durable project status; Project Health is assessment evidence and `PHASE-STATUS.json` is derived. No runtime or Agent-session state belongs in these records.
+
 ## Fixed mainline, proportional depth
 
 Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. `UNKNOWN` is a recorded pending state that requires assessment and conservative deeper coverage; it is never treated as all-low or a sufficient final judgment. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` remains topology-only.
+
+## Slice execution and Owner gaps
+
+A Feature Slice enters SLK/CLK/GLK only after product-level Execution Coverage Preflight passes. Unproven cross-layer wiring requires a thin production-quality first proving Run or cited sufficient evidence; its failure halts expansion. LCCoding defines admission and handoff, while the selected Loop retains all GO/CELL internals.
+
+Owner rework, definition changes, and deferrals receive stable gap IDs. A blocking gap stays open through Impact Analysis or Calabash routing, correction Run, affected D0–D3, delta re-verification, and Owner re-acceptance. The canonical status indexes open gaps and evidence pointers without becoming a gap archive.
 
 ## Four-phase overlay
 

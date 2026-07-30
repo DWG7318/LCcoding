@@ -8,6 +8,8 @@ The LCCoding mainline remains unchanged. Four phases make progress visible witho
 
 **Exit:** `INITIAL_READY` before Calabash Draft.
 
+EXISTING takeover readiness is an INITIAL gate input, not a new phase. `READY` may support `INITIAL_READY`; `BLOCKED` and `NOT_CONTINUING` may not.
+
 ## PHASE 1 — PRODUCT FORMATION
 
 **Range:** Calabash Draft through Workflow, UI, and Simulation World.
@@ -40,3 +42,6 @@ After Owner decision:
 - Post-Security Owner Acceptance is a second, distinct, delta-focused acceptance after security remediation.
 - Vulnerability audit is centralized once over the final accepted candidate; it is not distributed as repeated formal audits across D0–D3.
 - Phase artifacts reference canonical evidence and do not copy it.
+- `status.json` is authoritative; Project Health is assessment evidence; `PHASE-STATUS.json` is derived.
+- Feature Slice Execution Coverage Preflight is an ENGINEERING_RUNS admission condition, not an added phase.
+- Blocking open Owner gaps prevent `ALL_REQUIRED_RUNS_ACCEPTED`.

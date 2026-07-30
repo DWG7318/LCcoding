@@ -1,4 +1,4 @@
-# LCCoding 2.1.0
+# LCCoding 2.2.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -50,9 +50,17 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 进入工程前，Owner 决定 `CONTINUE`、`NARROW_REDIRECT`、`HOLD` 或 `TERMINATE`。可运行 UI 是 Owner 理解现状的第一认知锚点，但不是完成证据；AI 必须从可见入口反向还原 Workflow、状态、数据、权限、异常与恢复，并为不可见行为提供独立证据。只有真实缺口才进入现有 Feature Slice 与 Loop Run。
 
+接管仍属于 Project Initialization，只输出 `READY`、`BLOCKED` 或 `NOT_CONTINUING`。`status.json` 是唯一权威的持久项目状态；Project Health 是评估证据，`PHASE-STATUS.json` 只是派生视图。这里不得写入 runtime 或 Agent 会话状态。
+
 ## 固定主干、按风险调深浅
 
 所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。`UNKNOWN` 是允许记录的待判定状态，必须继续评估并采用保守的更深覆盖，不能被视为 all-low 或最终充分判断。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
+
+## Slice 执行准入与 Owner gap
+
+Feature Slice 只有在产品级 Execution Coverage Preflight 通过后才能进入 SLK/CLK/GLK。尚未证明的跨层连接必须由最薄但生产级的首个贯通 Run 证明，或引用充分的既有证据；该 Run 失败时不得继续扩展。LCCoding只定义准入和交接，GO/CELL 内部仍归选定 Loop。
+
+Owner 的 rework、definition change 或 defer 会得到稳定 gap ID。阻断性 gap 必须沿 Impact Analysis 或 Calabash 路由、修正 Run、受影响 D0–D3、增量复验和 Owner 再验收关闭；权威状态只索引开放 gap 与证据指针，不成为 gap 档案库。
 
 ## 两种 Owner Acceptance
 

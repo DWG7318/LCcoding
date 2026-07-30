@@ -13,5 +13,15 @@
 - Invisible risks already verified:
 - Known limits:
 - Owner result: LOOP_OWNER_ACCEPTED / LOOP_PRODUCT_REWORK / LOOP_PRODUCT_DEFINITION_CHANGE / LOOP_OWNER_DEFERRED
+- Owner Gap ID (blank when accepted):
+- Gap source Acceptance ID:
+- Gap source candidate / scenario:
+- Gap route: IMPACT_CORRECTION / CALABASH_DEFINITION_CHANGE / OWNER_DEFERRED
+- Impact / definition reference:
+- Correction Run IDs:
+- Affected D0-D3 receipts:
+- Delta re-verification receipt:
+- Delta Owner re-acceptance receipt:
+- Gap status: OPEN / IN_CLOSURE / CLOSED
 - Product learning / route (may be blank; only consequential learning that changes a future decision, constraint, check, template, or reuse rule; update one existing canonical artifact):
 - Accepted at:

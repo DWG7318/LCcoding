@@ -18,8 +18,12 @@ Existing mode:
 - reconstructs Workflow, state, data, permissions, failure, and recovery from visible entries and independently evidences invisible behavior;
 - reuses evidence only when identity, scope, environment, authority, and currency remain valid; unknown remains unknown;
 - turns only real gaps into the existing Feature Slice and SLK/CLK/GLK Run path.
+- inventories historical material and evidence without overwriting it, reconstructs the product mainline, and records every unresolved fact as unknown or blocker;
+- outputs only `READY`, `BLOCKED`, or `NOT_CONTINUING`. `READY` requires a frozen repository/version/candidate, completed inventories, evidenced attestation, reconstructed mainline, a continued-project classification, and no takeover blocker.
 
 Project Health classifies the result as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`. Continued work then follows the unchanged LCCoding mainline.
+
+`status.json` is the single authoritative durable project status. Project Health supplies assessment evidence. `PHASE-STATUS.json` is a derived navigation view and must be reconstructible from status. These artifacts never own runtime, session, process, Agent, queue, retry, model, hook, or orchestration state.
 
 ## Required once
 

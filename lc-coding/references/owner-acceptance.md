@@ -10,6 +10,8 @@ LCCoding uses two distinct Owner Acceptance boundaries.
 - keeps Owner review small and continuous;
 - produces `LOOP_OWNER_ACCEPTANCE_RECEIPT`.
 
+When the result is rework, definition change, or defer, create a stable Owner gap ID linked to the source Acceptance, candidate, and scenario. Rework follows Impact Analysis and a correction Run; definition change routes to Calabash before a refreshed baseline/Slice; defer remains open. Close only after affected D0–D3, delta re-verification, and delta Owner re-acceptance. The authoritative status stores only open gap indexes and evidence pointers.
+
 ## 2. Post-Security Owner Acceptance
 
 Occurs only after:
@@ -41,3 +43,5 @@ POST_SECURITY_OWNER_DEFERRED
 ```
 
 Delivery Method Q&A cannot begin until `POST_SECURITY_OWNER_ACCEPTED`.
+
+Post-Security product rework remains governed by vulnerability remediation and this delta-focused acceptance. It is not converted into an ordinary pre-security Owner gap path.

@@ -1,4 +1,6 @@
 {
+  "record_role": "DERIVED_VIEW",
+  "derived_from": "status.json",
   "current_phase": "INITIAL",
   "phases": {
     "INITIAL": {

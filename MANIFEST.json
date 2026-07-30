@@ -1,6 +1,6 @@
 {
   "name": "LCCoding",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "skill": "lc-coding",
   "invocation": "$lc-coding",
   "mainline": [
@@ -31,6 +31,17 @@
     "EXISTING"
   ],
   "existing_completion_claim": "CLAIMED_UNATTESTED",
+  "existing_takeover_outcomes": [
+    "READY",
+    "BLOCKED",
+    "NOT_CONTINUING"
+  ],
+  "project_status_contract": {
+    "authoritative": "status.json",
+    "assessment_evidence": "PROJECT-HEALTH.json",
+    "derived_view": "PHASE-STATUS.json",
+    "runtime_state_forbidden": true
+  },
   "mainline_depth_policy": {
     "mandatory_nodes_fixed": true,
     "factors": [
@@ -47,6 +58,16 @@
     "optional": true,
     "consequential_only": true,
     "target": "ONE_EXISTING_CANONICAL_ARTIFACT"
+  },
+  "slice_execution_contract": {
+    "coverage_preflight_required": true,
+    "first_proving_run_when_cross_layer_unproven": true,
+    "loop_internals_excluded": true
+  },
+  "owner_gap_contract": {
+    "stable_id": true,
+    "status_is_open_gap_index_only": true,
+    "closure_requires_delta_verification_and_reacceptance": true
   },
   "phase_overlay": [
     "INITIAL",

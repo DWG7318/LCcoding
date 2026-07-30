@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.1.0
+# LCCoding 2.2.0
 
 ## Canonical mainline
 
@@ -47,7 +47,7 @@ Owner decides product meaning. AI completes routine engineering autonomously ins
 2. Ask only blocking gaps; persist answers and never re-ask without contradictory evidence.
 3. Select NEW or EXISTING Project Initialization.
 4. For NEW, initialize Git/GitHub and version `0.0.1`. For EXISTING, preserve repository/history/version/materials and record current HEAD/candidate before adding LCCoding artifacts.
-5. Initialize or reuse Agents Rule, skills, capabilities, canonical lock, profile, fingerprint, and health.
+5. Initialize or reuse Agents Rule, skills, capabilities, canonical lock, profile, fingerprint, health, and the one authoritative `status.json`.
 6. Revalidate only changed initialization inputs.
 
 ## Existing engineering intake
@@ -57,6 +57,8 @@ Owner decides product meaning. AI completes routine engineering autonomously ins
 - Use runnable UI as the first Owner-visible cognition anchor, not proof. Trace it to Workflow, state, data, permissions, exceptions, recovery, and independently evidenced invisible behavior.
 - Reuse trustworthy evidence; unknown remains unknown. Route only real gaps into existing Feature Slices and Loop Runs.
 - Classify the result as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`.
+- Keep takeover inside Project Initialization. Output only `READY`, `BLOCKED`, or `NOT_CONTINUING`; do not enter engineering until repository/version/candidate, historical materials, evidence, product mainline, and blockers support the result.
+- Treat Project Health as assessment evidence and `PHASE-STATUS.json` as a derived view of authoritative `status.json`. Persist method facts only, never runtime/session/Agent state.
 
 ## Fixed mainline, proportional depth
 
@@ -74,6 +76,10 @@ Keep every mandatory mainline node. Use Project Fingerprint product uncertainty,
 ## Feature Slice and Integration
 
 Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance.
+
+Before selecting a Loop Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs.
+
+If cross-layer wiring is unproven, make the first Required Run a thin production-quality E2E proving path. Halt expansion when it fails. Reuse sufficient existing proof instead of manufacturing a new Run.
 
 Use the integration lock:
 
@@ -116,6 +122,8 @@ D3 PASS
 Do not aggregate several normal Runs into one late Owner acceptance. The Owner accepts each small completed Run while context is fresh.
 
 Only after every required normal Run is `LOOP_OWNER_ACCEPTED` issue `ALL_REQUIRED_RUNS_ACCEPTED`.
+
+For rework, definition change, or defer, assign one Owner gap ID. Keep the full lineage in existing Acceptance, Impact/Calabash route, correction Run, D0–D3, re-verification, and re-acceptance artifacts; keep only open gap indexes and evidence pointers in `status.json`. Never close a gap or aggregate the Slice without the required evidence and Owner result.
 
 ## Centralized vulnerability audit
 

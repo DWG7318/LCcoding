@@ -7,12 +7,23 @@
 - Workflow references:
 - UI references:
 - Scenario IDs / versions:
+- State / data / permission trace:
+- Exception / recovery trace:
 - Shared capability result:
 - Impact Analysis ID:
 - Integration Baseline ID:
 - Required Run IDs:
+- D0-D3 evidence plan:
 - Visible completion:
 - Invisible completion:
 - Normal Loop Owner Acceptance route(s):
 - Post-Security Owner Acceptance route:
+- Execution Coverage Preflight: PENDING / PASS / BLOCKED
+- Coverage gaps / unknowns:
+- Cross-layer connection evidence: PROVEN: evidence / UNPROVEN
+- First Proving Run requirement: REQUIRED / NOT_REQUIRED
+- First Proving Run ID / evidence:
+- First Proving Run production E2E scenario:
+- Failure expansion rule: HALT_EXPANSION
+- Fingerprint depth response: CONCISE_TRUTHFUL / DEEPER_EVIDENCE / SMALLER_INDEPENDENT_RUNS
 - State:

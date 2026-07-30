@@ -1,8 +1,10 @@
 {
+  "record_role": "ASSESSMENT_EVIDENCE",
   "project_id": "",
   "updated_at": "",
   "initialization_mode": "NEW|EXISTING",
   "continuity_decision": "PENDING",
+  "takeover_readiness": "NOT_APPLICABLE",
   "completion_claim_status": "PENDING",
   "existing_project_classification": "PENDING",
   "repository": "PENDING",

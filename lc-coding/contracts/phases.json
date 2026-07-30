@@ -1,12 +1,13 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "mainline_unchanged": true,
   "phases": [
     {
       "id": "INITIAL",
       "start": "PROPOSAL_READINESS",
       "end_before": "CALABASH_DRAFT",
-      "exit_gate": "INITIAL_READY"
+      "exit_gate": "INITIAL_READY",
+      "existing_takeover_input": "READY"
     },
     {
       "id": "PRODUCT_FORMATION",
@@ -18,10 +19,12 @@
       "id": "ENGINEERING_RUNS",
       "start": "MANDATORY_CALABASH_UPGRADE",
       "repeatable": true,
+      "entry_gate": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS",
       "per_run_end_before": "LOOP_OWNER_ACCEPTANCE",
       "per_run_exit_gate": "LOOP_OWNER_ACCEPTANCE_READY",
       "per_run_acceptance_receipt": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
-      "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED"
+      "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED",
+      "aggregate_blocker": "OPEN_BLOCKING_OWNER_GAP"
     },
     {
       "id": "DELIVERY_PREPARATION",

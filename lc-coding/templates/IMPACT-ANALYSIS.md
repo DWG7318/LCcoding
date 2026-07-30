@@ -2,6 +2,7 @@
 
 - Analysis ID / version:
 - Trigger / proposed change:
+- Owner Gap IDs / source Acceptance (if applicable):
 - Baseline and Slice:
 - Affected Calabash:
 - Affected Workflow:
@@ -14,4 +15,5 @@
 - Regression scope:
 - Release / rollback:
 - Delta history:
+- Gap closure evidence pointers:
 - Owner decision:

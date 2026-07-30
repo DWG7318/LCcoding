@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.1.0
+# LCCoding Standard Specification 2.2.0
 
 ## 1. Scope
 
@@ -132,6 +132,8 @@ Required results:
 - Canonical Manifest and Interpretation Lock;
 - Project Profile, Project Fingerprint, and Project Health.
 
+`status.json` is the single authoritative project-status record. Project Health is assessment evidence. `PHASE-STATUS.json` is a derived navigation view and must agree with `status.json`; neither may become a second writable source of project truth. Status records durable method facts only, never Agent sessions, processes, queues, retries, models, hooks, or orchestration state.
+
 ### Existing engineering mode
 
 EXISTING mode covers half-complete, near-complete, claimed-complete but unattested, dormant, and redirected engineering projects. It is an initialization mode, not a new phase, lifecycle, or mainline.
@@ -146,8 +148,9 @@ The mode must:
 6. trace visible entries back through Workflow, state, data, permissions, failure/recovery, and independent evidence for invisible behavior;
 7. reuse valid evidence under the normal identity, contract, environment, currency, authority, and contradiction rules; unknown remains unknown;
 8. convert only uncovered or contradicted claims into existing Feature Slices and SLK/CLK/GLK Runs.
+9. issue only `READY`, `BLOCKED`, or `NOT_CONTINUING` as takeover readiness. `READY` requires an evidenced candidate, inventoried historical material and evidence, reconstructed product mainline, a continued-project health classification, and no unresolved takeover blocker.
 
-Project Health classifies the intake as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`. Continued work follows the unchanged mainline and existing Calabash, Workflow/UI/Simulation, Product Baseline, Impact Analysis, D0–D3, Owner Acceptance, security, and Delivery rules.
+Project Health classifies the intake as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`. `HOLD` and `TERMINATE` produce `NOT_CONTINUING`; they never enter engineering. `CONTINUE` and `NARROW_REDIRECT` remain `BLOCKED` until the readiness evidence is complete. Continued work follows the unchanged mainline and existing Calabash, Workflow/UI/Simulation, Product Baseline, Impact Analysis, D0–D3, Owner Acceptance, security, and Delivery rules.
 
 ### Capability-first tooling
 
@@ -239,6 +242,14 @@ A component, API, database table, service refactor, or test group is not by itse
 
 One Feature Slice contract is canonical. Loop Run plans, verification receipts, status, and acceptance records reference its ID and version rather than copying its definition.
 
+### 9.1 Execution coverage preflight
+
+Before a Slice enters SLK, CLK, or GLK, its Execution Coverage Preflight must be `PASS`. Goal-backward coverage includes actor outcome, Product Baseline, Workflow, UI, Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3 evidence, and Loop Owner Acceptance. A missing claim, uncovered link, duplicate responsibility, or unresolved coverage unknown produces `BLOCKED`.
+
+For any `HIGH` or `UNKNOWN` Project Fingerprint factor, the Slice records either deeper evidence or smaller independently verifiable Run boundaries. `recommended_loop` remains topology-only.
+
+When a required cross-layer connection lacks trustworthy proof, the first Required Run is the thinnest production-quality proving path through one real end-to-end scenario. It is not a prototype or new task type. Its failure blocks expansion. Existing sufficient proof may be cited instead with a no-new-Run rationale.
+
 ## 10. Feature Integration and baseline lock
 
 Before implementation, the active Feature Slice freezes an `INTEGRATION_BASELINE`:
@@ -275,6 +286,8 @@ LCCoding selects the lightest truthful method:
 - **GLK**: a real GO-to-GO execution graph with free dependency structure.
 
 Selection is reassessed only when evidence proves the current topology invalid. LCCoding does not run several Loop methods inside one Run or duplicate their internal governance.
+
+LCCoding hands the selected Loop only the ready Slice, candidate/baseline, Required Run scope, proportional-depth response, scenarios, verification/acceptance conditions, and any Owner gap IDs. The selected Loop exclusively owns GO/CELL, Chain/Stage/graph, task, retry, and execution topology details.
 
 ## 13. Verification architecture
 
@@ -357,6 +370,12 @@ LOOP_OWNER_DEFERRED
 ```
 
 Only after every required normal Run is accepted may LCCoding issue `ALL_REQUIRED_RUNS_ACCEPTED` and freeze the aggregate accepted candidate.
+
+### Owner gap closure lineage
+
+Any `LOOP_PRODUCT_REWORK`, `LOOP_PRODUCT_DEFINITION_CHANGE`, or `LOOP_OWNER_DEFERRED` creates a stable Owner gap ID linked to its source Acceptance, candidate, and scenario. Product rework routes through existing Impact Analysis and a correction Run; product-definition change routes to Calabash and returns through the normal baseline/Slice path; deferred gaps remain open.
+
+A gap closes only after the new candidate has the affected D0–D3 evidence, delta re-verification, and delta Owner re-acceptance. The authoritative status indexes open gap IDs and evidence pointers only; full lineage stays in existing Acceptance, Impact Analysis, Run handoff, and receipts. A blocking open gap prevents `ALL_REQUIRED_RUNS_ACCEPTED`. Post-Security findings remain in the centralized security-remediation and Post-Security Owner Acceptance path.
 
 ## 13.2 Centralized Vulnerability Audit and Closure
 

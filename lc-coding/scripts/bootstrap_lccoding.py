@@ -49,6 +49,17 @@ def main():
         source_version = version_file.read_text(encoding='utf-8').strip() if version_file.exists() else 'UNKNOWN'
         source_head = git_head(project)
 
+    takeover_readiness = (
+        'NOT_CONTINUING'
+        if args.mode == 'existing' and args.continuity in {'hold', 'terminate'}
+        else 'BLOCKED' if args.mode == 'existing' else 'NOT_APPLICABLE'
+    )
+    source_candidate = {
+        'repository': args.repository,
+        'version': source_version if args.mode == 'existing' else '0.0.1',
+        'commit': source_head or '',
+    }
+
     lc = project / '.lccoding'
     lc.mkdir(exist_ok=True)
     for d in ROOT_DIRS:
@@ -76,10 +87,18 @@ def main():
         'initial_version': '0.0.1' if args.mode == 'new' else None,
         'source_version': source_version,
         'source_head': source_head,
+        'source_candidate': source_candidate,
         'continuity_decision': args.continuity.upper(),
         'reported_project_state': args.claimed_state.upper(),
         'completion_claim_status': 'NO_CLAIM' if args.claimed_state == 'none' else 'CLAIMED_UNATTESTED',
         'attestation_status': 'NOT_APPLICABLE' if args.mode == 'new' else 'PENDING',
+        'historical_materials_status': 'NOT_APPLICABLE' if args.mode == 'new' else 'PENDING',
+        'historical_materials': [],
+        'evidence_inventory_status': 'NOT_APPLICABLE' if args.mode == 'new' else 'PENDING',
+        'evidence_inventory': [],
+        'product_mainline_status': 'NOT_APPLICABLE' if args.mode == 'new' else 'PENDING',
+        'product_mainline_evidence': [],
+        'takeover_readiness': takeover_readiness,
         'created_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'status': 'INITIALIZED' if args.mode == 'new' else 'EXISTING_INTAKE_PENDING_ATTESTATION'
     }
@@ -90,6 +109,8 @@ def main():
         update_json(lc/'status.json', {
             'initialization_mode': args.mode.upper(),
             'continuity_decision': args.continuity.upper(),
+            'takeover_readiness': takeover_readiness,
+            'canonical_candidate': source_candidate,
             'existing_project_attestation': 'PENDING' if args.mode == 'existing' else 'NOT_APPLICABLE',
             'existing_project_classification': 'PENDING' if args.mode == 'existing' else 'NOT_APPLICABLE',
             'initialization': 'EXISTING_INTAKE_PENDING' if args.mode == 'existing' else 'INITIALIZED'
@@ -97,6 +118,7 @@ def main():
         update_json(lc/'PROJECT-HEALTH.json', {
             'initialization_mode': args.mode.upper(),
             'continuity_decision': args.continuity.upper(),
+            'takeover_readiness': takeover_readiness,
             'completion_claim_status': start['completion_claim_status'],
             'existing_project_classification': 'PENDING' if args.mode == 'existing' else 'NOT_APPLICABLE'
         })

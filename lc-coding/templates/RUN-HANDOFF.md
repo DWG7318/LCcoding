@@ -2,6 +2,7 @@
 
 - Run ID:
 - Feature Slice ID / version:
+- Owner Gap IDs (correction Run only):
 - Run Scope:
 - Run Feature:
 - Selected method: SLK / CLK / GLK
@@ -9,6 +10,7 @@
 - Product Baseline / Integration Baseline:
 - Scenario IDs:
 - D3 receipt:
+- Delta re-verification / re-acceptance route:
 - Exact entry / role / account:
 - Acceptance steps:
 - Product questions for Owner:
