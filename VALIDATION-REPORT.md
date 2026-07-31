@@ -1,4 +1,4 @@
-# LCCoding 2.2.0 Validation Report
+# LCCoding 2.2.1 Validation Report
 
 ```text
 PASS: LCCoding repository structure, mainline, acceptance, and security sequence are valid.
@@ -22,7 +22,7 @@ PASS: security sequence and independence
 PASS: Slice preflight covers product execution without absorbing Loop internals
 PASS: takeover readiness stays in initialization with one canonical status
 PASS: verification reuse
-PASS: LCCoding 2.2.0 version is consistent across release artifacts
+PASS: LCCoding 2.2.1 version is consistent across release artifacts
 PASS: version guard
 PASS: centralized independent vulnerability closure
 PASS: 20 tests
@@ -30,6 +30,10 @@ PASS: 20 tests
 
 Validated corrections:
 
+- Workflow is progressively realized as real, runnable capability during Workflow/UI/Simulation rather than represented by plans, shells, mocks, or simulation alone;
+- one Workflow Map classifies business lines as `CORE` or `EXTRA`, without adding a phase, state, gate, or parallel Workflow;
+- incomplete or infeasible CORE blocks Product Baseline, while EXTRA does not block and cannot be claimed as product capability until implemented and verified;
+- Feature Slice inherits verified CORE and EXTRA Workflow capabilities and may continue to improve Workflow through existing impact and controlled-mutable rules;
 - canonical mainline nodes remain unchanged;
 - Project Initialization admits NEW and EXISTING modes without a parallel lifecycle;
 - EXISTING takeover emits only `READY`, `BLOCKED`, or `NOT_CONTINUING` and cannot reach READY with pending attestation, inventories, mainline reconstruction, or blockers;

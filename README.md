@@ -1,4 +1,4 @@
-# LCCoding 2.2.0
+# LCCoding 2.2.1
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 

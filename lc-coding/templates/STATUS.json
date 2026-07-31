@@ -1,6 +1,6 @@
 {
   "record_role": "AUTHORITATIVE_PROJECT_STATUS",
-  "status_schema_version": "2.2.0",
+  "status_schema_version": "2.2.1",
   "project_id": "",
   "updated_at": "",
   "initialization_mode": "NEW|EXISTING",

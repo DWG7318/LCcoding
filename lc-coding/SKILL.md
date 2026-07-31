@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.2.0
+# LCCoding 2.2.1
 
 ## Canonical mainline
 

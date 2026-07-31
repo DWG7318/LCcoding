@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.2.0
+# LCCoding Standard Specification 2.2.1
 
 ## 1. Scope
 

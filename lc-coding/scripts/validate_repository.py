@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 
 REQUIRED=[
-'VERSION','README.md','README.zh-CN.md','CONSTITUTION.md','SPEC.md','CHANGELOG.md','MIGRATION-1.1.1-TO-2.0.0.md','MIGRATION-2.0.0-TO-2.1.0.md','MIGRATION-2.1.0-TO-2.2.0.md',
+'VERSION','README.md','README.zh-CN.md','CONSTITUTION.md','SPEC.md','CHANGELOG.md','MIGRATION-1.1.1-TO-2.0.0.md','MIGRATION-2.0.0-TO-2.1.0.md','MIGRATION-2.1.0-TO-2.2.0.md','MIGRATION-2.2.0-TO-2.2.1.md',
 'lc-coding/SKILL.md','lc-coding/references/method-mainline.md','lc-coding/references/verification-de-duplication.md',
 'lc-coding/references/delivery-governance.md','lc-coding/templates/FEATURE-SLICE.md','lc-coding/templates/INTEGRATION-BASELINE.md',
 'lc-coding/templates/VERIFICATION-RECEIPT.json','lc-coding/scripts/bootstrap_lccoding.py','lc-coding/scripts/validate_project.py',
@@ -18,7 +18,7 @@ def main():
     root=Path(sys.argv[1] if len(sys.argv)>1 else '.').resolve(); errors=[]
     for x in REQUIRED:
         if not (root/x).is_file(): errors.append('missing '+x)
-    if (root/'VERSION').is_file() and (root/'VERSION').read_text().strip()!='2.2.0': errors.append('bad VERSION')
+    if (root/'VERSION').is_file() and (root/'VERSION').read_text().strip()!='2.2.1': errors.append('bad VERSION')
     con=(root/'CONSTITUTION.md').read_text(encoding='utf-8') if (root/'CONSTITUTION.md').is_file() else ''
     alltext=con+'\n'+((root/'README.zh-CN.md').read_text(encoding='utf-8') if (root/'README.zh-CN.md').is_file() else '')
     for m in MARKERS:

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.1
+
+### Workflow realization and CORE/EXTRA classification
+
+- Required Workflow business lines become real, runnable product capability during the existing Workflow/UI/Simulation stage; plans, shells, mocks, and simulation-only results do not substitute for implementation.
+- One Workflow Map classifies each business line as `CORE` or `EXTRA`; technically difficult or infeasible EXTRA may remain deferred and does not block Product Baseline, but cannot be claimed as existing capability until implemented and verified.
+- Product Baseline is blocked until every CORE business line is implemented and proved feasible; AI cannot downgrade CORE to EXTRA without returning the classification to Calabash and Owner confirmation.
+- Feature Slice inherits and reuses verified CORE and EXTRA Workflow capabilities and may continue improving Workflow under existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
+- Canonical mainline, phases, states, gates, runtime boundaries, and lower-method responsibilities remain unchanged.
+
 ## 2.2.0
 
 ### Takeover and canonical status
