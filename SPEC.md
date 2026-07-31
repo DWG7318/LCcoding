@@ -203,6 +203,8 @@ Workflow defines what the product actually does: actors, authority, states, tran
 
 Workflow is not merely a plan, description, or flowchart of product capability. During the existing Workflow/UI/Simulation stage, AI must use Calabash and the Simulation World to decompose Workflow into enough business lines to cover the product and progressively implement real, runnable business functions. Early implementation may be scattered and need not immediately connect to UI, but plans, empty shells, mocks, or simulation-only results cannot substitute for real Workflow. Workflow may continue to iterate with Simulation and Calabash until the Mandatory Calabash Upgrade is complete.
 
+Within this one Workflow, every business line is classified as `CORE` or `EXTRA`. CORE is confirmed in Calabash and by the Owner as required product capability. EXTRA is an enhancement derived from Calabash extension space, external research, or comparable-product analysis. AI should attempt EXTRA, but a technically difficult or infeasible EXTRA may remain a concept, requirement, deferred item, or infeasible item; it does not block Product Baseline and must not be claimed as existing product capability unless implemented and verified. AI must not reclassify CORE as EXTRA to pass Product Baseline; every classification change returns to Calabash and requires Owner confirmation.
+
 ### UI product-surface end
 
 UI includes every actor-facing surface: customer, staff, operator, support, review, fulfillment, administrator, configuration, notification, approval, audit, and status surfaces.
@@ -226,13 +228,13 @@ The upgrade:
 
 The Product Baseline is the engineering reference. Later verified learning may amend it through impact analysis, but it must never drift silently.
 
-If any required Workflow is not yet implemented as real, runnable behavior, or is proved infeasible under the current product constraints, the project must not enter Product Baseline. Work must first adjust Calabash, narrow the direction, hold, or terminate under Owner authority.
+The Product Baseline implementation gate applies only to CORE Workflow. If any CORE business line is not yet implemented as real, runnable behavior, or is proved infeasible under the current product constraints, the project must not enter Product Baseline. Work must first adjust Calabash, narrow the direction, hold, or terminate under Owner authority. Incomplete or infeasible EXTRA does not block Product Baseline and remains a non-capability until implemented and verified.
 
 ## 9. Feature Slice
 
 Feature Slice is the LCCoding product-progress unit.
 
-A Feature Slice must identify the already implemented and verified Workflow capabilities and inherit and reuse them wherever possible. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
+A Feature Slice must identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
 ```text
 Actor intent
