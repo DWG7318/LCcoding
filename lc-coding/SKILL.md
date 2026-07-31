@@ -67,15 +67,15 @@ Keep every mandatory mainline node. Use Project Fingerprint product uncertainty,
 ## Product formation
 
 1. Create Calabash Draft from the ready Proposal.
-2. Develop Workflow and UI as equal ends.
+2. Develop Workflow and UI as equal ends. Use Calabash and the Simulation World to split Workflow into enough business lines and progressively implement real, runnable business functions. Workflow may start scattered and need not yet connect to UI. Plans, empty shells, mocks, and simulation-only results cannot replace real Workflow; it may continue to iterate with Calabash and Simulation until Mandatory Calabash Upgrade is complete.
 3. Build one versioned Simulation World and reuse scenario IDs downstream.
 4. Synchronize only consequential learning into one existing canonical artifact; the field may be blank when no future decision, constraint, check, template, or reuse rule changes.
 5. Run Mandatory Calabash Upgrade before Product Baseline.
-6. Freeze Product Baseline.
+6. Freeze Product Baseline only after required Workflow is feasible and implemented. Do not freeze Product Baseline while any required Workflow is not real and runnable or is proved infeasible under current product constraints; first adjust Calabash, narrow, hold, or terminate under Owner authority.
 
 ## Feature Slice and Integration
 
-Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance.
+Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance. Identify already implemented and verified Workflow capabilities and inherit and reuse them wherever possible. Because the Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and visible results more completely, it may supplement, adjust, or improve Workflow under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
 Before selecting a Loop Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs.
 
