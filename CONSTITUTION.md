@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.2.2
+# LCCoding Constitution 2.2.3
 
 ## Identity
 
@@ -17,9 +17,7 @@ Project Initialization
       ↓
 Calabash Draft
       ↓
-Workflow capability end ↔ UI product-surface end
-                    ↕
-             Simulation World
+Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
       ↓
 Mandatory Calabash Upgrade
       ↓
@@ -37,6 +35,8 @@ Owner Acceptance
       ↓
 Delivery
 ```
+
+The bracket is the one existing `WORKFLOW_UI_SIMULATION` node: it states internal formation order, not a new lifecycle node, phase, gate, or readiness verdict.
 
 The mainline is unchanged. Its operational meaning is:
 
@@ -70,7 +70,7 @@ Exit: INITIAL_READY
 Boundary: before Calabash Draft
 
 PHASE 1 — PRODUCT_FORMATION
-Calabash Draft → Workflow / UI / Simulation World
+Calabash Draft → Workflow/UI/Simulation [Simulation foundation first; then Workflow ∥ UI]
 Exit: CALABASH_UPGRADE_READY
 Boundary: before Mandatory Calabash Upgrade
 

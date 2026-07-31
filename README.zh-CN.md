@@ -1,4 +1,4 @@
-# LCCoding 2.2.2
+# LCCoding 2.2.3
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -13,9 +13,7 @@ Project Initialization
       ↓
 Calabash Draft
       ↓
-Workflow 能力端 ↔ UI 产品呈现端
-                 ↕
-          Simulation World
+Workflow/UI/Simulation [先建立 Simulation World foundation；再由 Workflow 能力端 ∥ UI 产品呈现端分别推进]
       ↓
 Mandatory Calabash Upgrade
       ↓
@@ -55,6 +53,12 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 ## 固定主干、按风险调深浅
 
 所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。`UNKNOWN` 是允许记录的待判定状态，必须继续评估并采用保守的更深覆盖，不能被视为 all-low 或最终充分判断。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
+
+## Simulation-first 产品形成
+
+在现有 Workflow/UI/Simulation 节点内，必须先有一个最小、真实可运行、带版本的 Simulation World foundation。它一开始不必完善，也不是一次性冻结；Simulation 始终保持 `VERSIONED_MUTABLE`，后续可随场景和项目学习继续增强。
+
+基础 Simulation 存在后，Workflow 与 UI 才作为同等产品端分别独立向前建设，也可以并行推进；二者都必须形成真实、可运行、可检查的结果，不能只停留在计划、空壳或 mock。Product Formation 继续同步三者的产品语义与场景，但不要求前期接通或共同联调。跨层连接与贯通证明仍由后续 Feature Slice 和 UI-locked Integration 负责，Feature Slice 既有的 Workflow 继承和改进职责保持不变。
 
 ## Slice 执行准入与 Owner gap
 

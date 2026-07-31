@@ -1,9 +1,9 @@
 ---
 name: lc-coding
-description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
+description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Simulation-first Workflow/UI product formation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.2.2
+# LCCoding 2.2.3
 
 ## Canonical mainline
 
@@ -12,7 +12,7 @@ Owner Proposal
 → Proposal Readiness Check
 → Project Initialization
 → Calabash Draft
-→ Workflow capability end ↔ UI product-surface end ↔ Simulation World
+→ Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
@@ -67,8 +67,8 @@ Keep every mandatory mainline node. Use Project Fingerprint product uncertainty,
 ## Product formation
 
 1. Create Calabash Draft from the ready Proposal.
-2. Develop Workflow and UI as equal ends. Use Calabash and the Simulation World to split Workflow into enough business lines and progressively implement real, runnable business functions. Workflow may start scattered and need not yet connect to UI. Plans, empty shells, mocks, and simulation-only results cannot replace real Workflow; it may continue to iterate with Calabash and Simulation until Mandatory Calabash Upgrade is complete. In the same Workflow Map, mark every business line `CORE` or `EXTRA`. CORE means Calabash and Owner confirmation make the business line required product capability. EXTRA comes from Calabash extension space, external research, or comparable-product analysis. Attempt EXTRA, but technically difficult or infeasible EXTRA may remain a concept, requirement, deferred item, or infeasible item without blocking Product Baseline. Do not claim unimplemented EXTRA as product capability. Never reclassify CORE as EXTRA to pass Product Baseline; change classification only through Calabash with Owner confirmation.
-3. Build one versioned Simulation World and reuse scenario IDs downstream.
+2. Build a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction. Reuse its scenario IDs downstream, strengthen it as scenarios and learning grow, and never treat the foundation as a complete or frozen Simulation; it remains `VERSIONED_MUTABLE`.
+3. Then advance Workflow and UI as equal product ends, independently; they may proceed in parallel, but each must produce a real, runnable, inspectable result. Do not require early Workflow-to-UI connection or three-way joint integration. Continue semantic and scenario synchronization without treating it as early integration. Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration. Use Calabash and the Simulation World to split Workflow into enough business lines and progressively implement real, runnable business functions. Workflow may start scattered and need not yet connect to UI. Plans, empty shells, mocks, and simulation-only results cannot replace real Workflow; it may continue to iterate with Calabash and Simulation until Mandatory Calabash Upgrade is complete. In the same Workflow Map, mark every business line `CORE` or `EXTRA`. CORE means Calabash and Owner confirmation make the business line required product capability. EXTRA comes from Calabash extension space, external research, or comparable-product analysis. Attempt EXTRA, but technically difficult or infeasible EXTRA may remain a concept, requirement, deferred item, or infeasible item without blocking Product Baseline. Do not claim unimplemented EXTRA as product capability. Never reclassify CORE as EXTRA to pass Product Baseline; change classification only through Calabash with Owner confirmation.
 4. Synchronize only consequential learning into one existing canonical artifact; the field may be blank when no future decision, constraint, check, template, or reuse rule changes.
 5. Run Mandatory Calabash Upgrade before Product Baseline.
 6. The Product Baseline gate applies only to CORE Workflow. Freeze Product Baseline only after every CORE business line is real, runnable, and proved feasible. If any CORE is not real and runnable or is proved infeasible under current product constraints, first adjust Calabash, narrow, hold, or terminate under Owner authority. EXTRA does not block Product Baseline and remains a non-capability until implemented and verified. Complete Product Baseline Handoff only when the complete rebuildable UI source is frozen in an independent Owner-controlled GitHub repository that remains `PRIVATE`, with repository identity, Private evidence, exact remote commit SHA, deterministic content hash and manifest scope, remote resolve proof, and recovery reference.

@@ -5,7 +5,7 @@ Owner Proposal
 → Proposal Readiness Check
 → Project Initialization
 → Calabash Draft
-→ Workflow capability end ↔ UI product-surface end ↔ Simulation World
+→ Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
@@ -15,6 +15,8 @@ Owner Proposal
 → Owner Acceptance
 → Delivery
 ```
+
+The bracket is one existing mainline node. Its internal order is: create the minimum real, runnable, versioned Simulation foundation; then let Workflow and UI advance independently as equal product ends, each reaching runnable, inspectable results. They need not connect or undergo three-way joint integration here. Product meaning and scenarios still synchronize, while cross-layer connection and proof remain in Feature Slice and UI-locked Integration.
 
 Operational binding:
 

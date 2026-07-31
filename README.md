@@ -1,4 +1,4 @@
-# LCCoding 2.2.2
+# LCCoding 2.2.3
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -8,7 +8,7 @@ LCCoding keeps its original method spine:
 Proposal Readiness
 → Project Initialization
 → Calabash Draft
-→ Workflow ↔ UI ↔ Simulation
+→ Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
@@ -40,6 +40,12 @@ Takeover stays inside Project Initialization and ends as `READY`, `BLOCKED`, or 
 ## Fixed mainline, proportional depth
 
 Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. `UNKNOWN` is a recorded pending state that requires assessment and conservative deeper coverage; it is never treated as all-low or a sufficient final judgment. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` remains topology-only.
+
+## Simulation-first product formation
+
+A minimal, real, runnable, versioned Simulation World foundation comes first inside the existing Workflow/UI/Simulation node. It is intentionally incomplete and remains `VERSIONED_MUTABLE`, gaining scenarios and fidelity as the product learns.
+
+Workflow and UI then advance independently as equal product ends and may proceed in parallel; each must form a real, runnable, inspectable result rather than a plan, shell, or mock. Product Formation keeps their meaning and scenarios synchronized but does not require early connection or three-way joint integration. Feature Slice and UI-locked Integration own the later cross-layer connection and proof, while retaining the Slice's existing Workflow inheritance and improvement responsibilities.
 
 ## Slice execution and Owner gaps
 

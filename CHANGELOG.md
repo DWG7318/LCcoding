@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.3
+
+### Simulation-first Product Formation
+
+- Clarified the internal order of the existing `WORKFLOW_UI_SIMULATION` node: establish a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction.
+- Kept the foundation deliberately incomplete and `VERSIONED_MUTABLE`; it gains fidelity, scenarios, and project learning instead of becoming a one-time complete freeze.
+- After the foundation exists, Workflow and UI advance independently as equal product ends and may proceed concurrently, but each must produce real, runnable, inspectable results rather than plans, shells, mocks, or simulation-only substitutes.
+- Early Product Formation does not require Workflow-to-UI connection or three-way joint integration. Semantic/scenario synchronization continues, while cross-layer connection and end-to-end proof remain with Feature Slice and UI-locked Integration.
+- Workflow realization, CORE/EXTRA and Product Baseline rules, Feature Slice inheritance/improvement, Private UI baseline protection, canonical mainline, phases, states, gates, Loop responsibilities, and runtime boundaries remain unchanged.
+
 ## 2.2.2
 
 ### Private UI baseline protection

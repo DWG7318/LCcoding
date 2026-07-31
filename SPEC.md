@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.2.2
+# LCCoding Standard Specification 2.2.3
 
 ## 1. Scope
 
@@ -15,7 +15,7 @@ Owner Proposal
 → Proposal Readiness Check
 → Project Initialization
 → Calabash Draft
-→ Workflow ↔ UI, observed through Simulation World
+→ Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
@@ -197,6 +197,10 @@ An Interpretation Lock is reissued only when a locked version/hash, compatibilit
 
 Calabash begins as a Draft based on the ready Proposal. It evolves throughout Workflow, UI, and Simulation work. It is not assumed complete at project start.
 
+Before actual Workflow or UI construction begins, Product Formation requires a minimal, real, runnable, versioned Simulation World foundation. It is a starting world, not a complete or frozen Simulation, and it may gain fidelity, scenarios, and project learning throughout Product Formation.
+
+Only after that foundation exists may Workflow and UI advance as equal product ends, independently. They may proceed concurrently, but each must produce real, runnable, inspectable results. Early Product Formation does not require Workflow and UI to be connected or all three elements to be jointly integrated. Continue semantic and scenario synchronization across all three without treating synchronization as cross-layer integration. Cross-layer Workflow-to-UI connection and end-to-end proof remain responsibilities of Feature Slice and UI-locked Integration.
+
 ### Workflow capability end
 
 Workflow defines what the product actually does: actors, authority, states, transitions, inputs, outputs, rules, side effects, failure/recovery, external constraints, and reusable capabilities.
@@ -213,7 +217,9 @@ UI includes every actor-facing surface: customer, staff, operator, support, revi
 
 Simulation is a versioned and resettable product world with realistic actors, data density, state, time, permissions, devices, external dependencies, failures, recovery, and history.
 
-Workflow, UI, and Simulation are distinct but continuously synchronized. The same scenario identifiers should be reused in design, integration, Verification, and Owner Acceptance rather than copied into separate test catalogs.
+Simulation remains `VERSIONED_MUTABLE`: the minimum foundation is strengthened by versioned deltas as more scenarios and learning appear, never treated as a one-time complete freeze.
+
+Workflow, UI, and Simulation are distinct but continuously synchronized in product meaning and scenario identity. That synchronization does not require early Workflow-to-UI wiring or joint integration. The same scenario identifiers should be reused in design, integration, Verification, and Owner Acceptance rather than copied into separate test catalogs.
 
 ## 8. Mandatory Calabash Upgrade and Product Baseline
 

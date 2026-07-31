@@ -4,6 +4,7 @@ root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/lifecycle.json').read_text())
 expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','LOOP_ENGINEERING','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
 assert contract['mainline']==expected
+assert contract['required_transitions']==dict(zip(expected,expected[1:]))
 con=(root/'CONSTITUTION.md').read_text(encoding='utf-8')
 for x in ['Workflow capability end','UI product-surface end','Simulation World','Mandatory Calabash Upgrade','Feature Slice','Owner Acceptance','Delivery']:
     assert x in con
@@ -11,11 +12,20 @@ print('PASS: mainline')
 
 phases=json.loads((root/'lc-coding/contracts/phases.json').read_text())
 assert phases['mainline_unchanged'] is True
+assert phases['phases'][1]=={
+    'id':'PRODUCT_FORMATION','start':'CALABASH_DRAFT',
+    'end_before':'MANDATORY_CALABASH_UPGRADE','exit_gate':'CALABASH_UPGRADE_READY',
+}
 assert phases['phases'][2]['aggregate_exit_gate']=='ALL_REQUIRED_RUNS_ACCEPTED'
 assert phases['phases'][3]['exit_gate']=='DELIVERY_READY'
 
 spec=(root/'SPEC.md').read_text(encoding='utf-8')
 skill=(root/'lc-coding/SKILL.md').read_text(encoding='utf-8')
+readme=(root/'README.md').read_text(encoding='utf-8')
+readme_zh=(root/'README.zh-CN.md').read_text(encoding='utf-8')
+method_mainline=(root/'lc-coding/references/method-mainline.md').read_text(encoding='utf-8')
+dual_end=(root/'lc-coding/references/dual-end-design.md').read_text(encoding='utf-8')
+simulation=(root/'lc-coding/references/simulation-world.md').read_text(encoding='utf-8')
 
 semantic_checks=[
     (spec,'SPEC Workflow',[
@@ -73,9 +83,62 @@ for document,label,markers in semantic_checks:
     for marker in markers:
         assert marker in document, f'missing {label} rule: {marker}'
 
+mainline_marker='Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]'
+for relative in ['CONSTITUTION.md','SPEC.md','README.md','lc-coding/SKILL.md','lc-coding/references/method-mainline.md']:
+    assert mainline_marker in (root/relative).read_text(encoding='utf-8'), relative
+assert 'Workflow/UI/Simulation [先建立 Simulation World foundation；再由 Workflow 能力端 ∥ UI 产品呈现端分别推进]' in readme_zh
+
+simulation_first_checks=[
+    (spec,'SPEC Simulation-first',[
+        'Before actual Workflow or UI construction begins',
+        'minimal, real, runnable, versioned Simulation World foundation',
+        'Workflow and UI advance as equal product ends',
+        'each must produce real, runnable, inspectable results',
+        'does not require Workflow and UI to be connected or all three elements to be jointly integrated',
+        'Cross-layer Workflow-to-UI connection and end-to-end proof remain responsibilities of Feature Slice and UI-locked Integration',
+        'Simulation remains `VERSIONED_MUTABLE`',
+    ]),
+    (skill,'SKILL Simulation-first',[
+        'Build a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction',
+        'Then advance Workflow and UI as equal product ends, independently; they may proceed in parallel',
+        'real, runnable, inspectable result',
+        'Do not require early Workflow-to-UI connection or three-way joint integration',
+        'Continue semantic and scenario synchronization without treating it as early integration',
+        'Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration',
+        'never treat the foundation as a complete or frozen Simulation',
+    ]),
+    (dual_end,'dual-end reference',[
+        'After the Simulation World foundation exists',
+        'independently runnable and inspectable',
+        'Cross-layer connection is not an early Product Formation condition',
+    ]),
+    (simulation,'Simulation reference',[
+        'minimum real, runnable, versioned foundation',
+        'before actual Workflow or UI construction',
+        'not a one-time complete freeze',
+        '`VERSIONED_MUTABLE`',
+    ]),
+    (readme,'README Simulation-first',[
+        'A minimal, real, runnable, versioned Simulation World foundation comes first',
+        'Workflow and UI then advance independently',
+        'Feature Slice and UI-locked Integration own the later cross-layer connection and proof',
+    ]),
+    (readme_zh,'README.zh Simulation-first',[
+        '最小、真实可运行、带版本的 Simulation World foundation',
+        'Workflow 与 UI 才作为同等产品端分别独立向前建设',
+        '跨层连接与贯通证明仍由后续 Feature Slice 和 UI-locked Integration 负责',
+    ]),
+]
+for document,label,markers in simulation_first_checks:
+    for marker in markers:
+        assert marker in document, f'missing {label} rule: {marker}'
+
 status=json.loads((root/'lc-coding/templates/STATUS.json').read_text())
 framework=json.dumps((contract,phases,status)).lower()
-for forbidden in ['workflow_realization','workflow realization','workflow_feasibility','workflow feasibility']:
+for forbidden in [
+    'workflow_realization','workflow realization','workflow_feasibility','workflow feasibility',
+    'simulation_foundation','simulation_first_gate','simulation_ready_state',
+]:
     assert forbidden not in framework
 
 workflow_map=(root/'lc-coding/templates/WORKFLOW-MAP.md').read_text(encoding='utf-8')

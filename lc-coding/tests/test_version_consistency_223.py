@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 root = Path(__file__).resolve().parents[2]
-current = "2.2.2"
+current = "2.2.3"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -36,8 +36,8 @@ for relative in [
 ]:
     assert current in (root / relative).read_text(encoding="utf-8")
 
-assert (root / "MIGRATION-2.2.1-TO-2.2.2.md").is_file()
+assert (root / "MIGRATION-2.2.2-TO-2.2.3.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.2.2") < changelog.index("## 2.2.1")
+assert changelog.index("## 2.2.3") < changelog.index("## 2.2.2")
 
-print("PASS: LCCoding 2.2.2 version is consistent across release artifacts")
+print("PASS: LCCoding 2.2.3 version is consistent across release artifacts")
