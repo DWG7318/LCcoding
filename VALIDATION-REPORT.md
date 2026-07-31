@@ -1,4 +1,4 @@
-# LCCoding 2.2.1 Validation Report
+# LCCoding 2.2.2 Validation Report
 
 ```text
 PASS: LCCoding repository structure, mainline, acceptance, and security sequence are valid.
@@ -19,17 +19,22 @@ PASS: phase identifiers are consistent across release artifacts
 PASS: phase map
 PASS: release files and hash manifest are complete
 PASS: security sequence and independence
+PASS: UI lock requires an Owner-controlled Private GitHub baseline and exact recovery proof
 PASS: Slice preflight covers product execution without absorbing Loop internals
 PASS: takeover readiness stays in initialization with one canonical status
 PASS: verification reuse
-PASS: LCCoding 2.2.1 version is consistent across release artifacts
+PASS: LCCoding 2.2.2 version is consistent across release artifacts
 PASS: version guard
 PASS: centralized independent vulnerability closure
-PASS: 20 tests
+PASS: 21 tests
 ```
 
 Validated corrections:
 
+- `UI=LOCKED` requires complete, rebuildable UI source in an independent Owner-controlled GitHub repository that remains `PRIVATE`, regardless of product-repository visibility;
+- Product and Integration Baselines share one remote/path/exact-SHA/content-hash identity with deterministic hash scope, Private-visibility, remote-resolution, push, and recovery evidence; local-only, Public/Unknown, mutable, unresolved, mismatched, or render-only references are rejected;
+- each active Feature Slice compares current UI with the locked remote commit and hash before work and acceptance, and re-proves Owner control, Private visibility, and exact-commit resolution before acceptance; unauthorized deltas block progress and cannot silently overwrite Owner material;
+- the existing Baseline Change Request is the only route to update locked UI, and requires a distinct new pushed Private remote commit, identical Product/Integration reference updates, and affected-evidence re-verification;
 - Workflow is progressively realized as real, runnable capability during Workflow/UI/Simulation rather than represented by plans, shells, mocks, or simulation alone;
 - one Workflow Map classifies business lines as `CORE` or `EXTRA`, without adding a phase, state, gate, or parallel Workflow;
 - incomplete or infeasible CORE blocks Product Baseline, while EXTRA does not block and cannot be claimed as product capability until implemented and verified;

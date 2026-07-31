@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.2.1
+# LCCoding Standard Specification 2.2.2
 
 ## 1. Scope
 
@@ -230,6 +230,10 @@ The Product Baseline is the engineering reference. Later verified learning may a
 
 The Product Baseline implementation gate applies only to CORE Workflow. If any CORE business line is not yet implemented as real, runnable behavior, or is proved infeasible under the current product constraints, the project must not enter Product Baseline. Work must first adjust Calabash, narrow the direction, hold, or terminate under Owner authority. Incomplete or infeasible EXTRA does not block Product Baseline and remains a non-capability until implemented and verified.
 
+Product Baseline Handoff also requires a recoverable UI source baseline. The complete rebuildable UI source—including application and component code, styles, assets, design tokens, interaction states, and required build metadata—must live in a Git repository independent from the product repository. Screenshots, exported images, previews, or build artifacts cannot by themselves serve as that baseline.
+
+The UI repository must be an Owner-controlled independent GitHub repository and must remain `PRIVATE`; product repository visibility, whether Public or Private, never relaxes this rule. The Handoff records repository identity and URL, Owner-control and Private-visibility evidence, the exact remote commit SHA, version or tag when used, UI content hash, proof that the remote resolves the frozen commit, and a recovery reference. The content hash is SHA-256 over a canonical tracked-file manifest for the declared baseline paths at that commit: UTF-8 POSIX relative path, Git mode, and SHA-256 of raw blob bytes per entry, sorted by path; its scope and manifest evidence are recorded. Local-only state, `PUBLIC` or `UNKNOWN` visibility, an unresolved remote commit, a branch name or `latest`, missing recovery evidence, or render/build-only material leaves the Handoff incomplete; the mainline cannot advance past Product Baseline into an active Feature Slice or UI-locked Integration. An existing independent UI repository may be reused only when it satisfies every condition; an existing Public UI repository must first become Private or migrate to a new Private repository.
+
 ## 9. Feature Slice
 
 Feature Slice is the LCCoding product-progress unit.
@@ -254,6 +258,8 @@ One Feature Slice contract is canonical. Loop Run plans, verification receipts, 
 
 Before a Slice enters SLK, CLK, or GLK, its Execution Coverage Preflight must be `PASS`. Goal-backward coverage includes actor outcome, Product Baseline, Workflow, UI, Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3 evidence, and Loop Owner Acceptance. A missing claim, uncovered link, duplicate responsibility, or unresolved coverage unknown produces `BLOCKED`.
 
+The same Preflight must trace the independent GitHub repository and baseline path, Owner-control plus `PRIVATE` evidence, full remote commit SHA, UI content hash and manifest scope, remote push/resolve evidence, recovery reference, and a `MATCH` comparison before the Slice or Run. The Product Handoff, Integration Baseline, and Slice must name one locked identity tuple—remote, baseline paths, exact SHA, and content hash—and any mismatch blocks admission unless an approved Baseline Change Request replaced the tuple. The product repository identity must be known and comparable; missing or unresolvable identity leaves independence unproved and blocks admission. Preflight also requires a before-acceptance comparison route. Product repository visibility is never accepted as substitute proof for the independent UI repository.
+
 For any `HIGH` or `UNKNOWN` Project Fingerprint factor, the Slice records either deeper evidence or smaller independently verifiable Run boundaries. `recommended_loop` remains topology-only.
 
 When a required cross-layer connection lacks trustworthy proof, the first Required Run is the thinnest production-quality proving path through one real end-to-end scenario. It is not a prototype or new task type. Its failure blocks expansion. Existing sufficient proof may be cited instead with a no-new-Run rationale.
@@ -271,7 +277,11 @@ Calabash = LIVING_WITH_IMPACT_TRACE
 
 Integration is a convergence phase, not a new design phase. AI must make the Workflow and engineering implementation reach the accepted UI across every required actor surface.
 
-A UI change requires `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
+`UI = LOCKED` is not a textual declaration. `INTEGRATION_BASELINE` pins the independent Private GitHub remote, baseline path, exact remote commit SHA, and content hash without ambiguity and must match the Product Handoff identity tuple; a branch, tag, `HEAD`, working tree, design link, screenshot, export, or `latest` is not an immutable reference. LCCoding does not require a submodule, subtree, or other specific attachment technology.
+
+Before a Feature Slice or engineering Run starts, and again before acceptance, AI compares the current UI with the locked remote commit and content hash. Before acceptance, re-prove Owner control, `PRIVATE` visibility, and remote resolution of that exact commit. Any unapproved difference or identity mismatch blocks work or acceptance. Preserve the difference evidence, then restore from the locked Private remote commit or handle the change in an isolated location; AI must not silently overwrite user material.
+
+A UI change requires the existing `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. An approved request must explain why preservation is impossible, create a distinct new commit in the independent UI repository, push it to the Private GitHub remote, re-prove Owner control, Private visibility, and remote resolution, update Product and Integration Baseline SHA/hash/version references to the same new identity, and re-verify affected evidence. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
 
 ## 11. Impact and reuse analysis
 

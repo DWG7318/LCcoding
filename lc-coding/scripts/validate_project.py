@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import argparse, json
+import argparse, json, re
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -98,7 +98,66 @@ def validate_takeover_readiness(start,status,health):
 def present(value):
     return value not in {None,'','PENDING','UNKNOWN','NONE'}
 
-def validate_slice_execution_preflight(fields,fingerprint):
+def canonical_github_repository(value):
+    value=str(value or '').strip()
+    patterns=[
+        r'https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',
+        r'git@github\.com:([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',
+        r'github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',
+        r'([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)',
+    ]
+    for pattern in patterns:
+        match=re.fullmatch(pattern,value,re.IGNORECASE)
+        if match:
+            owner,repository=match.groups()
+            if repository.lower().endswith('.git'): repository=repository[:-4]
+            if owner and repository: return f'github.com/{owner.lower()}/{repository.lower()}'
+    return None
+
+def validate_ui_private_baseline_preflight(fields,product_repository=None):
+    errors=[]
+    repository_and_path=str(fields.get('UI independent GitHub repository / baseline path(s)','')).strip()
+    repository_text,separator,baseline_path=repository_and_path.partition('::')
+    repository=canonical_github_repository(repository_text.strip())
+    if not repository or not separator or not present(baseline_path.strip()):
+        errors.append('UI baseline requires an independent GitHub repository and baseline path')
+    product=canonical_github_repository(product_repository)
+    if not product:
+        errors.append('product repository identity is required to prove UI repository independence')
+    elif repository and repository==product:
+        errors.append('UI baseline repository must be independent from the product repository')
+    private=str(fields.get('UI Owner-control / PRIVATE evidence','')).strip()
+    private_match=re.fullmatch(
+        r'PRIVATE:\s*(\S.*?)\s*\|\s*OWNER_CONTROLLED:\s*(\S.*)',private,re.IGNORECASE
+    )
+    if not private_match:
+        errors.append('UI baseline requires Owner-control and PRIVATE evidence pointer')
+    commit=str(fields.get('UI frozen exact remote commit SHA','')).strip()
+    if not re.fullmatch(r'(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})',commit):
+        errors.append('UI baseline requires a full exact remote commit SHA')
+    content_hash=str(fields.get('UI content hash','')).strip()
+    if not re.fullmatch(r'sha256:[0-9a-fA-F]{64}',content_hash,re.IGNORECASE):
+        errors.append('UI baseline requires an exact SHA-256 content hash')
+    hash_scope=str(fields.get('UI content hash scope / manifest evidence','')).strip()
+    if not hash_scope.upper().startswith('HASH_SCOPE:') or not hash_scope.split(':',1)[1].strip():
+        errors.append('UI baseline requires deterministic content hash scope evidence')
+    remote=str(fields.get('UI remote commit push / resolve evidence','')).strip()
+    if not remote.upper().startswith('REMOTE_RESOLVED:') or not remote.split(':',1)[1].strip():
+        errors.append('UI baseline requires remote commit push and resolve evidence')
+    recovery=str(fields.get('UI recovery reference','')).strip()
+    if not recovery.upper().startswith('RECOVERY:') or not recovery.split(':',1)[1].strip():
+        errors.append('UI baseline requires a recovery reference')
+    identity=str(fields.get('UI Product / Integration Baseline identity','')).strip()
+    if not identity.upper().startswith('MATCH:') or not identity.split(':',1)[1].strip():
+        errors.append('UI Product and Integration Baseline identity must MATCH with evidence')
+    comparison=str(fields.get('UI baseline comparison before Slice / Run','')).strip()
+    if not comparison.upper().startswith('MATCH:') or not comparison.split(':',1)[1].strip():
+        errors.append('UI baseline comparison before Slice or Run must MATCH with evidence')
+    if fields.get('UI comparison before acceptance route')!='REQUIRED':
+        errors.append('UI comparison before acceptance route must be REQUIRED')
+    return errors
+
+def validate_slice_execution_preflight(fields,fingerprint,product_repository=None):
     errors=[]
     for key in fields:
         if key.strip().lower() in SLICE_INTERNAL_METHOD_FIELDS:
@@ -106,6 +165,7 @@ def validate_slice_execution_preflight(fields,fingerprint):
     if fields.get('Execution Coverage Preflight')!='PASS':
         errors.append('active Slice execution coverage preflight must PASS')
         return errors
+    errors.extend(validate_ui_private_baseline_preflight(fields,product_repository))
     for field in SLICE_PREFLIGHT_REQUIRED:
         if not present(fields.get(field)): errors.append('Slice preflight missing '+field)
     gaps=str(fields.get('Coverage gaps / unknowns','')).strip().upper()
@@ -246,7 +306,9 @@ def main():
     if status.get('active_slice'):
         slice_path=resolve_active_slice(lc,status.get('active_slice'))
         if not slice_path: errors.append('active Slice artifact missing')
-        else: errors.extend(validate_slice_execution_preflight(parse_markdown_fields(slice_path),fingerprint))
+        else:
+            fields=parse_markdown_fields(slice_path)
+            errors.extend(validate_slice_execution_preflight(fields,fingerprint,start.get('repository')))
     gap_records=[]
     if (lc/'reviews').is_dir():
         for review in (lc/'reviews').rglob('*.md'):

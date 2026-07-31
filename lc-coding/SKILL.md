@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Workflow/UI dual-end design, realistic Simulation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.2.1
+# LCCoding 2.2.2
 
 ## Canonical mainline
 
@@ -71,13 +71,13 @@ Keep every mandatory mainline node. Use Project Fingerprint product uncertainty,
 3. Build one versioned Simulation World and reuse scenario IDs downstream.
 4. Synchronize only consequential learning into one existing canonical artifact; the field may be blank when no future decision, constraint, check, template, or reuse rule changes.
 5. Run Mandatory Calabash Upgrade before Product Baseline.
-6. The Product Baseline gate applies only to CORE Workflow. Freeze Product Baseline only after every CORE business line is real, runnable, and proved feasible. If any CORE is not real and runnable or is proved infeasible under current product constraints, first adjust Calabash, narrow, hold, or terminate under Owner authority. EXTRA does not block Product Baseline and remains a non-capability until implemented and verified.
+6. The Product Baseline gate applies only to CORE Workflow. Freeze Product Baseline only after every CORE business line is real, runnable, and proved feasible. If any CORE is not real and runnable or is proved infeasible under current product constraints, first adjust Calabash, narrow, hold, or terminate under Owner authority. EXTRA does not block Product Baseline and remains a non-capability until implemented and verified. Complete Product Baseline Handoff only when the complete rebuildable UI source is frozen in an independent Owner-controlled GitHub repository that remains `PRIVATE`, with repository identity, Private evidence, exact remote commit SHA, deterministic content hash and manifest scope, remote resolve proof, and recovery reference.
 
 ## Feature Slice and Integration
 
 Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance. Identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. Because the Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and visible results more completely, it may supplement, adjust, or improve Workflow under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
-Before selecting a Loop Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs.
+Before selecting a Loop Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It must include the independent UI GitHub repo/path, Owner-control plus `PRIVATE` evidence, full remote commit SHA, deterministic content hash and scope, remote resolve proof, recovery reference, Product/Integration identity `MATCH`, Slice/Run-start `MATCH`, and a required before-acceptance comparison route. Require a known, comparable product repository identity; otherwise independence is unproved and Preflight is blocked. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs.
 
 If cross-layer wiring is unproven, make the first Required Run a thin production-quality E2E proving path. Halt expansion when it fails. Reuse sufficient existing proof instead of manufacturing a new Run.
 
@@ -90,7 +90,9 @@ Simulation = VERSIONED_MUTABLE
 Calabash = LIVING_WITH_IMPACT_TRACE
 ```
 
-Modify locked UI only through approved Baseline Change Request.
+The UI source baseline lives in its own Git repository, separate from the product repository, and is pushed to an Owner-controlled independent GitHub repository that remains `PRIVATE`. Product repository visibility never relaxes this requirement. Screenshots, exports, previews, and build output are evidence only, never the recoverable baseline. The Integration Baseline pins the Private remote, baseline path, exact remote commit SHA, and deterministic content hash and must match the Product Handoff's one locked identity tuple; never use a branch, tag, `HEAD`, or `latest` as the lock.
+
+Compare current UI to the locked remote commit and hash before a Slice/Run and before acceptance; before acceptance, re-prove Owner control, `PRIVATE` visibility, and remote resolution. An unapproved difference or identity mismatch blocks progress or acceptance; preserve its evidence, then restore from the locked Private remote commit or isolate the work. Never silently overwrite user material. Modify locked UI only through an approved Baseline Change Request that records necessity, Owner approval, a distinct new UI commit pushed to the Private remote, renewed Owner-control/visibility/resolve proof, identical Product/Integration Baseline updates, and affected evidence re-verification. Existing independent UI repos are reusable only when Owner-controlled, GitHub Private, remotely resolvable, and fully recoverable; convert or migrate Public repos first. No submodule or subtree is required.
 
 ## Loop selection
 

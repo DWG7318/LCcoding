@@ -1,7 +1,13 @@
 # Final Feature Verification
 
 - Feature Slice ID / version:
-- Candidate / UI baseline:
+- Candidate / locked UI Private Git baseline (repository / path / full SHA / content hash):
+- Locked UI remote / exact commit / content hash:
+- UI Product / Integration Baseline identity: MATCH / BLOCKED + evidence
+- UI Owner-control / PRIVATE re-verification before acceptance: PASS / BLOCKED + evidence
+- UI exact remote commit resolve before acceptance: PASS / BLOCKED + evidence
+- UI comparison before acceptance: MATCH / BLOCKED + evidence
+- Unauthorized UI delta: NONE / BLOCKED + evidence
 - Run D3 receipts:
 - Receipt coverage map:
 - Promotion-only eligible: YES / NO

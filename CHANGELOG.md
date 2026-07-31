@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.2
+
+### Private UI baseline protection
+
+- Strengthened the existing `UI=LOCKED` rule so the complete, rebuildable UI baseline lives in an independent, Owner-controlled GitHub repository that remains `PRIVATE`, regardless of product-repository visibility.
+- Required Product Baseline Handoff and Integration Baseline to share one remote/path/exact-SHA/content-hash identity, with deterministic hash-scope, Private-visibility, remote-resolution, push, and recovery evidence; local-only, Public/Unknown, branch/latest, unresolved, mismatched, or render-only references do not lock UI.
+- Required baseline comparison before a Feature Slice or Run starts and before acceptance, with Owner-control, Private-visibility, and exact-commit resolution re-proved before acceptance. Unauthorized UI deltas block progress, preserve evidence, and are restored from the locked Private remote commit or handled in isolation without silently overwriting Owner material.
+- Kept the existing Baseline Change Request as the only route for absolutely necessary UI changes, including a distinct new Private remote commit, identical Product/Integration reference updates, and affected-evidence re-verification.
+- Canonical mainline, phases, states, gates, Feature Slice placement, Loop responsibilities, and runtime boundaries remain unchanged.
+
 ## 2.2.1
 
 ### Workflow realization and CORE/EXTRA classification

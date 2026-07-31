@@ -10,7 +10,7 @@ One normal Run uses one method. A method change requires governed stop/migration
 
 LCCoding owns the Feature Slice boundary. The selected Loop owns GO/CELL execution, D0–D3 topology, and incremental Loop Owner Acceptance.
 
-LCCoding hands off only after Slice Execution Coverage Preflight passes. The handoff contains product/baseline identity, Required Run scope, proportional-depth response, scenarios, D0–D3 and acceptance conditions, any first proving Run requirement, and open Owner gap IDs. It never copies the selected Loop's tasks, waves, roles, retries, Chains, Stages, or graph internals.
+LCCoding hands off only after Slice Execution Coverage Preflight passes. The handoff contains product/baseline identity, the pinned UI Private GitHub remote/path/commit/hash scope, Product/Integration identity match and Slice/Run-start comparison, Required Run scope, proportional-depth response, scenarios, D0–D3 and acceptance conditions, any first proving Run requirement, and open Owner gap IDs. It never copies the selected Loop's tasks, waves, roles, retries, Chains, Stages, or graph internals.
 
 A normal Run completes only after:
 

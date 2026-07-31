@@ -12,6 +12,10 @@ spec.loader.exec_module(module)
 
 assert hasattr(module, "validate_slice_execution_preflight")
 
+
+def validate(fields, fingerprint):
+    return module.validate_slice_execution_preflight(fields, fingerprint, "owner/product")
+
 low = {
     "complexity": {
         "product_uncertainty": "LOW",
@@ -38,6 +42,16 @@ ready = {
     "Required Run IDs": "RUN-002",
     "D0-D3 evidence plan": "D0 local; D1 boundary; D2 outcome; D3 E2E",
     "Normal Loop Owner Acceptance route(s)": "RUN-002 acceptance",
+    "UI independent GitHub repository / baseline path(s)": "https://github.com/owner/ui-private :: ui/",
+    "UI Owner-control / PRIVATE evidence": "PRIVATE: GH-VIS-002 | OWNER_CONTROLLED: OWNER-CTRL-002",
+    "UI frozen exact remote commit SHA": "a" * 40,
+    "UI content hash": "sha256:" + "b" * 64,
+    "UI content hash scope / manifest evidence": "HASH_SCOPE: UI-HASH-MANIFEST-002",
+    "UI remote commit push / resolve evidence": "REMOTE_RESOLVED: GH-COMMIT-002",
+    "UI recovery reference": "RECOVERY: github.com/owner/ui-private@commit:ui/",
+    "UI Product / Integration Baseline identity": "MATCH: UI-LOCK-002",
+    "UI baseline comparison before Slice / Run": "MATCH: UI-COMP-START-002",
+    "UI comparison before acceptance route": "REQUIRED",
     "Execution Coverage Preflight": "PASS",
     "Coverage gaps / unknowns": "NONE",
     "Cross-layer connection evidence": "PROVEN: D3-001",
@@ -47,27 +61,27 @@ ready = {
     "Failure expansion rule": "HALT_EXPANSION",
     "Fingerprint depth response": "CONCISE_TRUTHFUL",
 }
-assert module.validate_slice_execution_preflight(ready, low) == []
+assert validate(ready, low) == []
 
 unreferenced_proof = copy.deepcopy(ready)
 unreferenced_proof["Cross-layer connection evidence"] = "PROVEN"
 assert any(
     "PROVEN requires an evidence pointer" in error
-    for error in module.validate_slice_execution_preflight(unreferenced_proof, low)
+    for error in validate(unreferenced_proof, low)
 )
 
 blocked = copy.deepcopy(ready)
 blocked["Execution Coverage Preflight"] = "BLOCKED"
 assert any(
     "must PASS" in error
-    for error in module.validate_slice_execution_preflight(blocked, low)
+    for error in validate(blocked, low)
 )
 
 missing_coverage = copy.deepcopy(ready)
 missing_coverage["UI references"] = ""
 assert any(
     "UI references" in error
-    for error in module.validate_slice_execution_preflight(missing_coverage, low)
+    for error in validate(missing_coverage, low)
 )
 
 unproven = copy.deepcopy(ready)
@@ -76,12 +90,12 @@ unproven["First Proving Run requirement"] = "NOT_REQUIRED"
 unproven["First Proving Run ID / evidence"] = ""
 assert any(
     "first proving Run" in error
-    for error in module.validate_slice_execution_preflight(unproven, low)
+    for error in validate(unproven, low)
 )
 
 unproven["First Proving Run requirement"] = "REQUIRED"
 unproven["First Proving Run ID / evidence"] = "RUN-002"
-assert module.validate_slice_execution_preflight(unproven, low) == []
+assert validate(unproven, low) == []
 
 high = copy.deepcopy(low)
 high["complexity"]["real_risk"] = "HIGH"
@@ -91,16 +105,16 @@ risk_blind = copy.deepcopy(ready)
 risk_blind["Fingerprint depth response"] = "CONCISE_TRUTHFUL"
 assert any(
     "HIGH or UNKNOWN" in error
-    for error in module.validate_slice_execution_preflight(risk_blind, high)
+    for error in validate(risk_blind, high)
 )
 risk_blind["Fingerprint depth response"] = "SMALLER_INDEPENDENT_RUNS"
-assert module.validate_slice_execution_preflight(risk_blind, high) == []
+assert validate(risk_blind, high) == []
 
 internal_method_leak = copy.deepcopy(ready)
 internal_method_leak["GO plan"] = "copied downstream internals"
 assert any(
     "internal method field" in error
-    for error in module.validate_slice_execution_preflight(internal_method_leak, low)
+    for error in validate(internal_method_leak, low)
 )
 
 template = (root / "lc-coding/templates/FEATURE-SLICE.md").read_text(encoding="utf-8")

@@ -1,4 +1,4 @@
-# LCCoding 2.2.1
+# LCCoding 2.2.2
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -46,6 +46,10 @@ Every mandatory node remains. Project Fingerprint product uncertainty, system co
 A Feature Slice enters SLK/CLK/GLK only after product-level Execution Coverage Preflight passes. Unproven cross-layer wiring requires a thin production-quality first proving Run or cited sufficient evidence; its failure halts expansion. LCCoding defines admission and handoff, while the selected Loop retains all GO/CELL internals.
 
 Owner rework, definition changes, and deferrals receive stable gap IDs. A blocking gap stays open through Impact Analysis or Calabash routing, correction Run, affected D0–D3, delta re-verification, and Owner re-acceptance. The canonical status indexes open gaps and evidence pointers without becoming a gap archive.
+
+## Private UI baseline protection
+
+When `UI=LOCKED`, the rebuildable UI source is frozen in an independent, Owner-controlled GitHub repository that remains `PRIVATE`, regardless of the product repository's visibility. Product and Integration Baselines pin its exact remote commit and content hash with visibility, remote-resolution, and recovery evidence. Each Slice compares the working UI to that immutable baseline before work and before acceptance; an approved Baseline Change Request is the only route to replace it.
 
 ## Four-phase overlay
 

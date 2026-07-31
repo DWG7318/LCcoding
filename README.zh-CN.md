@@ -1,4 +1,4 @@
-# LCCoding 2.2.1
+# LCCoding 2.2.2
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -61,6 +61,10 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 Feature Slice 只有在产品级 Execution Coverage Preflight 通过后才能进入 SLK/CLK/GLK。尚未证明的跨层连接必须由最薄但生产级的首个贯通 Run 证明，或引用充分的既有证据；该 Run 失败时不得继续扩展。LCCoding只定义准入和交接，GO/CELL 内部仍归选定 Loop。
 
 Owner 的 rework、definition change 或 defer 会得到稳定 gap ID。阻断性 gap 必须沿 Impact Analysis 或 Calabash 路由、修正 Run、受影响 D0–D3、增量复验和 Owner 再验收关闭；权威状态只索引开放 gap 与证据指针，不成为 gap 档案库。
+
+## Private UI 基线保护
+
+当 `UI=LOCKED` 时，可完整重建的 UI 源码必须冻结在 Owner 控制的独立 GitHub 仓库中，并始终保持 `PRIVATE`，不受产品主仓库可见性影响。Product Baseline 与 Integration Baseline 共同钉住其远端精确 commit、内容 hash、Private 可见性证据、远端解析证据和恢复引用；每个 Slice 在开工前与验收前都要比较当前 UI，只有经批准的 Baseline Change Request 才能更新锁定基线。
 
 ## 两种 Owner Acceptance
 

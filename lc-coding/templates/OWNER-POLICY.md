@@ -1,7 +1,8 @@
 # Owner Policy
 
 - Owner: {{OWNER}}
-- Default repository visibility: OWNER_DECISION_REQUIRED
+- Default product repository visibility: OWNER_DECISION_REQUIRED
+- UI baseline repository visibility: GITHUB_PRIVATE_REQUIRED; no Public override
 - Default customer runtime: Ubuntu
 - Deliver source code by default: NO
 - Deliver LCagent / LCapi: NO
