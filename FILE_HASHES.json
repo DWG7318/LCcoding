@@ -98,7 +98,7 @@
   "lc-coding/tests/test_depth_governance.py": "8948ad2e0afc11c25904a94b4471082c982b40a84da26e94d8eee59e82055e9d",
   "lc-coding/tests/test_existing_project_mode.py": "4d7b2eb5ac2cc05d0c344a40157c4e23fee84494d3de67dee00894b68626bcb4",
   "lc-coding/tests/test_learning_return.py": "00610170b6bea4be94ac2183d5e87e395145c5227f4f18d681e7f56208a15d09",
-  "lc-coding/tests/test_mainline.py": "6e4f35277ca0ee2d50fed322ecf89de98877a43d3d467c535fd69778773e87f7",
+  "lc-coding/tests/test_mainline.py": "3acb67fb322d21cd52a9c0699e2a5aa80e71a1a56337e689561645b2e7274f99",
   "lc-coding/tests/test_owner_gap_lineage_220.py": "0a120d26989f9c371ab4bf9d08a09e9b4a7ea043f380fa0b1f02bb36a2b3318b",
   "lc-coding/tests/test_phase_consistency.py": "8432fb3029447876f35706510baea681f2c89a708e504e81d9f697a5ca56b44e",
   "lc-coding/tests/test_phase_map.py": "d792a716b09d7f4f82132038e1e37056f0e30837ba68a5c70f8434c82f7a974c",
@@ -118,7 +118,7 @@
   "PUBLISH-TO-GITHUB.md": "cb2eaba9a324ad2def86e9dfac95a14c53e77ea83b0460932d998e10d4069525",
   "README.md": "cd9583aabb5678a1b98e7c97f802e0944845b52eba2ed227813db33f0139bec2",
   "README.zh-CN.md": "ec658aada284ea6325f398f634b29aaebfaea7f799146f2888d41b90a0e52dc7",
-  "SPEC.md": "3e6965908e25241ac8563791f87a6876f087f9ad773bd047d8221cc1b98f6bfe",
+  "SPEC.md": "678a55316452bc37f63beebd78bf6d0247c617ec1bbba62964c51770fbceba1d",
   "VALIDATION-REPORT.md": "8f972b10f41bd6fe7d14b67a9dd8d3241bf7b7cb25b60a0cfcb23da371f81c8d",
   "VERSION": "c4a2383a03bdb6739d16a0e24058e4b9c7da4e63d203e0be2f448868cc03c530"
 }
