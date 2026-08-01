@@ -222,7 +222,13 @@ function exactObject(value: unknown, keys: readonly string[]): InputObject {
 }
 
 function exactArray(value: unknown, length: number): unknown[] {
-  if (!Array.isArray(value) || value.length !== length) invalid();
+  if (
+    !Array.isArray(value) ||
+    Object.getPrototypeOf(value) !== Array.prototype ||
+    value.length !== length
+  ) {
+    invalid();
+  }
   if (Reflect.ownKeys(value).length !== length + 1) invalid();
   for (let index = 0; index < length; index += 1) {
     const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
@@ -263,9 +269,11 @@ function parseStep(input: unknown, layout: StepLayout): StepView {
 
 function parsePhase(input: unknown, layout: PhaseLayout): PhaseView {
   const value = exactObject(input, ["id", "state", "steps"]);
-  const steps = exactArray(value.steps, layout.steps.length).map((item, index) =>
-    parseStep(item, layout.steps[index]!),
-  );
+  const stepInputs = exactArray(value.steps, layout.steps.length);
+  const steps: StepView[] = [];
+  for (let index = 0; index < layout.steps.length; index += 1) {
+    steps[index] = parseStep(stepInputs[index], layout.steps[index]!);
+  }
   return {
     id: exactLiteral(value.id, layout.id),
     state: exactEnum(value.state, VIEW_STATES),
@@ -299,9 +307,11 @@ function parseRow(input: unknown, layout: RowLayout): ReportRow {
 function parseReport(input: unknown, id: ReportId): ReportView {
   const value = exactObject(input, ["id", "state", "version", "rows"]);
   const rowLayout = REPORT_ROWS[id];
-  const rows = exactArray(value.rows, rowLayout.length).map((item, index) =>
-    parseRow(item, rowLayout[index]!),
-  );
+  const rowInputs = exactArray(value.rows, rowLayout.length);
+  const rows: ReportRow[] = [];
+  for (let index = 0; index < rowLayout.length; index += 1) {
+    rows[index] = parseRow(rowInputs[index], rowLayout[index]!);
+  }
   const mayHaveVersion = id === "candidate" || id === "calabash";
   return {
     id: exactLiteral(value.id, id),
@@ -322,7 +332,10 @@ function deepFreeze<T>(value: T): T {
 export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   const value = exactObject(input, SNAPSHOT_KEYS);
   const phasesInput = exactArray(value.phases, PHASE_LAYOUT.length);
-  const phases = PHASE_LAYOUT.map((layout, index) => parsePhase(phasesInput[index], layout));
+  const phases: PhaseView[] = [];
+  for (let index = 0; index < PHASE_LAYOUT.length; index += 1) {
+    phases[index] = parsePhase(phasesInput[index], PHASE_LAYOUT[index]!);
+  }
 
   const reportsInput = exactObject(value.reports, REPORT_IDS);
   if (Object.keys(reportsInput).some((key, index) => key !== REPORT_IDS[index])) invalid();

@@ -415,4 +415,34 @@ describe("parseSnapshot", () => {
   ])("rejects a one-field mutation of %s", (_name, change) => {
     expect(() => parseSnapshot(mutated(change))).toThrow(TypeError);
   });
+
+  it.each([
+    ["phase tuple", (draft: JsonObject) => array(draft.phases)],
+    ["step tuple", (draft: JsonObject) => array(phase(draft).steps)],
+    ["report-row tuple", (draft: JsonObject) => array(report(draft, "proposal").rows)],
+  ])("rejects a poisoned %s without invoking inherited methods", (_name, select) => {
+    let poisonCalls = 0;
+    const input = mutated((draft) => {
+      const poisonedPrototype: object = Object.create(Array.prototype);
+      Object.defineProperty(poisonedPrototype, "map", {
+        value: () => {
+          poisonCalls += 1;
+          throw new Error("poisoned map invoked");
+        },
+      });
+      Object.setPrototypeOf(select(draft), poisonedPrototype);
+    });
+
+    let thrown: unknown;
+    try {
+      parseSnapshot(input);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect({ rejected: thrown instanceof TypeError, poisonCalls }).toEqual({
+      rejected: true,
+      poisonCalls: 0,
+    });
+  });
 });
