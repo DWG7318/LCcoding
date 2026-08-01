@@ -91,5 +91,4 @@ export function renderReportView(
     element(document, "p", "protected-notice", message("app.protected", language)),
     rows,
   );
-  back.focus();
 }

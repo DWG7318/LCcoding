@@ -172,6 +172,7 @@ describe("protected report interactions", () => {
             mainBody.scrollTop = state.mainScrollTop;
             state.reportOrigin?.focus();
           });
+          reportBody.querySelector<HTMLButtonElement>(".back-button")!.focus();
         },
       });
 
@@ -194,6 +195,26 @@ describe("protected report interactions", () => {
       expect(mainBody.scrollTop).toBe(73);
       expect([...state.expanded]).toEqual(["PRODUCT_FORMATION"]);
       expect(document.activeElement).toBe(workflowOpen);
+    } finally {
+      shell.remove();
+    }
+  });
+
+  it("preserves external focus when an open report rerenders", () => {
+    const shell = document.createElement("div");
+    const language = document.createElement("button");
+    const reportBody = document.createElement("main");
+    language.type = "button";
+    shell.append(language, reportBody);
+    document.body.append(shell);
+
+    try {
+      renderReportView(reportBody, successSnapshot.reports.workflow, "en", () => {});
+      language.focus();
+
+      renderReportView(reportBody, successSnapshot.reports.workflow, "en", () => {});
+
+      expect(document.activeElement).toBe(language);
     } finally {
       shell.remove();
     }
