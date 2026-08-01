@@ -5,7 +5,7 @@ Owner Proposal
 → Proposal Readiness Check
 → Project Initialization
 → Calabash Draft
-→ Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
+→ [Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice

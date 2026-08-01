@@ -83,10 +83,14 @@ for document,label,markers in semantic_checks:
     for marker in markers:
         assert marker in document, f'missing {label} rule: {marker}'
 
-mainline_marker='Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]'
+mainline_marker='[Simulation World foundation first → Workflow capability end ∥ UI product-surface end]'
 for relative in ['CONSTITUTION.md','SPEC.md','README.md','lc-coding/SKILL.md','lc-coding/references/method-mainline.md']:
-    assert mainline_marker in (root/relative).read_text(encoding='utf-8'), relative
-assert 'Workflow/UI/Simulation [先建立 Simulation World foundation；再由 Workflow 能力端 ∥ UI 产品呈现端分别推进]' in readme_zh
+    mainline_text=(root/relative).read_text(encoding='utf-8')
+    assert mainline_marker in mainline_text, relative
+    assert 'Workflow/UI/Simulation [Simulation' not in mainline_text, relative
+assert '[先建立 Simulation World foundation → Workflow 能力端 ∥ UI 产品呈现端分别推进]' in readme_zh
+assert 'Workflow/UI/Simulation [先建立 Simulation' not in readme_zh
+assert 'Calabash Draft → [Simulation foundation first → Workflow ∥ UI]' in con
 
 simulation_first_checks=[
     (spec,'SPEC Simulation-first',[

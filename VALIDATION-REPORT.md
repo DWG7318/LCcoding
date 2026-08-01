@@ -31,6 +31,7 @@ PASS: 21 tests
 
 Validated corrections:
 
+- canonical human-readable mainline displays begin the existing `WORKFLOW_UI_SIMULATION` node with the Simulation World foundation, without a preceding Workflow/UI/Simulation label;
 - Product Formation requires a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction, inside the existing `WORKFLOW_UI_SIMULATION` node;
 - the foundation remains deliberately incomplete and `VERSIONED_MUTABLE`, gaining scenarios and fidelity rather than becoming a one-time complete freeze;
 - Workflow and UI then advance independently as equal product ends and may proceed concurrently, while each must form a real, runnable, inspectable result and cannot be replaced by plans, shells, mocks, or simulation-only output;

@@ -13,7 +13,7 @@ Project Initialization
       ↓
 Calabash Draft
       ↓
-Workflow/UI/Simulation [先建立 Simulation World foundation；再由 Workflow 能力端 ∥ UI 产品呈现端分别推进]
+[先建立 Simulation World foundation → Workflow 能力端 ∥ UI 产品呈现端分别推进]
       ↓
 Mandatory Calabash Upgrade
       ↓

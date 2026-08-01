@@ -17,7 +17,7 @@ Project Initialization
       ↓
 Calabash Draft
       ↓
-Workflow/UI/Simulation [Simulation World foundation first; then Workflow capability end ∥ UI product-surface end]
+[Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
       ↓
 Mandatory Calabash Upgrade
       ↓
@@ -70,7 +70,7 @@ Exit: INITIAL_READY
 Boundary: before Calabash Draft
 
 PHASE 1 — PRODUCT_FORMATION
-Calabash Draft → Workflow/UI/Simulation [Simulation foundation first; then Workflow ∥ UI]
+Calabash Draft → [Simulation foundation first → Workflow ∥ UI]
 Exit: CALABASH_UPGRADE_READY
 Boundary: before Mandatory Calabash Upgrade
 
