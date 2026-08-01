@@ -45,6 +45,7 @@ function renderErrorProjection(
   const alert = element(document, "div", "error-projection");
   alert.setAttribute("role", "alert");
   alert.append(
+    element(document, "div", "project-name", message("app.unnamed_project", language)),
     stateElement(document, "error", language),
     element(document, "div", "error-message", message("app.error", language)),
   );

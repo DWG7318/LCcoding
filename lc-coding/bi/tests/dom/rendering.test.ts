@@ -241,19 +241,22 @@ describe("truthful four-phase main view", () => {
   });
 
   it("replaces a complete error Snapshot with one visible red alert and no stale actions", () => {
-    const { root } = renderFixture(errorSnapshot);
+    const { root } = renderFixture(errorSnapshot, "zh_CN");
     const alert = root.querySelector<HTMLElement>('.error-projection[role="alert"]')!;
+    const projectName = alert.querySelector<HTMLElement>(".project-name");
 
     expect(alert).not.toBeNull();
     expect(alert.hidden).toBe(false);
     expect(alert.hasAttribute("aria-hidden")).toBe(false);
+    expect(projectName?.textContent).toBe(message("app.unnamed_project", "zh_CN"));
+    expect(projectName?.textContent).not.toBe(errorSnapshot.project);
     expect(alert.querySelector(".state.state--error .state-glyph[aria-hidden=\"true\"]")).not.toBeNull();
     expect(alert.querySelector(".state.state--error .state-text")?.textContent).toBe(
-      message("state.error", "en"),
+      message("state.error", "zh_CN"),
     );
-    expect(alert.textContent).toContain(message("app.error", "en"));
+    expect(alert.textContent).toContain(message("app.error", "zh_CN"));
     expect(root.querySelector(".phase-list, .step-row, .open-report")).toBeNull();
     expect(root.querySelector(".state--done, .state--active, .state--pending")).toBeNull();
-    expect(root.textContent).not.toContain(message("app.open", "en"));
+    expect(root.textContent).not.toContain(message("app.open", "zh_CN"));
   });
 });
