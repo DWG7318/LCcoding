@@ -7,7 +7,7 @@
   "lc-coding/bi/package-lock.json": "22fc15e5c16ff47d37af77c2444b6669e7f4245b3c550e82198a5e048e043b0f",
   "lc-coding/bi/package.json": "cfc84fce2249520a440dc169bbd73a7be0ddc3aebf16dc3912b5e011c438f4c8",
   "lc-coding/bi/tsconfig.json": "a83edaf8d239bb8667b47eec48a577ad4a8214ed7e6b1b62d02a9dee56b8188d",
-  "lc-coding/bi/vite.config.ts": "6c8cbc516f850911e0259614b6f8838567f8b5db6670bc418492ea65824cae61",
+  "lc-coding/bi/vite.config.ts": "f1f5479d253e8e62ae8015fb6fc88bdd9a8ed785d1bc85a878a1946908dbc46a",
   "lc-coding/contracts/delivery-policy.json": "ff3a5886e2be0b49ade30fdcc88572eb89ae05b52d41ab22ef628a5dc7e9573f",
   "lc-coding/contracts/lifecycle.json": "2c25e3da06c1bca65633326c6908279b5e23ab94b22bd13df049d5347facfb6a",
   "lc-coding/contracts/phases.json": "a7eebbc1d9cb0fcb2849929fa53b13960d7a0be32421e27ac926429833cfa8f7",
