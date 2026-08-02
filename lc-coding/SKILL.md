@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Simulation-first Workflow/UI product formation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.2.3
+# LCCoding 2.3.0
 
 ## Canonical mainline
 
@@ -157,6 +157,12 @@ Run customer-specific Delivery Method Q&A after Post-Security Owner Acceptance. 
 Deliver only approved product assets. Exclude LCagent, LCapi, LCCoding, Calabash, SLK, CLK, GLK, internal tools, canonical assets, internal knowledge/workflow/recommendation logic, development evidence, and source code unless Owner authorizes them.
 
 Ubuntu remains the preferred recommendation where suitable. Docker is not required. Enforce Owner-confirmed no-resale, redistribution, sublicense, repackaging, unauthorized-modification, reverse-engineering, transfer, and control-removal boundaries.
+
+## Built-in BI
+
+Use the built-in BI only as a read-only Owner-visible projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports. The compact Windows window starts in English, can switch to Chinese, and may Pin only its own native always-on-top state.
+
+The 2.3.0 desktop release uses the authorized sanitized static Snapshot. It does not read or mutate project files, control Agent or runtime behavior, or prove that real project data integration exists. Never treat the BI as a second status authority; `status.json` remains authoritative.
 
 ## Version policy
 

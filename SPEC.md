@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.2.3
+# LCCoding Standard Specification 2.3.0
 
 ## 1. Scope
 
@@ -512,3 +512,11 @@ LCCoding minimizes:
 Friction reduction never authorizes deletion of Workflow, UI, Simulation, Mandatory Calabash Upgrade, independent Verification, Owner Acceptance, or Delivery protection.
 
 Friction reduction also requires reuse of sufficient evidence and proportional depth. It never authorizes shallow treatment of real risk or empty artifacts that merely imitate the mainline.
+
+## 18. Built-in BI projection
+
+LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
+
+The 2.3.0 desktop surface is a compact standalone Windows window with a 300×480 logical content baseline, English-first text, a Chinese language switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result.
+
+The released 2.3.0 projection consumes only its authorized sanitized static Snapshot. It does not read or mutate project files, expose arbitrary paths, connect to project or network data, control Agent or runtime execution, or imply that real project data integration is complete. Any future project-data adapter requires a separate explicit authorization and must preserve the one authoritative `status.json` boundary.

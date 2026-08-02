@@ -1,4 +1,4 @@
-# LCCoding 2.2.3
+# LCCoding 2.3.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -59,6 +59,12 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 在现有 Workflow/UI/Simulation 节点内，必须先有一个最小、真实可运行、带版本的 Simulation World foundation。它一开始不必完善，也不是一次性冻结；Simulation 始终保持 `VERSIONED_MUTABLE`，后续可随场景和项目学习继续增强。
 
 基础 Simulation 存在后，Workflow 与 UI 才作为同等产品端分别独立向前建设，也可以并行推进；二者都必须形成真实、可运行、可检查的结果，不能只停留在计划、空壳或 mock。Product Formation 继续同步三者的产品语义与场景，但不要求前期接通或共同联调。跨层连接与贯通证明仍由后续 Feature Slice 和 UI-locked Integration 负责，Feature Slice 既有的 Workflow 继承和改进职责保持不变。
+
+## 内置 BI 与 Windows 独立窗口
+
+LCCoding 2.3.0 内置只读 BI 投影，并提供真正独立的 Windows 窗口。紧凑的 300×480 视图固定呈现 `INITIAL`、`PRODUCT_FORMATION`、`ENGINEERING_RUNS`、`DELIVERY_PREPARATION` 四个阶段，以及细粒度里程碑、状态、产物和受保护子报告。界面默认英文，可切换中文，并通过原生 Pin 控制窗口置顶。
+
+BI 只负责可见性，不是第二套权威状态或执行系统。当前发布的桌面窗口只显示已授权的去敏 Snapshot：不读取或修改项目文件，不控制 Agent 或 runtime，也不表示真实项目数据接入已经完成。完整投影与安全边界见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
 ## Slice 执行准入与 Owner gap
 

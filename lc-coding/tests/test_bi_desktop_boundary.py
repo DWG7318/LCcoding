@@ -150,3 +150,5 @@ assert cargo["build-dependencies"] == {
 for forbidden_output in ("node_modules", "dist", "target"):
     assert not (bi_root / forbidden_output).exists()
 assert not (tauri_root / "target").exists()
+
+print("PASS: built-in BI desktop stays read-only with a two-command native Pin boundary")
