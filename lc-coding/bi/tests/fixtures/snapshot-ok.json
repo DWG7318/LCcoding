@@ -1,0 +1,111 @@
+{
+  "schema": "LCCoding 2.3.0 derived BI",
+  "authoritative": false,
+  "read_only": true,
+  "health": "ok",
+  "project": "Example Project",
+  "current_phase": "PRODUCT_FORMATION",
+  "phases": [
+    {
+      "id": "INITIAL",
+      "state": "done",
+      "steps": [
+        { "id": "PROPOSAL_READINESS", "state": "done", "report": "proposal" },
+        { "id": "PROJECT_INITIALIZATION", "state": "done", "report": "candidate" },
+        { "id": "INITIAL_READY", "state": "done", "report": null }
+      ]
+    },
+    {
+      "id": "PRODUCT_FORMATION",
+      "state": "active",
+      "steps": [
+        { "id": "CALABASH_DRAFT", "state": "done", "report": "calabash" },
+        { "id": "SIMULATION_WORLD_FOUNDATION", "state": "done", "report": "simulation" },
+        { "id": "WORKFLOW_CAPABILITY_END", "state": "active", "report": "workflow" },
+        { "id": "UI_PRODUCT_SURFACE_END", "state": "error", "report": "ui" },
+        { "id": "CALABASH_UPGRADE_READY", "state": "pending", "report": null }
+      ]
+    },
+    {
+      "id": "ENGINEERING_RUNS",
+      "state": "pending",
+      "steps": [
+        { "id": "MANDATORY_CALABASH_UPGRADE", "state": "pending", "report": null },
+        { "id": "PRODUCT_BASELINE", "state": "pending", "report": null },
+        { "id": "FEATURE_SLICE_EXECUTION_COVERAGE", "state": "pending", "report": null },
+        { "id": "UI_LOCKED_INTEGRATION_BASELINE", "state": "pending", "report": null },
+        { "id": "LOOP_RUN_D0_D3", "state": "pending", "report": null },
+        { "id": "LOOP_OWNER_ACCEPTANCE", "state": "pending", "report": null },
+        { "id": "ALL_REQUIRED_RUNS_ACCEPTED", "state": "pending", "report": null }
+      ]
+    },
+    {
+      "id": "DELIVERY_PREPARATION",
+      "state": "pending",
+      "steps": [
+        { "id": "CENTRALIZED_VULNERABILITY_AUDIT", "state": "pending", "report": null },
+        { "id": "SECURITY_REMEDIATION", "state": "pending", "report": null },
+        { "id": "SECURITY_REAUDIT_VULNERABILITY_CLOSURE", "state": "pending", "report": null },
+        { "id": "POST_SECURITY_OWNER_ACCEPTANCE", "state": "pending", "report": null },
+        { "id": "DELIVERY_METHOD_QA", "state": "pending", "report": null },
+        { "id": "DELIVERY_PACKAGE_GUARD_READY", "state": "pending", "report": null }
+      ]
+    }
+  ],
+  "reports": {
+    "proposal": {
+      "id": "proposal",
+      "state": "done",
+      "version": null,
+      "rows": [
+        { "key": "row.conclusion", "value": { "kind": "view_state", "value": "done" } },
+        { "key": "row.initial_gate", "value": { "kind": "view_state", "value": "done" } }
+      ]
+    },
+    "candidate": {
+      "id": "candidate",
+      "state": "done",
+      "version": "v1.11.6",
+      "rows": [
+        { "key": "row.identity", "value": { "kind": "lock", "value": "LOCKED" } },
+        { "key": "row.integrity", "value": { "kind": "record", "value": "RECORDED" } }
+      ]
+    },
+    "calabash": {
+      "id": "calabash",
+      "state": "done",
+      "version": "v2.4.0",
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "done" } },
+        { "key": "row.version_record", "value": { "kind": "record", "value": "RECORDED" } }
+      ]
+    },
+    "simulation": {
+      "id": "simulation",
+      "state": "done",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "done" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "PRODUCT_FORMATION" } }
+      ]
+    },
+    "workflow": {
+      "id": "workflow",
+      "state": "active",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "active" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "PRODUCT_FORMATION" } }
+      ]
+    },
+    "ui": {
+      "id": "ui",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "PRODUCT_FORMATION" } }
+      ]
+    }
+  }
+}

@@ -1,10 +1,12 @@
-# LCCoding Constitution 2.2.3
+# LCCoding Constitution 2.3.0
 
 ## Identity
 
 LCCoding is an Owner-led, AI-executed enterprise product-development method. It governs the path from a sufficiently mature proposal to a protected customer delivery.
 
 LCCoding is an Agent-platform-independent methodology. It defines product governance and evidence boundaries; it does not own runtime, session control, or an Agent execution kernel.
+
+LCCoding may expose a built-in read-only BI projection of its fixed phases, milestones, states, artifacts, and protected subreports. That projection is observational only: it never becomes authoritative project state, reads or mutates no project files without a separately authorized adapter, and controls neither Agent nor runtime behavior. Window-local presentation features such as language and native Pin do not expand method authority.
 
 ## Frozen mainline
 

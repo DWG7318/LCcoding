@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+
+### Built-in BI and standalone Windows window
+
+- Added a built-in, read-only BI projection for LCCoding with the fixed `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, and `DELIVERY_PREPARATION` phases, plus fine-grained milestones, states, artifacts, and protected subreports.
+- Added a compact standalone Windows window with an English-first interface, a Chinese language switch, and native Pin control for always-on-top use.
+- Kept the accepted 300×480 visual design and its browser preview safety boundary; the desktop shell displays only the authorized sanitized Snapshot.
+- The BI does not read or mutate project files, does not control Agent or runtime behavior, and does not claim that real project data integration is complete.
+- Preserved the canonical mainline, phase/gate authority, Owner acceptance boundaries, security closure, protected Delivery, and lower-method responsibilities.
+
 ## 2.2.3
 
 ### Simulation-first Product Formation

@@ -1,4 +1,4 @@
-# LCCoding 2.2.3
+# LCCoding 2.3.0
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -46,6 +46,12 @@ Every mandatory node remains. Project Fingerprint product uncertainty, system co
 A minimal, real, runnable, versioned Simulation World foundation comes first inside the existing Workflow/UI/Simulation node. It is intentionally incomplete and remains `VERSIONED_MUTABLE`, gaining scenarios and fidelity as the product learns.
 
 Workflow and UI then advance independently as equal product ends and may proceed in parallel; each must form a real, runnable, inspectable result rather than a plan, shell, or mock. Product Formation keeps their meaning and scenarios synchronized but does not require early connection or three-way joint integration. Feature Slice and UI-locked Integration own the later cross-layer connection and proof, while retaining the Slice's existing Workflow inheritance and improvement responsibilities.
+
+## Built-in BI and Windows desktop
+
+LCCoding 2.3.0 includes a built-in, read-only BI projection and a standalone Windows window. The compact 300×480 view presents the fixed `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, and `DELIVERY_PREPARATION` phases together with fine-grained milestones, states, artifacts, and protected subreports. Its interface starts in English, can switch to Chinese, and provides native Pin control for always-on-top use.
+
+This BI is a visibility surface, not a second authority or execution system. The released desktop window uses only the authorized sanitized Snapshot: it does not read or mutate project files, does not control Agent or runtime behavior, and does not claim that real project data integration is complete. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md) for the closed projection and safety contract.
 
 ## Slice execution and Owner gaps
 

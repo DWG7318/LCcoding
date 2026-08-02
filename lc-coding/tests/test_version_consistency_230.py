@@ -1,8 +1,10 @@
 from pathlib import Path
 import json
+import tomllib
+
 
 root = Path(__file__).resolve().parents[2]
-current = "2.2.3"
+current = "2.3.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -24,6 +26,15 @@ assert canonical["lccoding"]["version"] == current
 status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
 assert status["status_schema_version"] == current
 
+bi_root = root / "lc-coding/bi"
+assert json.loads((bi_root / "package.json").read_text(encoding="utf-8"))["version"] == current
+assert tomllib.loads((bi_root / "src-tauri/Cargo.toml").read_text(encoding="utf-8"))[
+    "package"
+]["version"] == current
+assert json.loads(
+    (bi_root / "src-tauri/tauri.conf.json").read_text(encoding="utf-8")
+)["version"] == current
+
 for relative in [
     "README.md",
     "README.zh-CN.md",
@@ -36,8 +47,8 @@ for relative in [
 ]:
     assert current in (root / relative).read_text(encoding="utf-8")
 
-assert (root / "MIGRATION-2.2.2-TO-2.2.3.md").is_file()
+assert (root / "MIGRATION-2.2.3-TO-2.3.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.2.3") < changelog.index("## 2.2.2")
+assert changelog.index("## 2.3.0") < changelog.index("## 2.2.3")
 
-print("PASS: LCCoding 2.2.3 version is consistent across release artifacts")
+print("PASS: LCCoding 2.3.0 version is consistent across release artifacts")

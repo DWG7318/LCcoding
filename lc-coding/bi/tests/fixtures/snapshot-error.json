@@ -1,0 +1,111 @@
+{
+  "schema": "LCCoding 2.3.0 derived BI",
+  "authoritative": false,
+  "read_only": true,
+  "health": "error",
+  "project": "Unnamed project",
+  "current_phase": "UNKNOWN",
+  "phases": [
+    {
+      "id": "INITIAL",
+      "state": "error",
+      "steps": [
+        { "id": "PROPOSAL_READINESS", "state": "error", "report": "proposal" },
+        { "id": "PROJECT_INITIALIZATION", "state": "error", "report": "candidate" },
+        { "id": "INITIAL_READY", "state": "error", "report": null }
+      ]
+    },
+    {
+      "id": "PRODUCT_FORMATION",
+      "state": "error",
+      "steps": [
+        { "id": "CALABASH_DRAFT", "state": "error", "report": "calabash" },
+        { "id": "SIMULATION_WORLD_FOUNDATION", "state": "error", "report": "simulation" },
+        { "id": "WORKFLOW_CAPABILITY_END", "state": "error", "report": "workflow" },
+        { "id": "UI_PRODUCT_SURFACE_END", "state": "error", "report": "ui" },
+        { "id": "CALABASH_UPGRADE_READY", "state": "error", "report": null }
+      ]
+    },
+    {
+      "id": "ENGINEERING_RUNS",
+      "state": "error",
+      "steps": [
+        { "id": "MANDATORY_CALABASH_UPGRADE", "state": "error", "report": null },
+        { "id": "PRODUCT_BASELINE", "state": "error", "report": null },
+        { "id": "FEATURE_SLICE_EXECUTION_COVERAGE", "state": "error", "report": null },
+        { "id": "UI_LOCKED_INTEGRATION_BASELINE", "state": "error", "report": null },
+        { "id": "LOOP_RUN_D0_D3", "state": "error", "report": null },
+        { "id": "LOOP_OWNER_ACCEPTANCE", "state": "error", "report": null },
+        { "id": "ALL_REQUIRED_RUNS_ACCEPTED", "state": "error", "report": null }
+      ]
+    },
+    {
+      "id": "DELIVERY_PREPARATION",
+      "state": "error",
+      "steps": [
+        { "id": "CENTRALIZED_VULNERABILITY_AUDIT", "state": "error", "report": null },
+        { "id": "SECURITY_REMEDIATION", "state": "error", "report": null },
+        { "id": "SECURITY_REAUDIT_VULNERABILITY_CLOSURE", "state": "error", "report": null },
+        { "id": "POST_SECURITY_OWNER_ACCEPTANCE", "state": "error", "report": null },
+        { "id": "DELIVERY_METHOD_QA", "state": "error", "report": null },
+        { "id": "DELIVERY_PACKAGE_GUARD_READY", "state": "error", "report": null }
+      ]
+    }
+  ],
+  "reports": {
+    "proposal": {
+      "id": "proposal",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.conclusion", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.initial_gate", "value": { "kind": "view_state", "value": "error" } }
+      ]
+    },
+    "candidate": {
+      "id": "candidate",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.identity", "value": { "kind": "lock", "value": "UNKNOWN" } },
+        { "key": "row.integrity", "value": { "kind": "record", "value": "UNKNOWN" } }
+      ]
+    },
+    "calabash": {
+      "id": "calabash",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.version_record", "value": { "kind": "record", "value": "UNKNOWN" } }
+      ]
+    },
+    "simulation": {
+      "id": "simulation",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+      ]
+    },
+    "workflow": {
+      "id": "workflow",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+      ]
+    },
+    "ui": {
+      "id": "ui",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
+        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+      ]
+    }
+  }
+}
