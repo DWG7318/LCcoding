@@ -24,7 +24,7 @@
   "lc-coding/bi/tests/dom/visual-cases.test.ts": "517ab3f96f7430338b2ae82e6ed82aa1f4e11d49a1bf784b647c5dec7e342729",
   "lc-coding/bi/tests/fixtures/snapshot-error.json": "dce9da405cd379f24e1e7ba2d73659b8829cb4a7629e8ee2c444ab2ccfe1f0a9",
   "lc-coding/bi/tests/fixtures/snapshot-ok.json": "c4d5c0c3b12e253e346c7c658aa1ed8a31246e54fbca03e04d929b1e51c36455",
-  "lc-coding/bi/tests/visual/candidates.spec.ts": "2307658aa318fe985893353d17e1ce290614bbd2a9bd5a6b70de748e410d7b6f",
+  "lc-coding/bi/tests/visual/candidates.spec.ts": "6a45d264b0060c3ef5d1b6ecd52097e2a4191bd5e4c0d2fb7557a0f2627eb0c1",
   "lc-coding/bi/tests/visual/cases.ts": "6ab53c54b40e4a9c6daedd4a6a156f6dca4cf88e3523a9dcc31938c0482232b6",
   "lc-coding/bi/tsconfig.json": "a83edaf8d239bb8667b47eec48a577ad4a8214ed7e6b1b62d02a9dee56b8188d",
   "lc-coding/bi/vite.config.ts": "f1f5479d253e8e62ae8015fb6fc88bdd9a8ed785d1bc85a878a1946908dbc46a",

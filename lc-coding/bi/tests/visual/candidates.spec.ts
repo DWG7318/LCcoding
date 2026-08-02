@@ -72,16 +72,19 @@ async function assertMotionContract(page: Page, candidate: VisualCase): Promise<
   await page.addStyleTag({
     content: `
       .state--active .state-glyph[aria-hidden="true"] {
-        animation-delay: -200ms !important;
-        animation-play-state: paused !important;
+        animation: none !important;
+        transform: rotate(90deg) !important;
       }
     `,
   });
   const frozen = await activeGlyphs.first().evaluate((glyph) => {
     const style = getComputedStyle(glyph);
-    return { delay: style.animationDelay, playState: style.animationPlayState };
+    return { animationName: style.animationName, transform: style.transform };
   });
-  expect(frozen).toEqual({ delay: "-0.2s", playState: "paused" });
+  expect(frozen).toEqual({
+    animationName: "none",
+    transform: "matrix(0, 1, -1, 0, 0, 0)",
+  });
 }
 
 async function switchLanguage(page: Page, candidate: VisualCase): Promise<void> {
