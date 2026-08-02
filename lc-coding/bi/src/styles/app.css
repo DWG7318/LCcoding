@@ -80,8 +80,16 @@ button:focus-visible,
   border-bottom: var(--separator-width) solid var(--separator);
 }
 
+.control-strip button {
+  transform: translateY(2px);
+}
+
 .refresh-strip {
   border-top: var(--separator-width) solid var(--separator);
+}
+
+.refresh-strip button {
+  transform: translateY(-3px);
 }
 
 .app-title {
