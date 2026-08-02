@@ -14,7 +14,6 @@ export interface ViewState {
   language: Language;
   expanded: Set<PhaseId>;
   report: ReportId | null;
-  reportOrigin: HTMLElement | null;
   mainScrollTop: number;
   requestInFlight: boolean;
 }
@@ -24,7 +23,6 @@ export function createViewState(currentPhase?: PhaseId): ViewState {
     language: "en",
     expanded: currentPhase === undefined ? new Set<PhaseId>() : new Set([currentPhase]),
     report: null,
-    reportOrigin: null,
     mainScrollTop: 0,
     requestInFlight: false,
   };
