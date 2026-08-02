@@ -14,7 +14,7 @@
   "lc-coding/bi/src/render/main-view.ts": "70af9c96c30d714346e5204382fc066e3749793fcae093efbe59b04da26cdaa8",
   "lc-coding/bi/src/render/report-view.ts": "17677e02a3601f5eb28d4381ceb97a17ed0850dcd9f29fea7be61d969890948a",
   "lc-coding/bi/src/state/view-state.ts": "612cf8c1de020ad6659be911382fa44530369bc27ebdd440112894740ef3ce07",
-  "lc-coding/bi/src/styles/app.css": "b07b09613ada7d2fa0d11d7eedb507b1a0e92326d11b556d1c0796dcde1c310f",
+  "lc-coding/bi/src/styles/app.css": "e4e5255029e5de44fe71e5774eec72bbd8dd1363f214e9760f4dfba0cf204921",
   "lc-coding/bi/src/styles/tokens.css": "9a1fe019d893ce2d517c1471da3ead83399311ac6dd149aece941ff71d8ecf74",
   "lc-coding/bi/tests/dom/catalog-and-style.test.ts": "ce211d362a18318fc1488247775f742fc83824ceac2b779e6b9e6d876ef0d50f",
   "lc-coding/bi/tests/dom/interactions.test.ts": "7ac96e178223c9fbe3575b12ab463689a0a5aa826874831669fdc935dd453f2c",
