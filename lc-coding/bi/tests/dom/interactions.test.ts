@@ -8,6 +8,7 @@ import { parseSnapshot, type ReportId, type RowKey } from "../../src/model/snaps
 import {
   createPreviewDependencies,
   resolvePreviewCase,
+  resolveRuntimePreviewCase,
 } from "../../src/preview";
 import { renderMainView } from "../../src/render/main-view";
 import { renderReportView } from "../../src/render/report-view";
@@ -1627,6 +1628,13 @@ describe("controller destroy lifecycle", () => {
 });
 
 describe("closed preview adapters", () => {
+  it("fixes the packaged desktop to the sanitized success Snapshot", () => {
+    expect(resolveRuntimePreviewCase(true, null)).toBe("ok");
+    expect(resolveRuntimePreviewCase(true, "error")).toBe("ok");
+    expect(resolveRuntimePreviewCase(false, null)).toBe("error");
+    expect(resolveRuntimePreviewCase(false, "ok")).toBe("ok");
+  });
+
   it("accepts only the four exact preview case names", () => {
     expect(resolvePreviewCase("ok")).toBe("ok");
     expect(resolvePreviewCase("error")).toBe("error");

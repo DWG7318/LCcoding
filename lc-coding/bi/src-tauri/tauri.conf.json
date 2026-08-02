@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "LCCoding",
+  "version": "2.3.0",
+  "identifier": "com.lccoding.desktop",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "LCCoding BI",
+        "url": "index.html",
+        "create": false,
+        "width": 300,
+        "height": 480,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": true,
+        "closable": true,
+        "decorations": true,
+        "dragDropEnabled": false,
+        "devtools": false
+      }
+    ],
+    "security": {
+      "capabilities": ["main"],
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'",
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": true,
+      "assetProtocol": {
+        "enable": false,
+        "scope": []
+      }
+    }
+  },
+  "bundle": {
+    "active": false,
+    "createUpdaterArtifacts": false,
+    "icon": ["icons/icon.ico"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "skip"
+      }
+    }
+  },
+  "plugins": {}
+}

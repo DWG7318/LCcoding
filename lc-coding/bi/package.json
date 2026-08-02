@@ -11,8 +11,12 @@
     "preview": "vite preview",
     "visual:candidates": "npm run build && playwright test --config playwright.config.ts"
   },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1"
+  },
   "devDependencies": {
     "@playwright/test": "1.62.1",
+    "@tauri-apps/cli": "2.11.4",
     "jsdom": "29.1.1",
     "typescript": "7.0.2",
     "vite": "8.2.0",

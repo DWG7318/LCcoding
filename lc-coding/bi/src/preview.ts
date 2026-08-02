@@ -1,6 +1,9 @@
 import "./styles/tokens.css";
 import "./styles/app.css";
 
+import { invoke, isTauri } from "@tauri-apps/api/core";
+
+import { selectDesktopPinPort } from "./desktop/pin";
 import { mountBi } from "./main";
 import { parseSnapshot, type Snapshot } from "./model/snapshot";
 import type { PinPort, SnapshotSource } from "./state/view-state";
@@ -28,6 +31,13 @@ export function resolvePreviewCase(value: string | null): PreviewCase {
   }
 }
 
+export function resolveRuntimePreviewCase(
+  isDesktopRuntime: boolean,
+  value: string | null,
+): PreviewCase {
+  return isDesktopRuntime ? "ok" : resolvePreviewCase(value);
+}
+
 function createMemoryPin(): PinPort {
   let enabled = false;
   return Object.freeze({
@@ -51,8 +61,17 @@ export function createPreviewDependencies(
 
 const previewRoot = document.querySelector<HTMLElement>("#app");
 if (previewRoot !== null) {
-  const previewCase = resolvePreviewCase(
+  const isDesktopRuntime = isTauri();
+  const previewCase = resolveRuntimePreviewCase(
+    isDesktopRuntime,
     new URLSearchParams(window.location.search).get("case"),
   );
-  mountBi(previewRoot, createPreviewDependencies(previewCase));
+  const dependencies = createPreviewDependencies(previewCase);
+  mountBi(
+    previewRoot,
+    Object.freeze({
+      source: dependencies.source,
+      pin: selectDesktopPinPort(isDesktopRuntime, dependencies.pin, invoke),
+    }),
+  );
 }
