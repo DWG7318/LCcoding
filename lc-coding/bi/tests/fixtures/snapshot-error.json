@@ -1,5 +1,5 @@
 {
-  "schema": "LCCoding 2.4.0 derived BI",
+  "schema": "LCCoding 2.4.1 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": "error",
@@ -31,10 +31,10 @@
       "state": "error",
       "steps": [
         { "id": "MANDATORY_CALABASH_UPGRADE", "state": "error", "report": null },
-        { "id": "PRODUCT_BASELINE", "state": "error", "report": null },
+        { "id": "PRODUCT_BASELINE", "state": "error", "report": "baseline" },
         { "id": "FEATURE_SLICE_EXECUTION_COVERAGE", "state": "error", "report": null },
         { "id": "UI_LOCKED_INTEGRATION_BASELINE", "state": "error", "report": null },
-        { "id": "LOOP_RUN_D0_D3", "state": "error", "report": null },
+        { "id": "LOOP_RUN_D0_D3", "state": "error", "report": "loop_governance" },
         { "id": "LOOP_OWNER_ACCEPTANCE", "state": "error", "report": null },
         { "id": "ALL_REQUIRED_RUNS_ACCEPTED", "state": "error", "report": null }
       ]
@@ -85,8 +85,9 @@
       "state": "error",
       "version": null,
       "rows": [
-        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
-        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+        { "key": "row.realized_peer_subtrees", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.component_version_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.primary_mainline", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } }
       ]
     },
     "workflow": {
@@ -94,8 +95,13 @@
       "state": "error",
       "version": null,
       "rows": [
-        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
-        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+        { "key": "row.core_implementation", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.extra_implemented", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.extra_deferred", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.api_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.mcp_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.component_version_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.primary_mainline", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } }
       ]
     },
     "ui": {
@@ -103,8 +109,35 @@
       "state": "error",
       "version": null,
       "rows": [
-        { "key": "row.status", "value": { "kind": "view_state", "value": "error" } },
-        { "key": "row.current_phase", "value": { "kind": "phase", "value": "UNKNOWN" } }
+        { "key": "row.realized_subtrees", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.component_version_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.lock_status", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.primary_mainline", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } }
+      ]
+    },
+    "baseline": {
+      "id": "baseline",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.git_identity", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.locked_subtree_coverage", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.map_handoff_consistency", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.owner_confirmed_mainline", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } }
+      ]
+    },
+    "loop_governance": {
+      "id": "loop_governance",
+      "state": "error",
+      "version": null,
+      "rows": [
+        { "key": "row.worker_checker_wake", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.supervisor_wait", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.heartbeat", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.no_subagents", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.progress", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.cell_capacity", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } },
+        { "key": "row.pin_policy", "value": { "kind": "metric", "status": "UNKNOWN", "completed": null, "total": null, "interval_minutes": null } }
       ]
     }
   }

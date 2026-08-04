@@ -1,4 +1,4 @@
-# LCCoding 2.4.0
+# LCCoding 2.4.1
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -64,9 +64,9 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.4.0 内置只读 BI 投影，并提供真正独立的 Windows 窗口。紧凑的 300×480 视图固定呈现 `INITIAL`、`PRODUCT_FORMATION`、`ENGINEERING_RUNS`、`DELIVERY_PREPARATION` 四个阶段，以及细粒度里程碑、状态、产物和受保护子报告。界面默认英文，可切换中文，并通过原生 Pin 控制窗口置顶。
+LCCoding 2.4.1 保持内置只读 BI、独立 300×480 Windows 窗口、四阶段主视图与既有视觉不变，只在现有 Product Baseline 和 Loop Run · D0–D3 步骤增加受保护 Open 报告，并把 Simulation、Workflow、UI 报告适配为诚实的复数子树、API/MCP、版本记录、锁定和产品主线摘要。
 
-BI 只负责可见性，不是第二套权威状态或执行系统。当前发布的桌面窗口只显示已授权的去敏 Snapshot：不读取或修改项目文件，不控制 Agent 或 runtime，也不表示真实项目数据接入已经完成。完整投影与安全边界见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
+BI 只负责可见性，不是第二套权威状态或执行系统。2.4.1 桌面窗口仍只显示已授权的合成去敏 Snapshot；真实项目适配器尚未实现。它不读取或修改项目文件，不暴露原始身份/证据，不解析下层方法材料，也不控制 Agent 或 runtime；缺失事实显示为“未知”或“未记录”。完整投影与安全边界见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
 ## Slice 执行准入与 Owner gap
 

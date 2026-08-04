@@ -20,10 +20,39 @@ const REPORT_IDS = [
   "simulation",
   "workflow",
   "ui",
+  "baseline",
+  "loop_governance",
 ] as const;
 
+const REPORT_STATE_BINDINGS = [
+  ["proposal", 0, 0, "pending"],
+  ["candidate", 0, 1, "pending"],
+  ["calabash", 1, 0, "pending"],
+  ["simulation", 1, 1, "pending"],
+  ["workflow", 1, 2, "done"],
+  ["ui", 1, 3, "pending"],
+  ["baseline", 2, 1, "done"],
+  ["loop_governance", 2, 4, "done"],
+] as const;
+
+const NOT_RECORDED_METRIC = {
+  kind: "metric",
+  status: "NOT_RECORDED",
+  completed: null,
+  total: null,
+  interval_minutes: null,
+} as const;
+
+const UNKNOWN_METRIC = {
+  kind: "metric",
+  status: "UNKNOWN",
+  completed: null,
+  total: null,
+  interval_minutes: null,
+} as const;
+
 const EXPECTED_SUCCESS = {
-  schema: "LCCoding 2.4.0 derived BI",
+  schema: "LCCoding 2.4.1 derived BI",
   authoritative: false,
   read_only: true,
   health: "ok",
@@ -55,10 +84,10 @@ const EXPECTED_SUCCESS = {
       state: "pending",
       steps: [
         { id: "MANDATORY_CALABASH_UPGRADE", state: "pending", report: null },
-        { id: "PRODUCT_BASELINE", state: "pending", report: null },
+        { id: "PRODUCT_BASELINE", state: "pending", report: "baseline" },
         { id: "FEATURE_SLICE_EXECUTION_COVERAGE", state: "pending", report: null },
         { id: "UI_LOCKED_INTEGRATION_BASELINE", state: "pending", report: null },
-        { id: "LOOP_RUN_D0_D3", state: "pending", report: null },
+        { id: "LOOP_RUN_D0_D3", state: "pending", report: "loop_governance" },
         { id: "LOOP_OWNER_ACCEPTANCE", state: "pending", report: null },
         { id: "ALL_REQUIRED_RUNS_ACCEPTED", state: "pending", report: null },
       ],
@@ -113,11 +142,9 @@ const EXPECTED_SUCCESS = {
       state: "done",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "done" } },
-        {
-          key: "row.current_phase",
-          value: { kind: "phase", value: "PRODUCT_FORMATION" },
-        },
+        { key: "row.realized_peer_subtrees", value: NOT_RECORDED_METRIC },
+        { key: "row.component_version_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.primary_mainline", value: NOT_RECORDED_METRIC },
       ],
     },
     workflow: {
@@ -125,11 +152,13 @@ const EXPECTED_SUCCESS = {
       state: "active",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "active" } },
-        {
-          key: "row.current_phase",
-          value: { kind: "phase", value: "PRODUCT_FORMATION" },
-        },
+        { key: "row.core_implementation", value: NOT_RECORDED_METRIC },
+        { key: "row.extra_implemented", value: NOT_RECORDED_METRIC },
+        { key: "row.extra_deferred", value: NOT_RECORDED_METRIC },
+        { key: "row.api_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.mcp_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.component_version_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.primary_mainline", value: NOT_RECORDED_METRIC },
       ],
     },
     ui: {
@@ -137,11 +166,35 @@ const EXPECTED_SUCCESS = {
       state: "error",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "error" } },
-        {
-          key: "row.current_phase",
-          value: { kind: "phase", value: "PRODUCT_FORMATION" },
-        },
+        { key: "row.realized_subtrees", value: NOT_RECORDED_METRIC },
+        { key: "row.component_version_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.lock_status", value: NOT_RECORDED_METRIC },
+        { key: "row.primary_mainline", value: NOT_RECORDED_METRIC },
+      ],
+    },
+    baseline: {
+      id: "baseline",
+      state: "pending",
+      version: null,
+      rows: [
+        { key: "row.git_identity", value: NOT_RECORDED_METRIC },
+        { key: "row.locked_subtree_coverage", value: NOT_RECORDED_METRIC },
+        { key: "row.map_handoff_consistency", value: NOT_RECORDED_METRIC },
+        { key: "row.owner_confirmed_mainline", value: NOT_RECORDED_METRIC },
+      ],
+    },
+    loop_governance: {
+      id: "loop_governance",
+      state: "pending",
+      version: null,
+      rows: [
+        { key: "row.worker_checker_wake", value: NOT_RECORDED_METRIC },
+        { key: "row.supervisor_wait", value: NOT_RECORDED_METRIC },
+        { key: "row.heartbeat", value: NOT_RECORDED_METRIC },
+        { key: "row.no_subagents", value: NOT_RECORDED_METRIC },
+        { key: "row.progress", value: NOT_RECORDED_METRIC },
+        { key: "row.cell_capacity", value: NOT_RECORDED_METRIC },
+        { key: "row.pin_policy", value: NOT_RECORDED_METRIC },
       ],
     },
   },
@@ -154,7 +207,7 @@ const errorStep = (id: string, report: string | null = null) => ({
 });
 
 const EXPECTED_ERROR = {
-  schema: "LCCoding 2.4.0 derived BI",
+  schema: "LCCoding 2.4.1 derived BI",
   authoritative: false,
   read_only: true,
   health: "error",
@@ -186,10 +239,10 @@ const EXPECTED_ERROR = {
       state: "error",
       steps: [
         errorStep("MANDATORY_CALABASH_UPGRADE"),
-        errorStep("PRODUCT_BASELINE"),
+        errorStep("PRODUCT_BASELINE", "baseline"),
         errorStep("FEATURE_SLICE_EXECUTION_COVERAGE"),
         errorStep("UI_LOCKED_INTEGRATION_BASELINE"),
-        errorStep("LOOP_RUN_D0_D3"),
+        errorStep("LOOP_RUN_D0_D3", "loop_governance"),
         errorStep("LOOP_OWNER_ACCEPTANCE"),
         errorStep("ALL_REQUIRED_RUNS_ACCEPTED"),
       ],
@@ -240,8 +293,9 @@ const EXPECTED_ERROR = {
       state: "error",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "error" } },
-        { key: "row.current_phase", value: { kind: "phase", value: "UNKNOWN" } },
+        { key: "row.realized_peer_subtrees", value: UNKNOWN_METRIC },
+        { key: "row.component_version_coverage", value: UNKNOWN_METRIC },
+        { key: "row.primary_mainline", value: UNKNOWN_METRIC },
       ],
     },
     workflow: {
@@ -249,8 +303,13 @@ const EXPECTED_ERROR = {
       state: "error",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "error" } },
-        { key: "row.current_phase", value: { kind: "phase", value: "UNKNOWN" } },
+        { key: "row.core_implementation", value: UNKNOWN_METRIC },
+        { key: "row.extra_implemented", value: UNKNOWN_METRIC },
+        { key: "row.extra_deferred", value: UNKNOWN_METRIC },
+        { key: "row.api_coverage", value: UNKNOWN_METRIC },
+        { key: "row.mcp_coverage", value: UNKNOWN_METRIC },
+        { key: "row.component_version_coverage", value: UNKNOWN_METRIC },
+        { key: "row.primary_mainline", value: UNKNOWN_METRIC },
       ],
     },
     ui: {
@@ -258,8 +317,35 @@ const EXPECTED_ERROR = {
       state: "error",
       version: null,
       rows: [
-        { key: "row.status", value: { kind: "view_state", value: "error" } },
-        { key: "row.current_phase", value: { kind: "phase", value: "UNKNOWN" } },
+        { key: "row.realized_subtrees", value: UNKNOWN_METRIC },
+        { key: "row.component_version_coverage", value: UNKNOWN_METRIC },
+        { key: "row.lock_status", value: UNKNOWN_METRIC },
+        { key: "row.primary_mainline", value: UNKNOWN_METRIC },
+      ],
+    },
+    baseline: {
+      id: "baseline",
+      state: "error",
+      version: null,
+      rows: [
+        { key: "row.git_identity", value: UNKNOWN_METRIC },
+        { key: "row.locked_subtree_coverage", value: UNKNOWN_METRIC },
+        { key: "row.map_handoff_consistency", value: UNKNOWN_METRIC },
+        { key: "row.owner_confirmed_mainline", value: UNKNOWN_METRIC },
+      ],
+    },
+    loop_governance: {
+      id: "loop_governance",
+      state: "error",
+      version: null,
+      rows: [
+        { key: "row.worker_checker_wake", value: UNKNOWN_METRIC },
+        { key: "row.supervisor_wait", value: UNKNOWN_METRIC },
+        { key: "row.heartbeat", value: UNKNOWN_METRIC },
+        { key: "row.no_subagents", value: UNKNOWN_METRIC },
+        { key: "row.progress", value: UNKNOWN_METRIC },
+        { key: "row.cell_capacity", value: UNKNOWN_METRIC },
+        { key: "row.pin_policy", value: UNKNOWN_METRIC },
       ],
     },
   },
@@ -350,7 +436,7 @@ describe("parseSnapshot", () => {
 
   it("keeps both serialized fixtures free of raw or diagnostic fields", () => {
     const forbiddenKey =
-      /^(?:repository|commit|path|evidence(?:_.*)?|url|date|updated_at|parser(?:_.*)?|details?|message|stack|raw|error_(?:code|details?|message|stack))$/iu;
+      /^(?:repository|commit|hash(?:_.*)?|path|evidence(?:_.*)?|thread(?:_.*)?|url|date|updated_at|parser(?:_.*)?|details?|message|stack|raw|error_(?:code|details?|message|stack))$/iu;
     const forbiddenValue =
       /(?:https?:\/\/|file:\/\/|[A-Za-z]:[\\/]|\b[0-9a-f]{40,64}\b|\d{4}-\d{2}-\d{2}T|BI_[A-Z_]+)/u;
 
@@ -359,6 +445,20 @@ describe("parseSnapshot", () => {
       expect(JSON.stringify(fixture)).not.toMatch(forbiddenValue);
     }
   });
+
+  it.each(REPORT_STATE_BINDINGS)(
+    "rejects %s report state when it differs from its bound StepView",
+    (reportId, phaseIndex, stepIndex, mismatchState) => {
+      expect(() =>
+        parseSnapshot(mutated((draft) => {
+          const boundStep = step(draft, phaseIndex, stepIndex);
+          expect(boundStep.report).toBe(reportId);
+          expect(boundStep.state).not.toBe(mismatchState);
+          report(draft, reportId).state = mismatchState;
+        })),
+      ).toThrow(TypeError);
+    },
+  );
 
   it.each([
     ["unknown top-level key", (draft: JsonObject) => void (draft.extra = true)],
@@ -391,6 +491,8 @@ describe("parseSnapshot", () => {
           simulation: reports.simulation!,
           workflow: reports.workflow!,
           ui: reports.ui!,
+          baseline: reports.baseline!,
+          loop_governance: reports.loop_governance!,
         };
       },
     ],
@@ -402,18 +504,85 @@ describe("parseSnapshot", () => {
   });
 
   it.each([
-    ["Snapshot", (draft: JsonObject) => void (draft.schema = "LCCoding 2.3 derived BI")],
+    ["Snapshot", (draft: JsonObject) => void (draft.schema = "LCCoding 2.4.0 derived BI")],
     ["reports object", (draft: JsonObject) => void (object(draft.reports).proposal = null)],
     ["PhaseView", (draft: JsonObject) => void (phase(draft).state = "DONE")],
     ["StepView", (draft: JsonObject) => void (step(draft).report = "ui")],
     ["ReportView", (draft: JsonObject) => void (report(draft, "candidate").version = " v1.11.6")],
     ["ReportRow", (draft: JsonObject) => void (row(draft, "proposal").key = "row.unknown")],
     ["view_state RowValue", (draft: JsonObject) => void (rowValue(draft, "proposal").value = "UNKNOWN")],
-    ["phase RowValue", (draft: JsonObject) => void (rowValue(draft, "simulation", 1).value = "active")],
+    ["phase RowValue", (draft: JsonObject) => void (rowValue(draft, "proposal").kind = "phase")],
     ["lock RowValue", (draft: JsonObject) => void (rowValue(draft, "candidate").value = "RECORDED")],
     ["record RowValue", (draft: JsonObject) => void (rowValue(draft, "candidate", 1).value = "LOCKED")],
+    ["metric RowValue", (draft: JsonObject) => void (rowValue(draft, "baseline").status = "DONE")],
   ])("rejects a one-field mutation of %s", (_name, change) => {
     expect(() => parseSnapshot(mutated(change))).toThrow(TypeError);
+  });
+
+  it.each([
+    ["negative completed", (value: JsonObject) => void (value.completed = -1)],
+    ["fractional completed", (value: JsonObject) => void (value.completed = 0.5)],
+    ["oversized completed", (value: JsonObject) => void (value.completed = 1_000_001)],
+    ["negative total", (value: JsonObject) => void (value.total = -1)],
+    ["completed over total", (value: JsonObject) => {
+      value.status = "ACTIVE";
+      value.completed = 2;
+      value.total = 1;
+    }],
+    ["total without completed", (value: JsonObject) => {
+      value.status = "ACTIVE";
+      value.total = 1;
+    }],
+    ["invalid Heartbeat interval", (value: JsonObject) => {
+      value.status = "ACTIVE";
+      value.interval_minutes = 20;
+    }],
+    ["invented UNKNOWN progress", (value: JsonObject) => void (value.completed = 7)],
+    ["raw path field", (value: JsonObject) => void (value.path = "C:\\private")],
+  ])("rejects metric %s", (_name, change) => {
+    expect(() =>
+      parseSnapshot(mutated((draft) => change(rowValue(draft, "loop_governance")))),
+    ).toThrow(TypeError);
+  });
+
+  it("accepts only bounded honest metric forms and the fixed Heartbeat intervals", () => {
+    const parsed = parseSnapshot(mutated((draft) => {
+      Object.assign(rowValue(draft, "simulation"), {
+        status: "COMPLIANT",
+        completed: 2,
+      });
+      Object.assign(rowValue(draft, "workflow"), {
+        status: "ACTIVE",
+        completed: 2,
+        total: 3,
+      });
+      Object.assign(rowValue(draft, "baseline"), {
+        status: "VIOLATION",
+      });
+      Object.assign(rowValue(draft, "loop_governance", 2), {
+        status: "ACTIVE",
+        interval_minutes: 15,
+      });
+    }));
+
+    expect(parsed.reports.simulation.rows[0]?.value).toMatchObject({ completed: 2 });
+    expect(parsed.reports.workflow.rows[0]?.value).toMatchObject({ completed: 2, total: 3 });
+    expect(parsed.reports.baseline.rows[0]?.value).toMatchObject({ status: "VIOLATION" });
+    expect(parsed.reports.loop_governance.rows[2]?.value).toMatchObject({
+      status: "ACTIVE",
+      interval_minutes: 15,
+    });
+  });
+
+  it("rejects an otherwise valid Heartbeat interval on any non-Heartbeat metric", () => {
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        Object.assign(rowValue(draft, "simulation"), {
+          status: "ACTIVE",
+          interval_minutes: 15,
+        });
+      })),
+    ).toThrow(TypeError);
   });
 
   it.each([

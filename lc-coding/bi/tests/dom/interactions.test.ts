@@ -25,9 +25,11 @@ const REPORT_CASES = [
   ["proposal", ["row.conclusion", "row.initial_gate"]],
   ["candidate", ["row.identity", "row.integrity"]],
   ["calabash", ["row.status", "row.version_record"]],
-  ["simulation", ["row.status", "row.current_phase"]],
-  ["workflow", ["row.status", "row.current_phase"]],
-  ["ui", ["row.status", "row.current_phase"]],
+  ["simulation", ["row.realized_peer_subtrees", "row.component_version_coverage", "row.primary_mainline"]],
+  ["workflow", ["row.core_implementation", "row.extra_implemented", "row.extra_deferred", "row.api_coverage", "row.mcp_coverage", "row.component_version_coverage", "row.primary_mainline"]],
+  ["ui", ["row.realized_subtrees", "row.component_version_coverage", "row.lock_status", "row.primary_mainline"]],
+  ["baseline", ["row.git_identity", "row.locked_subtree_coverage", "row.map_handoff_consistency", "row.owner_confirmed_mainline"]],
+  ["loop_governance", ["row.worker_checker_wake", "row.supervisor_wait", "row.heartbeat", "row.no_subagents", "row.progress", "row.cell_capacity", "row.pin_policy"]],
 ] as const satisfies readonly (readonly [ReportId, readonly RowKey[]])[];
 
 const LANGUAGES = ["en", "zh_CN"] as const satisfies readonly Language[];
@@ -41,6 +43,8 @@ const EXPECTED_VERSION = {
   simulation: (language: Language) => message("value.not_recorded", language),
   workflow: (language: Language) => message("value.not_recorded", language),
   ui: (language: Language) => message("value.not_recorded", language),
+  baseline: (language: Language) => message("value.not_recorded", language),
+  loop_governance: (language: Language) => message("value.not_recorded", language),
 } as const satisfies Readonly<Record<ReportId, (language: Language) => string>>;
 const EXPECTED_ROW_TEXT: Readonly<
   Record<ReportId, (language: Language) => readonly string[]>
@@ -54,18 +58,11 @@ const EXPECTED_ROW_TEXT: Readonly<
     message("state.done", language),
     message("value.recorded", language),
   ],
-  simulation: (language) => [
-    message("state.done", language),
-    message("phase.PRODUCT_FORMATION", language),
-  ],
-  workflow: (language) => [
-    message("state.active", language),
-    message("phase.PRODUCT_FORMATION", language),
-  ],
-  ui: (language) => [
-    message("state.error", language),
-    message("phase.PRODUCT_FORMATION", language),
-  ],
+  simulation: (language) => Array(3).fill(message("metric.not_recorded", language)),
+  workflow: (language) => Array(7).fill(message("metric.not_recorded", language)),
+  ui: (language) => Array(4).fill(message("metric.not_recorded", language)),
+  baseline: (language) => Array(4).fill(message("metric.not_recorded", language)),
+  loop_governance: (language) => Array(7).fill(message("metric.not_recorded", language)),
 };
 const successSnapshot = parseSnapshot(successFixture);
 const safeSource: SnapshotSource = {
@@ -123,6 +120,11 @@ describe("protected report interactions", () => {
         expect(
           row.querySelector(`.state--${fixtureRow.value.value} .state-text`),
         ).not.toBeNull();
+      } else if (fixtureRow.value.kind === "metric") {
+        expect(row.querySelector(".state.state--pending .state-text")?.textContent).toBe(
+          message("metric.not_recorded", language),
+        );
+        expect(row.querySelector(".metric-detail")).toBeNull();
       } else {
         expect(row.querySelector(".state")).toBeNull();
         expect(row.querySelector(".row-value")).not.toBeNull();
@@ -149,6 +151,51 @@ describe("protected report interactions", () => {
     expect(html).not.toContain("file:");
     expect(html).not.toContain("http:");
     expect(html).not.toContain("https:");
+  });
+
+  it("renders honest governance status, progress, and Heartbeat detail with symbol and text", () => {
+    type MutableMetric = {
+      status: string;
+      completed: number | null;
+      total: number | null;
+      interval_minutes: number | null;
+    };
+    const raw = structuredClone(successFixture) as unknown as {
+      reports: { loop_governance: { rows: { value: MutableMetric }[] } };
+    };
+    Object.assign(raw.reports.loop_governance.rows[0]!.value, {
+      status: "COMPLIANT",
+      completed: 4,
+      total: 4,
+    });
+    Object.assign(raw.reports.loop_governance.rows[2]!.value, {
+      status: "ACTIVE",
+      interval_minutes: 15,
+    });
+    Object.assign(raw.reports.loop_governance.rows[4]!.value, {
+      status: "VIOLATION",
+      completed: 3,
+      total: 7,
+    });
+    const report = parseSnapshot(raw).reports.loop_governance;
+    const root = document.createElement("div");
+    renderReportView(root, report, "en", () => undefined);
+    const rows = [...root.querySelectorAll<HTMLElement>(".report-row")];
+
+    expect(rows[0]!.querySelector(".state--done .state-text")?.textContent).toBe("Compliant");
+    expect(rows[0]!.querySelector(".metric-detail")?.textContent).toBe("4/4");
+    expect(rows[2]!.querySelector(".state--active .state-text")?.textContent).toBe("Active");
+    expect(rows[2]!.querySelector(".metric-detail")?.textContent).toBe("15 min");
+    expect(rows[4]!.querySelector(".state--error .state-text")?.textContent).toBe("Violation");
+    expect(rows[4]!.querySelector(".metric-detail")?.textContent).toBe("3/7");
+
+    renderReportView(root, report, "zh_CN", () => undefined);
+    expect(root.querySelector('[data-row-key="row.heartbeat"] .state-text')?.textContent).toBe(
+      "执行中",
+    );
+    expect(root.querySelector('[data-row-key="row.heartbeat"] .metric-detail')?.textContent).toBe(
+      "15 分钟",
+    );
   });
 
   it("creates the closed local view-state defaults", () => {

@@ -157,7 +157,7 @@ async function assertFixedViewport(page: Page): Promise<void> {
         .map((element) => element.className),
       clippedText: [
         ...document.querySelectorAll<HTMLElement>(
-          ".app-title, button, h1, .project-name, .state-text, .row-label, .row-value",
+          ".app-title, button, h1, .project-name, .state-text, .row-label, .row-value, .metric-detail",
         ),
       ]
         .filter(
@@ -292,3 +292,24 @@ for (const candidate of VISUAL_CASES) {
     });
   });
 }
+
+test("2.4.1 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
+  await page.goto("/?case=ok", { waitUntil: "networkidle" });
+  await waitForPreview(page);
+  await page.locator('[data-phase-id="ENGINEERING_RUNS"] .phase-summary').click();
+
+  await page.locator('[data-step-id="PRODUCT_BASELINE"] .open-report').click();
+  await expect(page.locator(".report-heading")).toHaveText("Product Baseline");
+  await expect(page.locator(".report-row")).toHaveCount(4);
+  await assertFixedViewport(page);
+  await assertSanitizedSurface(page);
+  await page.locator(".back-button").click();
+
+  await page.locator(".language-button").click();
+  await page.locator('[data-step-id="LOOP_RUN_D0_D3"] .open-report').click();
+  await expect(page.locator(".report-heading")).toHaveText("Loop 治理");
+  await expect(page.locator(".report-row")).toHaveCount(7);
+  await expect(page.locator(".app-body")).toHaveCSS("overflow-y", "auto");
+  await assertFixedViewport(page);
+  await assertSanitizedSurface(page);
+});

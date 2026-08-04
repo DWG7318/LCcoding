@@ -55,6 +55,8 @@ const OPEN_MAPPINGS = [
   ["SIMULATION_WORLD_FOUNDATION", "simulation"],
   ["WORKFLOW_CAPABILITY_END", "workflow"],
   ["UI_PRODUCT_SURFACE_END", "ui"],
+  ["PRODUCT_BASELINE", "baseline"],
+  ["LOOP_RUN_D0_D3", "loop_governance"],
 ] as const satisfies readonly (readonly [string, ReportId])[];
 
 const successSnapshot = parseSnapshot(successFixture);
@@ -159,7 +161,7 @@ describe("truthful four-phase main view", () => {
     expect(allIds).toEqual(STEP_IDS_BY_PHASE.flat());
   });
 
-  it("offers exactly six fixed report actions and passes only their fixed ReportId", () => {
+  it("adds only the two approved protected reports to the six existing report actions", () => {
     const root = document.createElement("main");
     const calls: unknown[][] = [];
     renderMainView(root, successSnapshot, "en", new Set(["PRODUCT_FORMATION"]), {
@@ -168,7 +170,7 @@ describe("truthful four-phase main view", () => {
     });
 
     const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>("button.open-report"));
-    expect(buttons).toHaveLength(6);
+    expect(buttons).toHaveLength(8);
     for (const [stepId, reportId] of OPEN_MAPPINGS) {
       const row = root.querySelector<HTMLElement>(`[data-step-id="${stepId}"]`)!;
       const button = row.querySelector<HTMLButtonElement>("button.open-report")!;
