@@ -1,6 +1,6 @@
 {
   "name": "LCCoding",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "skill": "lc-coding",
   "invocation": "$lc-coding",
   "mainline": [
@@ -53,6 +53,27 @@
     ],
     "reuse_sufficient_evidence": true,
     "recommended_loop_is_topology_only": true
+  },
+  "product_subtree_governance": {
+    "repository_default": "ONE_TOTAL_PROJECT_REPOSITORY",
+    "subtree_types": [
+      "UI",
+      "WORKFLOW",
+      "SIMULATION"
+    ],
+    "simulation_relationship": "PEER_ONLY",
+    "worktree_policy": "OPTIONAL_CONSTRUCTION_ISOLATION",
+    "implemented_workflow_interfaces": [
+      "API",
+      "MCP"
+    ],
+    "primary_mainline_owner_confirmed": true,
+    "baseline_identity": [
+      "project_commit",
+      "subtree_path",
+      "component_version",
+      "content_hash"
+    ]
   },
   "learning_return": {
     "optional": true,

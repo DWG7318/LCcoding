@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.4.0
+
+### Logical product subtree governance
+
+- Kept one canonical mainline while allowing multiple UI, Workflow, and peer Simulation logical subtrees inside one total project Git/GitHub repository.
+- Required every CORE Workflow and every implemented EXTRA Workflow to expose both API and MCP contracts backed by the same capability, without a Workflow Core layer, mandatory microservice, runtime, or deployment topology.
+- Added one Owner-confirmed Primary product mainline across at least one Simulation, one CORE Workflow, and one UI to prioritize proving and integration without relaxing any other CORE obligation.
+- Product Baseline now freezes the total-project exact commit plus each realized subtree name/path/component version/content hash and their ID relations. `UI=LOCKED` pins the applicable UI subtree to that identity.
+- Product Baseline validation resolves the exact Git commit, recomputes every locked subtree hash from that commit's tracked blobs, and rejects missing trees, forged hashes, invalid component versions, unbound mainline IDs, empty Owner evidence, or Map/Handoff identity drift.
+- Kept worktrees optional for parallel construction or environment isolation and prohibited empty product subtrees or empty interfaces for unimplemented EXTRA.
+- Preserved Simulation-first formation, CORE/EXTRA meaning, Feature Slice inheritance, phases, gates, status authority, Loop boundaries, security closure, and Delivery governance.
+
 ## 2.3.0
 
 ### Built-in BI and standalone Windows window

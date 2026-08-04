@@ -7,6 +7,7 @@ The Feature Slice contract is the canonical product claim for the increment. Run
 A Slice must have:
 
 - Product Baseline trace;
+- Primary product mainline ID and Owner confirmation;
 - actor and outcome;
 - Workflow/UI boundaries;
 - scenario pack;
@@ -15,10 +16,12 @@ A Slice must have:
 - Integration Baseline;
 - completion and acceptance criteria.
 
-It must also pass Execution Coverage Preflight before Loop execution. The preflight checks the product claim end to end: actor outcome, Baseline, Workflow/UI/Simulation, state/data/permissions, exceptions/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It includes the independent UI GitHub repo/path, Owner-control plus Private evidence, exact remote commit SHA, deterministic content hash and scope, remote resolve and recovery evidence, Product/Integration identity match, Slice/Run-start comparison, and the before-acceptance comparison route. It does not define GO/CELL, tasks, waves, retries, or other Loop internals.
+It must also pass Execution Coverage Preflight before Loop execution. The preflight checks the product claim end to end: actor outcome, Baseline, Workflow/UI/Simulation, state/data/permissions, exceptions/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It includes the total project repository/full exact baseline commit, applicable UI subtree ID/path/component version/content hash and scope, Product/Integration identity match, Slice/Run-start comparison, and the before-acceptance comparison route. It does not define GO/CELL, tasks, waves, retries, or other Loop internals.
 
 `HIGH` or `UNKNOWN` complexity must deepen evidence or reduce the Run boundary. When cross-layer wiring is not already proved, the first Required Run is a thin production-quality E2E proving path and expansion halts on failure. Trustworthy existing proof may be cited instead.
 
 ## Integration
 
 Implement one visible vertical path at a time. Enabling work is attached to the Slice but does not count as product progress until consumed by the path.
+
+Start with the Owner-confirmed Primary product mainline unless an Impact Analysis selects another governed relation. Feature Slice inherits verified Workflow capabilities across implemented CORE and EXTRA, pins the applicable UI subtree, and may improve Workflow under `CONTROLLED_MUTABLE`; it does not require UI, Workflow, and Simulation to be one-to-one.

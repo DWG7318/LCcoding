@@ -6,15 +6,14 @@
 - Product Baseline trace:
 - Workflow references:
 - UI references:
-- UI independent GitHub repository / baseline path(s):
-- UI Owner-control / PRIVATE evidence:
-- UI frozen exact remote commit SHA:
+- Primary product mainline ID / Owner confirmation:
+- Project repository / exact baseline commit:
+- Applicable UI subtree ID / path:
+- UI component version:
 - UI content hash:
 - UI content hash scope / manifest evidence:
-- UI remote commit push / resolve evidence:
-- UI recovery reference:
 - UI Product / Integration Baseline identity: PENDING / MATCH: evidence / BLOCKED
-- UI baseline comparison before Slice / Run: PENDING / MATCH: evidence / BLOCKED
+- UI subtree comparison before Slice / Run: PENDING / MATCH: evidence / BLOCKED
 - UI comparison before acceptance route: REQUIRED
 - Scenario IDs / versions:
 - State / data / permission trace:

@@ -2,6 +2,8 @@
 
 Initialization establishes a durable enterprise project environment before product implementation.
 
+Use one project Git/GitHub repository by default. Initialization records that total repository but does not pre-create empty UI, Workflow, or Simulation product subtrees. Real product units appear later as logical subtrees inside the repository. A worktree is optional for parallel construction or environment isolation; it is never a permanent product asset, subtree identity, or baseline.
+
 ## Modes
 
 `NEW` initializes a new project and starts its project version at `0.0.1`.
@@ -27,7 +29,7 @@ Project Health classifies the result as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`
 
 ## Required once
 
-- Git and independent GitHub repository;
+- one project Git and GitHub repository;
 - Owner-confirmed visibility;
 - initial version and commit for NEW, or preserved version and Git history for EXISTING;
 - Agents Rule;

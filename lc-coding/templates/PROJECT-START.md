@@ -5,6 +5,9 @@
 - Owner:
 - Repository:
 - Visibility:
+- One total project repository: YES
+- Pre-create empty product subtrees: NO
+- Worktree policy: OPTIONAL_FOR_PARALLEL_OR_ISOLATED_CONSTRUCTION
 - Initialization mode: NEW / EXISTING
 - Initial version for NEW: 0.0.1
 - Preserved source version / Git HEAD for EXISTING:
@@ -26,3 +29,5 @@
 - Interpretation Lock path:
 - Authoritative project status path: .lccoding/status.json
 - Bootstrap status:
+
+UI, Workflow, and Simulation product structure is created only as real logical subtrees inside the total project repository. A worktree is optional construction isolation, not a persistent product subtree or baseline asset.

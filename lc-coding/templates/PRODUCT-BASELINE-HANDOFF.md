@@ -1,26 +1,22 @@
 # Product Baseline Handoff
 
 - Baseline ID / version / hash:
+- Project repository identity:
+- Project frozen exact commit SHA:
 - Calabash source:
 - Workflow Map:
 - UI Map:
-- UI independent repository identity / GitHub URL:
-- UI baseline path(s):
-- UI repository Owner control evidence:
-- UI repository visibility: PRIVATE
-- UI visibility evidence:
-- UI frozen exact remote commit SHA:
-- UI version / tag (if used):
-- UI content hash:
-- UI content hash scope / manifest evidence:
-- UI remote commit push / resolve evidence:
-- UI recovery reference:
-- UI recoverable source coverage: source / styles / assets / design tokens / interaction states / build metadata
-- UI baseline blockers: NONE / LOCAL_ONLY / PUBLIC / UNKNOWN_VISIBILITY / BRANCH_OR_LATEST_ONLY / REMOTE_COMMIT_UNRESOLVED / SCREENSHOT_EXPORT_OR_BUILD_ONLY / MISSING_RECOVERY_REFERENCE
 - Simulation World:
+- Primary product mainline ID:
+- Primary mainline Owner confirmation: OWNER_CONFIRMED: evidence
 - Acceptance boundaries:
 - Open Owner decisions:
 - Engineering exclusions:
 - Handoff status: BLOCKED / COMPLETE
 
-`COMPLETE` requires every UI proof above and `UI baseline blockers: NONE`. The repository/path/SHA/hash values form one locked identity tuple for all downstream references. Product repository visibility does not change the independent UI repository's mandatory Private visibility.
+## Locked logical subtrees
+
+| Subtree type | Subtree ID | Path | Component version | Content hash | Classification | API evidence | MCP evidence | Primary mainline | Related subtree IDs |
+|---|---|---|---|---|---|---|---|---|---|
+
+`COMPLETE` requires one total project repository, a full exact Git-resolvable commit, every realized UI / Workflow / Simulation subtree identity, and an Owner-confirmed Primary product mainline containing at least one Simulation, one CORE Workflow, and one UI. The confirmation requires non-empty evidence after `OWNER_CONFIRMED:`. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`. Locked identities, relations, mainline markers, and Workflow classification/API/MCP evidence must match their canonical Maps. The mainline ID must equal the ID recorded by all three Maps. The single canonical tracked-blob manifest algorithm is the same algorithm for UI, Workflow, and Simulation; it reads the frozen commit, not the worktree. Commit plus subtree content hash is authoritative; component version is the human-readable label. Unimplemented EXTRA remains only in the Workflow Map and is not claimed in this locked subtree table.
