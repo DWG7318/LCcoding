@@ -30,10 +30,10 @@ simulation=(root/'lc-coding/references/simulation-world.md').read_text(encoding=
 semantic_checks=[
     (spec,'SPEC Workflow',[
         'Workflow is not merely a plan, description, or flowchart',
-        'AI must use Calabash and the Simulation World',
+        'AI must use Calabash and available Simulation Worlds',
         'real, runnable business functions',
         'simulation-only results cannot substitute for real Workflow',
-        'every business line is classified as `CORE` or `EXTRA`',
+        'Every Workflow business line is classified as `CORE` or `EXTRA`',
         'CORE is confirmed in Calabash and by the Owner as required product capability',
         'EXTRA is an enhancement derived from Calabash extension space, external research, or comparable-product analysis',
         'must not be claimed as existing product capability unless implemented and verified',
@@ -54,11 +54,11 @@ semantic_checks=[
         'all already implemented and verified Workflow capabilities across CORE and EXTRA',
     ]),
     (skill,'SKILL Workflow',[
-        'Use Calabash and the Simulation World to split Workflow into enough business lines',
+        'Use Calabash and available Simulation Worlds to split Workflow into enough business lines',
         'real, runnable business functions',
         'cannot replace real Workflow',
         'until Mandatory Calabash Upgrade is complete',
-        'mark every business line `CORE` or `EXTRA`',
+        'Mark each Workflow business line `CORE` or `EXTRA`',
         'CORE means Calabash and Owner confirmation make the business line required product capability',
         'EXTRA comes from Calabash extension space, external research, or comparable-product analysis',
         'Do not claim unimplemented EXTRA as product capability',
@@ -103,21 +103,21 @@ simulation_first_checks=[
         'Simulation remains `VERSIONED_MUTABLE`',
     ]),
     (skill,'SKILL Simulation-first',[
-        'Build a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction',
+        'Build at least one minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction',
         'Then advance Workflow and UI as equal product ends, independently; they may proceed in parallel',
         'real, runnable, inspectable result',
         'Do not require early Workflow-to-UI connection or three-way joint integration',
         'Continue semantic and scenario synchronization without treating it as early integration',
         'Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration',
-        'never treat the foundation as a complete or frozen Simulation',
+        'Never treat the foundation as a complete or frozen Simulation',
     ]),
     (dual_end,'dual-end reference',[
-        'After the Simulation World foundation exists',
+        'After at least one Simulation World foundation exists',
         'independently runnable and inspectable',
         'Cross-layer connection is not an early Product Formation condition',
     ]),
     (simulation,'Simulation reference',[
-        'minimum real, runnable, versioned foundation',
+        'at least one minimum real, runnable, versioned foundation',
         'before actual Workflow or UI construction',
         'not a one-time complete freeze',
         '`VERSIONED_MUTABLE`',
@@ -146,7 +146,14 @@ for forbidden in [
     assert forbidden not in framework
 
 workflow_map=(root/'lc-coding/templates/WORKFLOW-MAP.md').read_text(encoding='utf-8')
-assert '| Workflow ID | Classification (CORE/EXTRA) |' in workflow_map
+assert '| Workflow ID | Classification (CORE/EXTRA) | Implementation status |' in workflow_map
 assert workflow_map.count('Classification (CORE/EXTRA)')==1
 example_workflow_map=(root/'lc-coding/examples/enterprise-clinic/.lccoding/WORKFLOW-MAP.md').read_text(encoding='utf-8')
-assert '| Workflow ID | Classification (CORE/EXTRA) |' in example_workflow_map
+assert '| Workflow ID | Classification (CORE/EXTRA) | Implementation status |' in example_workflow_map
+for marker in ['API contract / evidence','MCP contract / evidence','UI subtree references','Simulation subtree references','Primary mainline']:
+    assert marker in workflow_map
+ui_map=(root/'lc-coding/templates/UI-MAP.md').read_text(encoding='utf-8')
+simulation_map=(root/'lc-coding/templates/SIMULATION-WORLD.md').read_text(encoding='utf-8')
+assert 'UI ID | Subtree path | Component version | Content hash' in ui_map
+assert 'Simulation ID | Subtree path | Component version | Content hash' in simulation_map
+assert 'Peer simulations do not nest' in simulation_map

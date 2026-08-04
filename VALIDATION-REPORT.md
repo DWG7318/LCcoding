@@ -1,4 +1,4 @@
-# LCCoding 2.3.0 Validation Report
+# LCCoding 2.4.0 Validation Report
 
 ```text
 PASS: LCCoding repository structure, mainline, acceptance, and security sequence are valid.
@@ -8,6 +8,7 @@ PASS: LCCoding repository structure, mainline, acceptance, and security sequence
 PASS: incremental and post-security acceptance boundaries
 PASS: migration preserves both Owner Acceptance boundaries
 PASS: migration from 2.2.3 to 2.3.0 defines the built-in BI boundary
+PASS: migration from 2.3.0 to 2.4.0 defines logical subtree governance
 PASS: bootstrap
 PASS: built-in BI desktop stays read-only with a two-command native Pin boundary
 PASS: delivery guard
@@ -16,39 +17,57 @@ PASS: complexity factors deepen evidence without changing Loop topology
 PASS: existing project intake preserves history, version, and evidence boundary
 PASS: consequential learning returns to one existing artifact without a new system
 PASS: mainline
+PASS: one-repository logical subtrees, Workflow interfaces, and baseline mainline are governed
+PASS: Product Baseline identities resolve to frozen Git trees and match canonical Maps
 PASS: Owner gaps retain closure lineage while canonical status stays an index
 PASS: phase identifiers are consistent across release artifacts
 PASS: phase map
 PASS: release files and hash manifest are complete
 PASS: security sequence and independence
-PASS: UI lock requires an Owner-controlled Private GitHub baseline and exact recovery proof
+PASS: UI lock pins an applicable logical subtree in the total project repository
 PASS: Slice preflight covers product execution without absorbing Loop internals
 PASS: takeover readiness stays in initialization with one canonical status
 PASS: verification reuse
-PASS: LCCoding 2.3.0 version is consistent across release artifacts
+PASS: LCCoding 2.4.0 version is consistent across release artifacts
 PASS: version guard
 PASS: centralized independent vulnerability closure
-PASS: 23 tests
+PASS: 26 tests
+```
+
+Additional carrier verification:
+
+```text
+PASS: BI TypeScript typecheck
+PASS: BI DOM tests 89/89
+PASS: BI Vite production build
+PASS: Rust format check
+PASS: Rust tests 4/4
+PASS: JSON parse, Markdown links, mainline/phases/status structural comparison
+PASS: git diff --check and generated-directory / secret / Docker scope scans
 ```
 
 Validated corrections:
 
-- LCCoding 2.3.0 includes a built-in read-only BI projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports;
+- LCCoding 2.4.0 includes a built-in read-only BI projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports;
 - the accepted 300×480 standalone Windows window starts in English, switches to Chinese, and connects Pin only to the actual native always-on-top state;
 - the desktop runtime uses only the authorized sanitized static Snapshot, while browser preview inputs remain strictly allowlisted and fail closed;
 - the BI does not read or mutate project files, does not control Agent or runtime behavior, and does not claim completed real project data integration;
 - the BI remains observational, with `status.json` retaining sole authoritative project-state responsibility;
 - canonical human-readable mainline displays begin the existing `WORKFLOW_UI_SIMULATION` node with the Simulation World foundation, without a preceding Workflow/UI/Simulation label;
-- Product Formation requires a minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction, inside the existing `WORKFLOW_UI_SIMULATION` node;
+- Product Formation requires at least one minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction, inside the existing `WORKFLOW_UI_SIMULATION` node;
 - the foundation remains deliberately incomplete and `VERSIONED_MUTABLE`, gaining scenarios and fidelity rather than becoming a one-time complete freeze;
 - Workflow and UI then advance independently as equal product ends and may proceed concurrently, while each must form a real, runnable, inspectable result and cannot be replaced by plans, shells, mocks, or simulation-only output;
 - early Product Formation does not require Workflow-to-UI connection or three-way joint integration; semantic/scenario synchronization continues and Feature Slice plus UI-locked Integration retain cross-layer connection and proof;
-- `UI=LOCKED` requires complete, rebuildable UI source in an independent Owner-controlled GitHub repository that remains `PRIVATE`, regardless of product-repository visibility;
-- Product and Integration Baselines share one remote/path/exact-SHA/content-hash identity with deterministic hash scope, Private-visibility, remote-resolution, push, and recovery evidence; local-only, Public/Unknown, mutable, unresolved, mismatched, or render-only references are rejected;
-- each active Feature Slice compares current UI with the locked remote commit and hash before work and acceptance, and re-proves Owner control, Private visibility, and exact-commit resolution before acceptance; unauthorized deltas block progress and cannot silently overwrite Owner material;
-- the existing Baseline Change Request is the only route to update locked UI, and requires a distinct new pushed Private remote commit, identical Product/Integration reference updates, and affected-evidence re-verification;
+- one total project Git/GitHub repository contains named UI, Workflow, and peer Simulation logical subtrees; worktrees remain optional construction isolation rather than product identity;
+- every implemented CORE or EXTRA Workflow provides direct API and MCP evidence backed by the same capability; unimplemented EXTRA creates no empty subtree or interface claim;
+- one Owner-confirmed Primary product mainline spans at least one Simulation, one CORE Workflow, and one UI for proving priority without relaxing other CORE obligations;
+- Product Baseline locks the total-project exact commit plus every realized subtree name/path/component version/content hash and their ID relations;
+- Product Baseline mechanically resolves the frozen Git commit and subtree trees, recomputes the single canonical tracked-blob manifest hash from commit objects rather than worktree files, and cross-checks all locked identities against Workflow/UI/Simulation Maps;
+- three-part component versions, `YES` / `NO` mainline markers, one Map-bound Primary mainline ID, and non-empty Owner confirmation evidence are enforced;
+- `UI=LOCKED` pins the applicable UI subtree to the same project commit/path/version/hash identity, with before-work and before-acceptance comparisons and no silent overwrite;
+- the existing Baseline Change Request is the only route to update locked UI and requires a distinct total-project commit, matching affected subtree version/hash updates, and affected-evidence re-verification;
 - Workflow is progressively realized as real, runnable capability during Workflow/UI/Simulation rather than represented by plans, shells, mocks, or simulation alone;
-- one Workflow Map classifies business lines as `CORE` or `EXTRA`, without adding a phase, state, gate, or parallel Workflow;
+- one Workflow Map registers multiple Workflow business-line subtrees and classifies each as `CORE` or `EXTRA`, without adding a phase, state, gate, or Workflow Core layer;
 - incomplete or infeasible CORE blocks Product Baseline, while EXTRA does not block and cannot be claimed as product capability until implemented and verified;
 - Feature Slice inherits verified CORE and EXTRA Workflow capabilities and may continue to improve Workflow through existing impact and controlled-mutable rules;
 - canonical mainline nodes remain unchanged;

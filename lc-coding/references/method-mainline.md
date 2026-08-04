@@ -16,7 +16,7 @@ Owner Proposal
 → Delivery
 ```
 
-The bracket is one existing mainline node. Its internal order is: create the minimum real, runnable, versioned Simulation foundation; then let Workflow and UI advance independently as equal product ends, each reaching runnable, inspectable results. They need not connect or undergo three-way joint integration here. Product meaning and scenarios still synchronize, while cross-layer connection and proof remain in Feature Slice and UI-locked Integration.
+The bracket is one existing mainline node. Its internal order is: create at least one minimum real, runnable, versioned Simulation foundation; then let Workflow and UI advance independently as equal product ends, each reaching runnable, inspectable results. The node may contain multiple UI, Workflow, and peer Simulation logical subtrees inside one project repository without adding a lifecycle node. The Owner-confirmed Primary product mainline selects the first proving direction; cross-layer connection and proof remain in Feature Slice and UI-locked Integration.
 
 Operational binding:
 

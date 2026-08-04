@@ -1,4 +1,4 @@
-# LCCoding 2.3.0
+# LCCoding 2.4.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -56,13 +56,15 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## Simulation-first 产品形成
 
-在现有 Workflow/UI/Simulation 节点内，必须先有一个最小、真实可运行、带版本的 Simulation World foundation。它一开始不必完善，也不是一次性冻结；Simulation 始终保持 `VERSIONED_MUTABLE`，后续可随场景和项目学习继续增强。
+在现有 Workflow/UI/Simulation 节点内，必须先有至少一个最小、真实可运行、带版本的 Simulation World foundation。它一开始不必完善，也不是一次性冻结；项目可以增加多个同级 Simulation 逻辑子树，但不得嵌套 Simulation 子项。Simulation 始终保持 `VERSIONED_MUTABLE`。
 
 基础 Simulation 存在后，Workflow 与 UI 才作为同等产品端分别独立向前建设，也可以并行推进；二者都必须形成真实、可运行、可检查的结果，不能只停留在计划、空壳或 mock。Product Formation 继续同步三者的产品语义与场景，但不要求前期接通或共同联调。跨层连接与贯通证明仍由后续 Feature Slice 和 UI-locked Integration 负责，Feature Slice 既有的 Workflow 继承和改进职责保持不变。
 
+一个总项目默认只有一个 Git/GitHub 仓库，内部可以有多个 UI、Workflow、Simulation 逻辑子树，每个已实现子树有组件版本和内容 hash。每个 CORE Workflow 与已实现 EXTRA Workflow 都必须直接提供 API 与 MCP 两类接口，并共用同一能力逻辑；未实现 EXTRA 不创建空目录或空接口。Owner 确认一条至少贯穿一个 Simulation、一个 CORE Workflow 和一个 UI 的产品主线，只决定优先施工方向，不降低其他 CORE。worktree 只是可选隔离手段，不是产品结构。
+
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.3.0 内置只读 BI 投影，并提供真正独立的 Windows 窗口。紧凑的 300×480 视图固定呈现 `INITIAL`、`PRODUCT_FORMATION`、`ENGINEERING_RUNS`、`DELIVERY_PREPARATION` 四个阶段，以及细粒度里程碑、状态、产物和受保护子报告。界面默认英文，可切换中文，并通过原生 Pin 控制窗口置顶。
+LCCoding 2.4.0 内置只读 BI 投影，并提供真正独立的 Windows 窗口。紧凑的 300×480 视图固定呈现 `INITIAL`、`PRODUCT_FORMATION`、`ENGINEERING_RUNS`、`DELIVERY_PREPARATION` 四个阶段，以及细粒度里程碑、状态、产物和受保护子报告。界面默认英文，可切换中文，并通过原生 Pin 控制窗口置顶。
 
 BI 只负责可见性，不是第二套权威状态或执行系统。当前发布的桌面窗口只显示已授权的去敏 Snapshot：不读取或修改项目文件，不控制 Agent 或 runtime，也不表示真实项目数据接入已经完成。完整投影与安全边界见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
@@ -72,9 +74,9 @@ Feature Slice 只有在产品级 Execution Coverage Preflight 通过后才能进
 
 Owner 的 rework、definition change 或 defer 会得到稳定 gap ID。阻断性 gap 必须沿 Impact Analysis 或 Calabash 路由、修正 Run、受影响 D0–D3、增量复验和 Owner 再验收关闭；权威状态只索引开放 gap 与证据指针，不成为 gap 档案库。
 
-## Private UI 基线保护
+## 逻辑子树基线保护
 
-当 `UI=LOCKED` 时，可完整重建的 UI 源码必须冻结在 Owner 控制的独立 GitHub 仓库中，并始终保持 `PRIVATE`，不受产品主仓库可见性影响。Product Baseline 与 Integration Baseline 共同钉住其远端精确 commit、内容 hash、Private 可见性证据、远端解析证据和恢复引用；每个 Slice 在开工前与验收前都要比较当前 UI，只有经批准的 Baseline Change Request 才能更新锁定基线。
+Product Baseline 锁定总项目精确 commit、每个已实现 UI/Workflow/Simulation 子树的名称、路径、组件版本、内容 hash、组合关系和 Owner 确认的产品主线。`UI=LOCKED` 钉住适用 UI 子树在同一总项目 commit 下的身份；每个 Slice 在开工前与验收前比较该子树，只有经批准的 Baseline Change Request 才能更新锁定基线。
 
 ## 两种 Owner Acceptance
 

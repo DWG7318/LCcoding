@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.3.0
+# LCCoding Constitution 2.4.0
 
 ## Identity
 
@@ -39,6 +39,8 @@ Delivery
 ```
 
 The bracket is the one existing `WORKFLOW_UI_SIMULATION` node: it states internal formation order, not a new lifecycle node, phase, gate, or readiness verdict.
+
+Inside this node, one project Git/GitHub repository may contain multiple UI, Workflow, and peer Simulation logical subtrees. Each realized subtree has its own component version and content hash. Every CORE Workflow and implemented EXTRA Workflow directly exposes API and MCP contracts backed by the same capability; no Workflow Core layer, mandatory microservice, or runtime is introduced. The Owner confirms one Primary product mainline across Simulation, CORE Workflow, and UI for proving priority, while all other CORE obligations remain.
 
 The mainline is unchanged. Its operational meaning is:
 
@@ -107,6 +109,9 @@ The phase overlay is navigation and gating only. `ENGINEERING_RUNS` repeats unti
 ## Method laws
 
 - Workflow, UI, and Calabash are three distinct product layers.
+- Logical product subtrees live in one total project repository; worktrees are optional construction isolation and never baseline identity.
+- Multiple Simulation subtrees are peers, and UI/Workflow/Simulation relations use IDs rather than directory nesting.
+- Every implemented CORE or EXTRA Workflow provides both API and MCP contracts from the same capability.
 - Simulation makes Workflow and UI observable; it does not replace real integration.
 - Calabash begins as a Draft and must receive Mandatory Upgrade before Product Baseline.
 - Feature Slice is the product-progress unit; GO and CELL are engineering-execution units.

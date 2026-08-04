@@ -1,4 +1,4 @@
-# LCCoding 2.3.0
+# LCCoding 2.4.0
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -43,13 +43,15 @@ Every mandatory node remains. Project Fingerprint product uncertainty, system co
 
 ## Simulation-first product formation
 
-A minimal, real, runnable, versioned Simulation World foundation comes first inside the existing Workflow/UI/Simulation node. It is intentionally incomplete and remains `VERSIONED_MUTABLE`, gaining scenarios and fidelity as the product learns.
+A minimal, real, runnable, versioned Simulation World foundation comes first inside the existing Workflow/UI/Simulation node. It is intentionally incomplete and remains `VERSIONED_MUTABLE`. A project may add multiple peer Simulation subtrees, never nested Simulation children.
 
 Workflow and UI then advance independently as equal product ends and may proceed in parallel; each must form a real, runnable, inspectable result rather than a plan, shell, or mock. Product Formation keeps their meaning and scenarios synchronized but does not require early connection or three-way joint integration. Feature Slice and UI-locked Integration own the later cross-layer connection and proof, while retaining the Slice's existing Workflow inheritance and improvement responsibilities.
 
+One project Git/GitHub repository contains multiple UI, Workflow, and Simulation logical subtrees. Each realized subtree has its own component version and content hash. Every CORE Workflow and implemented EXTRA Workflow directly provides both API and MCP contracts backed by the same capability; an unimplemented EXTRA has no empty subtree or interface claim. The Owner confirms one Primary product mainline across at least one Simulation, one CORE Workflow, and one UI to set construction priority without relaxing any other CORE obligation. A worktree is optional isolation, not product structure.
+
 ## Built-in BI and Windows desktop
 
-LCCoding 2.3.0 includes a built-in, read-only BI projection and a standalone Windows window. The compact 300×480 view presents the fixed `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, and `DELIVERY_PREPARATION` phases together with fine-grained milestones, states, artifacts, and protected subreports. Its interface starts in English, can switch to Chinese, and provides native Pin control for always-on-top use.
+LCCoding 2.4.0 includes a built-in, read-only BI projection and a standalone Windows window. The compact 300×480 view presents the fixed `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, and `DELIVERY_PREPARATION` phases together with fine-grained milestones, states, artifacts, and protected subreports. Its interface starts in English, can switch to Chinese, and provides native Pin control for always-on-top use.
 
 This BI is a visibility surface, not a second authority or execution system. The released desktop window uses only the authorized sanitized Snapshot: it does not read or mutate project files, does not control Agent or runtime behavior, and does not claim that real project data integration is complete. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md) for the closed projection and safety contract.
 
@@ -59,9 +61,9 @@ A Feature Slice enters SLK/CLK/GLK only after product-level Execution Coverage P
 
 Owner rework, definition changes, and deferrals receive stable gap IDs. A blocking gap stays open through Impact Analysis or Calabash routing, correction Run, affected D0–D3, delta re-verification, and Owner re-acceptance. The canonical status indexes open gaps and evidence pointers without becoming a gap archive.
 
-## Private UI baseline protection
+## Logical-subtree baseline protection
 
-When `UI=LOCKED`, the rebuildable UI source is frozen in an independent, Owner-controlled GitHub repository that remains `PRIVATE`, regardless of the product repository's visibility. Product and Integration Baselines pin its exact remote commit and content hash with visibility, remote-resolution, and recovery evidence. Each Slice compares the working UI to that immutable baseline before work and before acceptance; an approved Baseline Change Request is the only route to replace it.
+Product Baseline freezes the total project exact commit and every realized UI, Workflow, and Simulation subtree name/path/component version/content hash, their ID relations, and the Owner-confirmed Primary product mainline. `UI=LOCKED` pins the applicable UI subtree to that same commit/hash identity. Each Slice compares it before work and acceptance; an approved Baseline Change Request is the only route to replace the lock.
 
 ## Four-phase overlay
 

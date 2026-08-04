@@ -8,13 +8,13 @@
 - Impact Analysis delta:
 - Prior accepted work affected:
 - Owner decision / approval evidence:
-- UI independent Private GitHub repository:
-- Prior UI commit SHA:
-- New UI commit SHA:
-- New UI commit differs from prior lock: YES / NO
-- Remote push / resolve evidence:
-- Private visibility re-verification:
-- Owner-control re-verification:
+- Project repository identity:
+- Applicable UI subtree ID / path:
+- Prior project commit SHA:
+- New project commit SHA:
+- New project commit differs from prior lock: YES / NO
+- Prior UI component version / content hash:
+- New UI component version:
 - New UI content hash:
 - New UI content hash scope / manifest evidence:
 - Product Baseline Handoff update:
@@ -23,4 +23,4 @@
 - Recovery / isolated handling:
 - New baseline version:
 
-Do not replace the lock until Owner approval, Owner control, remote Private visibility, a distinct exact replacement commit/hash, both baseline updates, and affected evidence re-verification are complete.
+Do not replace the lock until Owner approval, a distinct exact total-project commit and affected UI subtree version/hash, both baseline updates, and affected evidence re-verification are complete.

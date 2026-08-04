@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 2.3.0 Design
+# Built-in Project BI — LCCoding 2.4.0 Design
 
-This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.3.0: it has no independent version, repository, tag, release, lifecycle, or authority.
+This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.4.0: it has no independent version, repository, tag, release, lifecycle, or authority.
 
 ## 1. Product boundary
 
@@ -271,7 +271,7 @@ StepView   = { "id": StepId, "state": ViewState, "report": ReportId | null }
 PhaseView  = { "id": PhaseId, "state": ViewState, "steps": readonly StepView[] }
 
 Snapshot = {
-  "schema": "LCCoding 2.3.0 derived BI",
+  "schema": "LCCoding 2.4.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": Health,
@@ -309,7 +309,7 @@ No free-form object or arbitrary report row crosses IPC. Production logs contain
 - Reject a symlink, junction, reparse point, non-directory project or `.lccoding` boundary, non-regular record, dangling link, identity change, or unsupported no-follow guarantee before parsing.
 - On Windows, open and inspect the root, record directory, and record with reparse-aware handles and stable volume/file identity. On Unix, retain anchored directory descriptors for the root and `.lccoding`, traverse fixed components with `openat`, and open a record with `O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK`; `fstat` must prove a regular file before any read. This prevents a regular-file-to-FIFO/device race from blocking. Platform adapters must produce the same path-free error contract.
 - Before typed deserialization, the strict JSON layer enforces: UTF-8 only; nesting depth at most `32`; at most `16,384` total keys/values; at most `128` members per object; at most `2,048` items per array; at most `4,096` UTF-8 bytes per string; and at most `128` ASCII characters per numeric token. Duplicate keys at any depth, malformed/trailing data, non-finite/out-of-range numbers, and resource-limit excess fail closed. Current Status and Manifest schemas accept no JSON number fields.
-- Supported `status_schema_version` values are exactly `2.2.0`, `2.2.1`, `2.2.2`, `2.2.3`, and `2.3.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`.
+- Supported `status_schema_version` values are exactly `2.2.0`, `2.2.1`, `2.2.2`, `2.2.3`, `2.3.0`, and `2.4.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`.
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
@@ -470,15 +470,15 @@ The verified development tool baseline is Rust/Cargo 1.96.0, Node 24.13.1, and n
 
 The letters below are dependency-ordered component checkpoints only. They are not LCCoding lifecycle phases, gates, Runs, or lower-method work decomposition and do not choose or redefine SLK/CLK/GLK execution internals.
 
-A. Create only the Vanilla HTML/CSS/TypeScript static shell with the two exact synthetic sanitized Snapshot contract fixtures. `package.json` is private and uses `2.3.0` only as the overall target LCCoding version; it has no independently displayed product version.
+A. Create only the Vanilla HTML/CSS/TypeScript static shell with the two exact synthetic sanitized Snapshot contract fixtures. `package.json` is private and uses `2.4.0` only as the overall target LCCoding version; it has no independently displayed product version.
 
 B. Run the full screenshot matrix and obtain Owner visual acceptance. Do not begin Rust data integration before acceptance.
 
-C. Implement the typed Rust reader, schema, truth, sanitization, and projection core by TDD. Cargo and Tauri carriers use the same overall target `2.3.0`, with Cargo `publish=false`; no release artifact is published while root release carriers remain at the base version.
+C. Implement the typed Rust reader, schema, truth, sanitization, and projection core by TDD. Cargo and Tauri carriers use the same overall target `2.4.0`, with Cargo `publish=false`; no release artifact is published while root release carriers remain at the base version.
 
 D. Add the narrow Tauri bridge, fixed-root startup, real topmost state, in-place refresh, and a local non-release packaged Windows smoke.
 
-E. Atomically update every existing root release carrier to the already-declared overall LCCoding `2.3.0`, then run full verification. An acceptance, distributable, or release build is invalid if root, npm, Cargo, Tauri, schema label, changelog, manifest, migration, report, or hash carriers disagree. The D-stage internal smoke bundle is the sole non-release exception and cannot leave the development workspace or be accepted as a candidate.
+E. Atomically update every existing root release carrier to the already-declared overall LCCoding `2.4.0`, then run full verification. An acceptance, distributable, or release build is invalid if root, npm, Cargo, Tauri, schema label, changelog, manifest, migration, report, or hash carriers disagree. The D-stage internal smoke bundle is the sole non-release exception and cannot leave the development workspace or be accepted as a candidate.
 
 Each step preserves the same approved visual contract. Data integration may replace fixture values only; it may not redesign the accepted UI.
 
@@ -489,7 +489,7 @@ Each step preserves the same approved visual contract. Data integration may repl
 - project status editing, UI editing, Agent/session/runtime/tool control, or lower-method execution logic;
 - React, Vue, Svelte, Electron, Python GUI/runtime, remote frontend, database, cache, packaged server, or background service;
 - generic filesystem/shell/network/plugin access;
-- new canonical phase, gate, status field, authoritative record, BI-only schema authority, or altered CORE/EXTRA, Simulation-first, Private UI baseline, Feature Slice, or Loop responsibility;
+- new canonical phase, gate, status field, authoritative record, BI-only schema authority, or altered CORE/EXTRA, Simulation-first, logical-subtree UI baseline, Feature Slice, or Loop responsibility;
 - an independent repository, version, tag, release, installer identity, or product line.
 
 Vite's local development server is a build/test tool only and is not included in the packaged application.

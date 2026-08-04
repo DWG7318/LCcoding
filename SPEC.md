@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.3.0
+# LCCoding Standard Specification 2.4.0
 
 ## 1. Scope
 
@@ -122,8 +122,7 @@ Project Initialization prepares one durable enterprise project environment in `N
 
 Required results:
 
-- independent Git repository;
-- independent GitHub repository;
+- one project Git repository and one project GitHub repository by default;
 - Owner-confirmed Public or Private visibility;
 - initial commit and version `0.0.1` for NEW, or preserved repository history and declared version for EXISTING;
 - platform-appropriate Agents Rule;
@@ -131,6 +130,8 @@ Required results:
 - Project Intelligence capability manifest;
 - Canonical Manifest and Interpretation Lock;
 - Project Profile, Project Fingerprint, and Project Health.
+
+Project Initialization does not pre-create empty UI, Workflow, or Simulation product subtrees. Product structure appears later as real logical subtrees inside the one project Git/GitHub repository. A worktree is optional for parallel construction or environment isolation; it is not a permanent product subtree, baseline asset, or second repository.
 
 `status.json` is the single authoritative project-status record. Project Health is assessment evidence. `PHASE-STATUS.json` is a derived navigation view and must agree with `status.json`; neither may become a second writable source of project truth. Status records durable method facts only, never Agent sessions, processes, queues, retries, models, hooks, or orchestration state.
 
@@ -197,7 +198,7 @@ An Interpretation Lock is reissued only when a locked version/hash, compatibilit
 
 Calabash begins as a Draft based on the ready Proposal. It evolves throughout Workflow, UI, and Simulation work. It is not assumed complete at project start.
 
-Before actual Workflow or UI construction begins, Product Formation requires a minimal, real, runnable, versioned Simulation World foundation. It is a starting world, not a complete or frozen Simulation, and it may gain fidelity, scenarios, and project learning throughout Product Formation.
+Before actual Workflow or UI construction begins, Product Formation requires at least one minimal, real, runnable, versioned Simulation World foundation. It is a starting world, not a complete or frozen Simulation. A project may form multiple peer Simulation logical subtrees, each with its own component version, and may gain fidelity, scenarios, and project learning throughout Product Formation. Simulation subtrees never nest inside one another.
 
 Only after that foundation exists may Workflow and UI advance as equal product ends, independently. They may proceed concurrently, but each must produce real, runnable, inspectable results. Early Product Formation does not require Workflow and UI to be connected or all three elements to be jointly integrated. Continue semantic and scenario synchronization across all three without treating synchronization as cross-layer integration. Cross-layer Workflow-to-UI connection and end-to-end proof remain responsibilities of Feature Slice and UI-locked Integration.
 
@@ -205,21 +206,25 @@ Only after that foundation exists may Workflow and UI advance as equal product e
 
 Workflow defines what the product actually does: actors, authority, states, transitions, inputs, outputs, rules, side effects, failure/recovery, external constraints, and reusable capabilities.
 
-Workflow is not merely a plan, description, or flowchart of product capability. During the existing Workflow/UI/Simulation stage, AI must use Calabash and the Simulation World to decompose Workflow into enough business lines to cover the product and progressively implement real, runnable business functions. Early implementation may be scattered and need not immediately connect to UI, but plans, empty shells, mocks, or simulation-only results cannot substitute for real Workflow. Workflow may continue to iterate with Simulation and Calabash until the Mandatory Calabash Upgrade is complete.
+Workflow is not merely a plan, description, or flowchart of product capability. During the existing Workflow/UI/Simulation stage, AI must use Calabash and available Simulation Worlds to decompose Workflow into enough business lines to cover the product and progressively implement real, runnable business functions. Each implemented Workflow business line is a named logical subtree in the one project Git/GitHub repository, with its own component version and content hash. Early implementation may be scattered and need not immediately connect to UI, but plans, empty shells, mocks, or simulation-only results cannot substitute for real Workflow. Workflow may continue to iterate with Simulation and Calabash until the Mandatory Calabash Upgrade is complete.
 
-Within this one Workflow, every business line is classified as `CORE` or `EXTRA`. CORE is confirmed in Calabash and by the Owner as required product capability. EXTRA is an enhancement derived from Calabash extension space, external research, or comparable-product analysis. AI should attempt EXTRA, but a technically difficult or infeasible EXTRA may remain a concept, requirement, deferred item, or infeasible item; it does not block Product Baseline and must not be claimed as existing product capability unless implemented and verified. AI must not reclassify CORE as EXTRA to pass Product Baseline; every classification change returns to Calabash and requires Owner confirmation.
+Every Workflow business line is classified as `CORE` or `EXTRA`; this is product necessity, not a Workflow Core technical layer. CORE is confirmed in Calabash and by the Owner as required product capability. EXTRA is an enhancement derived from Calabash extension space, external research, or comparable-product analysis. AI should attempt EXTRA, but a technically difficult or infeasible EXTRA may remain a concept, requirement, deferred item, or infeasible item; it does not block Product Baseline and must not be claimed as existing product capability unless implemented and verified. An unimplemented EXTRA is only a registry entry: it has no empty subtree and no empty API or MCP claim. AI must not reclassify CORE as EXTRA to pass Product Baseline; every classification change returns to Calabash and requires Owner confirmation.
+
+Every CORE Workflow and every implemented EXTRA Workflow directly provides both API and MCP calling contracts from that Workflow capability. API and MCP must use the same underlying product rules and evidence; they do not create a second implementation, mandatory microservice, Workflow Core engine, runtime, or deployment topology. UI and product backends may call the API contract, while Agent-facing use calls the MCP contract.
 
 ### UI product-surface end
 
-UI includes every actor-facing surface: customer, staff, operator, support, review, fulfillment, administrator, configuration, notification, approval, audit, and status surfaces.
+UI includes every actor-facing surface: customer, staff, operator, support, review, fulfillment, administrator, configuration, notification, approval, audit, and status surfaces. A project may contain multiple named UI logical subtrees inside the total project repository, each with its own component version and content hash.
 
 ### Simulation World
 
-Simulation is a versioned and resettable product world with realistic actors, data density, state, time, permissions, devices, external dependencies, failures, recovery, and history.
+Simulation is a versioned and resettable product world with realistic actors, data density, state, time, permissions, devices, external dependencies, failures, recovery, and history. Multiple Simulation logical subtrees are peers; no Simulation owns or nests another Simulation.
 
 Simulation remains `VERSIONED_MUTABLE`: the minimum foundation is strengthened by versioned deltas as more scenarios and learning appear, never treated as a one-time complete freeze.
 
-Workflow, UI, and Simulation are distinct but continuously synchronized in product meaning and scenario identity. That synchronization does not require early Workflow-to-UI wiring or joint integration. The same scenario identifiers should be reused in design, integration, Verification, and Owner Acceptance rather than copied into separate test catalogs.
+Workflow, UI, and Simulation are distinct but continuously synchronized in product meaning and scenario identity. UI-to-Workflow and Simulation-to-Workflow relations may be many-to-many and are recorded by IDs in the Workflow Map and Product Baseline, never inferred from directory nesting. That synchronization does not require early Workflow-to-UI wiring or joint integration. The same scenario identifiers should be reused in design, integration, Verification, and Owner Acceptance rather than copied into separate test catalogs.
+
+When multiple logical subtrees exist, the Owner confirms one Primary product mainline that links at least one Simulation, one CORE Workflow, and one UI. It determines the first cross-layer proving direction and construction priority only. Every other CORE Workflow remains mandatory and cannot be downgraded to EXTRA. A controlled Calabash upgrade may re-confirm the selected mainline.
 
 ## 8. Mandatory Calabash Upgrade and Product Baseline
 
@@ -234,17 +239,17 @@ The upgrade:
 
 The Product Baseline is the engineering reference. Later verified learning may amend it through impact analysis, but it must never drift silently.
 
-The Product Baseline implementation gate applies only to CORE Workflow. If any CORE business line is not yet implemented as real, runnable behavior, or is proved infeasible under the current product constraints, the project must not enter Product Baseline. Work must first adjust Calabash, narrow the direction, hold, or terminate under Owner authority. Incomplete or infeasible EXTRA does not block Product Baseline and remains a non-capability until implemented and verified.
+The Product Baseline implementation gate applies only to CORE Workflow. If any CORE business line is not yet implemented as real, runnable behavior with both API and MCP evidence, or is proved infeasible under the current product constraints, the project must not enter Product Baseline. Work must first adjust Calabash, narrow the direction, hold, or terminate under Owner authority. Incomplete or infeasible EXTRA does not block Product Baseline and remains a non-capability until implemented and verified.
 
-Product Baseline Handoff also requires a recoverable UI source baseline. The complete rebuildable UI source—including application and component code, styles, assets, design tokens, interaction states, and required build metadata—must live in a Git repository independent from the product repository. Screenshots, exported images, previews, or build artifacts cannot by themselves serve as that baseline.
+Product Baseline Handoff freezes one total project repository at an exact project commit (full SHA) and locks every realized UI, Workflow, and Simulation logical subtree by name, safe relative path, component version, and deterministic content hash. Component versions use `MAJOR.MINOR.PATCH`. It also locks the ID relations among UI, Workflow, and Simulation and the Owner-confirmed Primary product mainline; the mainline ID and every `YES` / `NO` marker must match the canonical Workflow, UI, and Simulation Maps. Every locked row must match its Map identity, Workflow classification, API/MCP evidence, and relations. Commit and content hash are authoritative identity; component version is the human-readable label. Screenshots, exported images, previews, build artifacts, branch names, `HEAD`, or `latest` cannot replace the rebuildable source and exact identity. Worktree state is never a baseline identity.
 
-The UI repository must be an Owner-controlled independent GitHub repository and must remain `PRIVATE`; product repository visibility, whether Public or Private, never relaxes this rule. The Handoff records repository identity and URL, Owner-control and Private-visibility evidence, the exact remote commit SHA, version or tag when used, UI content hash, proof that the remote resolves the frozen commit, and a recovery reference. The content hash is SHA-256 over a canonical tracked-file manifest for the declared baseline paths at that commit: UTF-8 POSIX relative path, Git mode, and SHA-256 of raw blob bytes per entry, sorted by path; its scope and manifest evidence are recorded. Local-only state, `PUBLIC` or `UNKNOWN` visibility, an unresolved remote commit, a branch name or `latest`, missing recovery evidence, or render/build-only material leaves the Handoff incomplete; the mainline cannot advance past Product Baseline into an active Feature Slice or UI-locked Integration. An existing independent UI repository may be reused only when it satisfies every condition; an existing Public UI repository must first become Private or migrate to a new Private repository.
+All product logical subtrees use one content-hash algorithm. At the frozen commit, require the declared path to resolve to a Git tree, recursively enumerate tracked blobs, and form each manifest entry as `path UTF-8 bytes + NUL + Git mode + NUL + lowercase blob SHA-256 hex + LF`. Sort entries by path bytes, concatenate them, and record `sha256:<lowercase SHA-256 of the manifest bytes>`. This is the same algorithm for UI, Workflow, and Simulation. The validator must resolve the recorded commit and blobs from Git objects; current worktree content cannot replace them.
 
 ## 9. Feature Slice
 
 Feature Slice is the LCCoding product-progress unit.
 
-A Feature Slice must identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
+A Feature Slice must identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. It starts from the Owner-confirmed Primary product mainline unless impact evidence selects another governed path, and pins the applicable UI subtree to the same total-project commit/path/version/hash identity as Product Baseline. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
 ```text
 Actor intent
@@ -264,7 +269,7 @@ One Feature Slice contract is canonical. Loop Run plans, verification receipts, 
 
 Before a Slice enters SLK, CLK, or GLK, its Execution Coverage Preflight must be `PASS`. Goal-backward coverage includes actor outcome, Product Baseline, Workflow, UI, Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3 evidence, and Loop Owner Acceptance. A missing claim, uncovered link, duplicate responsibility, or unresolved coverage unknown produces `BLOCKED`.
 
-The same Preflight must trace the independent GitHub repository and baseline path, Owner-control plus `PRIVATE` evidence, full remote commit SHA, UI content hash and manifest scope, remote push/resolve evidence, recovery reference, and a `MATCH` comparison before the Slice or Run. The Product Handoff, Integration Baseline, and Slice must name one locked identity tuple—remote, baseline paths, exact SHA, and content hash—and any mismatch blocks admission unless an approved Baseline Change Request replaced the tuple. The product repository identity must be known and comparable; missing or unresolvable identity leaves independence unproved and blocks admission. Preflight also requires a before-acceptance comparison route. Product repository visibility is never accepted as substitute proof for the independent UI repository.
+The same Preflight must trace the total project repository, full exact baseline commit, applicable UI subtree ID/path/component version/content hash and manifest scope, and a `MATCH` comparison before the Slice or Run. Product Handoff, Integration Baseline, and Slice must name one locked identity tuple—project repository/commit plus applicable UI subtree identity—and any mismatch blocks admission unless an approved Baseline Change Request replaced the tuple. Preflight also requires a before-acceptance comparison route.
 
 For any `HIGH` or `UNKNOWN` Project Fingerprint factor, the Slice records either deeper evidence or smaller independently verifiable Run boundaries. `recommended_loop` remains topology-only.
 
@@ -283,11 +288,11 @@ Calabash = LIVING_WITH_IMPACT_TRACE
 
 Integration is a convergence phase, not a new design phase. AI must make the Workflow and engineering implementation reach the accepted UI across every required actor surface.
 
-`UI = LOCKED` is not a textual declaration. `INTEGRATION_BASELINE` pins the independent Private GitHub remote, baseline path, exact remote commit SHA, and content hash without ambiguity and must match the Product Handoff identity tuple; a branch, tag, `HEAD`, working tree, design link, screenshot, export, or `latest` is not an immutable reference. LCCoding does not require a submodule, subtree, or other specific attachment technology.
+`UI = LOCKED` is not a textual declaration. `INTEGRATION_BASELINE` pins the total project repository/exact commit and the applicable UI subtree ID/path/component version/content hash without ambiguity and must match the Product Handoff identity tuple; a branch, tag, `HEAD`, working tree, worktree, design link, screenshot, export, or `latest` is not an immutable reference. Here `subtree` means a logical product path, not Git's external-repository subtree mechanism.
 
-Before a Feature Slice or engineering Run starts, and again before acceptance, AI compares the current UI with the locked remote commit and content hash. Before acceptance, re-prove Owner control, `PRIVATE` visibility, and remote resolution of that exact commit. Any unapproved difference or identity mismatch blocks work or acceptance. Preserve the difference evidence, then restore from the locked Private remote commit or handle the change in an isolated location; AI must not silently overwrite user material.
+Before a Feature Slice or engineering Run starts, and again before acceptance, AI compares the current applicable UI subtree with the locked total-project commit and subtree content hash. Any unapproved difference or identity mismatch blocks work or acceptance. Preserve the difference evidence, then restore from the locked project commit or handle the change in an isolated worktree or location; AI must not silently overwrite user material.
 
-A UI change requires the existing `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. An approved request must explain why preservation is impossible, create a distinct new commit in the independent UI repository, push it to the Private GitHub remote, re-prove Owner control, Private visibility, and remote resolution, update Product and Integration Baseline SHA/hash/version references to the same new identity, and re-verify affected evidence. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
+A UI change requires the existing `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. An approved request must explain why preservation is impossible, create a distinct total-project commit, update the affected UI subtree component version and content hash, update Product and Integration Baseline references to the same new identity, and re-verify affected evidence. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
 
 ## 11. Impact and reuse analysis
 
@@ -517,6 +522,6 @@ Friction reduction also requires reuse of sufficient evidence and proportional d
 
 LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
 
-The 2.3.0 desktop surface is a compact standalone Windows window with a 300×480 logical content baseline, English-first text, a Chinese language switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result.
+The 2.4.0 desktop surface is a compact standalone Windows window with a 300×480 logical content baseline, English-first text, a Chinese language switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result.
 
-The released 2.3.0 projection consumes only its authorized sanitized static Snapshot. It does not read or mutate project files, expose arbitrary paths, connect to project or network data, control Agent or runtime execution, or imply that real project data integration is complete. Any future project-data adapter requires a separate explicit authorization and must preserve the one authoritative `status.json` boundary.
+The released 2.4.0 projection consumes only its authorized sanitized static Snapshot. It does not read or mutate project files, expose arbitrary paths, connect to project or network data, control Agent or runtime execution, or imply that real project data integration is complete. Any future project-data adapter requires a separate explicit authorization and must preserve the one authoritative `status.json` boundary.

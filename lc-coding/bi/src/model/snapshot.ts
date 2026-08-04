@@ -80,7 +80,7 @@ export type PhaseView = Readonly<{
 }>;
 
 export type Snapshot = Readonly<{
-  schema: "LCCoding 2.3.0 derived BI";
+  schema: "LCCoding 2.4.0 derived BI";
   authoritative: false;
   read_only: true;
   health: Health;
@@ -349,7 +349,7 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   };
 
   const snapshot = {
-    schema: exactLiteral(value.schema, "LCCoding 2.3.0 derived BI"),
+    schema: exactLiteral(value.schema, "LCCoding 2.4.0 derived BI"),
     authoritative: exactLiteral(value.authoritative, false),
     read_only: exactLiteral(value.read_only, true),
     health: exactEnum(value.health, ["ok", "error"] as const),

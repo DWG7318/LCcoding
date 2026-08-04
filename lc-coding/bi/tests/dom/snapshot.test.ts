@@ -23,7 +23,7 @@ const REPORT_IDS = [
 ] as const;
 
 const EXPECTED_SUCCESS = {
-  schema: "LCCoding 2.3.0 derived BI",
+  schema: "LCCoding 2.4.0 derived BI",
   authoritative: false,
   read_only: true,
   health: "ok",
@@ -154,7 +154,7 @@ const errorStep = (id: string, report: string | null = null) => ({
 });
 
 const EXPECTED_ERROR = {
-  schema: "LCCoding 2.3.0 derived BI",
+  schema: "LCCoding 2.4.0 derived BI",
   authoritative: false,
   read_only: true,
   health: "error",

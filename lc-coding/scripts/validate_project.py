@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import argparse, json, re
+import argparse, hashlib, json, re, subprocess
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -9,6 +9,9 @@ RUNTIME_STATUS_FIELDS={'session','session_id','process','process_id','pid','agen
 SLICE_INTERNAL_METHOD_FIELDS={'go plan','cell tasks','stage plan','wave','agent model','task graph','retry queue'}
 SLICE_PREFLIGHT_REQUIRED=['Actor intent','Product outcome','Product Baseline trace','Workflow references','UI references','Scenario IDs / versions','State / data / permission trace','Exception / recovery trace','Impact Analysis ID','Integration Baseline ID','Required Run IDs','D0-D3 evidence plan','Normal Loop Owner Acceptance route(s)']
 OPEN_GAP_INDEX_FIELDS={'gap_id','state','source_acceptance','evidence_pointers'}
+NOT_APPLICABLE={'','NONE','NOT_APPLICABLE'}
+COMPONENT_VERSION_RE=re.compile(r'^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$')
+CONTENT_HASH_RE=re.compile(r'^sha256:[0-9a-f]{64}$',re.IGNORECASE)
 
 def nested_forbidden_fields(value, forbidden, path=''):
     found=[]
@@ -114,43 +117,289 @@ def canonical_github_repository(value):
             if owner and repository: return f'github.com/{owner.lower()}/{repository.lower()}'
     return None
 
-def validate_ui_private_baseline_preflight(fields,product_repository=None):
-    errors=[]
-    repository_and_path=str(fields.get('UI independent GitHub repository / baseline path(s)','')).strip()
-    repository_text,separator,baseline_path=repository_and_path.partition('::')
-    repository=canonical_github_repository(repository_text.strip())
-    if not repository or not separator or not present(baseline_path.strip()):
-        errors.append('UI baseline requires an independent GitHub repository and baseline path')
-    product=canonical_github_repository(product_repository)
-    if not product:
-        errors.append('product repository identity is required to prove UI repository independence')
-    elif repository and repository==product:
-        errors.append('UI baseline repository must be independent from the product repository')
-    private=str(fields.get('UI Owner-control / PRIVATE evidence','')).strip()
-    private_match=re.fullmatch(
-        r'PRIVATE:\s*(\S.*?)\s*\|\s*OWNER_CONTROLLED:\s*(\S.*)',private,re.IGNORECASE
-    )
-    if not private_match:
-        errors.append('UI baseline requires Owner-control and PRIVATE evidence pointer')
-    commit=str(fields.get('UI frozen exact remote commit SHA','')).strip()
+def safe_subtree_path(value):
+    value=str(value or '').strip()
+    if not value or value.upper() in NOT_APPLICABLE: return False
+    if '\\' in value or '://' in value or value.startswith('/') or re.match(r'^[A-Za-z]:',value): return False
+    parts=value.strip('/').split('/')
+    return bool(parts) and all(part not in {'','.', '..'} for part in parts)
+
+def evidence(value):
+    return present(value) and str(value).strip().upper() not in NOT_APPLICABLE
+
+def component_version(value):
+    return bool(COMPONENT_VERSION_RE.fullmatch(str(value or '').strip()))
+
+def resolve_frozen_commit(repository_path,commit):
+    repository=Path(repository_path).resolve()
+    commit=str(commit or '').strip()
     if not re.fullmatch(r'(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})',commit):
-        errors.append('UI baseline requires a full exact remote commit SHA')
+        return None,'Product Baseline Handoff requires a full exact project commit'
+    top=subprocess.run(
+        ['git','rev-parse','--show-toplevel'],cwd=repository,capture_output=True,text=True
+    )
+    if top.returncode or Path(top.stdout.strip()).resolve()!=repository:
+        return None,'Product Baseline Handoff project path must be the total project Git repository root'
+    resolved=subprocess.run(
+        ['git','rev-parse','--verify',commit+'^{commit}'],cwd=repository,capture_output=True,text=True
+    )
+    if resolved.returncode or resolved.stdout.strip().lower()!=commit.lower():
+        return None,'Product Baseline Handoff frozen commit does not resolve to that exact commit'
+    return resolved.stdout.strip(),None
+
+def frozen_subtree_content_hash(repository_path,commit,subtree_path):
+    repository=Path(repository_path).resolve()
+    subtree_path=str(subtree_path or '').strip().strip('/')
+    if not safe_subtree_path(subtree_path):
+        return None,'requires a safe relative subtree path'
+    object_name=commit+':'+subtree_path
+    object_type=subprocess.run(
+        ['git','cat-file','-t',object_name],cwd=repository,capture_output=True,text=True
+    )
+    if object_type.returncode or object_type.stdout.strip()!='tree':
+        return None,'does not exist as a tree at the frozen commit'
+    listing=subprocess.run(
+        ['git','ls-tree','-r','-z','--full-tree',commit,'--',':(literal)'+subtree_path],
+        cwd=repository,capture_output=True,
+    )
+    if listing.returncode:
+        return None,'could not read tracked subtree blobs at the frozen commit'
+    entries=[]
+    try:
+        for record in listing.stdout.split(b'\0'):
+            if not record: continue
+            metadata,path=record.split(b'\t',1)
+            mode,object_kind,object_id=metadata.split(b' ')
+            path.decode('utf-8','strict')
+            if object_kind!=b'blob':
+                return None,'contains a non-blob tracked entry and cannot use the canonical subtree hash'
+            blob=subprocess.run(
+                ['git','cat-file','blob',object_id.decode('ascii')],
+                cwd=repository,capture_output=True,
+            )
+            if blob.returncode:
+                return None,'could not read a tracked subtree blob at the frozen commit'
+            entries.append((path,mode,hashlib.sha256(blob.stdout).hexdigest().encode('ascii')))
+    except (UnicodeDecodeError,ValueError):
+        return None,'contains a path that cannot enter the canonical UTF-8 subtree manifest'
+    if not entries:
+        return None,'contains no tracked blobs at the frozen commit'
+    manifest=b''.join(
+        path+b'\0'+mode+b'\0'+digest+b'\n'
+        for path,mode,digest in sorted(entries,key=lambda entry:entry[0])
+    )
+    return 'sha256:'+hashlib.sha256(manifest).hexdigest(),None
+
+def verify_frozen_subtree_identity(repository_path,commit,row,prefix,path_field='Path'):
+    path=str(row.get(path_field,'')).strip()
+    expected=str(row.get('Content hash','')).strip().lower()
+    actual,error=frozen_subtree_content_hash(repository_path,commit,path)
+    if error: return [prefix+' '+error]
+    if actual!=expected: return [prefix+' content hash does not match the frozen commit subtree']
+    return []
+
+def validate_workflow_subtrees(rows,repository_path=None,frozen_commit=None):
+    errors=[]; ids=set(); paths=set()
+    for index,row in enumerate(rows):
+        prefix=f'Workflow row {index+1}'
+        workflow_id=str(row.get('Workflow ID','')).strip()
+        classification=str(row.get('Classification (CORE/EXTRA)','')).strip().upper()
+        implementation=str(row.get('Implementation status','')).strip().upper()
+        primary=str(row.get('Primary mainline','')).strip().upper()
+        if not workflow_id: errors.append(prefix+' missing Workflow ID')
+        elif workflow_id in ids: errors.append('duplicate Workflow ID '+workflow_id)
+        ids.add(workflow_id)
+        if classification not in {'CORE','EXTRA'}: errors.append(prefix+' requires CORE or EXTRA classification')
+        if implementation not in {'IMPLEMENTED','UNIMPLEMENTED'}: errors.append(prefix+' requires implementation status')
+        if primary not in {'YES','NO'}: errors.append(prefix+' Primary mainline must be YES or NO')
+        if classification=='CORE' and implementation!='IMPLEMENTED': errors.append(prefix+' CORE must be implemented')
+        if primary=='YES' and (classification!='CORE' or implementation!='IMPLEMENTED'):
+            errors.append(prefix+' primary mainline Workflow must be implemented CORE')
+        if implementation=='IMPLEMENTED':
+            path=str(row.get('Subtree path','')).strip()
+            if not safe_subtree_path(path): errors.append(prefix+' requires a safe relative subtree path')
+            elif path in paths: errors.append('duplicate subtree path '+path)
+            paths.add(path)
+            if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
+            if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()):
+                errors.append(prefix+' requires content hash')
+            if not evidence(row.get('API contract / evidence')): errors.append(prefix+' implemented Workflow requires API evidence')
+            if not evidence(row.get('MCP contract / evidence')): errors.append(prefix+' implemented Workflow requires MCP evidence')
+            if repository_path is not None and frozen_commit is not None and safe_subtree_path(path):
+                errors.extend(verify_frozen_subtree_identity(
+                    repository_path,frozen_commit,row,prefix,path_field='Subtree path'
+                ))
+        elif classification=='EXTRA':
+            for field in ['Subtree path','Component version','Content hash','API contract / evidence','MCP contract / evidence']:
+                if str(row.get(field,'')).strip().upper()!='NOT_APPLICABLE':
+                    errors.append(prefix+' unimplemented EXTRA cannot claim '+field)
+    return errors
+
+def split_ids(value):
+    return {item.strip() for item in str(value or '').split(',') if item.strip() and item.strip().upper()!='NONE'}
+
+def map_identity_rows(workflow_rows,ui_rows,simulation_rows):
+    identities={}; errors=[]
+    sources=[
+        ('WORKFLOW',workflow_rows,'Workflow ID','Subtree path',('UI subtree references','Simulation subtree references')),
+        ('UI',ui_rows,'UI ID','Subtree path',('Workflow subtree references','Simulation subtree references')),
+        ('SIMULATION',simulation_rows,'Simulation ID','Subtree path',('Workflow subtree references','UI subtree references')),
+    ]
+    for subtree_type,rows,id_field,path_field,relation_fields in sources:
+        for index,row in enumerate(rows):
+            if subtree_type=='WORKFLOW' and str(row.get('Implementation status','')).strip().upper()!='IMPLEMENTED':
+                continue
+            prefix=f'{subtree_type} Map row {index+1}'
+            subtree_id=str(row.get(id_field,'')).strip()
+            primary=str(row.get('Primary mainline','')).strip().upper()
+            if not subtree_id:
+                errors.append(prefix+' missing subtree ID'); continue
+            key=(subtree_type,subtree_id)
+            if key in identities:
+                errors.append(prefix+' duplicates a Map subtree ID'); continue
+            if primary not in {'YES','NO'}: errors.append(prefix+' Primary mainline must be YES or NO')
+            if not safe_subtree_path(row.get(path_field)): errors.append(prefix+' requires a safe relative subtree path')
+            if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
+            if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()): errors.append(prefix+' requires content hash')
+            relations=set()
+            for field in relation_fields: relations.update(split_ids(row.get(field)))
+            identities[key]={
+                'path':str(row.get(path_field,'')).strip(),
+                'version':str(row.get('Component version','')).strip(),
+                'hash':str(row.get('Content hash','')).strip().lower(),
+                'classification':str(row.get('Classification (CORE/EXTRA)','NOT_APPLICABLE')).strip().upper(),
+                'api':str(row.get('API contract / evidence','NOT_APPLICABLE')).strip(),
+                'mcp':str(row.get('MCP contract / evidence','NOT_APPLICABLE')).strip(),
+                'primary':primary,
+                'relations':relations,
+            }
+    return identities,errors
+
+def validate_map_handoff_identity(rows,workflow_rows,ui_rows,simulation_rows,primary_mainline_id,map_mainline_ids):
+    expected,errors=map_identity_rows(workflow_rows,ui_rows,simulation_rows)
+    for source,value in map_mainline_ids.items():
+        if not evidence(value): errors.append(source+' Map requires a Primary product mainline ID')
+        elif str(value).strip()!=str(primary_mainline_id or '').strip():
+            errors.append(source+' Map Primary product mainline ID does not match Product Baseline Handoff')
+    actual={}
+    for index,row in enumerate(rows):
+        key=(str(row.get('Subtree type','')).strip().upper(),str(row.get('Subtree ID','')).strip())
+        if key in actual: continue
+        actual[key]={
+            'path':str(row.get('Path','')).strip(),
+            'version':str(row.get('Component version','')).strip(),
+            'hash':str(row.get('Content hash','')).strip().lower(),
+            'classification':str(row.get('Classification','')).strip().upper(),
+            'api':str(row.get('API evidence','')).strip(),
+            'mcp':str(row.get('MCP evidence','')).strip(),
+            'primary':str(row.get('Primary mainline','')).strip().upper(),
+            'relations':split_ids(row.get('Related subtree IDs')),
+        }
+    missing=set(expected)-set(actual)
+    extra=set(actual)-set(expected)
+    for subtree_type,subtree_id in sorted(missing):
+        errors.append(f'{subtree_type} Map subtree {subtree_id} is missing from Product Baseline Handoff')
+    for subtree_type,subtree_id in sorted(extra):
+        errors.append(f'Product Baseline Handoff subtree {subtree_id} is absent from the {subtree_type} Map')
+    for key in sorted(set(expected).intersection(actual)):
+        subtree_type,subtree_id=key
+        for field in ['path','version','hash','classification','api','mcp','primary','relations']:
+            if expected[key][field]!=actual[key][field]:
+                errors.append(f'{subtree_type} Map / Product Baseline Handoff identity mismatch for {subtree_id}: {field}')
+    return errors
+
+def validate_product_subtree_baseline(
+    rows,primary_mainline_id,owner_confirmation,
+    repository_path=None,frozen_commit=None,
+    workflow_rows=None,ui_rows=None,simulation_rows=None,map_mainline_ids=None,
+):
+    errors=[]; ids=set(); paths={}; by_type={'UI':set(),'WORKFLOW':set(),'SIMULATION':set()}; primary={key:set() for key in by_type}
+    if not evidence(primary_mainline_id): errors.append('Primary product mainline ID required')
+    confirmation=str(owner_confirmation or '').strip()
+    if not re.fullmatch(r'OWNER_CONFIRMED:\s*\S(?:.*\S)?',confirmation,re.IGNORECASE):
+        errors.append('Primary product mainline requires Owner confirmation')
+    resolved_commit=None
+    if repository_path is not None:
+        resolved_commit,commit_error=resolve_frozen_commit(repository_path,frozen_commit)
+        if commit_error: errors.append(commit_error)
+    for index,row in enumerate(rows):
+        prefix=f'Baseline subtree row {index+1}'
+        subtree_type=str(row.get('Subtree type','')).strip().upper()
+        subtree_id=str(row.get('Subtree ID','')).strip()
+        path=str(row.get('Path','')).strip()
+        if subtree_type not in by_type:
+            errors.append(prefix+' has invalid subtree type'); continue
+        if not subtree_id: errors.append(prefix+' missing Subtree ID')
+        elif subtree_id in ids: errors.append('duplicate Subtree ID '+subtree_id)
+        ids.add(subtree_id); by_type[subtree_type].add(subtree_id)
+        if not safe_subtree_path(path): errors.append(prefix+' requires a safe relative subtree path')
+        elif path in paths: errors.append('duplicate subtree path '+path)
+        paths[path]=subtree_type
+        if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
+        if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()):
+            errors.append(prefix+' requires content hash')
+        if subtree_type=='WORKFLOW':
+            if str(row.get('Classification','')).strip().upper() not in {'CORE','EXTRA'}:
+                errors.append(prefix+' Workflow requires CORE or EXTRA classification')
+            if not evidence(row.get('API evidence')): errors.append(prefix+' implemented Workflow requires API evidence')
+            if not evidence(row.get('MCP evidence')): errors.append(prefix+' implemented Workflow requires MCP evidence')
+        primary_flag=str(row.get('Primary mainline','')).strip().upper()
+        if primary_flag not in {'YES','NO'}: errors.append(prefix+' Primary mainline must be YES or NO')
+        if primary_flag=='YES': primary[subtree_type].add(subtree_id)
+        if resolved_commit and safe_subtree_path(path):
+            errors.extend(verify_frozen_subtree_identity(repository_path,resolved_commit,row,prefix))
+    simulation_paths=sorted(path for path,kind in paths.items() if kind=='SIMULATION')
+    for index,path in enumerate(simulation_paths):
+        for other in simulation_paths[index+1:]:
+            if other.startswith(path.rstrip('/')+'/') or path.startswith(other.rstrip('/')+'/'):
+                errors.append('Simulation subtrees must remain peers, not nested')
+    if not primary['UI']: errors.append('Primary product mainline requires at least one UI subtree')
+    primary_core={
+        str(row.get('Subtree ID','')).strip() for row in rows
+        if str(row.get('Subtree type','')).strip().upper()=='WORKFLOW'
+        and str(row.get('Primary mainline','')).strip().upper()=='YES'
+        and str(row.get('Classification','')).strip().upper()=='CORE'
+    }
+    if not primary_core: errors.append('Primary product mainline requires at least one CORE Workflow subtree')
+    if not primary['SIMULATION']: errors.append('Primary product mainline requires at least one Simulation subtree')
+    for row in rows:
+        references=split_ids(row.get('Related subtree IDs'))
+        missing=references-ids
+        if missing: errors.append('subtree relation references unknown IDs '+', '.join(sorted(missing)))
+        if str(row.get('Subtree type','')).strip().upper()=='WORKFLOW' and str(row.get('Primary mainline','')).strip().upper()=='YES':
+            if not references.intersection(primary['UI']): errors.append('Primary Workflow must relate to a primary UI subtree')
+            if not references.intersection(primary['SIMULATION']): errors.append('Primary Workflow must relate to a primary Simulation subtree')
+    if all(value is not None for value in [workflow_rows,ui_rows,simulation_rows,map_mainline_ids]):
+        errors.extend(validate_map_handoff_identity(
+            rows,workflow_rows,ui_rows,simulation_rows,primary_mainline_id,map_mainline_ids
+        ))
+    return errors
+
+def validate_ui_subtree_baseline_preflight(fields,product_repository=None):
+    errors=[]
+    repository_and_commit=str(fields.get('Project repository / exact baseline commit','')).strip()
+    repository_text,separator,commit=repository_and_commit.partition('::')
+    repository=canonical_github_repository(repository_text.strip())
+    if not repository or not separator or not re.fullmatch(r'(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})',commit.strip()):
+        errors.append('UI subtree baseline requires the project repository and full exact baseline commit')
+    product=canonical_github_repository(product_repository)
+    if not product: errors.append('product repository identity is required')
+    elif repository and repository!=product: errors.append('UI subtree baseline must use the total project repository')
+    subtree=str(fields.get('Applicable UI subtree ID / path','')).strip()
+    subtree_id,subtree_separator,subtree_path=subtree.partition('::')
+    if not present(subtree_id.strip()) or not subtree_separator or not safe_subtree_path(subtree_path.strip()):
+        errors.append('UI subtree baseline requires an applicable UI ID and safe relative path')
+    if not component_version(fields.get('UI component version')): errors.append('UI subtree baseline requires a three-part component version')
     content_hash=str(fields.get('UI content hash','')).strip()
     if not re.fullmatch(r'sha256:[0-9a-fA-F]{64}',content_hash,re.IGNORECASE):
         errors.append('UI baseline requires an exact SHA-256 content hash')
     hash_scope=str(fields.get('UI content hash scope / manifest evidence','')).strip()
     if not hash_scope.upper().startswith('HASH_SCOPE:') or not hash_scope.split(':',1)[1].strip():
         errors.append('UI baseline requires deterministic content hash scope evidence')
-    remote=str(fields.get('UI remote commit push / resolve evidence','')).strip()
-    if not remote.upper().startswith('REMOTE_RESOLVED:') or not remote.split(':',1)[1].strip():
-        errors.append('UI baseline requires remote commit push and resolve evidence')
-    recovery=str(fields.get('UI recovery reference','')).strip()
-    if not recovery.upper().startswith('RECOVERY:') or not recovery.split(':',1)[1].strip():
-        errors.append('UI baseline requires a recovery reference')
     identity=str(fields.get('UI Product / Integration Baseline identity','')).strip()
     if not identity.upper().startswith('MATCH:') or not identity.split(':',1)[1].strip():
         errors.append('UI Product and Integration Baseline identity must MATCH with evidence')
-    comparison=str(fields.get('UI baseline comparison before Slice / Run','')).strip()
+    comparison=str(fields.get('UI subtree comparison before Slice / Run','')).strip()
     if not comparison.upper().startswith('MATCH:') or not comparison.split(':',1)[1].strip():
         errors.append('UI baseline comparison before Slice or Run must MATCH with evidence')
     if fields.get('UI comparison before acceptance route')!='REQUIRED':
@@ -165,7 +414,7 @@ def validate_slice_execution_preflight(fields,fingerprint,product_repository=Non
     if fields.get('Execution Coverage Preflight')!='PASS':
         errors.append('active Slice execution coverage preflight must PASS')
         return errors
-    errors.extend(validate_ui_private_baseline_preflight(fields,product_repository))
+    errors.extend(validate_ui_subtree_baseline_preflight(fields,product_repository))
     for field in SLICE_PREFLIGHT_REQUIRED:
         if not present(fields.get(field)): errors.append('Slice preflight missing '+field)
     gaps=str(fields.get('Coverage gaps / unknowns','')).strip().upper()
@@ -242,6 +491,20 @@ def parse_markdown_fields(path):
             fields[key.strip()]=value.strip()
     return fields
 
+def parse_markdown_table(path,first_header):
+    lines=path.read_text(encoding='utf-8').splitlines(); headers=None; rows=[]
+    for index,line in enumerate(lines):
+        if not line.startswith('|'): continue
+        cells=[cell.strip() for cell in line.strip().strip('|').split('|')]
+        if cells and cells[0]==first_header:
+            headers=cells
+            for row_line in lines[index+2:]:
+                if not row_line.startswith('|'): break
+                values=[cell.strip() for cell in row_line.strip().strip('|').split('|')]
+                if len(values)==len(headers): rows.append(dict(zip(headers,values)))
+            break
+    return rows
+
 def resolve_active_slice(lc,active):
     reference=active.get('path') or active.get('id') if isinstance(active,dict) else str(active)
     if not reference: return None
@@ -303,6 +566,35 @@ def main():
     if (lc/'PROJECT-FINGERPRINT.json').exists():
         fingerprint=json.loads((lc/'PROJECT-FINGERPRINT.json').read_text(encoding='utf-8'))
         errors.extend(validate_complexity_depth(fingerprint))
+    workflow_rows=parse_markdown_table(lc/'WORKFLOW-MAP.md','Workflow ID') if (lc/'WORKFLOW-MAP.md').exists() else []
+    ui_rows=parse_markdown_table(lc/'UI-MAP.md','UI ID') if (lc/'UI-MAP.md').exists() else []
+    simulation_rows=parse_markdown_table(lc/'SIMULATION-WORLD.md','Simulation ID') if (lc/'SIMULATION-WORLD.md').exists() else []
+    handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'
+    if handoff.exists():
+        handoff_fields=parse_markdown_fields(handoff)
+        repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
+        project_repository=canonical_github_repository(start.get('repository'))
+        if not repository or (project_repository and repository!=project_repository):
+            errors.append('Product Baseline Handoff must use the total project repository')
+        frozen_commit=handoff_fields.get('Project frozen exact commit SHA','')
+        errors.extend(validate_workflow_subtrees(workflow_rows,Path(args.project),frozen_commit))
+        errors.extend(validate_product_subtree_baseline(
+            parse_markdown_table(handoff,'Subtree type'),
+            handoff_fields.get('Primary product mainline ID'),
+            handoff_fields.get('Primary mainline Owner confirmation'),
+            Path(args.project),
+            frozen_commit,
+            workflow_rows,
+            ui_rows,
+            simulation_rows,
+            {
+                'Workflow':parse_markdown_fields(lc/'WORKFLOW-MAP.md').get('Primary product mainline ID') if (lc/'WORKFLOW-MAP.md').exists() else None,
+                'UI':parse_markdown_fields(lc/'UI-MAP.md').get('Primary product mainline ID') if (lc/'UI-MAP.md').exists() else None,
+                'Simulation':parse_markdown_fields(lc/'SIMULATION-WORLD.md').get('Primary product mainline ID') if (lc/'SIMULATION-WORLD.md').exists() else None,
+            },
+        ))
+    else:
+        errors.extend(validate_workflow_subtrees(workflow_rows))
     if status.get('active_slice'):
         slice_path=resolve_active_slice(lc,status.get('active_slice'))
         if not slice_path: errors.append('active Slice artifact missing')
