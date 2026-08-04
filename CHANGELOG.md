@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.1
+
+### Built-in BI subtree and Loop-governance reports
+
+- Kept the accepted 300×480 four-phase BI, lifecycle steps, visual tokens, language/Pin/Refresh behavior, and two-command read-only Tauri boundary unchanged.
+- Added protected Open reports to the existing Product Baseline and Loop Run · D0–D3 steps without adding a phase, step, Gate, status field, or control capability.
+- Adapted Simulation, Workflow, and UI reports to strict plural-subtree, CORE/EXTRA, API/MCP, component-version, lock, and Primary-mainline summary metrics; absent evidence remains `UNKNOWN` or `NOT_RECORDED`.
+- Added the seven-item Loop Governance summary as a sanitized read-only compatibility contract. It does not copy SLK/CLK/GLK internals or perform wake, wait, Heartbeat, archive, subagent, progress, CELL-sizing, or pin actions.
+- Kept the desktop on its synthetic sanitized Snapshot. Real Maps/Handoff and Loop-artifact integration remains unimplemented rather than introducing a broad parser, second runtime, or unsafe project-data command.
+
 ## 2.4.0
 
 ### Logical product subtree governance

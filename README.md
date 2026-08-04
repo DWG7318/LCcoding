@@ -1,4 +1,4 @@
-# LCCoding 2.4.0
+# LCCoding 2.4.1
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -51,9 +51,9 @@ One project Git/GitHub repository contains multiple UI, Workflow, and Simulation
 
 ## Built-in BI and Windows desktop
 
-LCCoding 2.4.0 includes a built-in, read-only BI projection and a standalone Windows window. The compact 300×480 view presents the fixed `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, and `DELIVERY_PREPARATION` phases together with fine-grained milestones, states, artifacts, and protected subreports. Its interface starts in English, can switch to Chinese, and provides native Pin control for always-on-top use.
+LCCoding 2.4.1 keeps the built-in, read-only BI and standalone 300×480 Windows window unchanged in structure and visual language. It adds protected Open reports to the existing Product Baseline and Loop Run · D0–D3 steps, while adapting Simulation, Workflow, and UI reports to honest plural-subtree, API/MCP, version-record, lock, and Primary-mainline summaries.
 
-This BI is a visibility surface, not a second authority or execution system. The released desktop window uses only the authorized sanitized Snapshot: it does not read or mutate project files, does not control Agent or runtime behavior, and does not claim that real project data integration is complete. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md) for the closed projection and safety contract.
+This BI is a visibility surface, not a second authority or execution system. The 2.4.1 desktop still uses only the authorized synthetic sanitized Snapshot; the real project adapter remains not implemented. It does not read or mutate project files, expose raw identity/evidence, parse lower-method artifacts, or control Agent/runtime behavior. Missing facts display as Unknown or Not recorded. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md) for the closed projection and safety contract.
 
 ## Slice execution and Owner gaps
 

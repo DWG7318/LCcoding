@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.4.0
+# LCCoding Constitution 2.4.1
 
 ## Identity
 

@@ -14,4 +14,6 @@ assert subprocess.run([sys.executable,script,'2.2.3','2.3.0'],capture_output=Tru
 assert subprocess.run([sys.executable,script,'2.2.3','2.3.0','--owner-approved'],capture_output=True).returncode==0
 assert subprocess.run([sys.executable,script,'2.3.0','2.4.0'],capture_output=True).returncode!=0
 assert subprocess.run([sys.executable,script,'2.3.0','2.4.0','--owner-approved'],capture_output=True).returncode==0
+assert subprocess.run([sys.executable,script,'2.4.0','2.4.1'],capture_output=True).returncode!=0
+assert subprocess.run([sys.executable,script,'2.4.0','2.4.1','--owner-approved'],capture_output=True).returncode==0
 print('PASS: version guard')

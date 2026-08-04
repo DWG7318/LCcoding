@@ -15,7 +15,9 @@ export type ReportId =
   | "calabash"
   | "simulation"
   | "workflow"
-  | "ui";
+  | "ui"
+  | "baseline"
+  | "loop_governance";
 
 export type StepId =
   | "PROPOSAL_READINESS"
@@ -47,16 +49,47 @@ export type RowKey =
   | "row.integrity"
   | "row.status"
   | "row.version_record"
-  | "row.current_phase";
+  | "row.current_phase"
+  | "row.realized_peer_subtrees"
+  | "row.realized_subtrees"
+  | "row.component_version_coverage"
+  | "row.primary_mainline"
+  | "row.core_implementation"
+  | "row.extra_implemented"
+  | "row.extra_deferred"
+  | "row.api_coverage"
+  | "row.mcp_coverage"
+  | "row.lock_status"
+  | "row.git_identity"
+  | "row.locked_subtree_coverage"
+  | "row.map_handoff_consistency"
+  | "row.owner_confirmed_mainline"
+  | "row.worker_checker_wake"
+  | "row.supervisor_wait"
+  | "row.heartbeat"
+  | "row.no_subagents"
+  | "row.progress"
+  | "row.cell_capacity"
+  | "row.pin_policy";
 
 export type LockValue = "LOCKED" | "PENDING" | "UNKNOWN";
 export type RecordValue = "RECORDED" | "PRESENT" | "PENDING" | "NOT_RECORDED" | "UNKNOWN";
+export type MetricStatus = "COMPLIANT" | "ACTIVE" | "VIOLATION" | "UNKNOWN" | "NOT_RECORDED";
+
+export type MetricValue = Readonly<{
+  kind: "metric";
+  status: MetricStatus;
+  completed: number | null;
+  total: number | null;
+  interval_minutes: 10 | 15 | 30 | null;
+}>;
 
 export type RowValue =
   | Readonly<{ kind: "view_state"; value: ViewState }>
   | Readonly<{ kind: "phase"; value: PhaseValue }>
   | Readonly<{ kind: "lock"; value: LockValue }>
-  | Readonly<{ kind: "record"; value: RecordValue }>;
+  | Readonly<{ kind: "record"; value: RecordValue }>
+  | MetricValue;
 
 export type ReportRow = Readonly<{ key: RowKey; value: RowValue }>;
 
@@ -80,7 +113,7 @@ export type PhaseView = Readonly<{
 }>;
 
 export type Snapshot = Readonly<{
-  schema: "LCCoding 2.4.0 derived BI";
+  schema: "LCCoding 2.4.1 derived BI";
   authoritative: false;
   read_only: true;
   health: Health;
@@ -94,6 +127,8 @@ export type Snapshot = Readonly<{
     simulation: ReportView;
     workflow: ReportView;
     ui: ReportView;
+    baseline: ReportView;
+    loop_governance: ReportView;
   }>;
 }>;
 
@@ -107,7 +142,17 @@ const PHASE_VALUES = [
 ] as const;
 const LOCK_VALUES = ["LOCKED", "PENDING", "UNKNOWN"] as const;
 const RECORD_VALUES = ["RECORDED", "PRESENT", "PENDING", "NOT_RECORDED", "UNKNOWN"] as const;
-const REPORT_IDS = ["proposal", "candidate", "calabash", "simulation", "workflow", "ui"] as const;
+const METRIC_STATUSES = ["COMPLIANT", "ACTIVE", "VIOLATION", "UNKNOWN", "NOT_RECORDED"] as const;
+const REPORT_IDS = [
+  "proposal",
+  "candidate",
+  "calabash",
+  "simulation",
+  "workflow",
+  "ui",
+  "baseline",
+  "loop_governance",
+] as const;
 
 type StepLayout = readonly [id: StepId, report: ReportId | null];
 type PhaseLayout = Readonly<{ id: PhaseId; steps: readonly StepLayout[] }>;
@@ -135,10 +180,10 @@ const PHASE_LAYOUT: readonly PhaseLayout[] = [
     id: "ENGINEERING_RUNS",
     steps: [
       ["MANDATORY_CALABASH_UPGRADE", null],
-      ["PRODUCT_BASELINE", null],
+      ["PRODUCT_BASELINE", "baseline"],
       ["FEATURE_SLICE_EXECUTION_COVERAGE", null],
       ["UI_LOCKED_INTEGRATION_BASELINE", null],
-      ["LOOP_RUN_D0_D3", null],
+      ["LOOP_RUN_D0_D3", "loop_governance"],
       ["LOOP_OWNER_ACCEPTANCE", null],
       ["ALL_REQUIRED_RUNS_ACCEPTED", null],
     ],
@@ -173,16 +218,39 @@ const REPORT_ROWS: Readonly<Record<ReportId, readonly RowLayout[]>> = {
     ["row.version_record", "record"],
   ],
   simulation: [
-    ["row.status", "view_state"],
-    ["row.current_phase", "phase"],
+    ["row.realized_peer_subtrees", "metric"],
+    ["row.component_version_coverage", "metric"],
+    ["row.primary_mainline", "metric"],
   ],
   workflow: [
-    ["row.status", "view_state"],
-    ["row.current_phase", "phase"],
+    ["row.core_implementation", "metric"],
+    ["row.extra_implemented", "metric"],
+    ["row.extra_deferred", "metric"],
+    ["row.api_coverage", "metric"],
+    ["row.mcp_coverage", "metric"],
+    ["row.component_version_coverage", "metric"],
+    ["row.primary_mainline", "metric"],
   ],
   ui: [
-    ["row.status", "view_state"],
-    ["row.current_phase", "phase"],
+    ["row.realized_subtrees", "metric"],
+    ["row.component_version_coverage", "metric"],
+    ["row.lock_status", "metric"],
+    ["row.primary_mainline", "metric"],
+  ],
+  baseline: [
+    ["row.git_identity", "metric"],
+    ["row.locked_subtree_coverage", "metric"],
+    ["row.map_handoff_consistency", "metric"],
+    ["row.owner_confirmed_mainline", "metric"],
+  ],
+  loop_governance: [
+    ["row.worker_checker_wake", "metric"],
+    ["row.supervisor_wait", "metric"],
+    ["row.heartbeat", "metric"],
+    ["row.no_subagents", "metric"],
+    ["row.progress", "metric"],
+    ["row.cell_capacity", "metric"],
+    ["row.pin_policy", "metric"],
   ],
 };
 
@@ -258,6 +326,44 @@ function safeVersion(value: unknown, nullable: boolean): string | null {
   return value;
 }
 
+function metricCount(value: unknown): number | null {
+  if (value === null) return null;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 1_000_000) {
+    invalid();
+  }
+  return value;
+}
+
+function metricInterval(value: unknown): 10 | 15 | 30 | null {
+  if (value === null || value === 10 || value === 15 || value === 30) return value;
+  return invalid();
+}
+
+function parseMetric(input: unknown): MetricValue {
+  const value = exactObject(input, ["kind", "status", "completed", "total", "interval_minutes"]);
+  const status = exactEnum(value.status, METRIC_STATUSES);
+  const completed = metricCount(value.completed);
+  const total = metricCount(value.total);
+  const intervalMinutes = metricInterval(value.interval_minutes);
+
+  if (
+    (status === "UNKNOWN" || status === "NOT_RECORDED") &&
+    (completed !== null || total !== null || intervalMinutes !== null)
+  ) {
+    invalid();
+  }
+  if (total !== null && completed === null) invalid();
+  if (completed !== null && total !== null && completed > total) invalid();
+
+  return {
+    kind: exactLiteral(value.kind, "metric"),
+    status,
+    completed,
+    total,
+    interval_minutes: intervalMinutes,
+  };
+}
+
 function parseStep(input: unknown, layout: StepLayout): StepView {
   const value = exactObject(input, ["id", "state", "report"]);
   return {
@@ -282,6 +388,7 @@ function parsePhase(input: unknown, layout: PhaseLayout): PhaseView {
 }
 
 function parseRowValue(input: unknown, kind: RowKind): RowValue {
+  if (kind === "metric") return parseMetric(input);
   const value = exactObject(input, ["kind", "value"]);
   exactLiteral(value.kind, kind);
   switch (kind) {
@@ -298,9 +405,17 @@ function parseRowValue(input: unknown, kind: RowKind): RowValue {
 
 function parseRow(input: unknown, layout: RowLayout): ReportRow {
   const value = exactObject(input, ["key", "value"]);
+  const parsedValue = parseRowValue(value.value, layout[1]);
+  if (
+    parsedValue.kind === "metric" &&
+    parsedValue.interval_minutes !== null &&
+    layout[0] !== "row.heartbeat"
+  ) {
+    invalid();
+  }
   return {
     key: exactLiteral(value.key, layout[0]),
-    value: parseRowValue(value.value, layout[1]),
+    value: parsedValue,
   };
 }
 
@@ -346,10 +461,18 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
     simulation: parseReport(reportsInput.simulation, "simulation"),
     workflow: parseReport(reportsInput.workflow, "workflow"),
     ui: parseReport(reportsInput.ui, "ui"),
+    baseline: parseReport(reportsInput.baseline, "baseline"),
+    loop_governance: parseReport(reportsInput.loop_governance, "loop_governance"),
   };
 
+  for (const phase of phases) {
+    for (const step of phase.steps) {
+      if (step.report !== null && reports[step.report].state !== step.state) invalid();
+    }
+  }
+
   const snapshot = {
-    schema: exactLiteral(value.schema, "LCCoding 2.4.0 derived BI"),
+    schema: exactLiteral(value.schema, "LCCoding 2.4.1 derived BI"),
     authoritative: exactLiteral(value.authoritative, false),
     read_only: exactLiteral(value.read_only, true),
     health: exactEnum(value.health, ["ok", "error"] as const),

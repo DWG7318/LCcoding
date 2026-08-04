@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-current = "2.4.0"
+current = "2.4.1"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -49,9 +49,9 @@ for relative in [
     assert current in (root / relative).read_text(encoding="utf-8"), relative
 
 snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
-assert '"LCCoding 2.4.0 derived BI"' in snapshot_model
-assert (root / "MIGRATION-2.3.0-TO-2.4.0.md").is_file()
+assert '"LCCoding 2.4.1 derived BI"' in snapshot_model
+assert (root / "MIGRATION-2.4.0-TO-2.4.1.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.4.0") < changelog.index("## 2.3.0")
+assert changelog.index("## 2.4.1") < changelog.index("## 2.4.0")
 
-print("PASS: LCCoding 2.4.0 version is consistent across release artifacts")
+print("PASS: LCCoding 2.4.1 version is consistent across release artifacts")

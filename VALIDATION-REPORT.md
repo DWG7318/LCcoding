@@ -1,4 +1,4 @@
-# LCCoding 2.4.0 Validation Report
+# LCCoding 2.4.1 Validation Report
 
 ```text
 PASS: LCCoding repository structure, mainline, acceptance, and security sequence are valid.
@@ -9,8 +9,10 @@ PASS: incremental and post-security acceptance boundaries
 PASS: migration preserves both Owner Acceptance boundaries
 PASS: migration from 2.2.3 to 2.3.0 defines the built-in BI boundary
 PASS: migration from 2.3.0 to 2.4.0 defines logical subtree governance
+PASS: migration from 2.4.0 to 2.4.1 preserves the BI boundary
 PASS: bootstrap
 PASS: built-in BI desktop stays read-only with a two-command native Pin boundary
+PASS: BI adds only protected subtree and Loop governance reports
 PASS: delivery guard
 PASS: delivery Q&A
 PASS: complexity factors deepen evidence without changing Loop topology
@@ -28,18 +30,19 @@ PASS: UI lock pins an applicable logical subtree in the total project repository
 PASS: Slice preflight covers product execution without absorbing Loop internals
 PASS: takeover readiness stays in initialization with one canonical status
 PASS: verification reuse
-PASS: LCCoding 2.4.0 version is consistent across release artifacts
+PASS: LCCoding 2.4.1 version is consistent across release artifacts
 PASS: version guard
 PASS: centralized independent vulnerability closure
-PASS: 26 tests
+PASS: 28 tests
 ```
 
 Additional carrier verification:
 
 ```text
 PASS: BI TypeScript typecheck
-PASS: BI DOM tests 89/89
+PASS: BI DOM tests 118/118
 PASS: BI Vite production build
+PASS: BI Playwright 33/33 (32 accepted candidates + focused Product Baseline / Loop Governance contract)
 PASS: Rust format check
 PASS: Rust tests 4/4
 PASS: JSON parse, Markdown links, mainline/phases/status structural comparison
@@ -48,9 +51,14 @@ PASS: git diff --check and generated-directory / secret / Docker scope scans
 
 Validated corrections:
 
-- LCCoding 2.4.0 includes a built-in read-only BI projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports;
+- LCCoding 2.4.1 keeps the built-in read-only BI projection of the fixed four phases and 21 steps, with no lifecycle, Gate, status-authority, or visual-token change;
+- the existing Product Baseline and Loop Run · D0–D3 steps now open protected Product Baseline and Loop Governance reports, while Simulation, Workflow, and UI reports use strict plural-subtree summary metrics;
+- the seven lower-method governance items are displayed only as sanitized `COMPLIANT`, `ACTIVE`, `VIOLATION`, `UNKNOWN`, or `NOT_RECORDED` facts with bounded progress and `10/15/30` Heartbeat intervals;
+- the strict Snapshot parser mechanically requires each of the eight report states to equal its existing bound Step state, rejecting every mismatch without deriving state from report metrics;
 - the accepted 300×480 standalone Windows window starts in English, switches to Chinese, and connects Pin only to the actual native always-on-top state;
-- the desktop runtime uses only the authorized sanitized static Snapshot, while browser preview inputs remain strictly allowlisted and fail closed;
+- the desktop runtime uses only the authorized synthetic sanitized static Snapshot, while browser preview inputs remain strictly allowlisted and fail closed;
+- the real project adapter remains unimplemented; no Maps/Handoff parser, lower-method artifact parser, `get_snapshot` command, Python BI, second runtime, or realtime claim was introduced;
+- the implementation sequence now makes the completed 2.4.1 static compatibility release independent from the separately authorized future reader → `get_snapshot` bridge → packaged-smoke sequence;
 - the BI does not read or mutate project files, does not control Agent or runtime behavior, and does not claim completed real project data integration;
 - the BI remains observational, with `status.json` retaining sole authoritative project-state responsibility;
 - canonical human-readable mainline displays begin the existing `WORKFLOW_UI_SIMULATION` node with the Simulation World foundation, without a preceding Workflow/UI/Simulation label;

@@ -1,5 +1,11 @@
 import { message, type Language, type MessageKey } from "../i18n/catalog";
-import type { ReportRow, ReportView, ViewState } from "../model/snapshot";
+import type {
+  MetricStatus,
+  MetricValue,
+  ReportRow,
+  ReportView,
+  ViewState,
+} from "../model/snapshot";
 
 const STATE_KEYS = {
   done: "state.done",
@@ -16,6 +22,22 @@ const VALUE_KEYS = {
   NOT_RECORDED: "value.not_recorded",
   UNKNOWN: "value.unknown",
 } as const satisfies Readonly<Record<string, MessageKey>>;
+
+const METRIC_KEYS = {
+  COMPLIANT: "metric.compliant",
+  ACTIVE: "metric.active",
+  VIOLATION: "metric.violation",
+  UNKNOWN: "metric.unknown",
+  NOT_RECORDED: "metric.not_recorded",
+} as const satisfies Readonly<Record<MetricStatus, MessageKey>>;
+
+const METRIC_STATES = {
+  COMPLIANT: "done",
+  ACTIVE: "active",
+  VIOLATION: "error",
+  UNKNOWN: "pending",
+  NOT_RECORDED: "pending",
+} as const satisfies Readonly<Record<MetricStatus, ViewState>>;
 
 function element<K extends keyof HTMLElementTagNameMap>(
   document: Document,
@@ -40,6 +62,36 @@ function stateValue(document: Document, state: ViewState, language: Language): H
   return value;
 }
 
+function metricValue(document: Document, value: MetricValue, language: Language): DocumentFragment {
+  const rendered = document.createDocumentFragment();
+  const state = element(document, "span", `state state--${METRIC_STATES[value.status]}`);
+  const glyph = element(document, "span", "state-glyph");
+  glyph.setAttribute("aria-hidden", "true");
+  state.append(
+    glyph,
+    element(document, "span", "state-text", message(METRIC_KEYS[value.status], language)),
+  );
+  rendered.append(state);
+
+  const details: string[] = [];
+  if (value.completed !== null) {
+    details.push(
+      value.total === null ? String(value.completed) : `${value.completed}/${value.total}`,
+    );
+  }
+  if (value.interval_minutes !== null) {
+    details.push(
+      language === "zh_CN"
+        ? `${value.interval_minutes} 分钟`
+        : `${value.interval_minutes} min`,
+    );
+  }
+  if (details.length > 0) {
+    rendered.append(element(document, "span", "metric-detail", details.join(" · ")));
+  }
+  return rendered;
+}
+
 function ordinaryValue(row: ReportRow, language: Language): string {
   const value = row.value;
   if (value.kind === "phase") {
@@ -60,6 +112,8 @@ function reportRow(document: Document, row: ReportRow, language: Language): HTML
   rendered.append(
     row.value.kind === "view_state"
       ? stateValue(document, row.value.value, language)
+      : row.value.kind === "metric"
+        ? metricValue(document, row.value, language)
       : element(document, "span", "row-value", ordinaryValue(row, language)),
   );
   return rendered;
