@@ -1,0 +1,138 @@
+name: Build formal LCCoding BI Windows assets
+run-name: Build formal BI assets at ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-formal-assets:
+    name: Build verified NSIS assets
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact dispatch commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Select Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Select Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Select Rust 1.96.0
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact clean main identity
+        shell: pwsh
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_REF: ${{ github.ref }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          if ($env:EXPECTED_REF -ne "refs/heads/main") { throw "BI_RELEASE_REF_NOT_MAIN" }
+          if ($env:GITHUB_ACTIONS -ne "true") { throw "BI_RELEASE_NOT_GITHUB_ACTIONS" }
+          foreach ($name in @(
+            "GITHUB_REPOSITORY",
+            "GITHUB_SHA",
+            "GITHUB_RUN_ID",
+            "GITHUB_RUN_ATTEMPT",
+            "GITHUB_WORKFLOW",
+            "GITHUB_REF"
+          )) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "BI_RELEASE_BUILD_IDENTITY_MISSING:$name"
+            }
+          }
+          if ($env:GITHUB_REPOSITORY -ne "DWG7318/LCcoding") { throw "BI_RELEASE_REPOSITORY_INVALID" }
+          if ($env:GITHUB_SHA -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_SHA_ENV_INVALID" }
+          if ((git rev-parse HEAD).Trim() -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_CHECKOUT_INVALID" }
+          if (git status --porcelain=v1) { throw "BI_RELEASE_CHECKOUT_DIRTY" }
+          if ((Get-Content VERSION -Raw).Trim() -ne "2.5.0") { throw "BI_RELEASE_VERSION_INVALID" }
+
+      - name: Validate source and formal Loop releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          python lc-coding/scripts/validate_repository.py .
+          python lc-coding/tests/run_tests.py
+          python lc-coding/tests/test_release_integrity.py
+          & lc-coding/bi/tests/packaging/nsis-contract.ps1
+          $proof = & lc-coding/bi/scripts/verify-loop-releases.ps1
+          if ($proof.status -ne "VERIFIED_FORMAL_RELEASES") { throw "BI_RELEASE_LOOP_GATE_INVALID" }
+
+      - name: Build formal Windows package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          $outputRoot = Join-Path $env:RUNNER_TEMP "lccoding-bi-formal"
+          if (Test-Path -LiteralPath $outputRoot) { throw "BI_RELEASE_OUTPUT_ALREADY_EXISTS" }
+          & lc-coding/bi/scripts/package-release.ps1 -OutputRoot $outputRoot
+
+      - name: Verify exact formal release assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $release = Join-Path $env:RUNNER_TEMP "lccoding-bi-formal/release"
+          $installerName = "LCCoding BI_2.5.0_x64-setup.exe"
+          $expectedFiles = @($installerName, "installer.sha256", "provenance.json") | Sort-Object
+          $actualFiles = @(Get-ChildItem -LiteralPath $release -File | ForEach-Object Name | Sort-Object)
+          if (@(Compare-Object $expectedFiles $actualFiles).Count -ne 0) {
+            throw "BI_RELEASE_ASSET_SET_INVALID"
+          }
+          $installer = Join-Path $release $installerName
+          $header = [IO.File]::ReadAllBytes($installer)
+          if ($header.Length -lt 2 -or $header[0] -ne 0x4D -or $header[1] -ne 0x5A) {
+            throw "BI_RELEASE_INSTALLER_NOT_PE"
+          }
+          $sha256 = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksum = (Get-Content (Join-Path $release "installer.sha256") -Raw).Trim()
+          if ($checksum -ne "$sha256  $installerName") { throw "BI_RELEASE_CHECKSUM_INVALID" }
+          $provenance = Get-Content (Join-Path $release "provenance.json") -Raw | ConvertFrom-Json
+          if (
+            $provenance.commit -ne $env:GITHUB_SHA -or
+            $provenance.sha256 -ne $sha256 -or
+            $provenance.build_mode -ne "FORMAL_GITHUB_ACTIONS" -or
+            $provenance.build_workflow -ne $env:GITHUB_WORKFLOW -or
+            $provenance.build_run_id -ne $env:GITHUB_RUN_ID -or
+            $provenance.build_run_attempt -ne [int]$env:GITHUB_RUN_ATTEMPT -or
+            $provenance.build_repository -ne $env:GITHUB_REPOSITORY -or
+            $provenance.build_ref -ne $env:GITHUB_REF -or
+            $provenance.target_triple -ne "x86_64-pc-windows-msvc" -or
+            $provenance.loop_release_dependency_gate -ne "VERIFIED_FORMAL_RELEASES" -or
+            $null -eq $provenance.loop_release_dependencies
+          ) {
+            throw "BI_RELEASE_PROVENANCE_INVALID"
+          }
+          & lc-coding/bi/tests/packaging/nsis-contract.ps1
+          python lc-coding/tests/test_release_integrity.py
+
+      - name: Upload formal three-file asset set
+        uses: actions/upload-artifact@v4
+        with:
+          name: lccoding-bi-formal-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding BI_2.5.0_x64-setup.exe
+            ${{ runner.temp }}\lccoding-bi-formal\release\installer.sha256
+            ${{ runner.temp }}\lccoding-bi-formal\release\provenance.json
+          if-no-files-found: error
+          compression-level: 0

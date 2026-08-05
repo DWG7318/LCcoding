@@ -5,11 +5,31 @@ $hooks = Join-Path $bi "src-tauri/windows/hooks.nsh"
 $driver = Join-Path $bi "scripts/package-release.ps1"
 $releaseGate = Join-Path $bi "scripts/verify-loop-releases.ps1"
 $releaseIdentity = Join-Path $bi "release/loop-contract-identities.json"
+$workflow = Join-Path (Split-Path (Split-Path $bi -Parent) -Parent) ".github/workflows/release-bi.yml"
 
 if (-not (Test-Path -LiteralPath $hooks -PathType Leaf)) { throw "missing NSIS hooks" }
 if (-not (Test-Path -LiteralPath $driver -PathType Leaf)) { throw "missing release driver" }
 if (-not (Test-Path -LiteralPath $releaseGate -PathType Leaf)) { throw "missing mechanical Loop release gate" }
 if (-not (Test-Path -LiteralPath $releaseIdentity -PathType Leaf)) { throw "missing production Loop release identity contract" }
+if (-not (Test-Path -LiteralPath $workflow -PathType Leaf)) { throw "missing formal Windows release workflow" }
+
+$workflowLines = [IO.File]::ReadAllLines($workflow)
+$runBlocks = [Collections.Generic.List[string]]::new()
+for ($index = 0; $index -lt $workflowLines.Length; $index++) {
+    if ($workflowLines[$index] -ne "        run: |") { continue }
+    $body = [Collections.Generic.List[string]]::new()
+    for ($cursor = $index + 1; $cursor -lt $workflowLines.Length; $cursor++) {
+        $line = $workflowLines[$cursor]
+        if ($line.Length -eq 0) { $body.Add(""); continue }
+        if (-not $line.StartsWith("          ")) { break }
+        $body.Add($line.Substring(10))
+    }
+    $runBlocks.Add(($body -join "`n"))
+}
+if ($runBlocks.Count -ne 4) { throw "formal workflow must contain exactly four PowerShell run blocks" }
+foreach ($block in $runBlocks) {
+    $null = [scriptblock]::Create($block)
+}
 
 $hookText = [IO.File]::ReadAllText($hooks)
 foreach ($marker in @(

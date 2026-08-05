@@ -80,6 +80,39 @@ if (git status --porcelain=v1) { throw "source worktree changed" }
 
 The candidate command deliberately writes `build_mode=LOCAL_BLOCKED_CANDIDATE` and `loop_release_dependency_gate=BLOCKED_CANDIDATE_IDENTITIES`. A formal package omits `-AllowUnreleasedLoopCandidates`; it first runs the mechanical Loop release verifier and then requires a GitHub Actions workflow/run identity bound to the exact source commit and target triple.
 
+## Formal GitHub Windows release run
+
+After the workflow candidate is accepted and fast-forwarded to `main`, dispatch it on the exact remote `main` commit. The commands below identify the new run without confusing it with an earlier attempt, wait for success, download only its named artifact, and verify the formal build identity and installer hash:
+
+```powershell
+$ErrorActionPreference = "Stop"
+$repo = "DWG7318/LCcoding"
+$releaseCommit = (gh api "repos/$repo/commits/main" --jq .sha).Trim()
+$before = @(gh run list -R $repo --workflow release-bi.yml --event workflow_dispatch --limit 50 --json databaseId | ConvertFrom-Json | ForEach-Object { [string]$_.databaseId })
+gh workflow run release-bi.yml --ref main -R $repo
+do {
+  Start-Sleep -Seconds 5
+  $matches = @(gh run list -R $repo --workflow release-bi.yml --branch main --event workflow_dispatch --limit 20 --json databaseId,headSha,status,conclusion,url | ConvertFrom-Json | Where-Object {
+    $_.headSha -eq $releaseCommit -and $before -notcontains [string]$_.databaseId
+  })
+} until ($matches.Count -eq 1)
+$runId = [string]$matches[0].databaseId
+gh run watch $runId -R $repo --exit-status
+$run = gh run view $runId -R $repo --json attempt,conclusion,headSha,url | ConvertFrom-Json
+if ($run.conclusion -ne "success" -or $run.headSha -ne $releaseCommit) { throw "formal workflow identity failed" }
+$artifactName = "lccoding-bi-formal-$releaseCommit-$runId-$($run.attempt)"
+$download = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-formal-download-$runId"
+if (Test-Path $download) { throw "choose an empty download directory" }
+gh run download $runId -R $repo --name $artifactName --dir $download
+$provenance = Get-Content (Join-Path $download "provenance.json") -Raw | ConvertFrom-Json
+$installer = Join-Path $download "LCCoding BI_2.5.0_x64-setup.exe"
+$sha256 = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($provenance.commit -ne $releaseCommit -or $provenance.build_mode -ne "FORMAL_GITHUB_ACTIONS" -or $provenance.build_run_id -ne $runId -or $provenance.sha256 -ne $sha256) { throw "formal provenance failed" }
+if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding BI_2.5.0_x64-setup.exe") { throw "formal checksum failed" }
+```
+
+Before creating `v2.5.0` or its GitHub Release, repeat the accepted current-user installation smoke with this downloaded installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
+
 ## Safety and authority
 
 - CLI and native Folder Picker share the same Rust-owned canonical root validation and immutable one-project binding.
@@ -89,9 +122,9 @@ The candidate command deliberately writes `build_mode=LOCAL_BLOCKED_CANDIDATE` a
 - Missing or unsupported evidence projects `UNKNOWN`, `NOT_RECORDED`, or a fixed path-free error. The BI never writes project state or controls Agent/runtime behavior.
 - The Tauri ACL remains exactly `bind_project`, `choose_project`, `get_snapshot`, `is_pinned`, and `set_pinned`; no filesystem, shell, opener, HTTP, updater, or arbitrary path capability is enabled.
 
-## Formal release dependency blocker
+## Formal release dependency gate
 
-The adapters are implemented and tested against the recorded SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 candidate contract identities. The following fresh read-only commands were used:
+The adapters and formal package verifier are locked to the published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 contract identities. The following read-only commands reproduce the canonical checks:
 
 ```powershell
 gh api repos/DWG7318/small-loop-skill/git/ref/heads/main --jq '.object.sha'
@@ -105,8 +138,8 @@ gh api repos/DWG7318/large-loop-skill/git/ref/tags/v3.1.0
 gh release view v3.1.0 -R DWG7318/large-loop-skill
 ```
 
-The canonical main commits were respectively `ae43ef46858bca3c2a942c213334dbda9f03e758`, `fdb3d463c84c72d82d18d7efb03e291a982e5fb2`, and `d06c1198dd3e6e50090b7934a6218b5ed9e97406`. All three required tag lookups returned HTTP 404 and all three GitHub Release lookups returned `release not found`. Therefore:
+The verified main/tag/Release commits are respectively `0153776c84b57fd6217259fd02832a6fdcea4ccb`, `6043ce6011b7bb162f8ff6a169b144f4a24fe342`, and `2cbbd20167376e4ce57cd0e3a201e5fdb323c43f`. Each published Release is non-draft and non-prerelease, and each exact Manifest/schema/template SHA-256 matches `lc-coding/bi/release/loop-contract-identities.json`. Therefore:
 
-- no candidate identity is represented as a formal release;
-- the package driver ignores environment assertions, mechanically resolves canonical main/tag/Release identities and the exact manifest/schema/template bytes, blocks formal mode, and marks explicit non-release builds `BLOCKED_CANDIDATE_IDENTITIES`;
-- LCCoding 2.5.0 must not be pushed, tagged, or released until all three method versions are published and their main/tag/Release/schema/template/hash identities mechanically match.
+- the package driver ignores environment assertions and mechanically resolves canonical main/tag/Release identities plus the exact Manifest/schema/template bytes;
+- formal package generation remains fail-closed unless all identities match and GitHub Actions supplies the exact repository/workflow/run/ref/commit identity;
+- explicit local candidate builds remain visibly marked `BLOCKED_CANDIDATE_IDENTITIES` and cannot be published as formal assets.

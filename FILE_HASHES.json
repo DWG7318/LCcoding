@@ -1,4 +1,5 @@
 {
+  ".github/workflows/release-bi.yml": "ef64756fce3b634ef6771b3627afa4007ab762bde762d5343d296489dad14f5e",
   ".github/workflows/validate.yml": "51601af88aa9e3a811d5d5713850106f7eaa1395f3c293ead7d14b834fdcd797",
   ".gitignore": "4d86f9e7408711781d624b6f9fa51acef2d9529108bab46ea833a6e0a910a21a",
   "CHANGELOG.md": "5c4591436cfb5709daa91fb4122bc0482d55c8fc552156bc12147addee88e61c",
@@ -70,7 +71,7 @@
   "lc-coding/bi/tests/fixtures/slk-run-runtime-index.json": "9b4fef74b5ff567a77a510bc7ff280d4cb08c0db1f1b3f9fae4aaececb515756",
   "lc-coding/bi/tests/fixtures/snapshot-error.json": "21d82edfe7bb6255559dc0a655f5c1ddc62b10cdde3790675d617ac776be9a02",
   "lc-coding/bi/tests/fixtures/snapshot-ok.json": "a731a1a56357f179cc3adff8dc15bcde6c4baaa915ddfd4bd6b30cec732f1989",
-  "lc-coding/bi/tests/packaging/nsis-contract.ps1": "d9cf7b1e65a3fe27d255068a1a952a01415c59313aadff14f4b5c60f8116def4",
+  "lc-coding/bi/tests/packaging/nsis-contract.ps1": "94b5b1c4967e02a47307a2ac9834ed6ef065a81ada9ba230b6e962b5c6546e7d",
   "lc-coding/bi/tests/visual/candidates.spec.ts": "6213294f8bcc55ef4d812661ccbd6c477bd6c6275f66b523ebb641320fc1c9d6",
   "lc-coding/bi/tests/visual/cases.ts": "2d076bec84bec079661fd9c71244fa40eaaf5ad529121ae9c32f7d1853f2ac2d",
   "lc-coding/bi/tsconfig.json": "9cd6c854dd573ae32020f57ef9a421888e338ec827d925f7cca1eba9fe08d447",
@@ -167,6 +168,7 @@
   "lc-coding/tests/test_acceptance_migration.py": "7485eccdb0eec676b9434b811bfcfd21ceb78e950a45e3ed92c7348329955ba6",
   "lc-coding/tests/test_bi_250_contract.py": "0b7fdd18eff04d3d69eb54743bba198e964acceeb748e4d8b298a165c22facb4",
   "lc-coding/tests/test_bi_desktop_boundary.py": "906a7547fa48668f0219329fb0f6f9c535a22080164331c49ecfc3ca9201e7ad",
+  "lc-coding/tests/test_bi_release_workflow_250.py": "c93e19749bbfab4cbb07df3a4f2908462f329cca8b17b341cd8c2e57562663dd",
   "lc-coding/tests/test_bi_subtree_loop_241.py": "0f738cd1fa7263b46db845af1cd526d1a54f1f4e9e2d53aa04319c0fc376b50c",
   "lc-coding/tests/test_bootstrap.py": "ebdbb0fb5a70554f7feac8a4314ba9a3e39b47e8edcaedc09f57e1aee8ffa98b",
   "lc-coding/tests/test_delivery_guard.py": "f4768174755f7aeb54e916099287ab68ab4e2a2b069842ba3be2b9674c13a424",
@@ -208,6 +210,6 @@
   "README.md": "9b213ba22df1db402cd063dc5d47e9afcc2c7a54531e8346b528f7803742028e",
   "README.zh-CN.md": "beb8ad946b3fcfdb35dbf3a4969ce1be92edc5d8b9aef4952340153dc1463c84",
   "SPEC.md": "f08335baa4a3770d51fa395da93f1fcb975d7f04e3b1d0cea5ce0287a1a1e579",
-  "VALIDATION-REPORT.md": "6a95be5269abbb5f60f6096021426f1555bc4c0fc2610c94ca4fdf2c43177fd0",
+  "VALIDATION-REPORT.md": "5ab3e536d055cbc8c467de15f6b4518b10a0f3f7100877301e628f2c4df3cb2a",
   "VERSION": "732f64d874f90788c0199b0c19bfd9b3b6436e140114e53e462832532d74c61c"
 }
