@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.5.0
+
+### One-click built-in BI
+
+- Replaced the former Vanilla runtime with one React + Vite frontend inside the existing Tauri 2 desktop shell while preserving the accepted 300×480 window, four phases, 21 steps, eight protected reports, bilingual controls, Pin, Refresh, Open/Back, and visual tokens.
+- Added one immutable Rust project binding shared by `lccoding-bi.exe --project <root>` and the native Folder Picker, plus a no-argument `get_snapshot` command after binding.
+- Added a bounded, no-follow, read-only `gix` projection pipeline for canonical status, Manifest, UI/Workflow/Simulation Maps, Product Baseline Handoff, and the published SLK/CLK/GLK governance contracts; missing evidence remains `UNKNOWN` or `NOT_RECORDED`.
+- Added Rust- and frontend-side single-flight refresh, strict allowlisted Snapshots, path-free failure states, project immutability coverage, and production-graph guards that exclude fixtures and the retired Vanilla runtime.
+- Added a current-user NSIS installer with embedded WebView2 bootstrapper, the installed `lccoding-bi.exe` command on the user PATH, SHA-256/provenance generation, and install/run/uninstall smoke coverage.
+- Kept `status.json` as the only authoritative project status and added no lifecycle node, Gate, runtime control, project write, original-file opening, remote service, or independent BI version/release.
+- Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are each formally locked on their canonical main/tag/GitHub Release; candidate identities are development inputs only.
+
 ## 2.4.1
 
 ### Built-in BI subtree and Loop-governance reports

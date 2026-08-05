@@ -1,4 +1,4 @@
-# LCCoding 2.4.1
+# LCCoding 2.5.0
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -51,9 +51,9 @@ One project Git/GitHub repository contains multiple UI, Workflow, and Simulation
 
 ## Built-in BI and Windows desktop
 
-LCCoding 2.4.1 keeps the built-in, read-only BI and standalone 300×480 Windows window unchanged in structure and visual language. It adds protected Open reports to the existing Product Baseline and Loop Run · D0–D3 steps, while adapting Simulation, Workflow, and UI reports to honest plural-subtree, API/MCP, version-record, lock, and Primary-mainline summaries.
+LCCoding 2.5.0 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
 
-This BI is a visibility surface, not a second authority or execution system. The 2.4.1 desktop still uses only the authorized synthetic sanitized Snapshot; the real project adapter remains not implemented. It does not read or mutate project files, expose raw identity/evidence, parse lower-method artifacts, or control Agent/runtime behavior. Missing facts display as Unknown or Not recorded. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md) for the closed projection and safety contract.
+The Rust adapter binds one immutable canonical project root, reads only the closed LCCoding and published Loop contract allowlist, and sends the webview a sanitized Snapshot with no path, repository, commit, hash, evidence body, raw error, or thread identifier. `status.json` remains the sole authority; the BI never writes the project or controls Agent/runtime behavior. Missing facts display as Unknown or Not recorded. Formal Release is blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are each published on their canonical main/tag/Release. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md).
 
 ## Slice execution and Owner gaps
 

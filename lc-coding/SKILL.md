@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Simulation-first Workflow/UI product formation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
 ---
 
-# LCCoding 2.4.1
+# LCCoding 2.5.0
 
 ## Canonical mainline
 
@@ -165,9 +165,9 @@ Ubuntu remains the preferred recommendation where suitable. Docker is not requir
 
 Use the built-in BI only as a read-only Owner-visible projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports. The compact Windows window starts in English, can switch to Chinese, and may Pin only its own native always-on-top state.
 
-The 2.4.1 desktop release adds only a protected Product Baseline report to `PRODUCT_BASELINE` and a protected Loop Governance report to `LOOP_RUN_D0_D3`; it does not add lifecycle nodes. Project-subtree and lower-method governance facts may appear only as strict sanitized metrics with `UNKNOWN`/`NOT_RECORDED` for absent evidence. Never infer `7/7`, progress, versions, API/MCP coverage, Heartbeat interval, or compliance from missing data.
+The 2.5.0 desktop release keeps the existing Product Baseline and Loop Governance Open relations without adding lifecycle nodes. Project-subtree and published lower-method governance facts may appear only as strict sanitized metrics with `UNKNOWN`/`NOT_RECORDED` for absent evidence. Never infer `7/7`, progress, versions, API/MCP coverage, Heartbeat interval, or compliance from missing data.
 
-The desktop still uses the authorized synthetic sanitized Snapshot; the real project adapter remains not implemented. Do not read Maps/Handoff or SLK/CLK/GLK files into the webview, add a parser/runtime, or expose a control command. The BI does not write project files, control Agent/runtime behavior, or become a second status authority; `status.json` remains authoritative.
+Install the unified current-user BI once; projects contain no BI source or toolchain. CLI `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust-owned immutable binding. The adapter may read only the closed canonical record allowlist and formally published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 contracts, then emit only the sanitized Snapshot through no-argument `get_snapshot`. Never expose project paths or raw identities/evidence to the webview. The BI does not write project files, control Agent/runtime behavior, or become a second status authority; `status.json` remains authoritative.
 
 ## Version policy
 

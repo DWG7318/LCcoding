@@ -1,17 +1,17 @@
-# Built-in Project BI — LCCoding 2.4.1 Design
+# Built-in Project BI — LCCoding 2.5.0
 
-This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.4.1: it has no independent version, repository, tag, release, lifecycle, or authority.
+This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.5.0: it has no independent version, repository, tag, release, lifecycle, or authority.
 
 ## 1. Product boundary
 
 - Each adopting LCCoding project has one local BI for that project only. There is no multi-project control surface.
 - The BI is a read-only projection of the project's existing authoritative method records. `status.json` remains the single authoritative project status; the BI never writes it and never becomes a second truth source.
 - The BI does not control an Agent, session, process, queue, retry, tool, runtime, or lower method. It does not absorb Calabash, SLK, CLK, or GLK internals.
-- The desktop application is Tauri 2 with a bundled Vanilla HTML/CSS/TypeScript frontend built by Vite. It ships no Python subprocess, second runtime, frontend framework, or remote web application.
+- The desktop application is Tauri 2 with one bundled React/TypeScript frontend built by Vite and one Rust projection core. It ships no Vanilla runtime, Python/Node subprocess, second runtime, remote web application, router, state library, or unrelated UI framework.
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
 
-LCCoding 2.4.1 keeps the released static, sanitized Snapshot source and the exact two native Pin commands. It adds the closed subtree/Baseline/Loop-governance DTO and report compatibility only. It does not ship `get_snapshot`, read Maps or Handoff files, parse SLK/CLK/GLK artifacts, or claim real-project/realtime integration. The later Rust projection contract in sections 4–8 remains the sole allowed route for that integration; it may replace fixture values only after it can read all required authorities narrowly and safely. Until then every unavailable metric is `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 2.5.0 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 
@@ -26,7 +26,7 @@ LCCoding 2.4.1 keeps the released static, sanitized Snapshot source and the exac
 - The register is a plain PowerShell-like utility: white surface, restrained neutral chrome, compact separators, standard buttons, and no card grid, gradient, glass, large shadow, ornamental illustration, dashboard chrome, or decorative motion.
 - Safety, authoritative truth, read-only behavior, accessibility, and fail-closed reliability are non-negotiable gates. Only among UI choices that already satisfy those gates, preserve this order: visual fidelity first, reliability second, and avoidance of unnecessary bloat third.
 
-This reference is self-contained: no machine-local prototype path or metadata is part of the product contract. The normalized dimensions, tokens, labels, and behavior below govern the static visual fixture; after implementation step B, the Owner-approved screenshot set and acceptance record become the portable golden visual baseline.
+This reference is self-contained: no machine-local prototype path or metadata is part of the product contract. The normalized dimensions, tokens, labels, and behavior below govern both the React product and its test-only visual fixtures; the accepted screenshot set remains the portable golden visual baseline.
 
 ### Language and text
 
@@ -204,25 +204,25 @@ The report tuples and row order are exact:
 
 Each report's `state` equals its associated main-step state. `StepView.report` is non-null only for the eight approved steps and equals the corresponding report ID; all other steps use `null`. Candidate/Manifest invalidity is a whole-record error, never a report-only warning. A metric is `{kind:"metric", status, completed, total, interval_minutes}`: status is exactly `COMPLIANT|ACTIVE|VIOLATION|UNKNOWN|NOT_RECORDED`; counts are bounded non-negative integers with `completed <= total`; and Heartbeat interval is only `10|15|30|null`. Unknown/unrecorded metrics contain no numeric claim.
 
-## 3. Future file boundaries
+## 3. File boundaries
 
 All implementation files live under `lc-coding/bi/`. Keep responsibilities narrow; do not collapse the frontend or Rust core into one large source file.
 
 ```text
 lc-coding/bi/
-├── index.html                       # static local document shell
+├── index.html                       # packaged local React document shell
 ├── package.json                     # Vite/Vitest/Playwright scripts; overall version only
 ├── package-lock.json                # locked frontend/test dependencies
 ├── tsconfig.json
 ├── vite.config.ts
 ├── src/
-│   ├── main.ts                      # bootstrap and refresh scheduling only
-│   ├── ipc.ts                       # typed calls to the narrow Tauri bridge
+│   ├── react-entry.tsx              # React bootstrap only
+│   ├── app/App.tsx                  # binding/dashboard/report controller
+│   ├── app/state.ts                 # local view state and reducer
+│   ├── components/                  # binding, dashboard, report and state views
+│   ├── desktop/bridge.ts            # typed calls to the five-command Tauri bridge
 │   ├── model/snapshot.ts            # immutable frontend DTO types
-│   ├── state/view-state.ts          # language, fold, report, scroll, request-in-flight
 │   ├── i18n/catalog.ts              # complete fixed English/Chinese strings
-│   ├── render/main-view.ts           # four-phase DOM construction
-│   ├── render/report-view.ts         # eight fixed protected reports
 │   ├── styles/tokens.css             # type, color, spacing, focus and state tokens
 │   └── styles/app.css                # fixed-window layout and reduced motion
 ├── src-tauri/
@@ -232,18 +232,18 @@ lc-coding/bi/
 │   ├── tauri.conf.json               # one fixed local window and strict CSP
 │   ├── capabilities/main.json        # one main-window capability, no plugins
 │   └── src/
-│       ├── main.rs                   # exact startup argument and managed fixed root
-│       ├── commands.rs               # snapshot and topmost command allowlist
-│       ├── model.rs                  # typed Status, Manifest and Snapshot DTOs
-│       ├── schema.rs                 # strict JSON/schema validation
-│       ├── truth.rs                  # phase/gate monotonic rules
+│       ├── main.rs                   # fixed executable entry
+│       ├── lib.rs                    # startup, window and five-command ACL
+│       ├── binding.rs                # CLI/Picker common immutable root binding
+│       ├── native_picker.rs          # Rust-owned Windows Folder Picker
+│       ├── commands.rs               # async single-flight snapshot command
+│       ├── input.rs                  # bounded stable-identity record reader
+│       ├── git_reader.rs             # network-disabled gix object reader
+│       ├── records/                  # strict status/Manifest/Map/Handoff/Loop adapters
 │       ├── projection.rs             # authoritative facts to sanitized Snapshot
-│       ├── sanitize.rs               # display-name/version/value allowlists
-│       ├── error.rs                  # path-free public errors
-│       └── input/
-│           ├── mod.rs                # bounded single-handle reader contract
-│           ├── windows.rs            # junction/reparse-safe Windows adapter
-│           └── unix.rs               # no-follow Unix adapter
+│       ├── snapshot.rs               # deny-unknown-fields wire DTO
+│       ├── errors.rs                 # path-free public errors
+│       └── pin.rs                    # confirmed native always-on-top state
 └── tests/
     ├── fixtures/                     # synthetic, sanitized records only
     ├── dom/                          # Vitest DOM interaction tests
@@ -255,12 +255,10 @@ This tree is a responsibility map, not a quota of empty wrapper files. Trivial a
 
 The frontend imports no Rust model directly. It receives only the immutable serialized `Snapshot` contract. Dependency versions are locked in the two lockfiles during implementation; packaged execution uses only local assets and the native Rust binary.
 
-## 4. Future real-project data and trust flow
-
-This section is not implemented by LCCoding 2.4.1. It is the closed design boundary for a later real-project adapter; the 2.4.1 desktop runtime supplies only the checked-in sanitized Snapshot fixtures described above.
+## 4. Real-project data and trust flow
 
 ```text
-one explicit startup project root, retained only in Rust
+one CLI- or Picker-selected project root, retained only in Rust
 → fixed .lccoding/status.json + optional .lccoding/CANONICAL-MANIFEST.json
 → bounded no-follow single-handle reader
 → strict JSON and typed schema validation
@@ -308,7 +306,7 @@ StepView   = { "id": StepId, "state": ViewState, "report": ReportId | null }
 PhaseView  = { "id": PhaseId, "state": ViewState, "steps": readonly StepView[] }
 
 Snapshot = {
-  "schema": "LCCoding 2.4.1 derived BI",
+  "schema": "LCCoding 2.5.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": Health,
@@ -335,20 +333,20 @@ Rust `serde` structs with `deny_unknown_fields` are the executable wire source. 
 
 The sanitized visual `snapshot-ok.json` is deterministic: project `Example Project`; current phase `PRODUCT_FORMATION`; Initial done; Calabash and Simulation done; Workflow active; UI error; Product Formation exit pending; all later steps pending; Candidate version `v1.11.6`; and Calabash version `v2.4.0`. It contains no repository, commit, path, evidence, URL, date, or raw text. Chinese mode keeps `Example Project` unchanged. The second fixture is exactly the error Snapshot defined below.
 
-For record/schema/truth errors, a future `get_snapshot()` returns the exact error Snapshot: `health="error"`, project `Unnamed project`, `current_phase="UNKNOWN"`, all four phases and every fixed step `error`, all eight reports `error`, versions `null`, legacy rows fail closed, and metric rows use `UNKNOWN` with no numeric claim. Startup argument failure occurs before a window exists and emits only fixed code `BI_STARTUP_INPUT_INVALID` with process exit `2`. No raw error is serialized or printed. Topmost failures use internal code `BI_PIN_UNAVAILABLE`; this diagnostic code is never rendered as user-facing text.
+For record/schema/truth errors, `get_snapshot()` returns the exact error Snapshot: `health="error"`, project `Unnamed project`, `current_phase="UNKNOWN"`, all four phases and every fixed step `error`, all eight reports `error`, versions `null`, legacy rows fail closed, and metric rows use `UNKNOWN` with no numeric claim. Startup argument failure emits only a fixed path-free code. No raw error is serialized or printed. Topmost failures use internal code `BI_PIN_UNAVAILABLE`; this diagnostic code is never rendered as user-facing text.
 
 When `health="error"`, the frontend renders catalog key `app.unnamed_project` rather than treating the sentinel as Owner text. When `health="ok"`, a valid real project literally named `Unnamed project` remains Owner text and is displayed unchanged.
 
 No free-form object or arbitrary report row crosses IPC. Production logs contain only fixed error codes and never the startup root, record content, parser detail, repository, commit, evidence, or secret value.
 
-## 5. Future adapter input safety and strict schemas
+## 5. Adapter input safety and strict schemas
 
-- At startup, Rust accepts exactly one explicit project-root operating-system argument. Missing or additional roots fail before the window opens with a generic path-free error. The normalized root is retained in Rust managed state and cannot be replaced after startup.
+- Rust accepts either no project argument or exactly `--project <root>`. No argument opens the minimal binding view; malformed, duplicated, or additional CLI roots fail path-free before a project window is exposed. Typed binding and the native Folder Picker call the same root validator. The normalized root is retained in Rust managed state and cannot be replaced after binding.
 - Each record has a `512 KiB` hard limit. Open one handle, read at most `limit + 1`, reject oversize, and verify the same file identity before/open/after the read. Do not stat one path and read through another handle.
 - Reject a symlink, junction, reparse point, non-directory project or `.lccoding` boundary, non-regular record, dangling link, identity change, or unsupported no-follow guarantee before parsing.
 - On Windows, open and inspect the root, record directory, and record with reparse-aware handles and stable volume/file identity. On Unix, retain anchored directory descriptors for the root and `.lccoding`, traverse fixed components with `openat`, and open a record with `O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK`; `fstat` must prove a regular file before any read. This prevents a regular-file-to-FIFO/device race from blocking. Platform adapters must produce the same path-free error contract.
 - Before typed deserialization, the strict JSON layer enforces: UTF-8 only; nesting depth at most `32`; at most `16,384` total keys/values; at most `128` members per object; at most `2,048` items per array; at most `4,096` UTF-8 bytes per string; and at most `128` ASCII characters per numeric token. Duplicate keys at any depth, malformed/trailing data, non-finite/out-of-range numbers, and resource-limit excess fail closed. Current Status and Manifest schemas accept no JSON number fields.
-- Supported `status_schema_version` values are exactly `2.2.0`, `2.2.1`, `2.2.2`, `2.2.3`, `2.3.0`, `2.4.0`, and `2.4.1`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`.
+- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, and `2.5.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
@@ -376,7 +374,7 @@ evidence_pointers, blockers
 
 All input failures produce a visibly red, path-free error Snapshot. A malformed refresh never leaves an old green state presented as current truth.
 
-## 6. Future adapter truthful status projection
+## 6. Adapter truthful status projection
 
 State strings are exact uppercase values; do not trim or case-fold them. Normalize only with this closed table:
 
@@ -447,26 +445,24 @@ This precedence ensures Delivery never retains a normal-looking active engineeri
 - Bundle only the Vite-built local frontend. `tauri.conf.json` defines one `main` window with `create=false`, `width=300`, `height=480`, `resizable=false`, `maximizable=false`, `decorations=true`, `dragDropEnabled=false`, `devtools=false` for production, and no second window. Rust creates it in `setup` with `WebviewWindowBuilder::from_config` so the security handlers below are unavoidable.
 - The builder's `on_navigation` permits only the packaged `WebviewUrl::App` origin; development permits only the exact scheme, host, and port in the configured Vite `devUrl`, never a wildcard localhost rule. `on_download` returns false for every requested download and never supplies a destination. `on_new_window` always returns `Deny`. Tests attempt `location` navigation, an external anchor, `<a download>`, and `window.open` and prove that no navigation, file, or new window results.
 - Configure this CSP baseline: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none'`. Keep Tauri CSP modification enabled. Verification parses the effective CSP after Tauri build processing: every baseline directive and source must remain, and only Tauri-generated hash/nonce tokens may be added to `script-src` or `style-src`; reject wildcards, `'unsafe-inline'`, `'unsafe-eval'`, any other source, or a weakened directive.
-- In LCCoding 2.4.1, `build.rs`, `capabilities/main.json`, the final resolved ACL, and `main.rs` expose exactly `set_pinned` and `is_pinned`. `tauri.conf.json` sets `app.security.capabilities` to exactly `["main"]`; `capabilities/` contains only `main.json`; and no default/plugin capability is enabled. Tests compare all four surfaces and reject any extra command or capability.
-- The two implemented IPC commands are:
-  1. `set_pinned(enabled: bool)` — calls Tauri `set_always_on_top`, then reads `is_always_on_top`, returning the actual boolean;
-  2. `is_pinned()` — reads and returns the actual `is_always_on_top` boolean.
-- A future real-project adapter may add only the already-specified async, no-argument `get_snapshot()` command. It must acquire a Rust-side single-flight guard and run the synchronous fixed-handle/read/parse/projection core in `spawn_blocking`; it cannot be registered or granted before that whole safe adapter exists.
-- Do not expose a command that accepts a path, URL, command string, report identifier, file identifier, or arbitrary object. Report selection stays in the fixed frontend catalog.
+- `build.rs`, `capabilities/main.json`, the final resolved ACL, and the Rust handler expose exactly five commands: `bind_project`, `choose_project`, async no-argument `get_snapshot`, `set_pinned`, and `is_pinned`. `tauri.conf.json` sets `app.security.capabilities` to exactly `["main"]`; `capabilities/` contains only `main.json`; and no default/plugin capability is enabled. Tests compare all surfaces and reject any extra command or capability.
+- `bind_project(project_root)` accepts a path only while the unbound binding view is active; `choose_project()` obtains its path only from the Rust-owned native picker. Both call the same canonicalization/boundary validation and may set the immutable root exactly once. After binding, no command can select or replace a path.
+- `get_snapshot()` accepts no argument, acquires the Rust single-flight guard, and runs fixed-handle read/parse/projection in `spawn_blocking`. `set_pinned(enabled)` returns the confirmed native topmost state; `is_pinned()` reads that state.
+- Do not expose a URL, command string, report identifier, file identifier, raw record, or arbitrary object. Report selection stays in the fixed frontend catalog.
 - Keep `withGlobalTauri=false`, `assetProtocol.enable=false`, prototype freezing enabled, browser extensions disabled, inline event handlers absent, and project-derived rendering on `textContent`/created text nodes only. Project values never enter `innerHTML`, style, attribute URLs, or executable contexts.
 - Do not enable filesystem, shell, opener, dialog, HTTP, updater, clipboard, process, notification, global-shortcut, generic path, or drag/drop plugins/capabilities. The `plugins` object is empty; `createUpdaterArtifacts=false`; no updater endpoint, updater plugin, or updater artifact exists.
-- Windows requires an already installed Evergreen WebView2 accepted by the pinned Tauri/Wry dependencies; LCCoding defines no separate WebView2 version line. Packaging sets `bundle.windows.webviewInstallMode` to `{ "type": "skip" }` and does not set `minimumWebview2Version`. Before creating a window, Rust uses Tauri's supported local version probe, such as `tauri::webview_version`, to verify availability. Missing or unusable WebView2 emits only path-free code `BI_WEBVIEW_UNAVAILABLE`, exits `2`, opens no window, and never downloads, installs, or updates anything.
-- `productName` is `LCCoding`, npm/Cargo package name is `lccoding`, and bundle `identifier` is `com.lccoding.desktop`; none names a separate BI product. `package.json` is `private:true`, Cargo is `publish=false`, production source maps are disabled, and Rust release debug data is stripped/remapped so a packaged artifact cannot contain a developer workspace or home path.
+- Windows uses the Tauri NSIS `embedBootstrapper` WebView2 mode. The current-user installer may bootstrap WebView2 but silently installs no unrelated runtime; runtime probing still fails path-free when WebView2 remains unavailable. LCCoding defines no independent WebView2 version line.
+- `productName` and Start Menu display are `LCCoding BI`, the installed executable is exactly `lccoding-bi.exe`, and bundle identifier is `com.lccoding.desktop`. The BI remains part of the overall LCCoding release, not an independent product version. `package.json` is `private:true`, Cargo is `publish=false`, production source maps are disabled, and Rust release debug data is stripped/remapped.
 - On startup, render Pin disabled with catalog text `app.pin_checking` and no `aria-pressed`, then query `is_pinned()`. Success enables the button and paints localized On/Off text plus the confirmed `aria-pressed`. Initial failure keeps it disabled, paints `app.pin_unavailable`, and announces `app.pin_error`; it never defaults to Off. After a confirmed state exists, every click uses only the actual boolean returned after set-and-read; failure restores the last confirmed On/Off state and announces `app.pin_error`. Internal code `BI_PIN_UNAVAILABLE` is diagnostic only.
 
 The native titlebar owns close/minimize behavior. No frontend permission is granted merely to duplicate native window controls.
 
 ## 8. Refresh and local view state
 
-- Load one authorized Snapshot when the window starts. After each request settles, schedule the next request for two seconds later; never use overlapping interval requests. LCCoding 2.4.1 repeats its static sanitized source; a future real adapter must additionally enforce Rust-side single-flight.
+- After binding, load one real sanitized Snapshot. Schedule the next request two seconds after settlement; never use overlapping interval requests. The React controller and Rust command each enforce joinable single-flight, so manual and timed refreshes cannot queue duplicate reads.
 - A failed refresh immediately replaces status content with the red error projection while preserving no apparently current green claim. The scheduler continues, so a later valid record can recover the view.
 - If a report is open when input fails, replace it with the protected error body. Do not retain stale report values under an error banner.
-- Open, Back, language, phase fold, scroll, Pin, refresh, and close never write or touch project records. LCCoding 2.4.1 Refresh reprojects only the authorized static source; a future adapter may read only its fixed Rust-held root.
+- Open, Back, language, phase fold, scroll, Pin, refresh, and close never write or touch project records. Refresh may read only the fixed Rust-held root.
 - Main-view fold and scroll positions survive Open/Back and language switching when the current Snapshot remains valid.
 - Use native `<button type="button">` controls. Phase toggles expose `aria-expanded` and `aria-controls`; the four phases use an ordered-list landmark; the active phase uses `aria-current="step"`; decorative spinner glyphs are `aria-hidden`; the adjacent state text remains readable by assistive technology.
 - Main-view keyboard order is language, Pin, then phase toggles and their visible Open buttons from top to bottom, then Refresh. Report-view order is language, Pin, Back, then Refresh. Opening a report moves focus to Back; Back restores focus to the originating Open button. Folding never traps or discards focus.
@@ -489,50 +485,43 @@ Use test-first Rust coverage for:
 ### Frontend and screenshots
 
 - Vitest DOM tests cover exact DTO rejection, four-phase order, state symbol/text/color, complete English/Chinese switching, Open/Back, fold/scroll retention, Pin checking/success/initial-failure/round-trip/failure restore, refresh serialization, and the red failure view.
-- Playwright drives the static Vite fixture at an exact `300 × 480` viewport. Keep the accepted `32` golden targets unchanged: the existing main/six-report core matrix plus the four bounded edge targets. Product Baseline and Loop Governance add focused, non-golden English/Chinese Open/Back, internal-overflow, and fixed-client-area checks; they do not silently redefine the accepted golden set.
+- Playwright drives only the test harness with sanitized fixtures at an exact `300 × 480` viewport. Keep the accepted golden targets and focused Product Baseline/Loop Governance checks stable; production imports and bundles must contain no fixture selector or fixture dependency.
 - For stable normal-motion screenshots, first assert the live spinner's duration, iteration, and state semantics, then pause it at a fixed 25% frame through test-only CSS. Reduced-motion captures use the real media preference and contain no animation.
 - Visual verification includes typography, maximum-name wrapping, internal overflow, the complete error projection, focus visibility, all four state treatments, all eight Open actions, protected notice, and absence of outer growth.
-- Owner visual acceptance is a required implementation checkpoint after the sanitized static fixture and before Rust data integration. It uses the Owner's existing acceptance authority and is not a new LCCoding phase, gate, status, or lower-method handoff. Screenshot similarity alone does not satisfy the checkpoint.
+- Owner visual acceptance remains required for any visual-contract change. It uses the Owner's existing acceptance authority and is not a new LCCoding phase, gate, status, or lower-method handoff. Screenshot similarity alone does not satisfy the checkpoint.
 - Accessibility interaction tests prove the specified Tab/focus-return order, `aria-expanded`, `aria-current`, Pin state, live refresh announcement, alert announcement, and complete fixed-label translation.
 
 ### Packaged Windows smoke and immutability
 
 - On a real Windows display with an accepted Evergreen WebView2, verify at `100%`, `125%`, `150%`, and `200%` DPI that the logical client area remains `300 × 480`, text wraps without outer growth or destructive overflow, and native decorations, non-resizable/maximize-disabled behavior, Open/Back, both languages, Pin on/off with actual host-state reads, two-second refresh, reduced motion, error/recovery, and clean close work without callback or console errors.
-- Security smoke attempts external/location navigation, link download, `window.open`, drag/drop of a file, every unregistered IPC name, and a path argument mutation. It asserts one window, no navigation/download/drop path, no command execution, no `core:default` or plugin permission, an effective CSP limited to the baseline plus Tauri-generated hashes/nonces, `app.security.capabilities:["main"]`, only `capabilities/main.json`, and a resolved ACL equal to the implemented two-command build/capability/handler allowlists.
-- Packaging inspection asserts `webviewInstallMode.type="skip"`, no WebView bootstrapper/minimum-version installer, no updater/plugin/artifact, no production source map, and no workspace/home absolute path in packaged binaries or resources. A startup-failure smoke makes the supported local WebView2 probe unavailable and requires `BI_WEBVIEW_UNAVAILABLE`, exit `2`, and no window or installation action.
-- The Rust core test harness runs only in-process, is not shipped, and exposes no product command or fourth IPC interface. Hash every fixture before and after Rust core, DOM, visual, and packaged smoke runs; bytes and modification times must be unchanged.
+- Security smoke attempts external/location navigation, link download, `window.open`, drag/drop, every unregistered IPC name, and a post-binding path mutation. It asserts one window, no navigation/download/drop path, no command execution, no default/plugin permission, strict CSP, and a resolved ACL equal to the five-command allowlists.
+- Packaging inspection requires `webviewInstallMode.type="embedBootstrapper"`, current-user NSIS, no updater/plugin/artifact, no production source map, no fixture/Vanilla runtime, and no workspace/home absolute path in packaged resources. Install/run/uninstall smoke verifies `lccoding-bi.exe`, exact PATH insertion/removal, Start Menu cleanup, and source-free execution.
+- The Rust core test harness runs only in-process, is not shipped, and exposes no extra IPC interface. Hash project fixtures before and after reader, DOM, visual, and packaged smoke runs; bytes and modification times must be unchanged.
 - Full acceptance also runs Rust tests, TypeScript tests, Playwright screenshots, packaged smoke, the complete LCCoding regression suite, repository validator, version/hash/JSON/Markdown consistency, credential/path scans, and `git diff --check`.
 
-The verified development tool baseline is Rust/Cargo 1.96.0, Node 24.13.1, and npm 11.8.0. Windows additionally requires an installed Evergreen WebView2 that the pinned Tauri/Wry dependencies accept; this is a probed prerequisite, not an independently pinned LCCoding or BI version. Implementation must not silently install or update system runtimes; dependency setup requires a separately authorized implementation action.
+The verified development tool baseline is Rust/Cargo 1.96.0, Node 24.13.1, and npm 11.8.0. These are build-time tools only; an installed project user needs only the signed/verified NSIS asset and Windows. The installer may provide the approved WebView2 bootstrapper and no unrelated system runtime.
 
 ## 10. Required implementation sequence
 
 The sequences below are dependency-ordered component checkpoints only. They are not LCCoding lifecycle phases, gates, Runs, or lower-method work decomposition and do not choose or redefine SLK/CLK/GLK execution internals.
 
-### LCCoding 2.4.1 static compatibility sequence
+### LCCoding 2.5.0 one-click sequence
 
-1. Keep the accepted Vanilla HTML/CSS/TypeScript shell, two synthetic sanitized Snapshot fixtures, 300×480 visual contract, and two-command Pin boundary.
-2. Extend the closed TypeScript DTO, strict parser, bilingual catalog, fixed Step-to-report bindings, and protected report renderer for the approved subtree, Product Baseline, and Loop-governance summaries.
-3. Run DTO/DOM/typecheck/build/visual, LCCoding regression, version/hash, repository, and Rust-boundary verification; then update every existing overall LCCoding carrier to `2.4.1` together. The BI has no independent version.
+1. Replace the production Vanilla runtime with React + Vite at accepted functional, accessibility, and screenshot parity; keep fixtures test-only.
+2. Implement the typed Rust reader, strict canonical-record adapters, truth validation, `gix` frozen-identity checks, sanitization, and Snapshot projection before exposing data to the webview.
+3. Bind CLI and native Picker through one immutable root validator; expose only the five-command ACL and no-argument single-flight `get_snapshot`.
+4. Build the current-user NSIS package with embedded WebView2 bootstrapper, `lccoding-bi.exe`, user PATH integration, checksum, and commit/version provenance.
+5. Verify clean install, Picker/CLI binding, real projection, refresh/recovery, reports, Pin/language, source-free execution, project bytes/mtime immutability, and exact uninstall cleanup.
+6. Update the overall LCCoding carriers atomically to `2.5.0`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
 
-This sequence is complete without project-file input, a Rust project reader, or `get_snapshot`. The future adapter is not a prerequisite for the validity of LCCoding 2.4.1.
-
-### Future real-project adapter sequence
-
-1. Obtain separate Owner authorization and freeze the narrow authoritative-source and sanitization contract.
-2. Implement the typed Rust reader, schema/truth validation, and sanitized projection core by TDD without exposing a project path to the frontend.
-3. Add the no-argument `get_snapshot` bridge only after the reader is complete, preserving single-flight and the exact capability/handler allowlist.
-4. Run local non-release packaged Windows smoke for fixed-root input, error/recovery, immutability, and security before any release carrier changes.
-5. Deliver that integration only in a later overall LCCoding version after full acceptance and atomic carrier updates.
-
-Both sequences preserve the approved visual contract. Future data integration may replace fixture values only; it may not redesign the BI, add a second runtime, or change method authority.
+This sequence preserves the approved visual contract and method boundary. It adds no second runtime, project write, independent BI release, or lower-method authority.
 
 ## 11. Non-goals
 
 - multi-project dashboard or portfolio view;
-- original file/evidence/source/private-repository opener, arbitrary browser, download, or path selector;
+- original file/evidence/source/private-repository opener, arbitrary browser, download, or any post-binding/arbitrary path selector;
 - project status editing, UI editing, Agent/session/runtime/tool control, or lower-method execution logic;
-- React, Vue, Svelte, Electron, Python GUI/runtime, remote frontend, database, cache, packaged server, or background service;
+- a second frontend/runtime, Vue, Svelte, Electron, Python GUI/runtime, remote frontend, database, cache, packaged server, or background service;
 - generic filesystem/shell/network/plugin access;
 - new canonical phase, gate, status field, authoritative record, BI-only schema authority, or altered CORE/EXTRA, Simulation-first, logical-subtree UI baseline, Feature Slice, or Loop responsibility;
 - an independent repository, version, tag, release, installer identity, or product line.

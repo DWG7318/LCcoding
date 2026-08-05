@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.4.1
+# LCCoding Standard Specification 2.5.0
 
 ## 1. Scope
 
@@ -522,8 +522,8 @@ Friction reduction also requires reuse of sufficient evidence and proportional d
 
 LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
 
-The 2.4.1 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result.
+The 2.5.0 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
 
-The 2.4.1 projection adds a protected Product Baseline report on the existing `PRODUCT_BASELINE` step and a protected Loop Governance report on the existing `LOOP_RUN_D0_D3` step. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
+The projection keeps the protected Product Baseline report on the existing `PRODUCT_BASELINE` step and the protected Loop Governance report on the existing `LOOP_RUN_D0_D3` step. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
 
-The desktop consumes only its authorized synthetic sanitized Snapshot. The real project adapter remains not implemented: it does not read or mutate project files, expose paths/commit/hash/evidence, parse lower-method artifacts, connect to project or network data, control Agent/runtime execution, or imply realtime integration. Missing metrics are `UNKNOWN` or `NOT_RECORDED`; any future single Rust adapter requires separate authorization and must preserve the authoritative `status.json` boundary.
+CLI `lccoding-bi.exe --project <root>` and the native Folder Picker use one Rust-owned root validation and immutable one-project binding. The read-only Rust adapter consumes only the canonical allowlist, validates published Loop contracts, and serializes a strict Snapshot that excludes paths, commit/hash/evidence bodies, raw errors, and thread identifiers. `get_snapshot` takes no path argument, refreshes are single-flight, and invalid or missing evidence fails closed to fixed errors, `UNKNOWN`, or `NOT_RECORDED`. The BI never writes project data or becomes a second authority; `status.json` remains authoritative.

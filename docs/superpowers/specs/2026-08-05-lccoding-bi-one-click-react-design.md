@@ -1,6 +1,6 @@
 # LCCoding 2.5.0 One-Click Project BI — React + Rust Design
 
-**Status:** Design direction approved; written specification awaiting Owner review
+**Status:** Owner-approved design under verified 2.5.0 implementation
 
 **Target release:** LCCoding 2.5.0
 

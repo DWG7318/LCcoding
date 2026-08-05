@@ -13,7 +13,7 @@ capability_dir = tauri_root / "capabilities"
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))
 assert config["productName"] == "LCCoding BI"
-assert config["version"] == "2.4.1"
+assert config["version"] == "2.5.0"
 assert config["identifier"] == "com.lccoding.desktop"
 assert config["build"] == {"frontendDist": "../dist"}
 assert config["plugins"] == {}
@@ -142,7 +142,7 @@ cargo = tomllib.loads((tauri_root / "Cargo.toml").read_text(encoding="utf-8"))
 assert cargo["bin"] == [{"name": "lccoding-bi", "path": "src/main.rs"}]
 assert cargo["package"] == {
     "name": "lccoding",
-    "version": "2.4.1",
+    "version": "2.5.0",
     "edition": "2024",
     "rust-version": "1.96",
     "publish": False,

@@ -1,4 +1,4 @@
-# LCCoding 2.4.1
+# LCCoding 2.5.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -64,9 +64,9 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.4.1 保持内置只读 BI、独立 300×480 Windows 窗口、四阶段主视图与既有视觉不变，只在现有 Product Baseline 和 Loop Run · D0–D3 步骤增加受保护 Open 报告，并把 Simulation、Workflow、UI 报告适配为诚实的复数子树、API/MCP、版本记录、锁定和产品主线摘要。
+LCCoding 2.5.0 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
 
-BI 只负责可见性，不是第二套权威状态或执行系统。2.4.1 桌面窗口仍只显示已授权的合成去敏 Snapshot；真实项目适配器尚未实现。它不读取或修改项目文件，不暴露原始身份/证据，不解析下层方法材料，也不控制 Agent 或 runtime；缺失事实显示为“未知”或“未记录”。完整投影与安全边界见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
+Rust 适配器只绑定一个不可变的规范项目根目录，只读闭合的 LCCoding 与已发布 Loop 合同白名单，并只向 webview 发送不含路径、仓库、commit、hash、证据正文、原始错误或任务 ID 的去敏 Snapshot。`status.json` 仍是唯一权威；BI 不写项目，也不控制 Agent/runtime。缺失事实显示为“未知”或“未记录”。正式发布前，SLK 2.5.0、CLK 2.5.0 与 GLK 3.1.0 必须分别在各自 canonical main/tag/Release 上正式发布。完整合同见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
 ## Slice 执行准入与 Owner gap
 

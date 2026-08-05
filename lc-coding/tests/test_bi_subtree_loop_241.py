@@ -118,8 +118,8 @@ authority = "\n".join(
 for marker in [
     "protected Product Baseline report",
     "protected Loop Governance report",
-    "real project adapter remains not implemented",
-    "synthetic sanitized Snapshot",
+    "lccoding-bi.exe --project",
+    "sanitized Snapshot",
 ]:
     assert marker in authority, marker
 for forbidden in [
@@ -133,14 +133,15 @@ for forbidden in [
 reference = (root / "lc-coding/references/built-in-bi.md").read_text(encoding="utf-8")
 sequence = reference[reference.index("## 10."):reference.index("## 11.")]
 for marker in [
-    "### LCCoding 2.4.1 static compatibility sequence",
-    "### Future real-project adapter sequence",
-    "not a prerequisite for the validity of LCCoding 2.4.1",
+    "### LCCoding 2.5.0 one-click sequence",
+    "typed Rust reader",
+    "no-argument single-flight `get_snapshot`",
+    "current-user NSIS package",
 ]:
     assert marker in sequence, marker
 plain_sequence = sequence.replace("`", "")
-assert plain_sequence.index("typed Rust reader") < plain_sequence.index("get_snapshot bridge")
-assert plain_sequence.index("get_snapshot bridge") < plain_sequence.index("packaged Windows smoke")
+assert plain_sequence.index("typed Rust reader") < plain_sequence.index("get_snapshot")
+assert plain_sequence.index("get_snapshot") < plain_sequence.index("current-user NSIS package")
 for contradiction in [
     "C. Implement the typed Rust reader",
     "D. Add the narrow Tauri bridge",
@@ -148,5 +149,5 @@ for contradiction in [
 ]:
     assert contradiction not in sequence, contradiction
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.4.1"
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.5.0"
 print("PASS: BI adds only protected subtree and Loop governance reports")

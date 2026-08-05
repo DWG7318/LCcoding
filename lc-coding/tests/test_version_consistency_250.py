@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-current = "2.4.1"
+current = "2.5.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -28,9 +28,13 @@ assert status["status_schema_version"] == current
 
 bi_root = root / "lc-coding/bi"
 assert json.loads((bi_root / "package.json").read_text(encoding="utf-8"))["version"] == current
+assert json.loads((bi_root / "package-lock.json").read_text(encoding="utf-8"))["version"] == current
 assert tomllib.loads((bi_root / "src-tauri/Cargo.toml").read_text(encoding="utf-8"))[
     "package"
 ]["version"] == current
+assert f'name = "lccoding"\nversion = "{current}"' in (
+    bi_root / "src-tauri/Cargo.lock"
+).read_text(encoding="utf-8")
 assert json.loads(
     (bi_root / "src-tauri/tauri.conf.json").read_text(encoding="utf-8")
 )["version"] == current
@@ -49,9 +53,9 @@ for relative in [
     assert current in (root / relative).read_text(encoding="utf-8"), relative
 
 snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
-assert '"LCCoding 2.4.1 derived BI"' in snapshot_model
-assert (root / "MIGRATION-2.4.0-TO-2.4.1.md").is_file()
+assert '"LCCoding 2.5.0 derived BI"' in snapshot_model
+assert (root / "MIGRATION-2.4.1-TO-2.5.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.4.1") < changelog.index("## 2.4.0")
+assert changelog.index("## 2.5.0") < changelog.index("## 2.4.1")
 
-print("PASS: LCCoding 2.4.1 version is consistent across release artifacts")
+print("PASS: LCCoding 2.5.0 version is consistent across release artifacts")
