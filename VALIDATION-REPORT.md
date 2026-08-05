@@ -2,15 +2,16 @@
 
 ## Result
 
-Local implementation candidate: **PASS**. Formal GitHub publication: **BLOCKED by external Loop release dependencies**.
+Local implementation candidate: **PASS**. Formal GitHub publication: **PENDING rerun of the exact-byte Windows workflow**.
 
 LCCoding 2.5.0 provides one current-user NSIS-installed `lccoding-bi.exe`, a React + Vite packaged frontend, and one Rust read-only project projector. It preserves the canonical mainline, four phases, 21 BI steps, eight protected reports, 300×480 client area, English-first/Chinese interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority.
 
 ## Fresh verification
 
-- `python lc-coding/tests/run_tests.py`: PASS, 29 tests.
+- `python lc-coding/tests/run_tests.py`: PASS, 31 tests.
 - `python lc-coding/scripts/validate_repository.py .`: PASS.
 - `python lc-coding/tests/test_release_integrity.py`: PASS; release tree and SHA-256 manifest agree.
+- `core.autocrlf=true --no-hardlinks` clone regression: PASS; `.gitattributes` keeps protected text at `i/lf w/lf attr/text=auto eol=lf`, workflow SHA-256 matches `FILE_HASHES.json`, and release-integrity passes inside the clone.
 - React `typecheck`: PASS.
 - Vitest DOM/accessibility/refresh tests: PASS, 71/71.
 - Vite production build: PASS; production graph contains React only and no fixture selector or retired Vanilla runtime.
