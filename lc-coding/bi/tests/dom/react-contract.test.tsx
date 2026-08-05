@@ -71,7 +71,7 @@ describe("React BI product contract", () => {
 
     expect(await screen.findByRole("heading", { name: "Workflow" })).toBeTruthy();
     const back = screen.getByRole("button", { name: "Back" });
-    expect(document.activeElement).toBe(back);
+    await waitFor(() => expect(document.activeElement).toBe(back));
     fireEvent.click(back);
     await waitFor(() => {
       const restored = document.querySelector<HTMLElement>(
@@ -95,6 +95,31 @@ describe("React BI product contract", () => {
     expect(screen.getByText("Example Project")).toBeTruthy();
     const current = within(language).getByText("中");
     expect(current.getAttribute("aria-current")).toBe("true");
+  });
+
+  it("keeps the same protected report open when a real refresh replaces its snapshot", async () => {
+    const first = structuredClone(okFixture);
+    const refreshed = structuredClone(okFixture);
+    refreshed.reports.workflow.rows[0]!.value.status = "ACTIVE";
+    const appPorts = ports(first);
+    appPorts.getSnapshot = vi
+      .fn<() => Promise<unknown>>()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(refreshed);
+    render(<App ports={appPorts} />);
+
+    await screen.findByText("Example Project");
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-step-id="WORKFLOW_CAPABILITY_END"] .open-report',
+      )!,
+    );
+    expect(await screen.findByRole("heading", { name: "Workflow" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    expect(await screen.findByText("Active")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Workflow" })).toBeTruthy();
+    expect(document.querySelector(".phase-list")).toBeNull();
   });
 
   it("joins concurrent refreshes and starts one two-second timer after settlement", async () => {

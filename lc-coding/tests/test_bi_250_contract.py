@@ -51,6 +51,17 @@ assert "tests/fixtures" not in production_graph
 assert "./preview" not in production_graph
 assert "snapshot-ok.json" not in production_graph
 assert "snapshot-error.json" not in production_graph
+assert "Example Project" not in production_graph
+
+for retired in [
+    "src/main.ts",
+    "src/preview.ts",
+    "src/render/main-view.ts",
+    "src/render/report-view.ts",
+    "src/state/view-state.ts",
+    "src/desktop/pin.ts",
+]:
+    assert not (bi / retired).exists(), retired
 
 tauri = bi / "src-tauri"
 commands = ["bind_project", "choose_project", "get_snapshot", "is_pinned", "set_pinned"]

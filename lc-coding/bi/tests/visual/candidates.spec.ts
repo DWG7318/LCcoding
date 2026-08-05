@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import errorSnapshot from "../fixtures/snapshot-error.json" with { type: "json" };
+import successSnapshot from "../fixtures/snapshot-ok.json" with { type: "json" };
 import { VISUAL_CASES, type CandidateView, type VisualCase } from "./cases";
 
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
@@ -10,6 +12,36 @@ if (configuredReviewDir === undefined || configuredReviewDir.trim() === "") {
 }
 const OWNER_REVIEW_DIR = configuredReviewDir.replace(/[\\/]+$/, "");
 const CANDIDATE_DIR = `${OWNER_REVIEW_DIR}/candidates`;
+
+function snapshotFor(candidate: VisualCase): unknown {
+  if (candidate.preview === "error") return errorSnapshot;
+  if (candidate.preview === "max-en") return { ...successSnapshot, project: "A".repeat(80) };
+  if (candidate.preview === "max-zh") return { ...successSnapshot, project: "工程".repeat(40) };
+  return successSnapshot;
+}
+
+async function installTestOnlyTauriBridge(page: Page, candidate: VisualCase): Promise<void> {
+  await page.addInitScript(
+    ({ snapshot }) => {
+      let pinned = false;
+      Object.defineProperty(window, "__TAURI_INTERNALS__", {
+        configurable: false,
+        value: Object.freeze({
+          invoke: async (command: string, args: Record<string, unknown>) => {
+            if (command === "get_snapshot") return snapshot;
+            if (command === "is_pinned") return pinned;
+            if (command === "set_pinned") {
+              pinned = args.enabled === true;
+              return pinned;
+            }
+            throw { code: "BI_TEST_COMMAND_REJECTED" };
+          },
+        }),
+      });
+    },
+    { snapshot: snapshotFor(candidate) },
+  );
+}
 const REPORT_STEP: Readonly<
   Record<Exclude<CandidateView, "main">, { phase: string; step: string }>
 > = Object.freeze({
@@ -241,7 +273,8 @@ for (const candidate of VISUAL_CASES) {
     await page.emulateMedia({
       reducedMotion: candidate.motion === "reduced" ? "reduce" : "no-preference",
     });
-    await page.goto(`/?case=${candidate.preview}`, { waitUntil: "networkidle" });
+    await installTestOnlyTauriBridge(page, candidate);
+    await page.goto("/", { waitUntil: "networkidle" });
     await waitForPreview(page);
     await assertMotionContract(page, candidate);
     await assertFixedViewport(page);
@@ -294,7 +327,8 @@ for (const candidate of VISUAL_CASES) {
 }
 
 test("2.4.1 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
-  await page.goto("/?case=ok", { waitUntil: "networkidle" });
+  await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
+  await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);
   await page.locator('[data-phase-id="ENGINEERING_RUNS"] .phase-summary').click();
 

@@ -38,7 +38,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const current = action.snapshot.current_phase;
       const expanded = new Set(state.expanded);
       if (expanded.size === 0 && current !== "UNKNOWN") expanded.add(current);
-      return { ...state, mode: "dashboard", snapshot: action.snapshot, expanded, errorCode: null };
+      const mode = state.report === null ? "dashboard" : "report";
+      return { ...state, mode, snapshot: action.snapshot, expanded, errorCode: null };
     }
     case "UNBOUND":
       return { ...state, mode: "binding", snapshot: null, report: null, errorCode: null };

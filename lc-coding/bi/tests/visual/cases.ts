@@ -1,4 +1,4 @@
-import type { PreviewCase } from "../../src/preview";
+export type PreviewCase = "ok" | "error" | "max-en" | "max-zh";
 
 export type CandidateView =
   | "main"
