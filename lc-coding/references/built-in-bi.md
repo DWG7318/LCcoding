@@ -514,6 +514,8 @@ The sequences below are dependency-ordered component checkpoints only. They are 
 5. Verify clean install, Picker/CLI binding, real projection, refresh/recovery, reports, Pin/language, source-free execution, project bytes/mtime immutability, and exact uninstall cleanup.
 6. Update the overall LCCoding carriers atomically to `2.5.0`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
 
+Formal packaging resolves each method's canonical GitHub `main`, version tag (including annotated-tag peeling), and published non-draft/non-prerelease GitHub Release; all three must resolve to the recorded commit. It then downloads the exact Manifest, schema, and template bytes at that commit and matches all six version/commit and nine SHA-256 facts. No environment variable or operator assertion may substitute for this check. Formal provenance also binds the exact GitHub Actions workflow, run ID/attempt, repository, ref, source commit, and Rust target triple. Explicit local candidate packaging remains permitted only with `LOCAL_BLOCKED_CANDIDATE` and `BLOCKED_CANDIDATE_IDENTITIES` provenance.
+
 This sequence preserves the approved visual contract and method boundary. It adds no second runtime, project write, independent BI release, or lower-method authority.
 
 ## 11. Non-goals

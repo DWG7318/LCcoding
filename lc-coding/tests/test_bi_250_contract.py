@@ -91,5 +91,23 @@ assert tauri_config["bundle"]["windows"]["nsis"]["installMode"] == "currentUser"
 assert tauri_config["bundle"]["windows"]["nsis"]["installerHooks"] == "windows/hooks.nsh"
 assert (tauri / "windows/hooks.nsh").is_file()
 assert (bi / "scripts/package-release.ps1").is_file()
+release_gate = (bi / "scripts/verify-loop-releases.ps1").read_text(encoding="utf-8")
+assert "tests/fixtures" not in release_gate
+assert "release/loop-contract-identities.json" in release_gate
+assert (bi / "release/loop-contract-identities.json").is_file()
+
+validation = (root / "VALIDATION-REPORT.md").read_text(encoding="utf-8")
+for marker in [
+    "TAURI_CONFIG",
+    "CARGO_TARGET_DIR",
+    "BI_OWNER_REVIEW_DIR",
+    "git/ref/heads/main",
+    "git/ref/tags/v2.5.0",
+    "git/ref/tags/v3.1.0",
+    "git archive",
+    "test_release_integrity.py",
+]:
+    assert marker in validation, marker
+assert validation.index("package-release.ps1") < validation.rindex("test_release_integrity.py")
 
 print("PASS: React is the only packaged BI frontend contract")

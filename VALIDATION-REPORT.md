@@ -22,6 +22,64 @@ LCCoding 2.5.0 provides one current-user NSIS-installed `lccoding-bi.exe`, a Rea
 - Uninstall smoke: PASS. Installation directory, exact user PATH entry, uninstall registration, and Start Menu shortcut were removed.
 - `git diff --check`, JSON/Markdown/version consistency, secret/path scans, and scope inspection: PASS.
 
+## Reproduction commands
+
+Run from the extracted repository root in PowerShell. All dependencies, builds, screenshots, Cargo output, and installer artifacts stay outside the release tree:
+
+```powershell
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+$repo = (Resolve-Path .).Path
+$tmp = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-250-fresh-verification"
+if (Test-Path $tmp) { throw "choose an empty external verification directory" }
+New-Item -ItemType Directory -Path $tmp | Out-Null
+$sourceFilesBefore = @(Get-ChildItem -LiteralPath $repo -Recurse -Force -File | ForEach-Object {
+  [IO.Path]::GetRelativePath($repo, $_.FullName)
+} | Sort-Object)
+$archive = Join-Path $tmp "source.zip"
+$runner = Join-Path $tmp "runner"
+git archive --format=zip --output=$archive HEAD
+if ($LASTEXITCODE -ne 0) { throw "git archive failed" }
+Expand-Archive -LiteralPath $archive -DestinationPath $runner
+$runnerBi = Join-Path $runner "lc-coding/bi"
+$runnerTauri = Join-Path $runnerBi "src-tauri"
+
+Push-Location $runnerBi
+npm ci --ignore-scripts
+$env:LCCODING_BI_DIST = (Join-Path $tmp "dist").Replace("\", "/")
+npm run typecheck
+npm test
+npm run build
+$env:BI_OWNER_REVIEW_DIR = Join-Path $tmp "visual-candidates"
+npm run visual:candidates
+Pop-Location
+
+$relativeDist = [IO.Path]::GetRelativePath($runnerTauri, (Join-Path $tmp "dist")).Replace("\", "/")
+$env:TAURI_CONFIG = @{ build = @{ frontendDist = $relativeDist } } | ConvertTo-Json -Compress
+$env:CARGO_TARGET_DIR = (Join-Path $tmp "cargo-target").Replace("\", "/")
+Push-Location $runnerTauri
+cargo test
+cargo test --release
+Pop-Location
+
+& lc-coding/bi/scripts/package-release.ps1 -OutputRoot (Join-Path $tmp "candidate-package") -AllowUnreleasedLoopCandidates
+$env:PYTHONDONTWRITEBYTECODE = "1"
+python lc-coding/tests/run_tests.py
+python lc-coding/scripts/validate_repository.py .
+& lc-coding/bi/tests/packaging/nsis-contract.ps1
+python lc-coding/tests/test_release_integrity.py
+git diff --check
+$sourceFilesAfter = @(Get-ChildItem -LiteralPath $repo -Recurse -Force -File | ForEach-Object {
+  [IO.Path]::GetRelativePath($repo, $_.FullName)
+} | Sort-Object)
+if (@(Compare-Object $sourceFilesBefore $sourceFilesAfter).Count -ne 0) {
+  throw "source tree physical file set changed"
+}
+if (git status --porcelain=v1) { throw "source worktree changed" }
+```
+
+The candidate command deliberately writes `build_mode=LOCAL_BLOCKED_CANDIDATE` and `loop_release_dependency_gate=BLOCKED_CANDIDATE_IDENTITIES`. A formal package omits `-AllowUnreleasedLoopCandidates`; it first runs the mechanical Loop release verifier and then requires a GitHub Actions workflow/run identity bound to the exact source commit and target triple.
+
 ## Safety and authority
 
 - CLI and native Folder Picker share the same Rust-owned canonical root validation and immutable one-project binding.
@@ -33,8 +91,22 @@ LCCoding 2.5.0 provides one current-user NSIS-installed `lccoding-bi.exe`, a Rea
 
 ## Formal release dependency blocker
 
-The adapters are implemented and tested against the recorded SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 candidate contract identities. A fresh GitHub read found each canonical repository `main`, but none of the required version tags or GitHub Releases exists. Therefore:
+The adapters are implemented and tested against the recorded SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 candidate contract identities. The following fresh read-only commands were used:
+
+```powershell
+gh api repos/DWG7318/small-loop-skill/git/ref/heads/main --jq '.object.sha'
+gh api repos/DWG7318/small-loop-skill/git/ref/tags/v2.5.0
+gh release view v2.5.0 -R DWG7318/small-loop-skill
+gh api repos/DWG7318/chain-loop-skill/git/ref/heads/main --jq '.object.sha'
+gh api repos/DWG7318/chain-loop-skill/git/ref/tags/v2.5.0
+gh release view v2.5.0 -R DWG7318/chain-loop-skill
+gh api repos/DWG7318/large-loop-skill/git/ref/heads/main --jq '.object.sha'
+gh api repos/DWG7318/large-loop-skill/git/ref/tags/v3.1.0
+gh release view v3.1.0 -R DWG7318/large-loop-skill
+```
+
+The canonical main commits were respectively `ae43ef46858bca3c2a942c213334dbda9f03e758`, `fdb3d463c84c72d82d18d7efb03e291a982e5fb2`, and `d06c1198dd3e6e50090b7934a6218b5ed9e97406`. All three required tag lookups returned HTTP 404 and all three GitHub Release lookups returned `release not found`. Therefore:
 
 - no candidate identity is represented as a formal release;
-- the package driver blocks formal mode and marks explicit non-release builds `BLOCKED_CANDIDATE_IDENTITIES`;
+- the package driver ignores environment assertions, mechanically resolves canonical main/tag/Release identities and the exact manifest/schema/template bytes, blocks formal mode, and marks explicit non-release builds `BLOCKED_CANDIDATE_IDENTITIES`;
 - LCCoding 2.5.0 must not be pushed, tagged, or released until all three method versions are published and their main/tag/Release/schema/template/hash identities mechanically match.

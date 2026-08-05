@@ -149,7 +149,7 @@ fn statuses(summary: &lccoding::records::loops::GovernanceSummary) -> Vec<Govern
 #[test]
 fn candidate_contract_identities_are_exact_and_non_release() {
     let identities: Value = serde_json::from_str(include_str!(
-        "../../tests/fixtures/loop-contract-identities.json"
+        "../../release/loop-contract-identities.json"
     ))
     .unwrap();
     assert_eq!(identities["slk"]["version"], "2.5.0");
