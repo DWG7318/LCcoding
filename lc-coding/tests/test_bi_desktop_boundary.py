@@ -139,6 +139,11 @@ assert cargo["package"] == {
     "publish": False,
 }
 assert cargo["dependencies"] == {
+    "gix": {
+        "version": "=0.86.0",
+        "default-features": False,
+        "features": ["sha1"],
+    },
     "serde": {"version": "=1.0.229", "features": ["derive"]},
     "serde_json": "=1.0.151",
     "tauri": {
@@ -152,6 +157,8 @@ assert cargo["target"]["cfg(windows)"]["dependencies"] == {
         "version": "=0.61.3",
         "features": [
             "Win32_Foundation",
+            "Win32_Security",
+            "Win32_Storage_FileSystem",
             "Win32_System_Com",
             "Win32_UI_Shell",
             "Win32_UI_Shell_Common",

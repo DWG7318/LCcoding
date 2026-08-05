@@ -12,7 +12,7 @@ fn temp_directory(name: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     let path = std::env::temp_dir().join(format!("lccoding-bi-{name}-{nonce}"));
-    fs::create_dir_all(&path).unwrap();
+    fs::create_dir_all(path.join(".lccoding")).unwrap();
     path
 }
 

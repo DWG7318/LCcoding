@@ -45,6 +45,8 @@ impl BindingState {
         if self.is_bound() {
             return Err(BindError::ProjectAlreadyBound);
         }
+        crate::input::validate_project_root(requested_root)
+            .map_err(|_| BindError::RootInvalid)?;
         let root = requested_root
             .canonicalize()
             .map_err(|_| BindError::RootInvalid)?;
