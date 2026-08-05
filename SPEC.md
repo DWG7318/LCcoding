@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.5.0
+# LCCoding Standard Specification 2.5.1
 
 ## 1. Scope
 
@@ -522,7 +522,7 @@ Friction reduction also requires reuse of sufficient evidence and proportional d
 
 LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
 
-The 2.5.0 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
+The 2.5.1 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
 
 The projection keeps the protected Product Baseline report on the existing `PRODUCT_BASELINE` step and the protected Loop Governance report on the existing `LOOP_RUN_D0_D3` step. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
 

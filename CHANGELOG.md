@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.1
+
+### GitHub-safe BI installer identity
+
+- Changed only the distributed installer basename to `LCCoding-BI_2.5.1_x64-setup.exe`, which GitHub preserves without normalization.
+- Required the downloaded installer basename, `provenance.asset`, `installer.sha256` basename, and workflow upload path to match exactly and reject unsafe characters.
+- Preserved the Tauri product name, React/Rust behavior, 300×480 UI, project read-only boundary, and published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 identities.
+
 ## 2.5.0
 
 ### One-click built-in BI

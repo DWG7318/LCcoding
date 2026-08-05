@@ -26,6 +26,11 @@ if (-not $AllowDirty) {
 }
 
 $version = [IO.File]::ReadAllText((Join-Path $repo "VERSION")).Trim()
+$releaseInstallerName = "LCCoding-BI_2.5.1_x64-setup.exe"
+$safeAssetPattern = '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+if ($version -ne "2.5.1" -or $releaseInstallerName -notmatch $safeAssetPattern) {
+  throw "BI_RELEASE_ASSET_NAME_UNSAFE"
+}
 $commit = (& git -C $repo rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') {
   throw "BI_PROVENANCE_COMMIT_INVALID"
@@ -138,7 +143,7 @@ $installers = @(Get-ChildItem -LiteralPath (Join-Path $cargoTarget "release/bund
 if ($installers.Count -ne 1) { throw "BI_INSTALLER_COUNT_INVALID" }
 $release = Join-Path $output "release"
 [IO.Directory]::CreateDirectory($release) | Out-Null
-$installer = Join-Path $release $installers[0].Name
+$installer = Join-Path $release $releaseInstallerName
 [IO.File]::Copy($installers[0].FullName, $installer, $true)
 $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
 [IO.File]::WriteAllText(
@@ -148,7 +153,7 @@ $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.T
 )
 
 $provenance = [ordered]@{
-  schema = "LCCoding 2.5.0 installer provenance"
+  schema = "LCCoding 2.5.1 installer provenance"
   overall_version = $version
   commit = $commit
   asset = [IO.Path]::GetFileName($installer)

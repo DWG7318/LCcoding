@@ -1,4 +1,4 @@
-# LCCoding 2.5.0
+# LCCoding 2.5.1
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -64,7 +64,7 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.5.0 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
+LCCoding 2.5.1 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
 
 Rust 适配器只绑定一个不可变的规范项目根目录，只读闭合的 LCCoding 与已发布 Loop 合同白名单，并只向 webview 发送不含路径、仓库、commit、hash、证据正文、原始错误或任务 ID 的去敏 Snapshot。`status.json` 仍是唯一权威；BI 不写项目，也不控制 Agent/runtime。缺失事实显示为“未知”或“未记录”。正式发布前，SLK 2.5.0、CLK 2.5.0 与 GLK 3.1.0 必须分别在各自 canonical main/tag/Release 上正式发布。完整合同见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 

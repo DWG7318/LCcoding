@@ -133,7 +133,7 @@ for forbidden in [
 reference = (root / "lc-coding/references/built-in-bi.md").read_text(encoding="utf-8")
 sequence = reference[reference.index("## 10."):reference.index("## 11.")]
 for marker in [
-    "### LCCoding 2.5.0 one-click sequence",
+    "### LCCoding 2.5.1 one-click sequence",
     "typed Rust reader",
     "no-argument single-flight `get_snapshot`",
     "current-user NSIS package",
@@ -149,5 +149,5 @@ for contradiction in [
 ]:
     assert contradiction not in sequence, contradiction
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.5.0"
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.5.1"
 print("PASS: BI adds only protected subtree and Loop governance reports")

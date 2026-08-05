@@ -1,4 +1,4 @@
-# LCCoding 2.5.0
+# LCCoding 2.5.1
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -51,7 +51,7 @@ One project Git/GitHub repository contains multiple UI, Workflow, and Simulation
 
 ## Built-in BI and Windows desktop
 
-LCCoding 2.5.0 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
+LCCoding 2.5.1 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
 
 The Rust adapter binds one immutable canonical project root, reads only the closed LCCoding and published Loop contract allowlist, and sends the webview a sanitized Snapshot with no path, repository, commit, hash, evidence body, raw error, or thread identifier. `status.json` remains the sole authority; the BI never writes the project or controls Agent/runtime behavior. Missing facts display as Unknown or Not recorded. Formal Release is blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are each published on their canonical main/tag/Release. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md).
 

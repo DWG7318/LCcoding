@@ -326,7 +326,7 @@ for (const candidate of VISUAL_CASES) {
   });
 }
 
-test("2.5.0 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
+test("2.5.1 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
   await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
   await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);

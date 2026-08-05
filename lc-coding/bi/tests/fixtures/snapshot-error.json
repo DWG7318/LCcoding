@@ -1,5 +1,5 @@
 {
-  "schema": "LCCoding 2.5.0 derived BI",
+  "schema": "LCCoding 2.5.1 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": "error",

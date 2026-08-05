@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use super::{RecordError, safe_version, strict_json};
 
-const SUPPORTED_VERSIONS: [&str; 3] = ["2.4.0", "2.4.1", "2.5.0"];
+const SUPPORTED_VERSIONS: [&str; 4] = ["2.4.0", "2.4.1", "2.5.0", "2.5.1"];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NormalizedState {

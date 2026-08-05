@@ -61,6 +61,8 @@ foreach ($marker in @(
     "loop_release_dependencies",
     "expectedProvenanceKeys",
     "BI_FORMAL_SOURCE_MUST_BE_CLEAN",
+    '$releaseInstallerName = "LCCoding-BI_2.5.1_x64-setup.exe"',
+    "BI_RELEASE_ASSET_NAME_UNSAFE",
     "stagedTauriRoot",
     'Join-Path $frontend "src-tauri"'
 )) {
@@ -71,6 +73,9 @@ if ($driverText.Contains("LCCODING_LOOP_RELEASES_VERIFIED")) {
 }
 if ($driverText -match 'Push-Location\s+\$bi') {
     throw "Tauri packaging must not run in the source BI tree"
+}
+if ($driverText.Contains('LCCoding BI_2.5.1_x64-setup.exe')) {
+    throw "release installer basename must not contain spaces"
 }
 
 $releaseGateText = [IO.File]::ReadAllText($releaseGate)
