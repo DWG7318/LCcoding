@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { App } from "./app/App";
+import { desktopPorts } from "./desktop/bridge";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
@@ -11,6 +13,6 @@ if (host === null) {
 
 createRoot(host).render(
   <StrictMode>
-    <main className="app-shell" aria-label="LCCoding BI" />
+    <App ports={desktopPorts} />
   </StrictMode>,
 );

@@ -6,6 +6,17 @@ type Translation = Readonly<Record<Language, string>>;
 
 export const CATALOG = {
   "app.title": { en: "LCCoding BI", zh_CN: "LCCoding BI" },
+  "app.open_project": { en: "Open a project", zh_CN: "打开工程" },
+  "app.project_hint": {
+    en: "Select one canonical LCCoding project. The BI remains read-only.",
+    zh_CN: "选择一个规范的 LCCoding 工程；BI 始终只读。",
+  },
+  "app.project_root": { en: "Project root", zh_CN: "工程根目录" },
+  "app.choose_folder": { en: "Choose folder", zh_CN: "选择文件夹" },
+  "app.binding_error": {
+    en: "Project unavailable. Choose a canonical LCCoding project.",
+    zh_CN: "工程不可用；请选择规范的 LCCoding 工程。",
+  },
   "app.read_only": { en: "Read-only project view", zh_CN: "只读工程视图" },
   "app.refresh": { en: "Refresh", zh_CN: "刷新" },
   "app.updated": { en: "Updated now", zh_CN: "刚刚更新" },
