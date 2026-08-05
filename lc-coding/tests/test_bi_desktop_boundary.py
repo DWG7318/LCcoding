@@ -150,6 +150,7 @@ assert cargo["dependencies"] == {
     },
     "serde": {"version": "=1.0.229", "features": ["derive"]},
     "serde_json": "=1.0.151",
+    "serde_yaml_ng": "=0.10.0",
     "sha2": "=0.10.9",
     "tauri": {
         "version": "=2.11.5",

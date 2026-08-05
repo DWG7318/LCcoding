@@ -1,0 +1,23 @@
+{
+  "slk": {
+    "version": "2.5.0",
+    "candidate_commit": "10c1d7893e465928dc2c6a4fb5ffe7465fa8ee04",
+    "manifest_sha256": "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
+    "schema_sha256": "d8247f384bbedb716c8a6c731d804d7640a97e11a75e91f239335dff64a9ffac",
+    "template_sha256": "aa23b9b78eb6297bacd0abc00a92ad77108824d9ba20359fa5fdddf37eeb4b38"
+  },
+  "clk": {
+    "version": "2.5.0",
+    "candidate_commit": "6043ce6011b7bb162f8ff6a169b144f4a24fe342",
+    "manifest_sha256": "64bbaa498d42b9510e96164dab23ac1b195f75210797244ea1616b3d3fef96ee",
+    "schema_sha256": "c292658717e383dd4c95b54403a0fd2b51a590311cf94f4ef28dc6ddef227867",
+    "template_sha256": "b582d667b46eda1b468033c399a38f380a4a291f1aaf5301af749246ebfea5eb"
+  },
+  "glk": {
+    "version": "3.1.0",
+    "candidate_commit": "2cbbd20167376e4ce57cd0e3a201e5fdb323c43f",
+    "manifest_sha256": "c8d7789f016a950fe1c583859fd25a302ef82242315fe7086035190a0f4fbd66",
+    "schema_sha256": "21f33235666394e3c50df3311795cd73093f0b25954e4c40a3d67d1c58a3057b",
+    "template_sha256": "0b24cec677f7e008d0959201c9c3117a278378e4c1bf05f0aec6ca7a2dcb46ab"
+  }
+}

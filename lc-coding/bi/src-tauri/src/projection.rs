@@ -3,7 +3,12 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 use crate::git_reader::GitProject;
-use crate::input::{ProjectRecord, read_project_record};
+use crate::input::{ProjectRecord, read_optional_scoped_record, read_project_record};
+use crate::records::loops::{
+    CLK_MANIFEST_SHA256, CLK_VERSION, GLK_MANIFEST_SHA256, GLK_VERSION, GlkArtifact,
+    GovernanceStatus, GovernanceSummary, SLK_MANIFEST_SHA256, SLK_VERSION, glk_artifact_refs,
+    parse_clk_governance, parse_glk_governance, parse_slk_governance,
+};
 use crate::records::manifest::CanonicalManifest;
 use crate::records::manifest::parse_manifest;
 use crate::records::maps::{
@@ -118,7 +123,184 @@ pub fn load_project_snapshot(root: &Path) -> Result<Snapshot, ProjectLoadError> 
         handoff.as_ref(),
         &mut snapshot,
     )?;
+    if let Some(summary) = load_loop_governance(root, &status, manifest.as_ref())? {
+        apply_loop_summary(&summary, &mut snapshot.reports.loop_governance);
+    }
     Ok(snapshot)
+}
+
+pub fn load_loop_governance(
+    root: &Path,
+    status: &StatusRecord,
+    manifest: Option<&CanonicalManifest>,
+) -> Result<Option<GovernanceSummary>, ProjectLoadError> {
+    if status.active_runs.is_empty() {
+        return Ok(None);
+    }
+    let manifest = manifest.ok_or(ProjectLoadError {
+        code: "BI_METHOD_VERSION_UNSUPPORTED",
+    })?;
+    let mut summaries = Vec::with_capacity(status.active_runs.len());
+    for run_ref in &status.active_runs {
+        let scope = Path::new(run_ref);
+        let slk = read_optional_scoped_record(root, scope, Path::new("RUN_RUNTIME_INDEX.yaml"))
+            .map_err(|error| ProjectLoadError { code: error.code() })?;
+        let clk = read_optional_scoped_record(root, scope, Path::new("CLK_RUN_CONTROL_TRACE.yaml"))
+            .map_err(|error| ProjectLoadError { code: error.code() })?;
+        let glk = read_optional_scoped_record(root, scope, Path::new("RUN_PACKAGE_INDEX.yaml"))
+            .map_err(|error| ProjectLoadError { code: error.code() })?;
+        if usize::from(slk.is_some()) + usize::from(clk.is_some()) + usize::from(glk.is_some()) != 1
+        {
+            return Err(ProjectLoadError {
+                code: "BI_RECORD_INCONSISTENT",
+            });
+        }
+        let summary = if let Some(body) = slk {
+            require_method_identity(
+                &manifest.slk.version,
+                &manifest.slk.hash,
+                SLK_VERSION,
+                SLK_MANIFEST_SHA256,
+            )?;
+            parse_slk_governance(&body).map_err(|error| ProjectLoadError { code: error.code() })?
+        } else if let Some(body) = clk {
+            require_method_identity(
+                &manifest.clk.version,
+                &manifest.clk.hash,
+                CLK_VERSION,
+                CLK_MANIFEST_SHA256,
+            )?;
+            parse_clk_governance(&body).map_err(|error| ProjectLoadError { code: error.code() })?
+        } else {
+            let body = glk.expect("exactly one loop index");
+            require_method_identity(
+                &manifest.glk.version,
+                &manifest.glk.hash,
+                GLK_VERSION,
+                GLK_MANIFEST_SHA256,
+            )?;
+            let references = glk_artifact_refs(&body)
+                .map_err(|error| ProjectLoadError { code: error.code() })?;
+            let mut owned = Vec::with_capacity(references.len());
+            for reference in references {
+                let artifact = read_optional_scoped_record(root, scope, Path::new(&reference.path))
+                    .map_err(|error| ProjectLoadError { code: error.code() })?
+                    .ok_or(ProjectLoadError {
+                        code: "BI_RECORD_INCONSISTENT",
+                    })?;
+                owned.push((reference.path, reference.artifact_type, artifact));
+            }
+            let artifacts: Vec<GlkArtifact<'_>> = owned
+                .iter()
+                .map(|(path, artifact_type, body)| GlkArtifact {
+                    path,
+                    artifact_type,
+                    body,
+                })
+                .collect();
+            parse_glk_governance(&body, &artifacts)
+                .map_err(|error| ProjectLoadError { code: error.code() })?
+        };
+        summaries.push(summary);
+    }
+    aggregate_governance(&summaries).map(Some)
+}
+
+fn require_method_identity(
+    actual_version: &str,
+    actual_hash: &str,
+    expected_version: &str,
+    expected_hash: &str,
+) -> Result<(), ProjectLoadError> {
+    if actual_version != expected_version
+        || actual_hash.strip_prefix("sha256:").unwrap_or(actual_hash) != expected_hash
+    {
+        return Err(ProjectLoadError {
+            code: "BI_METHOD_VERSION_UNSUPPORTED",
+        });
+    }
+    Ok(())
+}
+
+fn aggregate_governance(
+    summaries: &[GovernanceSummary],
+) -> Result<GovernanceSummary, ProjectLoadError> {
+    let first = summaries.first().ok_or_else(inconsistent)?;
+    let mut metrics = first.metrics;
+    for summary in &summaries[1..] {
+        for (target, current) in metrics.iter_mut().zip(summary.metrics) {
+            target.status = worse_status(target.status, current.status);
+            match (
+                target.completed,
+                target.total,
+                current.completed,
+                current.total,
+            ) {
+                (Some(left_done), Some(left_total), Some(right_done), Some(right_total)) => {
+                    target.completed = left_done.checked_add(right_done);
+                    target.total = left_total.checked_add(right_total);
+                    if target.completed.is_none() || target.total.is_none() {
+                        return Err(inconsistent());
+                    }
+                }
+                (None, None, None, None) => {}
+                _ => {
+                    target.completed = None;
+                    target.total = None;
+                }
+            }
+            if target.interval_minutes != current.interval_minutes {
+                target.interval_minutes = None;
+            }
+        }
+    }
+    Ok(GovernanceSummary { metrics })
+}
+
+fn worse_status(left: GovernanceStatus, right: GovernanceStatus) -> GovernanceStatus {
+    let rank = |status| match status {
+        GovernanceStatus::Compliant => 0,
+        GovernanceStatus::NotRecorded => 1,
+        GovernanceStatus::Unknown => 2,
+        GovernanceStatus::Active => 3,
+        GovernanceStatus::Violation => 4,
+    };
+    if rank(left) >= rank(right) {
+        left
+    } else {
+        right
+    }
+}
+
+fn apply_loop_summary(summary: &GovernanceSummary, report: &mut ReportView) {
+    const KEYS: [&str; 7] = [
+        "row.worker_checker_wake",
+        "row.supervisor_wait",
+        "row.heartbeat",
+        "row.no_subagents",
+        "row.progress",
+        "row.cell_capacity",
+        "row.pin_policy",
+    ];
+    for (key, metric) in KEYS.into_iter().zip(summary.metrics) {
+        let row = report
+            .rows
+            .iter_mut()
+            .find(|row| row.key == key)
+            .expect("closed Loop Governance metric key");
+        row.value = RowValue::Metric {
+            status: match metric.status {
+                GovernanceStatus::Compliant => "COMPLIANT",
+                GovernanceStatus::Active => "ACTIVE",
+                GovernanceStatus::Violation => "VIOLATION",
+                GovernanceStatus::Unknown => "UNKNOWN",
+                GovernanceStatus::NotRecorded => "NOT_RECORDED",
+            },
+            completed: metric.completed,
+            total: metric.total,
+            interval_minutes: metric.interval_minutes,
+        };
+    }
 }
 
 #[derive(Debug)]

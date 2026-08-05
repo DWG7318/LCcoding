@@ -1,11 +1,9 @@
 use std::fmt;
 use std::fs::{self, File};
 use std::io::Read;
-use std::path::Path;
-
+use std::path::{Component, Path, PathBuf};
 
 pub const MAX_RECORD_BYTES: usize = 512 * 1024;
-
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProjectRecord {
@@ -41,7 +39,6 @@ impl ProjectRecord {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InputError {
     RootInvalid,
@@ -69,17 +66,14 @@ impl fmt::Display for InputError {
 
 impl std::error::Error for InputError {}
 
-
 pub fn validate_project_root(root: &Path) -> Result<(), InputError> {
     validate_directory_path(root, InputError::RootInvalid)?;
     validate_directory_path(&root.join(".lccoding"), InputError::RootInvalid)
 }
 
-
 pub(crate) fn validate_directory_path(path: &Path, error: InputError) -> Result<(), InputError> {
     platform::validate_directory(path, error)
 }
-
 
 pub(crate) fn read_control_file(
     anchor: &Path,
@@ -89,7 +83,6 @@ pub(crate) fn read_control_file(
 ) -> Result<Vec<u8>, InputError> {
     platform::read_stable_file(anchor, parent, path, limit)
 }
-
 
 pub fn read_project_record(
     root: &Path,
@@ -105,17 +98,71 @@ pub fn read_project_record(
         Err(_) => return Err(InputError::RecordInvalid),
     }
 
-    let bytes = platform::read_stable_file(
-        root,
-        &root.join(".lccoding"),
-        &path,
-        MAX_RECORD_BYTES,
-    )?;
+    let bytes = platform::read_stable_file(root, &root.join(".lccoding"), &path, MAX_RECORD_BYTES)?;
     String::from_utf8(bytes)
         .map(Some)
         .map_err(|_| InputError::RecordInvalid)
 }
 
+pub fn read_optional_scoped_record(
+    root: &Path,
+    scope: &Path,
+    relative: &Path,
+) -> Result<Option<String>, InputError> {
+    validate_project_root(root)?;
+    if !safe_relative(scope) || !safe_relative(relative) {
+        return Err(InputError::RecordInvalid);
+    }
+    let lccoding = root.join(".lccoding");
+    let scope_root = checked_directories(&lccoding, scope)?;
+    let parent_relative = relative.parent().unwrap_or_else(|| Path::new(""));
+    let parent = checked_directories(&scope_root, parent_relative)?;
+    let path = scope_root.join(relative);
+    match fs::symlink_metadata(&path) {
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(_) => return Err(InputError::RecordInvalid),
+    }
+    let bytes = read_control_file(root, &parent, &path, MAX_RECORD_BYTES)?;
+    String::from_utf8(bytes)
+        .map(Some)
+        .map_err(|_| InputError::RecordInvalid)
+}
+
+fn checked_directories(anchor: &Path, relative: &Path) -> Result<PathBuf, InputError> {
+    let mut current = anchor.to_path_buf();
+    for component in relative.components() {
+        let Component::Normal(component) = component else {
+            return Err(InputError::RecordInvalid);
+        };
+        current.push(component);
+        validate_directory_path(&current, InputError::RecordInvalid)?;
+    }
+    Ok(current)
+}
+
+fn safe_relative(path: &Path) -> bool {
+    let mut count = 0usize;
+    for component in path.components() {
+        let Component::Normal(value) = component else {
+            return false;
+        };
+        let Some(value) = value.to_str() else {
+            return false;
+        };
+        if value.is_empty()
+            || value.len() > 64
+            || !value.as_bytes()[0].is_ascii_alphanumeric()
+            || !value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+        {
+            return false;
+        }
+        count += 1;
+    }
+    count <= 16
+}
 
 #[cfg(windows)]
 mod platform {
@@ -127,9 +174,9 @@ mod platform {
     use windows::Win32::Foundation::{GENERIC_READ, HANDLE};
     use windows::Win32::Storage::FileSystem::{
         BY_HANDLE_FILE_INFORMATION, CreateFileW, FILE_ATTRIBUTE_DIRECTORY,
-        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS,
-        FILE_FLAG_OPEN_REPARSE_POINT, FILE_SHARE_DELETE, FILE_SHARE_READ,
-        FILE_SHARE_WRITE, GetFileInformationByHandle, OPEN_EXISTING,
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+        FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE, GetFileInformationByHandle,
+        OPEN_EXISTING,
     };
     use windows::core::PCWSTR;
 
@@ -231,7 +278,6 @@ mod platform {
         Ok(bytes)
     }
 }
-
 
 #[cfg(not(windows))]
 mod platform {

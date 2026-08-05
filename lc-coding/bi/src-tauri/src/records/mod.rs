@@ -1,6 +1,7 @@
 use std::fmt;
 
 pub mod manifest;
+pub mod loops;
 pub mod maps;
 pub mod status;
 mod strict_json;

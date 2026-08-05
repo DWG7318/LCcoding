@@ -1,0 +1,281 @@
+use lccoding::projection::load_loop_governance;
+use lccoding::records::loops::{
+    GlkArtifact, GovernanceStatus, parse_clk_governance, parse_glk_governance, parse_slk_governance,
+};
+use lccoding::records::manifest::parse_manifest;
+use lccoding::records::status::parse_status;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+const SLK: &str = include_str!("../../tests/fixtures/slk-run-runtime-index.json");
+
+const CLK: &str = r#"
+trace_type: CLK_RUN_CONTROL_TRACE
+version: 2.5.0
+clock_mode: INJECTED_MINUTES
+run: {run_id: RUN-001, state: RUNNING, terminal_confirmed: false}
+required_sets: [{required_go_ids: [GO-1, GO-2]}]
+device_capacity_profile: {version: DEVICE-1}
+engineering_load_snapshots: [{version: LOAD-1}]
+cell_capacity_gates: [{result: PASS}]
+method_role_capabilities:
+  - {role_kind: SUPERVISOR, set_thread_pinned: false}
+  - {role_kind: CHECKER, set_thread_pinned: false}
+  - {role_kind: WORKER, set_thread_pinned: false}
+  - {role_kind: VERIFICATION, set_thread_pinned: false}
+pin_observations: []
+worker_bindings: [{worker_id: WORKER-1}]
+patrols:
+  - {interval_minutes: 15, heartbeat_count: 1, heartbeat_state: ACTIVE, set_thread_pinned: false}
+events:
+  - {action: WAKE_ATTEMPT, data: {level: 1}}
+  - {action: WAKE_ATTEMPT, data: {level: 2}}
+  - {action: WAKE_ATTEMPT, data: {level: 3}}
+  - {action: WAKE_ATTEMPT, data: {level: 4}}
+  - {action: WAKE_ACK, data: {}}
+  - {action: PATROL_STATUS, data: {status: CLEAR, checks: [SUPERVISOR_WAIT, SUBAGENT_EVIDENCE, THREAD_PIN_PROVENANCE]}}
+  - {action: SUPERVISOR_PROGRESS, data: {current_level_verified_go_count: 1, current_level_required_go_total: 2}}
+"#;
+
+const GLK_INDEX: &str = r#"
+schema_version: 3.1.0
+artifact_type: RUN_PACKAGE_INDEX
+formal_artifacts:
+{entries}
+"#;
+
+const GLK_MONITOR: &str = r#"
+schema_version: 3.1.0
+artifact_type: MONITOR_CONTROL
+patrol_interval_minutes: 15
+monitor_state: MONITOR_ACTIVE
+patrol_checklist:
+  - {check_id: SUPERVISOR_WAIT, result: CLEAR}
+  - {check_id: SUBAGENT_EVIDENCE, result: CLEAR}
+  - {check_id: THREAD_PIN, result: CLEAR}
+  - {check_id: TERMINAL_CLOSURE, result: CLEAR}
+  - {check_id: PENDING_WAKE, result: CLEAR}
+  - {check_id: PATROL_UNIQUENESS, result: CLEAR}
+  - {check_id: UNEXPLAINED_STALL, result: CLEAR}
+"#;
+
+const GLK_PROGRESS: &str = r#"
+schema_version: 3.1.0
+artifact_type: CHECKER_PROGRESS_EVENT
+accepted_cell_count: 1
+required_cell_count: 2
+"#;
+
+const GLK_CAPACITY: &str = r#"
+schema_version: 3.1.0
+artifact_type: CELL_CAPACITY_GATE
+result: PASS
+"#;
+
+const GLK_WAKE_1: &str = "schema_version: 3.1.0\nartifact_type: WAKE_ATTEMPT\nlevel: 1\ntimeout_seconds: 120\noutcome: ACKNOWLEDGED\n";
+const GLK_WAKE_2: &str = "schema_version: 3.1.0\nartifact_type: WAKE_ATTEMPT\nlevel: 2\ntimeout_seconds: 120\noutcome: ACKNOWLEDGED\n";
+const GLK_WAKE_3: &str = "schema_version: 3.1.0\nartifact_type: WAKE_ATTEMPT\nlevel: 3\ntimeout_seconds: 120\noutcome: ACKNOWLEDGED\n";
+const GLK_WAKE_4: &str = "schema_version: 3.1.0\nartifact_type: WAKE_ATTEMPT\nlevel: 4\ntimeout_seconds: 120\noutcome: ACKNOWLEDGED\n";
+
+fn sha(body: &str) -> String {
+    format!("{:x}", Sha256::digest(body.as_bytes()))
+}
+
+fn glk_fixture() -> (String, Vec<GlkArtifact<'static>>) {
+    let bodies = [
+        (
+            "governance/MONITOR_CONTROL.yaml",
+            "MONITOR_CONTROL",
+            GLK_MONITOR,
+        ),
+        (
+            "governance/CHECKER_PROGRESS_EVENT.yaml",
+            "CHECKER_PROGRESS_EVENT",
+            GLK_PROGRESS,
+        ),
+        (
+            "governance/CELL_CAPACITY_GATE.yaml",
+            "CELL_CAPACITY_GATE",
+            GLK_CAPACITY,
+        ),
+        (
+            "governance/WAKE_ATTEMPT-L1.yaml",
+            "WAKE_ATTEMPT",
+            GLK_WAKE_1,
+        ),
+        (
+            "governance/WAKE_ATTEMPT-L2.yaml",
+            "WAKE_ATTEMPT",
+            GLK_WAKE_2,
+        ),
+        (
+            "governance/WAKE_ATTEMPT-L3.yaml",
+            "WAKE_ATTEMPT",
+            GLK_WAKE_3,
+        ),
+        (
+            "governance/WAKE_ATTEMPT-L4.yaml",
+            "WAKE_ATTEMPT",
+            GLK_WAKE_4,
+        ),
+    ];
+    let entries = bodies
+        .iter()
+        .map(|(path, kind, body)| {
+            format!(
+                "  - {{path: {path}, sha256: {}, artifact_type: {kind}}}",
+                sha(body)
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let artifacts = bodies
+        .iter()
+        .map(|(path, kind, body)| GlkArtifact {
+            path,
+            artifact_type: kind,
+            body,
+        })
+        .collect();
+    (GLK_INDEX.replace("{entries}", &entries), artifacts)
+}
+
+fn statuses(summary: &lccoding::records::loops::GovernanceSummary) -> Vec<GovernanceStatus> {
+    summary.metrics.iter().map(|metric| metric.status).collect()
+}
+
+#[test]
+fn candidate_contract_identities_are_exact_and_non_release() {
+    let identities: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/loop-contract-identities.json"
+    ))
+    .unwrap();
+    assert_eq!(identities["slk"]["version"], "2.5.0");
+    assert_eq!(identities["clk"]["version"], "2.5.0");
+    assert_eq!(identities["glk"]["version"], "3.1.0");
+    for method in ["slk", "clk", "glk"] {
+        assert_eq!(
+            identities[method]["candidate_commit"]
+                .as_str()
+                .unwrap()
+                .len(),
+            40
+        );
+        assert_eq!(
+            identities[method]["schema_sha256"].as_str().unwrap().len(),
+            64
+        );
+        assert_eq!(
+            identities[method]["template_sha256"]
+                .as_str()
+                .unwrap()
+                .len(),
+            64
+        );
+        assert!(identities[method].get("released").is_none());
+    }
+}
+
+#[test]
+fn slk_and_clk_normalize_the_same_seven_governance_metrics() {
+    let slk = parse_slk_governance(SLK).unwrap();
+    let clk = parse_clk_governance(CLK).unwrap();
+    for summary in [&slk, &clk] {
+        assert_eq!(summary.metrics.len(), 7);
+        assert_eq!(
+            statuses(&summary),
+            vec![
+                GovernanceStatus::Compliant,
+                GovernanceStatus::Compliant,
+                GovernanceStatus::Active,
+                GovernanceStatus::Compliant,
+                GovernanceStatus::Active,
+                GovernanceStatus::Compliant,
+                GovernanceStatus::Compliant,
+            ]
+        );
+        assert_eq!(summary.metrics[0].completed, Some(4));
+        assert_eq!(summary.metrics[0].total, Some(4));
+        assert_eq!(summary.metrics[2].interval_minutes, Some(15));
+        assert_eq!(summary.metrics[4].total, Some(2));
+    }
+    assert_eq!(slk.metrics[4].completed, Some(0));
+    assert_eq!(clk.metrics[4].completed, Some(1));
+}
+
+#[test]
+fn glk_indexed_artifacts_normalize_without_exposing_paths() {
+    let (index, artifacts) = glk_fixture();
+    let summary = parse_glk_governance(&index, &artifacts).unwrap();
+    assert_eq!(summary.metrics.len(), 7);
+    assert_eq!(summary.metrics[2].interval_minutes, Some(15));
+    assert_eq!(summary.metrics[4].completed, Some(1));
+    assert_eq!(summary.metrics[4].total, Some(2));
+    let serialized = serde_json::to_string(&summary).unwrap();
+    assert!(!serialized.contains("governance/"));
+    assert!(!serialized.contains("sha256"));
+}
+
+#[test]
+fn adapters_fail_closed_on_wrong_identity_or_invalid_governance() {
+    assert!(parse_slk_governance(&SLK.replace("2.5.0", "2.4.0")).is_err());
+    assert!(
+        parse_clk_governance(&CLK.replace("interval_minutes: 15", "interval_minutes: 12")).is_err()
+    );
+    let (index, mut artifacts) = glk_fixture();
+    assert!(parse_glk_governance(&index.replace("3.1.0", "3.0.0"), &artifacts).is_err());
+    artifacts[0].body = "schema_version: 3.1.0\nartifact_type: MONITOR_CONTROL\n";
+    assert!(parse_glk_governance(&index, &artifacts).is_err());
+    assert!(parse_slk_governance(&format!("{SLK}\nunknown_field: true")).is_err());
+    assert!(
+        parse_slk_governance(&SLK.replacen(
+            "\"runtime_contract\": {",
+            "\"runtime_contract\": &contract {",
+            1,
+        ))
+        .is_err()
+    );
+    assert!(parse_clk_governance(&format!("{CLK}\nversion: 2.5.0")).is_err());
+}
+
+#[test]
+fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("lccoding-loop-adapter-{nonce}"));
+    let run = root.join(".lccoding/runs/RUN-001");
+    fs::create_dir_all(&run).unwrap();
+    fs::write(run.join("RUN_RUNTIME_INDEX.yaml"), SLK).unwrap();
+
+    let status = include_str!("../../../templates/STATUS.json")
+        .replace("\"project_id\": \"\"", "\"project_id\": \"Loop Project\"")
+        .replace(
+            "\"initialization_mode\": \"NEW|EXISTING\"",
+            "\"initialization_mode\": \"NEW\"",
+        )
+        .replace("\"active_runs\": []", "\"active_runs\": [\"runs/RUN-001\"]");
+    let status = parse_status(&status).unwrap();
+    let manifest = include_str!("../../../templates/CANONICAL-MANIFEST.json").replace(
+        "\"slk\": {\n    \"version\": \"\",\n    \"hash\": \"\"",
+        concat!(
+            "\"slk\": {\n    \"version\": \"2.5.0\",\n    \"hash\": \"sha256:",
+            "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
+            "\""
+        ),
+    );
+    let manifest = parse_manifest(&manifest).unwrap();
+    let summary = load_loop_governance(&root, &status, Some(&manifest))
+        .unwrap()
+        .unwrap();
+    assert_eq!(summary.metrics[0].completed, Some(4));
+    assert_eq!(summary.metrics[4].total, Some(2));
+    assert!(!serde_json::to_string(&summary).unwrap().contains("RUN-001"));
+
+    fs::write(run.join("CLK_RUN_CONTROL_TRACE.yaml"), CLK).unwrap();
+    assert!(load_loop_governance(&root, &status, Some(&manifest)).is_err());
+    fs::remove_dir_all(root).unwrap();
+}
