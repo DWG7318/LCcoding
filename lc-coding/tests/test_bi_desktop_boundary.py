@@ -138,6 +138,10 @@ assert cargo["package"] == {
     "rust-version": "1.96",
     "publish": False,
 }
+assert cargo["features"] == {
+    "default": ["custom-protocol"],
+    "custom-protocol": ["tauri/custom-protocol"],
+}
 assert cargo["dependencies"] == {
     "gix": {
         "version": "=0.86.0",
@@ -146,6 +150,7 @@ assert cargo["dependencies"] == {
     },
     "serde": {"version": "=1.0.229", "features": ["derive"]},
     "serde_json": "=1.0.151",
+    "sha2": "=0.10.9",
     "tauri": {
         "version": "=2.11.5",
         "default-features": False,

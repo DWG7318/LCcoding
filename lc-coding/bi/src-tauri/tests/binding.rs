@@ -75,3 +75,11 @@ fn invalid_roots_fail_with_path_free_codes() {
     assert!(!rendered.contains("private"));
     assert!(!rendered.contains("missing"));
 }
+
+
+#[test]
+fn packaged_binary_embeds_the_local_frontend() {
+    let manifest = include_str!("../Cargo.toml");
+    assert!(manifest.contains("default = [\"custom-protocol\"]"));
+    assert!(manifest.contains("custom-protocol = [\"tauri/custom-protocol\"]"));
+}

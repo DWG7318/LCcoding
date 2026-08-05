@@ -30,7 +30,14 @@ impl ProjectRecord {
     }
 
     fn optional(self) -> bool {
-        matches!(self, Self::Manifest)
+        matches!(
+            self,
+            Self::Manifest
+                | Self::WorkflowMap
+                | Self::UiMap
+                | Self::SimulationWorld
+                | Self::ProductBaselineHandoff
+        )
     }
 }
 
