@@ -1,7 +1,7 @@
 {
   "slk": {
     "version": "2.5.0",
-    "candidate_commit": "10c1d7893e465928dc2c6a4fb5ffe7465fa8ee04",
+    "candidate_commit": "0153776c84b57fd6217259fd02832a6fdcea4ccb",
     "manifest_sha256": "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
     "schema_sha256": "d8247f384bbedb716c8a6c731d804d7640a97e11a75e91f239335dff64a9ffac",
     "template_sha256": "aa23b9b78eb6297bacd0abc00a92ad77108824d9ba20359fa5fdddf37eeb4b38"

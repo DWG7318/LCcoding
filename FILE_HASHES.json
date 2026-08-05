@@ -8,7 +8,7 @@
   "lc-coding/bi/package-lock.json": "9e031a2d0ee8d6498bb9a4bb4e4fa5eb34ba0524d0d516af0b37024a9df0182a",
   "lc-coding/bi/package.json": "28b63cd6372d0faccb9f4eb41dbd274a2e98a24cb8d2d9597debe9bad67e3f82",
   "lc-coding/bi/playwright.config.ts": "f75f400829c9346c0ad11b4277d434ac188184096a16dc79410b9921a835b06a",
-  "lc-coding/bi/release/loop-contract-identities.json": "469839d6949a8643c7795a708410e0e04ba4cfdef899b71edb26bb82f06e51d8",
+  "lc-coding/bi/release/loop-contract-identities.json": "ed7cf3b74da9e1e6a38999b164d727a7744e00a5e21f8f0d5e9617498977a889",
   "lc-coding/bi/scripts/package-release.ps1": "46feefec45311ff0665a82adf85a0e8b0bb3ce282049214c8cc5241ac24f55fd",
   "lc-coding/bi/scripts/verify-loop-releases.ps1": "8b4ae16af135e097ad1b5df691346d7e696a44f0685a66d81b201f814c370f62",
   "lc-coding/bi/src-tauri/.gitignore": "8fcbc0d5cf13fd66a489e103d2c8312262573bc826a7213920496730c94a5f50",
