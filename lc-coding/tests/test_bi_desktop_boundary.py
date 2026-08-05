@@ -12,7 +12,7 @@ capability_dir = tauri_root / "capabilities"
 
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))
-assert config["productName"] == "LCCoding"
+assert config["productName"] == "LCCoding BI"
 assert config["version"] == "2.4.1"
 assert config["identifier"] == "com.lccoding.desktop"
 assert config["build"] == {"frontendDist": "../dist"}
@@ -63,10 +63,18 @@ for raw_directive in security["csp"].split(";"):
 assert actual_csp == expected_csp
 
 bundle = config["bundle"]
-assert bundle["active"] is False
+assert bundle["active"] is True
+assert bundle["targets"] == ["nsis"]
 assert bundle["createUpdaterArtifacts"] is False
 assert bundle["icon"] == ["icons/icon.ico"]
-assert bundle["windows"] == {"webviewInstallMode": {"type": "skip"}}
+assert bundle["windows"] == {
+    "webviewInstallMode": {"type": "embedBootstrapper"},
+    "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "windows/hooks.nsh",
+        "languages": ["English", "SimpChinese"],
+    },
+}
 assert (tauri_root / "icons" / "icon.ico").is_file()
 assert (tauri_root / "icons" / "icon.svg").is_file()
 
@@ -131,6 +139,7 @@ assert "lccoding::run();" in main_rs
 assert 'windows_subsystem = "windows"' in main_rs
 
 cargo = tomllib.loads((tauri_root / "Cargo.toml").read_text(encoding="utf-8"))
+assert cargo["bin"] == [{"name": "lccoding-bi", "path": "src/main.rs"}]
 assert cargo["package"] == {
     "name": "lccoding",
     "version": "2.4.1",
