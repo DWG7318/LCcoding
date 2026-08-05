@@ -2356,6 +2356,7 @@ dependencies = [
 name = "lccoding"
 version = "2.4.1"
 dependencies = [
+ "futures-util",
  "gix",
  "serde",
  "serde_json",

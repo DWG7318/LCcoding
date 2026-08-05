@@ -1,5 +1,5 @@
 pub mod binding;
-mod commands;
+pub mod commands;
 mod errors;
 pub mod git_reader;
 pub mod input;
@@ -53,6 +53,10 @@ pub fn run() {
 
     let application = tauri::Builder::default()
         .manage(binding)
+        .manage(commands::SingleFlight::<
+            snapshot::Snapshot,
+            commands::CommandError,
+        >::default())
         .setup(|app| {
             let window_config = app
                 .config()

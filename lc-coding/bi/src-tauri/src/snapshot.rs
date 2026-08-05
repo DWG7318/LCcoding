@@ -9,7 +9,7 @@ pub enum ViewState {
     Error,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Snapshot {
     pub schema: &'static str,
     pub authoritative: bool,
@@ -21,21 +21,21 @@ pub struct Snapshot {
     pub reports: Reports,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct PhaseView {
     pub id: &'static str,
     pub state: ViewState,
     pub steps: Vec<StepView>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct StepView {
     pub id: &'static str,
     pub state: ViewState,
     pub report: Option<&'static str>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Reports {
     pub proposal: ReportView,
     pub candidate: ReportView,
@@ -47,7 +47,7 @@ pub struct Reports {
     pub loop_governance: ReportView,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ReportView {
     pub id: &'static str,
     pub state: ViewState,
@@ -55,13 +55,13 @@ pub struct ReportView {
     pub rows: Vec<ReportRow>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct ReportRow {
     pub key: &'static str,
     pub value: RowValue,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum RowValue {
     ViewState {

@@ -143,6 +143,7 @@ assert cargo["features"] == {
     "custom-protocol": ["tauri/custom-protocol"],
 }
 assert cargo["dependencies"] == {
+    "futures-util": "=0.3.33",
     "gix": {
         "version": "=0.86.0",
         "default-features": False,
