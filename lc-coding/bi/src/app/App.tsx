@@ -33,23 +33,71 @@ export function App({ ports }: Readonly<{ ports: AppPorts }>) {
   const [confirmedPin, setConfirmedPin] = useState<boolean | null>(null);
   const [status, setStatus] = useState("");
   const pendingFocus = useRef<"back" | ReportId | null>(null);
+  const mounted = useRef(false);
+  const language = useRef(state.language);
+  const refreshInFlight = useRef<Promise<void> | null>(null);
+  const refreshTimer = useRef<number | null>(null);
+  const refreshCurrent = useRef<() => Promise<void>>(() => Promise.resolve());
+  language.current = state.language;
 
-  const refresh = useCallback(async () => {
-    try {
-      const snapshot = parseSnapshot(await ports.getSnapshot());
-      dispatch({ type: "BOUND", snapshot });
-      setStatus(message("app.updated", state.language));
-    } catch (error) {
-      const code = errorCode(error);
-      if (code === "BI_NO_PROJECT") dispatch({ type: "UNBOUND" });
-      else dispatch({ type: "ERROR", code });
-      setStatus("");
+  const refresh = useCallback((): Promise<void> => {
+    if (refreshInFlight.current !== null) return refreshInFlight.current;
+    if (refreshTimer.current !== null) {
+      window.clearTimeout(refreshTimer.current);
+      refreshTimer.current = null;
     }
-  }, [ports, state.language]);
+
+    let scheduleNext = true;
+    let operation!: Promise<void>;
+    operation = (async () => {
+      try {
+        const snapshot = parseSnapshot(await ports.getSnapshot());
+        if (!mounted.current) return;
+        dispatch({ type: "BOUND", snapshot });
+        setStatus(message("app.updated", language.current));
+      } catch (error) {
+        if (!mounted.current) return;
+        const code = errorCode(error);
+        if (code === "BI_NO_PROJECT") {
+          scheduleNext = false;
+          dispatch({ type: "UNBOUND" });
+        } else {
+          dispatch({ type: "ERROR", code });
+        }
+        setStatus("");
+      } finally {
+        if (refreshInFlight.current === operation) refreshInFlight.current = null;
+        if (mounted.current && scheduleNext) {
+          refreshTimer.current = window.setTimeout(() => {
+            refreshTimer.current = null;
+            void refreshCurrent.current();
+          }, 2_000);
+        }
+      }
+    })();
+    refreshInFlight.current = operation;
+    return operation;
+  }, [ports]);
+  refreshCurrent.current = refresh;
 
   useEffect(() => {
+    mounted.current = true;
     void refresh();
-    void ports.isPinned().then(setConfirmedPin, () => setConfirmedPin(null));
+    void ports.isPinned().then(
+      (value) => {
+        if (mounted.current) setConfirmedPin(value);
+      },
+      () => {
+        if (mounted.current) setConfirmedPin(null);
+      },
+    );
+    return () => {
+      mounted.current = false;
+      if (refreshTimer.current !== null) {
+        window.clearTimeout(refreshTimer.current);
+        refreshTimer.current = null;
+      }
+    };
   }, [ports, refresh]);
 
   useEffect(() => {

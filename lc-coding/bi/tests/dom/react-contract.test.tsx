@@ -1,6 +1,6 @@
 import "./setup";
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -20,6 +20,17 @@ function ports(snapshot: unknown | Error): AppPorts {
     isPinned: vi.fn(async () => false),
     setPinned: vi.fn(async (enabled) => enabled),
   };
+}
+
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
 }
 
 
@@ -84,5 +95,42 @@ describe("React BI product contract", () => {
     expect(screen.getByText("Example Project")).toBeTruthy();
     const current = within(language).getByText("中");
     expect(current.getAttribute("aria-current")).toBe("true");
+  });
+
+  it("joins concurrent refreshes and starts one two-second timer after settlement", async () => {
+    vi.useFakeTimers();
+    const reads: ReturnType<typeof deferred<unknown>>[] = [];
+    const appPorts = ports(okFixture);
+    appPorts.getSnapshot = vi.fn(() => {
+      const read = deferred<unknown>();
+      reads.push(read);
+      return read.promise;
+    });
+    const mounted = render(<App ports={appPorts} />);
+
+    try {
+      await act(async () => undefined);
+      expect(reads).toHaveLength(1);
+
+      const refresh = screen.getByRole("button", { name: "Refresh" });
+      fireEvent.click(refresh);
+      fireEvent.click(refresh);
+      expect(reads).toHaveLength(1);
+
+      await act(async () => reads[0]!.resolve(structuredClone(okFixture)));
+      await act(async () => vi.advanceTimersByTime(1_999));
+      expect(reads).toHaveLength(1);
+      await act(async () => vi.advanceTimersByTime(1));
+      expect(reads).toHaveLength(2);
+
+      fireEvent.click(refresh);
+      expect(reads).toHaveLength(2);
+      await act(async () => reads[1]!.resolve(structuredClone(okFixture)));
+      expect(vi.getTimerCount()).toBe(1);
+    } finally {
+      mounted.unmount();
+      expect(vi.getTimerCount()).toBe(0);
+      vi.useRealTimers();
+    }
   });
 });
