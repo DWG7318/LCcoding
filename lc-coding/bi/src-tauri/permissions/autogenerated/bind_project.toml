@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-bind-project"
+description = "Enables the bind_project command without any pre-configured scope."
+commands.allow = ["bind_project"]
+
+[[permission]]
+identifier = "deny-bind-project"
+description = "Denies the bind_project command without any pre-configured scope."
+commands.deny = ["bind_project"]

@@ -1,3 +1,7 @@
+pub mod binding;
+mod commands;
+mod errors;
+mod native_picker;
 mod pin;
 
 use tauri::webview::{NewWindowResponse, WebviewWindowBuilder};
@@ -18,12 +22,25 @@ fn is_packaged_app_url(url: &tauri::Url) -> bool {
 }
 
 pub fn run() {
+    let binding = binding::BindingState::default();
+    match binding::parse_launch_args(std::env::args_os()) {
+        Ok(binding::LaunchRequest::Unbound) => {}
+        Ok(binding::LaunchRequest::Project(root)) => {
+            let _ = binding.bind_root(&root);
+        }
+        Err(error) => {
+            eprintln!("{}", error.code());
+            std::process::exit(2);
+        }
+    }
+
     if tauri::webview_version().is_err() {
         eprintln!("BI_WEBVIEW_UNAVAILABLE");
         std::process::exit(2);
     }
 
     let application = tauri::Builder::default()
+        .manage(binding)
         .setup(|app| {
             let window_config = app
                 .config()
@@ -42,7 +59,13 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![pin::is_pinned, pin::set_pinned])
+        .invoke_handler(tauri::generate_handler![
+            commands::bind_project,
+            commands::choose_project,
+            commands::get_snapshot,
+            pin::is_pinned,
+            pin::set_pinned,
+        ])
         .run(tauri::generate_context!());
 
     if application.is_err() {

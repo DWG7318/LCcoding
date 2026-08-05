@@ -1,6 +1,12 @@
 {
   "identifier": "main",
-  "description": "Allows the main BI window to read and set only its own native topmost state.",
+  "description": "Allows one immutable project binding, sanitized snapshots, and native topmost state.",
   "windows": ["main"],
-  "permissions": ["allow-is-pinned", "allow-set-pinned"]
+  "permissions": [
+    "allow-bind-project",
+    "allow-choose-project",
+    "allow-get-snapshot",
+    "allow-is-pinned",
+    "allow-set-pinned"
+  ]
 }

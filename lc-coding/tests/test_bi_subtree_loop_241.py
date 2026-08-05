@@ -93,12 +93,22 @@ tauri_root = root / "lc-coding/bi/src-tauri"
 capability = json.loads(
     (tauri_root / "capabilities/main.json").read_text(encoding="utf-8")
 )
-assert capability["permissions"] == ["allow-is-pinned", "allow-set-pinned"]
+expected_commands = [
+    "bind_project",
+    "choose_project",
+    "get_snapshot",
+    "is_pinned",
+    "set_pinned",
+]
+assert capability["permissions"] == [
+    f"allow-{command.replace('_', '-')}" for command in expected_commands
+]
 runtime = "\n".join(
     (tauri_root / relative).read_text(encoding="utf-8")
     for relative in ["build.rs", "src/lib.rs"]
 )
-assert "get_snapshot" not in runtime
+for command in expected_commands:
+    assert command in runtime
 assert not (root / "lc-coding/scripts/project_bi.py").exists()
 
 authority = "\n".join(

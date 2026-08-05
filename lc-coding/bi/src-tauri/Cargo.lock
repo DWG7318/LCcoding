@@ -1555,8 +1555,11 @@ dependencies = [
 name = "lccoding"
 version = "2.4.1"
 dependencies = [
+ "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "windows",
 ]
 
 [[package]]
