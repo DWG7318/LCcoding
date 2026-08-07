@@ -6,6 +6,8 @@
 - UI Product / Integration Baseline identity: MATCH / BLOCKED + evidence
 - UI comparison before acceptance: MATCH / BLOCKED + evidence
 - Unauthorized UI delta: NONE / BLOCKED + evidence
+- Real integration route: UI operation -> API/MCP-backed Workflow capability -> real state/data/side effect -> visible UI result + evidence
+- Phase-2-only static UI / mock / stub / manually staged state used as acceptance proof: NO
 - Run D3 receipts:
 - Receipt coverage map:
 - Promotion-only eligible: YES / NO

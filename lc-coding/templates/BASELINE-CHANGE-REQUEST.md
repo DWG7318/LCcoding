@@ -3,6 +3,7 @@
 - Request ID:
 - Locked baseline:
 - Requested UI change:
+- Change authority: OWNER_INITIATED / OWNER_APPROVED
 - Why preservation is not viable:
 - Alternatives:
 - Impact Analysis delta:

@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 2.5.1
+# Built-in Project BI — LCCoding 2.5.2
 
-This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.5.1: it has no independent version, repository, tag, release, lifecycle, or authority.
+This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.5.2: it has no independent version, repository, tag, release, lifecycle, or authority.
 
 ## 1. Product boundary
 
@@ -11,7 +11,7 @@ This reference is the normative implementation contract for LCCoding's built-in 
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
 
-LCCoding 2.5.1 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 2.5.2 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 
@@ -306,7 +306,7 @@ StepView   = { "id": StepId, "state": ViewState, "report": ReportId | null }
 PhaseView  = { "id": PhaseId, "state": ViewState, "steps": readonly StepView[] }
 
 Snapshot = {
-  "schema": "LCCoding 2.5.1 derived BI",
+  "schema": "LCCoding 2.5.2 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": Health,
@@ -346,7 +346,7 @@ No free-form object or arbitrary report row crosses IPC. Production logs contain
 - Reject a symlink, junction, reparse point, non-directory project or `.lccoding` boundary, non-regular record, dangling link, identity change, or unsupported no-follow guarantee before parsing.
 - On Windows, open and inspect the root, record directory, and record with reparse-aware handles and stable volume/file identity. On Unix, retain anchored directory descriptors for the root and `.lccoding`, traverse fixed components with `openat`, and open a record with `O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK`; `fstat` must prove a regular file before any read. This prevents a regular-file-to-FIFO/device race from blocking. Platform adapters must produce the same path-free error contract.
 - Before typed deserialization, the strict JSON layer enforces: UTF-8 only; nesting depth at most `32`; at most `16,384` total keys/values; at most `128` members per object; at most `2,048` items per array; at most `4,096` UTF-8 bytes per string; and at most `128` ASCII characters per numeric token. Duplicate keys at any depth, malformed/trailing data, non-finite/out-of-range numbers, and resource-limit excess fail closed. Current Status and Manifest schemas accept no JSON number fields.
-- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, `2.5.0`, and `2.5.1`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
+- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, `2.5.0`, `2.5.1`, and `2.5.2`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
@@ -505,14 +505,14 @@ The verified development tool baseline is Rust/Cargo 1.96.0, Node 24.13.1, and n
 
 The sequences below are dependency-ordered component checkpoints only. They are not LCCoding lifecycle phases, gates, Runs, or lower-method work decomposition and do not choose or redefine SLK/CLK/GLK execution internals.
 
-### LCCoding 2.5.1 one-click sequence
+### LCCoding 2.5.2 one-click sequence
 
 1. Replace the production Vanilla runtime with React + Vite at accepted functional, accessibility, and screenshot parity; keep fixtures test-only.
 2. Implement the typed Rust reader, strict canonical-record adapters, truth validation, `gix` frozen-identity checks, sanitization, and Snapshot projection before exposing data to the webview.
 3. Bind CLI and native Picker through one immutable root validator; expose only the five-command ACL and no-argument single-flight `get_snapshot`.
-4. Build the current-user NSIS package with embedded WebView2 bootstrapper, `lccoding-bi.exe`, user PATH integration, checksum, and commit/version provenance. The release surface uses the exact GitHub-safe basename `LCCoding-BI_2.5.1_x64-setup.exe`; the downloaded basename, provenance asset, checksum basename, and workflow upload path must match it exactly.
+4. Build the current-user NSIS package with embedded WebView2 bootstrapper, `lccoding-bi.exe`, user PATH integration, checksum, and commit/version provenance. The release surface uses the exact GitHub-safe basename `LCCoding-BI_2.5.2_x64-setup.exe`; the downloaded basename, provenance asset, checksum basename, and workflow upload path must match it exactly.
 5. Verify clean install, Picker/CLI binding, real projection, refresh/recovery, reports, Pin/language, source-free execution, project bytes/mtime immutability, and exact uninstall cleanup.
-6. Update the overall LCCoding carriers atomically to `2.5.1`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
+6. Update the overall LCCoding carriers atomically to `2.5.2`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
 
 Formal packaging resolves each method's canonical GitHub `main`, version tag (including annotated-tag peeling), and published non-draft/non-prerelease GitHub Release; all three must resolve to the recorded commit. It then downloads the exact Manifest, schema, and template bytes at that commit and matches all six version/commit and nine SHA-256 facts. No environment variable or operator assertion may substitute for this check. Formal provenance also binds the exact GitHub Actions workflow, run ID/attempt, repository, ref, source commit, and Rust target triple. Explicit local candidate packaging remains permitted only with `LOCAL_BLOCKED_CANDIDATE` and `BLOCKED_CANDIDATE_IDENTITIES` provenance.
 

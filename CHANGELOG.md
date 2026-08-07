@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.2
+
+### Owner-controlled UI lock and real third-phase integration
+
+- Clarified that `UI=LOCKED` is one-way Owner authority: an Owner may initiate or explicitly approve a controlled UI change, while Workflow, Simulation, integration code, loops, agents, runtime, and automation must never autonomously modify, silently overwrite, or automatically restore locked UI material.
+- Required every Engineering-Run Feature Slice to prove a real UI operation through an API/MCP-backed Workflow capability to real state, data, or side effect and back to a visible UI result. Static UI, mocks, stubs, and manually staged state remain Product Formation evidence only and cannot prove third-phase integration, delivery readiness, or D0–D3 acceptance.
+- Documented LCCoding's personal origin, adaptable use by other practitioners, welcome discussion and contributions, and the Owner-maintained canonical mainline.
+- Preserved the four phases, existing Baseline Change Request route, UI/Workflow/Simulation topology, BI read-only boundary, Loop ownership, and no independent BI version.
+
 ## 2.5.1
 
 ### GitHub-safe BI installer identity

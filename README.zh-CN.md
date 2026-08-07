@@ -1,4 +1,4 @@
-# LCCoding 2.5.1
+# LCCoding 2.5.2
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -42,6 +42,12 @@ Delivery
 
 这里需要特别说明：**SLK、CLK、GLK 内部本来就有 Owner/Human Acceptance，而且必须保留。**它不是 Handoff，也不能被 LCCoding 合并成最后一次大验收。
 
+## 方法来源、适配与贡献
+
+LCCoding 源自 Owner 本人的个人能力、知识结构和经常处理的项目实践。它可以供其他人借鉴，但不是脱离使用者能力、知识范围、项目领域和工作条件的一套机械处方。使用者可以借鉴并按自己的能力、知识范围和项目条件微调，同时保留清晰的证据与权责边界。
+
+欢迎围绕这套方法进行讨论和贡献。Owner 维护的 LCCoding 仓库仍是规范主线：外部改法可以作为贡献或明确记录的变体，但不能悄悄改写规范主线。
+
 ## 既有工程接管
 
 Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增加新生命周期。EXISTING 保留原有仓库、Git 历史、当前版本、材料和可信证据；旧有“已完成”只能记为 `CLAIMED_UNATTESTED`，不能直接越过 LCCoding 的证据边界。
@@ -64,7 +70,7 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.5.1 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
+LCCoding 2.5.2 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
 
 Rust 适配器只绑定一个不可变的规范项目根目录，只读闭合的 LCCoding 与已发布 Loop 合同白名单，并只向 webview 发送不含路径、仓库、commit、hash、证据正文、原始错误或任务 ID 的去敏 Snapshot。`status.json` 仍是唯一权威；BI 不写项目，也不控制 Agent/runtime。缺失事实显示为“未知”或“未记录”。正式发布前，SLK 2.5.0、CLK 2.5.0 与 GLK 3.1.0 必须分别在各自 canonical main/tag/Release 上正式发布。完整合同见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
@@ -76,7 +82,9 @@ Owner 的 rework、definition change 或 defer 会得到稳定 gap ID。阻断�
 
 ## 逻辑子树基线保护
 
-Product Baseline 锁定总项目精确 commit、每个已实现 UI/Workflow/Simulation 子树的名称、路径、组件版本、内容 hash、组合关系和 Owner 确认的产品主线。`UI=LOCKED` 钉住适用 UI 子树在同一总项目 commit 下的身份；每个 Slice 在开工前与验收前比较该子树，只有经批准的 Baseline Change Request 才能更新锁定基线。
+Product Baseline 锁定总项目精确 commit、每个已实现 UI/Workflow/Simulation 子树的名称、路径、组件版本、内容 hash、组合关系和 Owner 确认的产品主线。`UI=LOCKED` 是单向的：它禁止 Workflow、Simulation、Loop、Agent、runtime 与自动化系统自行改动适用 UI，却不限制 Owner 主动改动或明确允许改动。Owner 许可的改动仍走既有 Baseline Change Request，形成新的 commit、版本/hash、基线身份与复验；系统不得静默覆盖或自动还原 Owner 的材料。
+
+进入 `ENGINEERING_RUNS` 后，一个 Slice 必须证明一条真实链路：UI 操作 → API/MCP 支撑的 Workflow 能力 → 真实状态/数据/副作用 → UI 可见结果。对应 Simulation 追踪同一能力、状态和异常行为。静态 UI、预制图片、mock、stub 或人工摆出的状态可以用于 Product Formation 演示，却不能证明第三阶段集成、交付就绪或 D0–D3 通过。只让受影响的关联层与证据同步改变，不机械修改无关层。
 
 ## 两种 Owner Acceptance
 

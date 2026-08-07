@@ -172,6 +172,28 @@ require(
     "Default product repository visibility: OWNER_DECISION_REQUIRED",
     "Product subtree repository policy: ONE_TOTAL_PROJECT_REPOSITORY",
 )
+require(
+    "lc-coding/SKILL.md",
+    "one-way Owner authority",
+    "system actors must not autonomously modify a locked UI",
+    "real UI operation",
+    "Static UI, mock, stub, or manually staged state",
+)
+require(
+    "lc-coding/references/integration-baseline-lock.md",
+    "Owner-initiated or Owner-approved",
+    "real API/MCP-backed Workflow capability",
+    "cannot prove third-phase integration",
+)
+require(
+    "lc-coding/templates/BASELINE-CHANGE-REQUEST.md",
+    "Change authority: OWNER_INITIATED / OWNER_APPROVED",
+)
+require(
+    "lc-coding/templates/FEATURE-SLICE.md",
+    "Real integration route",
+    "Phase-2-only demonstration evidence",
+)
 
 current_authority = "\n".join(
     (root / relative).read_text(encoding="utf-8")

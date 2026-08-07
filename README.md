@@ -1,4 +1,4 @@
-# LCCoding 2.5.1
+# LCCoding 2.5.2
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -29,6 +29,12 @@ Operational binding:
 
 The mainline has not been replaced. Loop Owner Acceptance remains inside SLK, CLK, and GLK so the Owner accepts small completed Runs as work advances. The later Post-Security Owner Acceptance is a distinct, focused acceptance of the security-remediated delivery candidate.
 
+## Personal origin, adaptable use, and contribution
+
+LCCoding originates in its Owner's personal ability, knowledge structure, and recurring project practice. It is intended to be useful beyond that context, but it is not a turnkey prescription that ignores another person's capabilities, knowledge range, product domain, or working conditions. Others may study and adapt LCCoding to those realities while retaining clear evidence and authority boundaries.
+
+Discussion and contributions are welcome. The Owner-maintained LCCoding repository remains the canonical mainline: an external adaptation is valuable as a contribution or a documented variant, but it must not silently redefine the canonical method.
+
 ## Existing engineering intake
 
 Project Initialization supports `NEW` and `EXISTING` modes without adding a lifecycle. EXISTING preserves repository history, declared version, materials, and valid evidence. Prior completion is `CLAIMED_UNATTESTED` until the current candidate and evidence are independently established.
@@ -51,7 +57,7 @@ One project Git/GitHub repository contains multiple UI, Workflow, and Simulation
 
 ## Built-in BI and Windows desktop
 
-LCCoding 2.5.1 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
+LCCoding 2.5.2 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
 
 The Rust adapter binds one immutable canonical project root, reads only the closed LCCoding and published Loop contract allowlist, and sends the webview a sanitized Snapshot with no path, repository, commit, hash, evidence body, raw error, or thread identifier. `status.json` remains the sole authority; the BI never writes the project or controls Agent/runtime behavior. Missing facts display as Unknown or Not recorded. Formal Release is blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are each published on their canonical main/tag/Release. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md).
 
@@ -63,7 +69,9 @@ Owner rework, definition changes, and deferrals receive stable gap IDs. A blocki
 
 ## Logical-subtree baseline protection
 
-Product Baseline freezes the total project exact commit and every realized UI, Workflow, and Simulation subtree name/path/component version/content hash, their ID relations, and the Owner-confirmed Primary product mainline. `UI=LOCKED` pins the applicable UI subtree to that same commit/hash identity. Each Slice compares it before work and acceptance; an approved Baseline Change Request is the only route to replace the lock.
+Product Baseline freezes the total project exact commit and every realized UI, Workflow, and Simulation subtree name/path/component version/content hash, their ID relations, and the Owner-confirmed Primary product mainline. `UI=LOCKED` is one-way: it prevents Workflow, Simulation, Loops, Agents, runtimes, and automation from changing the applicable UI, but never prevents the Owner from initiating or approving a change. That Owner-authorized change uses the existing Baseline Change Request to create a new commit, version/hash, baseline identity, and re-verification; the system must never silently overwrite or automatically restore Owner material.
+
+In `ENGINEERING_RUNS`, a Slice must prove one real route: UI operation → API/MCP-backed Workflow capability → real state/data/side effect → visible UI result. Its applicable Simulation traces the same capability, state, and exception behavior. Static UI, prebuilt images, mocks, stubs, and manually staged state may demonstrate Product Formation, but cannot prove third-phase integration, delivery readiness, or D0–D3 acceptance. Only affected connected layers and evidence change together.
 
 ## Four-phase overlay
 

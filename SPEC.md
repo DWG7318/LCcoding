@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.5.1
+# LCCoding Standard Specification 2.5.2
 
 ## 1. Scope
 
@@ -249,7 +249,7 @@ All product logical subtrees use one content-hash algorithm. At the frozen commi
 
 Feature Slice is the LCCoding product-progress unit.
 
-A Feature Slice must identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. It starts from the Owner-confirmed Primary product mainline unless impact evidence selects another governed path, and pins the applicable UI subtree to the same total-project commit/path/version/hash identity as Product Baseline. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules.
+A Feature Slice must identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. It starts from the Owner-confirmed Primary product mainline unless impact evidence selects another governed path, and pins the applicable UI subtree to the same total-project commit/path/version/hash identity as Product Baseline. Because a Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and actor-visible results more completely, it may supplement, adjust, and improve Workflow on that inherited base under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules. In Engineering Runs, a Slice proves a real UI operation through an API/MCP-backed Workflow capability, real state/data/side effect, and a visible UI result. Its applicable Simulation scenario traces the same capability, state, and exception behavior; Simulation is not required to be the production backend. Static UI, mock, stub, or manually staged state remains Product Formation evidence only and cannot prove third-phase integration, delivery readiness, or D0-D3 acceptance. Only affected connected layers and evidence update together.
 
 ```text
 Actor intent
@@ -288,11 +288,11 @@ Calabash = LIVING_WITH_IMPACT_TRACE
 
 Integration is a convergence phase, not a new design phase. AI must make the Workflow and engineering implementation reach the accepted UI across every required actor surface.
 
-`UI = LOCKED` is not a textual declaration. `INTEGRATION_BASELINE` pins the total project repository/exact commit and the applicable UI subtree ID/path/component version/content hash without ambiguity and must match the Product Handoff identity tuple; a branch, tag, `HEAD`, working tree, worktree, design link, screenshot, export, or `latest` is not an immutable reference. Here `subtree` means a logical product path, not Git's external-repository subtree mechanism.
+`UI = LOCKED` is not a textual declaration. It is one-way Owner authority: the Owner may initiate or explicitly approve a UI change, while Workflow, Simulation, integrations, Loops, Agents, runtimes, automation, and all other system actors must not autonomously modify a locked UI. `INTEGRATION_BASELINE` pins the total project repository/exact commit and the applicable UI subtree ID/path/component version/content hash without ambiguity and must match the Product Handoff identity tuple; a branch, tag, `HEAD`, working tree, worktree, design link, screenshot, export, or `latest` is not an immutable reference. Here `subtree` means a logical product path, not Git's external-repository subtree mechanism.
 
-Before a Feature Slice or engineering Run starts, and again before acceptance, AI compares the current applicable UI subtree with the locked total-project commit and subtree content hash. Any unapproved difference or identity mismatch blocks work or acceptance. Preserve the difference evidence, then restore from the locked project commit or handle the change in an isolated worktree or location; AI must not silently overwrite user material.
+Before a Feature Slice or engineering Run starts, and again before acceptance, AI compares the current applicable UI subtree with the locked total-project commit and subtree content hash. A difference without Owner initiation or approval evidence blocks work or acceptance. Preserve the difference evidence and isolate it without changing the authoritative UI; AI must not silently overwrite user material, automatically restore it, or replace it.
 
-A UI change requires the existing `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. An approved request must explain why preservation is impossible, create a distinct total-project commit, update the affected UI subtree component version and content hash, update Product and Integration Baseline references to the same new identity, and re-verify affected evidence. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
+A UI change requires the existing `BASELINE_CHANGE_REQUEST`, an impact delta, alternatives, and Owner approval. An Owner-initiated or Owner-approved request must explain why preservation is impossible, create a distinct total-project commit, update the affected UI subtree component version and content hash, update Product and Integration Baseline references to the same new identity, and re-verify affected evidence. Routine data binding, declared responsive behavior, accessibility metadata, and exact restoration of accepted UI do not require an unlock.
 
 ## 11. Impact and reuse analysis
 
@@ -522,7 +522,7 @@ Friction reduction also requires reuse of sufficient evidence and proportional d
 
 LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
 
-The 2.5.1 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
+The 2.5.2 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
 
 The projection keeps the protected Product Baseline report on the existing `PRODUCT_BASELINE` step and the protected Loop Governance report on the existing `LOOP_RUN_D0_D3` step. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
 

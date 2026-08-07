@@ -16,6 +16,9 @@
 - UI subtree comparison before Slice / Run: PENDING / MATCH: evidence / BLOCKED
 - UI comparison before acceptance route: REQUIRED
 - Scenario IDs / versions:
+- Real integration route: UI operation -> API/MCP-backed Workflow capability -> real state/data/side effect -> visible UI result
+- Applicable Simulation scenario trace:
+- Phase-2-only demonstration evidence: static UI / mock / stub / manually staged state; not third-phase, delivery, or D0-D3 proof
 - State / data / permission trace:
 - Exception / recovery trace:
 - Shared capability result:

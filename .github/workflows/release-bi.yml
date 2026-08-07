@@ -60,7 +60,7 @@ jobs:
           if ($env:GITHUB_SHA -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_SHA_ENV_INVALID" }
           if ((git rev-parse HEAD).Trim() -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_CHECKOUT_INVALID" }
           if (git status --porcelain=v1) { throw "BI_RELEASE_CHECKOUT_DIRTY" }
-          if ((Get-Content VERSION -Raw).Trim() -ne "2.5.1") { throw "BI_RELEASE_VERSION_INVALID" }
+          if ((Get-Content VERSION -Raw).Trim() -ne "2.5.2") { throw "BI_RELEASE_VERSION_INVALID" }
 
       - name: Validate source and formal Loop releases
         shell: pwsh
@@ -93,7 +93,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $release = Join-Path $env:RUNNER_TEMP "lccoding-bi-formal/release"
-          $installerName = "LCCoding-BI_2.5.1_x64-setup.exe"
+          $installerName = "LCCoding-BI_2.5.2_x64-setup.exe"
           $expectedFiles = @($installerName, "installer.sha256", "provenance.json") | Sort-Object
           $actualFiles = @(Get-ChildItem -LiteralPath $release -File | ForEach-Object Name | Sort-Object)
           if (@(Compare-Object $expectedFiles $actualFiles).Count -ne 0) {
@@ -131,7 +131,7 @@ jobs:
         with:
           name: lccoding-bi-formal-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding-BI_2.5.1_x64-setup.exe
+            ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding-BI_2.5.2_x64-setup.exe
             ${{ runner.temp }}\lccoding-bi-formal\release\installer.sha256
             ${{ runner.temp }}\lccoding-bi-formal\release\provenance.json
           if-no-files-found: error

@@ -12,9 +12,13 @@
 - Product Handoff identity match: MATCH: evidence / BLOCKED
 - Branch / latest accepted: NO
 - Locked actor surfaces:
+- Lock authority: ONE_WAY_OWNER_AUTHORITY
+- System autonomous UI modification: FORBIDDEN
+- Owner-initiated / Owner-approved UI change route: BASELINE_CHANGE_REQUEST
 - Explicitly editable regions:
 - Workflow contract and controlled adjustment boundary:
 - Simulation scenario versions:
+- Real integration route / evidence:
 - Calabash/Product Baseline reference:
 - Owner approval:
 - Lock time:

@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-current = "2.5.1"
+current = "2.5.2"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -53,17 +53,17 @@ for relative in [
     assert current in (root / relative).read_text(encoding="utf-8"), relative
 
 snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
-assert '"LCCoding 2.5.1 derived BI"' in snapshot_model
-assert (root / "MIGRATION-2.5.0-TO-2.5.1.md").is_file()
+assert '"LCCoding 2.5.2 derived BI"' in snapshot_model
+assert (root / "MIGRATION-2.5.1-TO-2.5.2.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.5.1") < changelog.index("## 2.5.0")
+assert changelog.index("## 2.5.2") < changelog.index("## 2.5.1")
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
-assert 'schema = "LCCoding 2.5.1 installer provenance"' in package_driver
-assert '$releaseInstallerName = "LCCoding-BI_2.5.1_x64-setup.exe"' in package_driver
+assert 'schema = "LCCoding 2.5.2 installer provenance"' in package_driver
+assert '$releaseInstallerName = "LCCoding-BI_2.5.2_x64-setup.exe"' in package_driver
 workflow = (root / ".github/workflows/release-bi.yml").read_text(encoding="utf-8")
-assert 'VERSION -Raw).Trim() -ne "2.5.1"' in workflow
-assert "LCCoding-BI_2.5.1_x64-setup.exe" in workflow
+assert 'VERSION -Raw).Trim() -ne "2.5.2"' in workflow
+assert "LCCoding-BI_2.5.2_x64-setup.exe" in workflow
 
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
@@ -72,4 +72,4 @@ assert loop_identities["slk"]["version"] == "2.5.0"
 assert loop_identities["clk"]["version"] == "2.5.0"
 assert loop_identities["glk"]["version"] == "3.1.0"
 
-print("PASS: LCCoding 2.5.1 version is consistent across release artifacts")
+print("PASS: LCCoding 2.5.2 version is consistent across release artifacts")
