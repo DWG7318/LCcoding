@@ -5,6 +5,7 @@ import sys
 REQUIRED=[
 'VERSION','README.md','README.zh-CN.md','CONSTITUTION.md','SPEC.md','CHANGELOG.md','MIGRATION-1.1.1-TO-2.0.0.md','MIGRATION-2.0.0-TO-2.1.0.md','MIGRATION-2.1.0-TO-2.2.0.md','MIGRATION-2.2.0-TO-2.2.1.md','MIGRATION-2.2.1-TO-2.2.2.md','MIGRATION-2.2.2-TO-2.2.3.md','MIGRATION-2.2.3-TO-2.3.0.md','MIGRATION-2.3.0-TO-2.4.0.md','MIGRATION-2.4.0-TO-2.4.1.md','MIGRATION-2.4.1-TO-2.5.0.md','MIGRATION-2.5.0-TO-2.5.1.md',
 'lc-coding/SKILL.md','lc-coding/references/method-mainline.md','lc-coding/references/verification-de-duplication.md',
+'lc-coding/contracts/loop-control-contract.json','lc-coding/templates/LOOP-CONTROL-BINDING.json','lc-coding/references/loop-control-contract.md',
 'lc-coding/references/delivery-governance.md','lc-coding/templates/FEATURE-SLICE.md','lc-coding/templates/INTEGRATION-BASELINE.md',
 'lc-coding/templates/VERIFICATION-RECEIPT.json','lc-coding/scripts/bootstrap_lccoding.py','lc-coding/scripts/validate_project.py',
 'lc-coding/tests/run_tests.py','lc-coding/contracts/lifecycle.json','lc-coding/contracts/phases.json',

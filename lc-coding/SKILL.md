@@ -105,6 +105,8 @@ Compare current UI subtree to the locked project commit and hash before a Slice/
 
 Use one method per Run. Each Run has a fresh Run Supervisor, Run Scope, and Run Feature.
 
+Every selected Loop also binds the one versioned `LCCODING_LOOP_CONTROL` contract. It standardizes cross-Loop Worker wake, Supervisor no-wait, Patrol, actual-subagent/Pin prohibitions, progress ownership, capacity, and model policy without becoming a fourth Loop method or a runtime. LCCoding defines the policy; LCagent or another trusted runtime performs thread, wait, heartbeat, and model operations. A missing or failed binding blocks the Run. See [`references/loop-control-contract.md`](references/loop-control-contract.md).
+
 ## Verification without waste
 
 - D0: Worker local self-check; never acceptance.

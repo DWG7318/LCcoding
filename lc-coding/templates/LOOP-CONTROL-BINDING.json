@@ -1,0 +1,20 @@
+{
+  "artifact_type": "LOOP_CONTROL_BINDING",
+  "contract": {
+    "contract_id": "LCCODING_LOOP_CONTROL",
+    "contract_version": "1.0.0",
+    "contract_sha256": "<exact canonical contract SHA-256>"
+  },
+  "runtime_attestation": {
+    "runtime_owner": "LCagent_or_trusted_runtime",
+    "runtime_adapter_id": "<trusted runtime adapter identity>",
+    "attestation_root": "<current runtime control attestation root>",
+    "validated_at": "<UTC timestamp>",
+    "result": "PASS|FAIL"
+  },
+  "method_mapping": {
+    "method": "<SLK|CLK|GLK>",
+    "method_specific_progress": "<method-owned dimensions only>",
+    "method_specific_capacity": "<method-owned reservations only>"
+  }
+}
