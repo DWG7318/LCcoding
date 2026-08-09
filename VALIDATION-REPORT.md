@@ -1,27 +1,26 @@
-# LCCoding 2.5.2 Validation Report
+# LCCoding 2.6.0 Validation Report
 
 ## Result
 
-Local implementation candidate: **PASS**. Formal GitHub publication: **NOT ATTEMPTED**.
+Local source implementation candidate: **PASS**. Formal installer/Release publication: **NOT ATTEMPTED**.
 
-LCCoding 2.5.2 preserves one current-user NSIS installer contract for `lccoding-bi.exe`, a React + Vite packaged frontend, and one Rust read-only project projector. This source-level method update preserves the canonical mainline, four phases, 21 BI steps, eight protected reports, 300×480 client area, English-first/Chinese interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority. It does not claim that a new installer asset or GitHub Release exists; those remain formal-release workflow outputs.
+LCCoding 2.6.0 separates the four-phase lifecycle from cross-phase execution methods and makes Phase 3 the explicit real Product Integration phase. It preserves one current-user NSIS installer contract for `lccoding-bi.exe`, four compatible phase IDs, 21 BI steps, eight protected reports, the 300×480 client area, bilingual interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority. It does not claim that a new installer asset or GitHub Release exists; those remain formal-release workflow outputs.
 
 ## Fresh verification
 
-- `python lc-coding/tests/run_tests.py`: PASS, 32 tests.
+- Cross-phase regression: RED on the former fixed `SLK / CLK / GLK` mainline node, then PASS after lifecycle/execution separation.
+- `python lc-coding/tests/run_tests.py`: PASS, 35 tests.
 - `python lc-coding/scripts/validate_repository.py .`: PASS.
 - `python lc-coding/tests/test_release_integrity.py`: PASS; release tree and SHA-256 manifest agree.
-- `core.autocrlf=true --no-hardlinks` clone regression: PASS; `.gitattributes` keeps protected text at `i/lf w/lf attr/text=auto eol=lf`, workflow SHA-256 matches `FILE_HASHES.json`, and release-integrity passes inside the clone.
-- React `typecheck`: PASS.
+- `core.autocrlf=true --no-hardlinks` clone regression: PASS; `.gitattributes` keeps protected text at `i/lf w/lf attr/text=auto eol=lf` and release-integrity passes inside the clone.
+- React TypeScript check: PASS.
 - Vitest DOM/accessibility/refresh tests: PASS, 71/71.
-- Vite production build: PASS; production graph contains React only and no fixture selector or retired Vanilla runtime.
-- Playwright installed-Chrome visual suite: PASS, 33/33 at the fixed 300×480 viewport, including bilingual, reduced-motion, error, boundary-name, Product Baseline, and Loop Governance coverage.
-- Rust normal tests: PASS, 31/31 across binding, single-flight commands, `gix` exact-commit reads, bounded input, Loop adapters, and project projection.
-- Rust optimized tests: PASS, the same 31/31.
-- NSIS current-user packaging contract: source-validated with `embedBootstrapper`, exact safe basename `LCCoding-BI_2.5.2_x64-setup.exe`, installer SHA-256/overall-version/commit provenance requirements, and no independent BI version. A candidate build and published asset remain required before formal-release acceptance.
-- Installed-tool smoke: PASS. The installed `lccoding-bi.exe --project` ran with no source or Node/npm/Rust/Python/Git CLI path, opened a 300×480 logical client, survived refresh, and left project bytes and mtimes unchanged.
-- Uninstall smoke: PASS. Installation directory, exact user PATH entry, uninstall registration, and Start Menu shortcut were removed.
-- `git diff --check`, JSON/Markdown/version consistency, secret/path scans, and scope inspection: PASS.
+- Vite production build to an external temporary directory: PASS.
+- Rust normal tests: PASS, 32/32 across binding, single-flight commands, exact Git reads, bounded input, Loop adapters, Unicode evidence references, and project projection.
+- NSIS current-user packaging contract: source-validated with `embedBootstrapper`, exact safe basename `LCCoding-BI_2.6.0_x64-setup.exe`, installer SHA-256/overall-version/commit provenance requirements, and no independent BI version.
+- `npm audit`: one inherited indirect High finding for `nanoid <3.3.17`; dependency remediation was not part of this method-only release and remains open.
+- Not run for this source candidate: Playwright visual suite, Rust optimized tests, formal NSIS package build, installed-tool smoke, uninstall smoke, GitHub Actions, tag, or GitHub Release.
+- `git diff --check`, JSON/Markdown/version consistency, and scope inspection: PASS.
 
 ## Reproduction commands
 
@@ -106,13 +105,13 @@ $download = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-formal-download-$r
 if (Test-Path $download) { throw "choose an empty download directory" }
 gh run download $runId -R $repo --name $artifactName --dir $download
 $provenance = Get-Content (Join-Path $download "provenance.json") -Raw | ConvertFrom-Json
-$installer = Join-Path $download "LCCoding-BI_2.5.2_x64-setup.exe"
+$installer = Join-Path $download "LCCoding-BI_2.6.0_x64-setup.exe"
 $sha256 = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($provenance.commit -ne $releaseCommit -or $provenance.build_mode -ne "FORMAL_GITHUB_ACTIONS" -or $provenance.build_run_id -ne $runId -or $provenance.sha256 -ne $sha256) { throw "formal provenance failed" }
-if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding-BI_2.5.2_x64-setup.exe") { throw "formal checksum failed" }
+if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding-BI_2.6.0_x64-setup.exe") { throw "formal checksum failed" }
 ```
 
-Before creating a GitHub Release for `v2.5.2`, repeat the accepted current-user installation smoke with its workflow-produced installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
+Before creating a GitHub Release for `v2.6.0`, repeat the accepted current-user installation smoke with its workflow-produced installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
 
 ## Safety and authority
 

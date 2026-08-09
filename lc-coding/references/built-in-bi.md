@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 2.5.2
+# Built-in Project BI — LCCoding 2.6.0
 
-This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.5.2: it has no independent version, repository, tag, release, lifecycle, or authority.
+This reference is the normative implementation contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.6.0: it has no independent version, repository, tag, release, lifecycle, or authority.
 
 ## 1. Product boundary
 
@@ -11,7 +11,7 @@ This reference is the normative implementation contract for LCCoding's built-in 
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
 
-LCCoding 2.5.2 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 2.6.0 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 
@@ -73,7 +73,7 @@ The catalog is a closed `MessageKey -> { en, zh_CN }` map. Build and DOM tests r
 | `report.workflow` | Workflow | Workflow |
 | `report.ui` | UI Baseline | UI 基线 |
 | `report.baseline` | Product Baseline | 产品基线 |
-| `report.loop_governance` | Loop Governance | Loop 治理 |
+| `report.loop_governance` | Execution Method Governance | 工程方法治理 |
 | `row.conclusion` | Conclusion | 结论 |
 | `row.initial_gate` | Initial gate | 初始门禁 |
 | `row.identity` | Identity | 身份 |
@@ -153,12 +153,12 @@ The main view is one vertical, foldable sequence in this fixed order. It exposes
    - Workflow capability end / Workflow 能力端
    - UI product-surface end / UI 产品呈现端
    - phase exit `CALABASH_UPGRADE_READY` / Calabash 升级就绪门禁
-3. `ENGINEERING_RUNS` / 工程运行
+3. `ENGINEERING_RUNS` / Real Product Integration / 真实产品集成
    - Mandatory Calabash Upgrade / 强制 Calabash 升级
    - Product Baseline / 产品基线
    - Feature Slice · Execution Coverage Preflight / Feature Slice · 执行覆盖预检
    - UI-locked Integration Baseline / UI 锁定集成基线
-   - SLK / CLK / GLK Run · D0–D3 Verification / SLK / CLK / GLK Run · D0–D3 验证
+   - Real Product Integration · D0–D3 Proof / 真实产品集成 · D0–D3 证明
    - Loop Owner Acceptance / Loop Owner 验收
    - aggregate exit `ALL_REQUIRED_RUNS_ACCEPTED` / 全部必需 Run 已验收
 4. `DELIVERY_PREPARATION` / 交付准备
@@ -175,12 +175,13 @@ Only the current phase starts expanded. Folding, scrolling, and language changes
 
 ### Protected reports
 
-Exactly eight `Open` actions are available: the existing Proposal Readiness, Canonical Candidate, Calabash, Simulation World, Workflow, and UI Baseline actions, plus Product Baseline on the existing `PRODUCT_BASELINE` step and Loop Governance on the existing `LOOP_RUN_D0_D3` step. No phase or step is added. `Open` replaces the body inside the same window with a fixed, sanitized report; `Back` restores the prior phase view and scroll/fold state.
+Exactly eight `Open` actions are available: the existing Proposal Readiness, Canonical Candidate, Calabash, Simulation World, Workflow, and UI Baseline actions, plus Product Baseline on the existing `PRODUCT_BASELINE` step and Execution Method Governance on the compatibility `LOOP_RUN_D0_D3` step ID. No phase or step is added. `Open` replaces the body inside the same window with a fixed, sanitized report; `Back` restores the prior phase view and scroll/fold state.
 
 - Report titles, row labels, and row order come from a compiled catalog, never from project input.
 - Candidate may show only `LOCKED/PENDING/UNKNOWN`, `RECORDED/PENDING/UNKNOWN`, and a validated version. Repository and commit values never reach the frontend.
-- Calabash may show its validated current version when a complete Canonical Manifest supplies it. Simulation, Workflow, UI, Product Baseline, and Loop Governance have no report-header version source; their header version stays Not recorded/未记录. Component-version completeness appears only as a sanitized metric and never exposes a component version, path, commit, hash, evidence, or raw artifact.
-- Subtree and Product Baseline metrics may eventually derive only from successful 2.4.0+ Maps/Handoff mechanical validation. Loop-governance metrics may eventually derive only from one normalized summary of the canonical SLK/CLK/GLK contracts and valid receipts. The BI never copies three internal methods, writes `status.json`, judges execution, or performs wake/wait/Heartbeat/archive/pin operations.
+- Calabash may show its validated current version when a complete Canonical Manifest supplies it. Simulation, Workflow, UI, Product Baseline, and Execution Method Governance have no report-header version source; their header version stays Not recorded/未记录. Component-version completeness appears only as a sanitized metric and never exposes a component version, path, commit, hash, evidence, or raw artifact.
+- Subtree and Product Baseline metrics may eventually derive only from successful 2.4.0+ Maps/Handoff mechanical validation. Execution-method metrics may eventually derive only from normalized registered-method contracts and valid receipts. SLK/CLK/GLK are not treated as an exhaustive list. The BI never copies internal methods, writes `status.json`, judges execution, or performs wake/wait/Heartbeat/archive/pin operations.
+- The BI remains a lifecycle projection. Cross-phase method activity is phase-local evidence; it does not become a lifecycle node or automatically activate the third-phase integration step.
 - Status rows use their own semantic color. Non-state values use neutral ink, so a blocked row can never appear green because another row or the report is complete.
 - The protected-report notice states that the view cannot open project files, source, private repositories, evidence bodies, URLs, or local paths.
 
@@ -306,7 +307,7 @@ StepView   = { "id": StepId, "state": ViewState, "report": ReportId | null }
 PhaseView  = { "id": PhaseId, "state": ViewState, "steps": readonly StepView[] }
 
 Snapshot = {
-  "schema": "LCCoding 2.5.2 derived BI",
+  "schema": "LCCoding 2.6.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": Health,
@@ -346,7 +347,7 @@ No free-form object or arbitrary report row crosses IPC. Production logs contain
 - Reject a symlink, junction, reparse point, non-directory project or `.lccoding` boundary, non-regular record, dangling link, identity change, or unsupported no-follow guarantee before parsing.
 - On Windows, open and inspect the root, record directory, and record with reparse-aware handles and stable volume/file identity. On Unix, retain anchored directory descriptors for the root and `.lccoding`, traverse fixed components with `openat`, and open a record with `O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK`; `fstat` must prove a regular file before any read. This prevents a regular-file-to-FIFO/device race from blocking. Platform adapters must produce the same path-free error contract.
 - Before typed deserialization, the strict JSON layer enforces: UTF-8 only; nesting depth at most `32`; at most `16,384` total keys/values; at most `128` members per object; at most `2,048` items per array; at most `4,096` UTF-8 bytes per string; and at most `128` ASCII characters per numeric token. Duplicate keys at any depth, malformed/trailing data, non-finite/out-of-range numbers, and resource-limit excess fail closed. Current Status and Manifest schemas accept no JSON number fields.
-- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, `2.5.0`, `2.5.1`, and `2.5.2`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
+- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, `2.5.0`, `2.5.1`, `2.5.2`, and `2.6.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
@@ -414,7 +415,7 @@ The exact phase/step tuple and source precedence are:
 | `ENGINEERING_RUNS` | `PRODUCT_BASELINE` | direct normalization of `status.product_baseline` |
 | `ENGINEERING_RUNS` | `FEATURE_SLICE_EXECUTION_COVERAGE` | if aggregate is done: done; else if `active_slice` is non-null: active; else if Integration, active Run, or acceptance receipt provides a downstream fact: done; else pending |
 | `ENGINEERING_RUNS` | `UI_LOCKED_INTEGRATION_BASELINE` | valid non-null `integration_baseline`: the baseline is established/done; null: pending. This row does not claim Feature Integration implementation is complete. |
-| `ENGINEERING_RUNS` | `LOOP_RUN_D0_D3` | done aggregate: done; error aggregate: error; else non-empty `active_runs`: active; else acceptance receipt exists: done; else pending |
+| `ENGINEERING_RUNS` | `LOOP_RUN_D0_D3` | compatibility ID displayed as Real Product Integration proof; done aggregate: done; error aggregate: error; else non-empty Phase-3 integration `active_runs`: active; else applicable integration acceptance receipt exists: done; else pending. Cross-phase method activity outside Product Integration does not activate this row. |
 | `ENGINEERING_RUNS` | `LOOP_OWNER_ACCEPTANCE` | done aggregate + receipt(s): done; error aggregate: error; receipt(s) before done aggregate: active; no receipt: pending; done aggregate without receipt is a contradiction |
 | `ENGINEERING_RUNS` | `ALL_REQUIRED_RUNS_ACCEPTED` | direct normalization of top-level `status.all_required_runs_accepted`, which must equal the same-named phase gate after normalization |
 | `DELIVERY_PREPARATION` | `CENTRALIZED_VULNERABILITY_AUDIT` | direct normalization of `status.centralized_security_audit` |
@@ -424,7 +425,7 @@ The exact phase/step tuple and source precedence are:
 | `DELIVERY_PREPARATION` | `DELIVERY_METHOD_QA` | direct normalization of `status.delivery_method_qa` |
 | `DELIVERY_PREPARATION` | `DELIVERY_PACKAGE_GUARD_READY` | one combined row sourced from `status.phase_gates.DELIVERY_READY`; done means package governance issued the existing exit gate, not that post-gate Delivery occurred |
 
-The four combined rows are the only permitted consolidation. `active_slice` never independently lights Feature Slice and Preflight; `active_runs` never independently lights Run and D0–D3; `vulnerability_closure` never creates separate Re-audit and Closure facts; and `DELIVERY_READY` is not duplicated into an invented Package Guard fact. No display ID is a new lifecycle node, gate, or authoritative field. The existing `FEATURE_SLICE_EXECUTION_COVERAGE_PASS` entry Gate and per-Run `LOOP_OWNER_ACCEPTANCE_READY` Gate remain wholly governed by their existing LCCoding contracts. The BI does not read, evaluate, issue, or replace either Gate's `PASS`/`READY`; a combined row shown as done is display-only progress, never Gate evidence or a verdict.
+The four combined rows are the only permitted consolidation. `active_slice` never independently lights Feature Slice and Preflight; Phase-3 integration `active_runs` never independently lights integration work and D0–D3; `vulnerability_closure` never creates separate Re-audit and Closure facts; and `DELIVERY_READY` is not duplicated into an invented Package Guard fact. No display ID is a new lifecycle node, gate, or authoritative field. The existing `FEATURE_SLICE_EXECUTION_COVERAGE_PASS` entry Gate and per-Run `LOOP_OWNER_ACCEPTANCE_READY` Gate remain wholly governed by their existing LCCoding contracts. The BI does not read, evaluate, issue, or replace either Gate's `PASS`/`READY`; a combined row shown as done is display-only progress, never Gate evidence or a verdict.
 
 Apply validation and projection in this order:
 
@@ -485,7 +486,7 @@ Use test-first Rust coverage for:
 ### Frontend and screenshots
 
 - Vitest DOM tests cover exact DTO rejection, four-phase order, state symbol/text/color, complete English/Chinese switching, Open/Back, fold/scroll retention, Pin checking/success/initial-failure/round-trip/failure restore, refresh serialization, and the red failure view.
-- Playwright drives only the test harness with sanitized fixtures at an exact `300 × 480` viewport. Keep the accepted golden targets and focused Product Baseline/Loop Governance checks stable; production imports and bundles must contain no fixture selector or fixture dependency.
+- Playwright drives only the test harness with sanitized fixtures at an exact `300 × 480` viewport. Keep the accepted golden targets and focused Product Baseline/Execution Method Governance checks stable; production imports and bundles must contain no fixture selector or fixture dependency.
 - For stable normal-motion screenshots, first assert the live spinner's duration, iteration, and state semantics, then pause it at a fixed 25% frame through test-only CSS. Reduced-motion captures use the real media preference and contain no animation.
 - Visual verification includes typography, maximum-name wrapping, internal overflow, the complete error projection, focus visibility, all four state treatments, all eight Open actions, protected notice, and absence of outer growth.
 - Owner visual acceptance remains required for any visual-contract change. It uses the Owner's existing acceptance authority and is not a new LCCoding phase, gate, status, or lower-method handoff. Screenshot similarity alone does not satisfy the checkpoint.
@@ -505,14 +506,14 @@ The verified development tool baseline is Rust/Cargo 1.96.0, Node 24.13.1, and n
 
 The sequences below are dependency-ordered component checkpoints only. They are not LCCoding lifecycle phases, gates, Runs, or lower-method work decomposition and do not choose or redefine SLK/CLK/GLK execution internals.
 
-### LCCoding 2.5.2 one-click sequence
+### LCCoding 2.6.0 one-click sequence
 
 1. Replace the production Vanilla runtime with React + Vite at accepted functional, accessibility, and screenshot parity; keep fixtures test-only.
 2. Implement the typed Rust reader, strict canonical-record adapters, truth validation, `gix` frozen-identity checks, sanitization, and Snapshot projection before exposing data to the webview.
 3. Bind CLI and native Picker through one immutable root validator; expose only the five-command ACL and no-argument single-flight `get_snapshot`.
-4. Build the current-user NSIS package with embedded WebView2 bootstrapper, `lccoding-bi.exe`, user PATH integration, checksum, and commit/version provenance. The release surface uses the exact GitHub-safe basename `LCCoding-BI_2.5.2_x64-setup.exe`; the downloaded basename, provenance asset, checksum basename, and workflow upload path must match it exactly.
+4. Build the current-user NSIS package with embedded WebView2 bootstrapper, `lccoding-bi.exe`, user PATH integration, checksum, and commit/version provenance. The release surface uses the exact GitHub-safe basename `LCCoding-BI_2.6.0_x64-setup.exe`; the downloaded basename, provenance asset, checksum basename, and workflow upload path must match it exactly.
 5. Verify clean install, Picker/CLI binding, real projection, refresh/recovery, reports, Pin/language, source-free execution, project bytes/mtime immutability, and exact uninstall cleanup.
-6. Update the overall LCCoding carriers atomically to `2.5.2`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
+6. Update the overall LCCoding carriers atomically to `2.6.0`. Release remains blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are formally published and their canonical contract identities mechanically match the adapters.
 
 Formal packaging resolves each method's canonical GitHub `main`, version tag (including annotated-tag peeling), and published non-draft/non-prerelease GitHub Release; all three must resolve to the recorded commit. It then downloads the exact Manifest, schema, and template bytes at that commit and matches all six version/commit and nine SHA-256 facts. No environment variable or operator assertion may substitute for this check. Formal provenance also binds the exact GitHub Actions workflow, run ID/attempt, repository, ref, source commit, and Rust target triple. Explicit local candidate packaging remains permitted only with `LOCAL_BLOCKED_CANDIDATE` and `BLOCKED_CANDIDATE_IDENTITIES` provenance.
 

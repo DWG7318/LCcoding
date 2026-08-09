@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.6.0
+
+### Cross-phase execution methods and real Product Integration
+
+- Removed SLK/CLK/GLK from the canonical mainline as a fixed lifecycle node.
+- Defined lifecycle and execution as orthogonal axes: any bounded work item in any of the four phases may select SLK, CLK, GLK, or another registered method, while one Run still uses one execution topology.
+- Reaffirmed Phase 3 as real Product Integration: Workflow, UI, and Simulation are built separately in Product Formation, then tightly connected through real API/MCP-backed capability, real state/data/side effects, visible UI results, and integration/end-to-end proof.
+- Added phase scope, phase-owned objective, phase authority, and evidence-return fields to existing Run/Loop Owner Acceptance carriers. Method completion never advances a phase by itself.
+- Kept `ENGINEERING_RUNS` and `ALL_REQUIRED_RUNS_ACCEPTED` as compatibility identifiers, scoped to required Phase-3 integration work rather than all method invocations across the project.
+- Updated the read-only BI display to show Product Integration and Execution Method Governance without adding a phase, control action, runtime state, or independent BI version.
+
 ## 2.5.2
 
 ### Owner-controlled UI lock and real third-phase integration

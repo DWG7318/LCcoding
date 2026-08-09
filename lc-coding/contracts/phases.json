@@ -1,5 +1,5 @@
 {
-  "version": "2.5.2",
+  "version": "2.6.0",
   "mainline_unchanged": true,
   "phases": [
     {
@@ -17,6 +17,7 @@
     },
     {
       "id": "ENGINEERING_RUNS",
+      "display_meaning": "REAL_PRODUCT_INTEGRATION",
       "start": "MANDATORY_CALABASH_UPGRADE",
       "repeatable": true,
       "entry_gate": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS",
@@ -24,6 +25,7 @@
       "per_run_exit_gate": "LOOP_OWNER_ACCEPTANCE_READY",
       "per_run_acceptance_receipt": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
       "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED",
+      "aggregate_exit_scope": "REQUIRED_PHASE_3_INTEGRATION_WORK",
       "aggregate_blocker": "OPEN_BLOCKING_OWNER_GAP"
     },
     {
@@ -41,5 +43,16 @@
       ],
       "exit_gate": "DELIVERY_READY"
     }
-  ]
+  ],
+  "execution_methods": {
+    "available_in_all_phases": true,
+    "phase_ids": [
+      "INITIAL",
+      "PRODUCT_FORMATION",
+      "ENGINEERING_RUNS",
+      "DELIVERY_PREPARATION"
+    ],
+    "selection_scope": "PER_RUN",
+    "method_completion_advances_phase": false
+  }
 }

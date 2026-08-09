@@ -1,13 +1,16 @@
 # Loop Run Owner Acceptance Packet
 
 - Run ID:
-- Feature Slice ID / version:
+- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / ENGINEERING_RUNS / DELIVERY_PREPARATION
+- Phase-owned objective:
+- Calling phase authority / contract:
+- Feature Slice ID / version (when applicable):
 - Owner Gap IDs (correction Run only):
 - Run Scope:
 - Run Feature:
-- Selected method: SLK / CLK / GLK
+- Selected execution method: SLK / CLK / GLK / other registered method
 - Candidate ID / hash:
-- Product Baseline / Integration Baseline:
+- Product Baseline / Integration Baseline (when applicable):
 - Scenario IDs:
 - D3 receipt:
 - Delta re-verification / re-acceptance route:
@@ -18,3 +21,5 @@
 - Known limits:
 - Status: PENDING / LOOP_OWNER_ACCEPTANCE_READY / BLOCKED
 - Owner result: LOOP_OWNER_ACCEPTED / LOOP_PRODUCT_REWORK / LOOP_PRODUCT_DEFINITION_CHANGE / LOOP_OWNER_DEFERRED
+- Evidence return target in the calling phase:
+- Phase gate evaluation remains owned by the calling phase: YES

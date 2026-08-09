@@ -1,9 +1,9 @@
 ---
 name: lc-coding
-description: Use when an Owner wants AI to develop or admit an existing enterprise product through Proposal Readiness, new/existing Project Initialization, Calabash Draft, Simulation-first Workflow/UI product formation, Mandatory Calabash Upgrade, Product Baseline, Feature Slice, UI-locked Integration, SLK/CLK/GLK execution with incremental Loop Owner Acceptance, centralized independent vulnerability closure, Post-Security Owner Acceptance, and protected customer-specific Delivery.
+description: Use when an Owner wants AI to develop or admit an existing enterprise product through four lifecycle phases while selecting SLK, CLK, GLK, or another suitable execution method per bounded work item in any phase.
 ---
 
-# LCCoding 2.5.2
+# LCCoding 2.6.0
 
 ## Canonical mainline
 
@@ -16,8 +16,7 @@ Owner Proposal
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
-→ UI-locked Feature Integration
-→ SLK / CLK / GLK
+→ UI-locked Real Product Integration
 → Independent layered Verification
 → Owner Acceptance
 → Delivery
@@ -25,17 +24,21 @@ Owner Proposal
 
 Operational meaning:
 
-- every normal Loop Run includes D0–D3 and its own Loop Owner Acceptance;
-- after all required Runs are accepted, Independent Verification performs one centralized vulnerability audit and remediation closure;
+- the lifecycle axis defines what product condition each phase must establish;
+- the execution-method axis defines how a bounded item of work is organized in any LCCoding phase;
+- every selected Loop Run includes D0–D3 and its own Loop Owner Acceptance, then returns evidence to its calling phase;
+- after all required third-phase integration work is accepted, Independent Verification performs one centralized vulnerability audit and remediation closure;
 - the mainline Owner Acceptance is Post-Security Owner Acceptance;
 - Delivery begins only after customer-specific Q&A.
 
 ## Phase overlay
 
 - `INITIAL`: through Project Initialization; exit `INITIAL_READY` before Calabash Draft.
-- `PRODUCT_FORMATION`: Calabash Draft through Workflow/UI/Simulation; exit `CALABASH_UPGRADE_READY`.
-- `ENGINEERING_RUNS`: repeat one Run at a time through D3; exit each Run at `LOOP_OWNER_ACCEPTANCE_READY`; aggregate exit `ALL_REQUIRED_RUNS_ACCEPTED`.
+- `PRODUCT_FORMATION`: Calabash Draft through separately runnable Workflow, UI, and Simulation product ends; exit `CALABASH_UPGRADE_READY`.
+- `ENGINEERING_RUNS`: the real product integration phase; connect Workflow, UI, and Simulation through real API/MCP-backed capability and end-to-end proof. The compatibility aggregate exit is `ALL_REQUIRED_RUNS_ACCEPTED` for required Phase-3 integration work.
 - `DELIVERY_PREPARATION`: centralized vulnerability audit/remediation/re-audit, Post-Security Owner Acceptance, Delivery Method Q&A, and package governance; exit `DELIVERY_READY`.
+
+SLK, CLK, GLK, and other registered execution methods may be used in any LCCoding phase. They are not lifecycle nodes.
 
 ## Principle Zero
 
@@ -62,9 +65,9 @@ Use one project Git/GitHub repository by default. Do not pre-create empty UI, Wo
 - Keep takeover inside Project Initialization. Output only `READY`, `BLOCKED`, or `NOT_CONTINUING`; do not enter engineering until repository/version/candidate, historical materials, evidence, product mainline, and blockers support the result.
 - Treat Project Health as assessment evidence and `PHASE-STATUS.json` as a derived view of authoritative `status.json`. Persist method facts only, never runtime/session/Agent state.
 
-## Fixed mainline, proportional depth
+## Fixed lifecycle, proportional depth
 
-Keep every mandatory mainline node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Record `UNKNOWN` as unresolved, require depth assessment plus conservative rationale and coverage, and do not treat it as a sufficient final judgment or all-low work. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology only.
+Keep every mandatory lifecycle node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Record `UNKNOWN` as unresolved, require depth assessment plus conservative rationale and coverage, and do not treat it as a sufficient final judgment or all-low work. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology for one bounded Run only.
 
 ## Product formation
 
@@ -80,7 +83,7 @@ Keep every mandatory mainline node. Use Project Fingerprint product uncertainty,
 
 Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance. Start from the Owner-confirmed Primary product mainline unless impact evidence selects another governed route. Identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. Pin the applicable UI subtree to the total-project exact commit/path/component version/content hash. Because the Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and visible results more completely, it may supplement, adjust, or improve Workflow under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules. In Engineering Runs, each Slice proves a real UI operation through an API/MCP-backed Workflow capability to real state, data, or side effect and back to a visible UI result. Its applicable Simulation scenario traces the same capability, state, and exception behavior; Simulation need not be the production backend. Static UI, mock, stub, or manually staged state is Product Formation evidence only and cannot prove third-phase integration, delivery readiness, or D0-D3 acceptance. Update only the affected connected layers and their evidence; do not mechanically alter unrelated layers.
 
-Before selecting a Loop Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It must include the total project repository/full exact baseline commit, applicable UI subtree ID/path/component version/content hash and scope, Product/Integration identity `MATCH`, Slice/Run-start `MATCH`, and a required before-acceptance comparison route. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs.
+Before selecting a Product Integration Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It must include the total project repository/full exact baseline commit, applicable UI subtree ID/path/component version/content hash and scope, Product/Integration identity `MATCH`, Slice/Run-start `MATCH`, and a required before-acceptance comparison route. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs. This preflight is not a universal prerequisite for method use in `INITIAL`, `PRODUCT_FORMATION`, or `DELIVERY_PREPARATION`; those phases supply their own authoritative contracts.
 
 If cross-layer wiring is unproven, make the first Required Run a thin production-quality E2E proving path. Halt expansion when it fails. Reuse sufficient existing proof instead of manufacturing a new Run.
 
@@ -97,13 +100,18 @@ The UI lock applies to the applicable UI logical subtree in the total project re
 
 Compare current UI subtree to the locked project commit and hash before a Slice/Run and before acceptance. A difference without Owner initiation or approval evidence blocks progress or acceptance; preserve its evidence and isolate it without changing the authoritative UI. Never silently overwrite user material or automatically restore UI. An Owner-initiated or Owner-approved change is legal through the existing Baseline Change Request, which records its authority, necessity, distinct total-project commit, matching affected UI subtree component version/hash updates in Product and Integration Baselines, and affected evidence re-verification. Logical subtree means an in-repository product path, not Git's external-repository subtree mechanism.
 
-## Loop selection
+## Cross-phase execution-method axis
+
+Any bounded work item in any LCCoding phase may select an execution method. Record the current phase, phase-owned objective, authoritative phase contract, Run scope, evidence return target, and acceptance conditions. The calling phase owns meaning and its phase gate; the selected method owns only its bounded execution topology and evidence production.
 
 - SLK for one serial stream.
 - CLK for fixed Chains and ordered Stages/full barriers.
 - GLK for a real GO-to-GO graph.
+- another registered execution method when its contract fits the work better.
 
-Use one method per Run. Each Run has a fresh Run Supervisor, Run Scope, and Run Feature.
+SLK, CLK, and GLK are not an exhaustive method list. Another registered method is eligible only when its evidence and acceptance interface satisfies the calling LCCoding work contract. Use one method per Run. Separate Runs may use different methods in the same or different phases. Each Run has a fresh Run Supervisor, Run Scope, and Run Feature.
+
+Completing or accepting a Run does not advance a phase. It returns evidence to the calling phase, which evaluates its own gate with all required evidence. Product Baseline, Feature Slice, and Integration Baseline inputs are mandatory for third-phase Product Integration work where applicable, not for unrelated earlier or later phase work.
 
 Every selected Loop also binds the one versioned `LCCODING_LOOP_CONTROL` contract. It standardizes cross-Loop Worker wake, Supervisor no-wait, Patrol, actual-subagent/Pin prohibitions, progress ownership, capacity, and model policy without becoming a fourth Loop method or a runtime. LCCoding defines the policy; LCagent or another trusted runtime performs thread, wait, heartbeat, and model operations. A missing or failed binding blocks the Run. See [`references/loop-control-contract.md`](references/loop-control-contract.md).
 
@@ -167,7 +175,7 @@ Ubuntu remains the preferred recommendation where suitable. Docker is not requir
 
 Use the built-in BI only as a read-only Owner-visible projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports. The compact Windows window starts in English, can switch to Chinese, and may Pin only its own native always-on-top state.
 
-The 2.5.2 desktop release keeps the existing Product Baseline and Loop Governance Open relations without adding lifecycle nodes. Project-subtree and published lower-method governance facts may appear only as strict sanitized metrics with `UNKNOWN`/`NOT_RECORDED` for absent evidence. Never infer `7/7`, progress, versions, API/MCP coverage, Heartbeat interval, or compliance from missing data.
+The 2.6.0 desktop release keeps the existing Product Baseline and Execution Method Governance Open relations without adding lifecycle nodes. Project-subtree and published lower-method governance facts may appear only as strict sanitized metrics with `UNKNOWN`/`NOT_RECORDED` for absent evidence. Never infer `7/7`, progress, versions, API/MCP coverage, Heartbeat interval, or compliance from missing data.
 
 Install the unified current-user BI once; projects contain no BI source or toolchain. CLI `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust-owned immutable binding. The adapter may read only the closed canonical record allowlist and formally published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 contracts, then emit only the sanitized Snapshot through no-argument `get_snapshot`. Never expose project paths or raw identities/evidence to the webview. The BI does not write project files, control Agent/runtime behavior, or become a second status authority; `status.json` remains authoritative.
 

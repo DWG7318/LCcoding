@@ -1,10 +1,10 @@
-# LCCoding Standard Specification 2.5.2
+# LCCoding Standard Specification 2.6.0
 
 ## 1. Scope
 
-LCCoding governs an Owner-led, AI-executed enterprise product-development lifecycle. It coordinates proposal readiness, project initialization, Calabash evolution, Workflow/UI dual-end design, Simulation, Feature Integration, Loop Engineering, Verification, Owner Acceptance, and protected Delivery.
+LCCoding governs an Owner-led, AI-executed enterprise product-development lifecycle. It coordinates proposal readiness, project initialization, Calabash evolution, Workflow/UI dual-end design, Simulation, real Product Integration, Verification, Owner Acceptance, and protected Delivery. Execution methods are a separate cross-phase axis.
 
-This specification does not redefine the internal rules of Calabash, SLK, CLK, or GLK. It defines their place, inputs, outputs, and handoff conditions inside LCCoding.
+This specification does not redefine the internal rules of Calabash, SLK, CLK, or GLK. It defines how a bounded work item in any phase selects a method, supplies phase-appropriate authority, and returns evidence to the calling phase.
 
 LCCoding remains portable across Agent platforms. Runtime, session control, and Agent execution kernels are outside its method responsibility.
 
@@ -19,8 +19,7 @@ Owner Proposal
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
-→ UI-locked Feature Integration
-→ Loop Engineering
+→ UI-locked Real Product Integration
 → Layered Verification
 → Owner Acceptance
 → Delivery
@@ -28,8 +27,9 @@ Owner Proposal
 
 The operational binding is:
 
-- every normal Loop Run contains D0–D3 and incremental Loop Owner Acceptance;
-- after all required normal Runs are accepted, Layered Verification performs centralized independent vulnerability audit, remediation, re-audit, and closure;
+- the lifecycle axis defines what each phase must establish, while the execution-method axis defines how bounded work is performed;
+- every selected Loop Run contains D0–D3 and incremental Loop Owner Acceptance and returns evidence to its calling phase;
+- after all required third-phase integration work is accepted, Layered Verification performs centralized independent vulnerability audit, remediation, re-audit, and closure;
 - the mainline Owner Acceptance is Post-Security Owner Acceptance;
 - Delivery starts with customer-specific Delivery Method Q&A.
 
@@ -42,11 +42,13 @@ The mainline is grouped into four phases. Phases are navigation and exit-gate bo
 | Phase | Included mainline work | Exit gate | Next boundary |
 |---|---|---|---|
 | `INITIAL` | Proposal Readiness and Project Initialization | `INITIAL_READY` | Calabash Draft may begin |
-| `PRODUCT_FORMATION` | Calabash Draft, Workflow, UI, Simulation World | `CALABASH_UPGRADE_READY` | Mandatory Calabash Upgrade may begin |
-| `ENGINEERING_RUNS` | Mandatory Upgrade, Product Baseline, Feature Slice, Integration, one normal Loop Run through D3 | per Run: `LOOP_OWNER_ACCEPTANCE_READY`; aggregate: `ALL_REQUIRED_RUNS_ACCEPTED` | Owner accepts each Run incrementally; repeat until all required Runs are accepted |
+| `PRODUCT_FORMATION` | Calabash Draft; Workflow, UI, and Simulation are built separately as runnable product ends with semantic/scenario coordination | `CALABASH_UPGRADE_READY` | Mandatory Calabash Upgrade may begin |
+| `ENGINEERING_RUNS` | Real Product Integration: connect Workflow, UI, and Simulation through real API/MCP capability, state/data/side effects, visible UI results, and integration/end-to-end proof | per Run: `LOOP_OWNER_ACCEPTANCE_READY`; compatibility aggregate: `ALL_REQUIRED_RUNS_ACCEPTED` for required Phase-3 integration work | Continue until every required integration claim is accepted |
 | `DELIVERY_PREPARATION` | Centralized vulnerability audit/remediation/re-audit, Post-Security Owner Acceptance, Delivery Method Q&A, runtime/license/package checks | `DELIVERY_READY` | Delivery may occur |
 
 A phase exit gate must reference the same canonical artifacts already produced by the mainline; it must not copy or redefine them.
+
+SLK, CLK, GLK, and other registered execution methods may be selected in every phase. Method completion is evidence, not automatic phase advancement.
 
 ### 2.2 Fixed coverage, proportional depth
 
@@ -58,7 +60,7 @@ All mandatory mainline nodes remain. Their analysis, material, and evidence dept
 - irreversibility;
 - novelty.
 
-`Project Fingerprint.complexity` records these factors and the resulting depth rationale and coverage. `UNKNOWN` is an allowed unresolved intake state, not a sufficient final depth judgment: it requires depth assessment, a rationale, and explicit deeper analysis, material, or evidence until resolved. Existing sufficient evidence must be cited and reused. All-low work may be concise; any other resolved factor requires a rationale, and any high factor requires explicit deeper coverage. Adjusting depth never deletes a node, weakens an authority boundary, or permits an empty completion artifact. `recommended_loop` remains independent and selects execution topology only.
+`Project Fingerprint.complexity` records these factors and the resulting depth rationale and coverage. `UNKNOWN` is an allowed unresolved intake state, not a sufficient final depth judgment: it requires depth assessment, a rationale, and explicit deeper analysis, material, or evidence until resolved. Existing sufficient evidence must be cited and reused. All-low work may be concise; any other resolved factor requires a rationale, and any high factor requires explicit deeper coverage. Adjusting depth never deletes a node, weakens an authority boundary, or permits an empty completion artifact. `recommended_loop` is an advisory topology hint for the current bounded work, not a project-global selection; the authoritative choice is recorded per Run.
 
 ## 3. Owner and AI authority
 
@@ -86,7 +88,7 @@ AI performs:
 - Workflow/UI/Simulation construction and synchronization;
 - impact and reuse analysis;
 - Feature Slice planning;
-- Loop selection and engineering execution;
+- per-work-item execution-method selection and engineering execution in any phase;
 - debugging, verification, evidence management, and deterministic synchronization;
 - acceptance preparation and delivery packaging.
 
@@ -304,19 +306,24 @@ Product learning may be blank. Return it only when it changes a future decision,
 
 Shared-capability search is performed once per Slice/Run and repeated only when dependency scope changes.
 
-## 12. Loop Engineering
+## 12. Cross-Phase Execution Methods
 
-A Feature Slice may use one or more Loop Runs. Every Run has a fresh Run Supervisor and defines its own Run Scope and Run Feature.
+Any bounded work item in `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, or `DELIVERY_PREPARATION` may use one or more Runs. Every Run has a fresh Run Supervisor and defines its LCCoding phase scope, phase-owned objective, authoritative phase contract, Run Scope, Run Feature, evidence return target, and acceptance conditions.
+
+Workflow, UI, and Simulation are built separately during Product Formation, even though Owner meaning, Calabash, and shared scenarios create limited coordination. Their tight connection and integration testing belong to the real product integration phase.
 
 LCCoding selects the lightest truthful method:
 
 - **SLK**: one coherent serial execution stream;
 - **CLK**: fixed Chains with ordered Stages and full synchronization barriers;
 - **GLK**: a real GO-to-GO execution graph with free dependency structure.
+- **another registered execution method** when its contract fits the bounded work better.
 
-Selection is reassessed only when evidence proves the current topology invalid. LCCoding does not run several Loop methods inside one Run or duplicate their internal governance.
+SLK, CLK, and GLK are important but not exhaustive. Another registered method is eligible only when it supplies a compatible evidence and acceptance interface for the calling LCCoding work contract. Selection is reassessed only when evidence proves the current topology invalid. LCCoding does not run several Loop methods inside one Run or duplicate their internal governance. Separate Runs may select different methods.
 
-LCCoding hands the selected Loop only the ready Slice, candidate/baseline, Required Run scope, proportional-depth response, scenarios, verification/acceptance conditions, and any Owner gap IDs. The selected Loop exclusively owns GO/CELL, Chain/Stage/graph, task, retry, and execution topology details.
+The calling phase owns the phase-owned objective, product meaning, required outcome, acceptance boundary, and phase gate. It hands the selected method only phase-appropriate frozen authority and inputs. Before Product Baseline this may be Owner statements, Proposal Readiness, Project Initialization, Calabash Draft, scenarios, or one product-end contract. Product Integration supplies the ready Slice, candidate/baseline, Integration identity, Required Run scope, and related conditions. Delivery Preparation supplies the accepted candidate, security finding, delivery decision, or package contract. The selected method exclusively owns GO/CELL, Chain/Stage/graph, task, retry, and execution topology details.
+
+The method returns evidence to the calling phase. Completing or accepting a Run does not advance a phase; the phase gate advances only after all of its own required conditions are proved.
 
 ## 13. Verification architecture
 
@@ -522,8 +529,8 @@ Friction reduction also requires reuse of sufficient evidence and proportional d
 
 LCCoding may ship a built-in, read-only BI projection as an Owner-visible cognition surface. It must preserve the canonical four-phase identifiers and may show fine-grained milestones, states, artifacts, and protected subreports without becoming a second status authority.
 
-The 2.5.2 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
+The 2.6.0 desktop surface keeps the compact standalone Windows window, 300×480 logical content baseline, English-first text, complete Chinese switch, and native Pin control. Pin may change only the actual window's always-on-top state and must confirm the host result. One current-user installation serves every project; projects contain no BI source or Node/Rust/Python build dependency.
 
-The projection keeps the protected Product Baseline report on the existing `PRODUCT_BASELINE` step and the protected Loop Governance report on the existing `LOOP_RUN_D0_D3` step. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
+The projection keeps the protected Product Baseline report on the existing `PRODUCT_BASELINE` step and the protected Execution Method Governance report on the compatibility `LOOP_RUN_D0_D3` step ID. That step is displayed as Real Product Integration proof; it does not place execution methods exclusively in Phase 3. Simulation, Workflow, and UI reports expose only sanitized plural-subtree and interface-completeness metrics. No phase, step, Gate, status field, lower-method authority, or control action is added.
 
 CLI `lccoding-bi.exe --project <root>` and the native Folder Picker use one Rust-owned root validation and immutable one-project binding. The read-only Rust adapter consumes only the canonical allowlist, validates published Loop contracts, and serializes a strict Snapshot that excludes paths, commit/hash/evidence bodies, raw errors, and thread identifiers. `get_snapshot` takes no path argument, refreshes are single-flight, and invalid or missing evidence fails closed to fixed errors, `UNKNOWN`, or `NOT_RECORDED`. The BI never writes project data or becomes a second authority; `status.json` remains authoritative.

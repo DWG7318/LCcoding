@@ -1,6 +1,6 @@
 {
   "lccoding": {
-    "version": "2.5.2",
+    "version": "2.6.0",
     "hash": ""
   },
   "calabash": {
@@ -24,7 +24,7 @@
     "LCCoding",
     "Project Agent Rule",
     "Calabash",
-    "Selected Loop",
+    "Per-Run Execution Method",
     "Project Artifacts",
     "Repository"
   ]

@@ -9,7 +9,7 @@ It must include:
 - Git/version rules;
 - canonical load and interpretation rules;
 - required skills and capability manifest;
-- Loop selection and no-mixing rules;
+- per-Run execution-method selection in any phase and one-topology-per-Run rules;
 - Verification evidence reuse;
 - Owner escalation boundary;
 - delivery exclusions.

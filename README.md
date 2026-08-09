@@ -1,4 +1,4 @@
-# LCCoding 2.5.2
+# LCCoding 2.6.0
 
 **Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.**
 
@@ -12,8 +12,7 @@ Proposal Readiness
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
-→ UI-locked Integration
-→ SLK / CLK / GLK
+→ UI-locked Real Product Integration
 → Independent layered Verification
 → Owner Acceptance
 → Delivery
@@ -22,12 +21,14 @@ Proposal Readiness
 
 Operational binding:
 
-- every normal Loop Run contains `D0–D3 → Loop Owner Acceptance`;
-- after all required normal Runs are accepted, `Independent layered Verification` contains the centralized independent vulnerability audit, remediation, re-audit, and closure;
+- LCCoding's lifecycle axis defines what each phase must establish;
+- its execution-method axis lets any bounded work item in any phase select SLK, CLK, GLK, or another suitable method;
+- every selected Loop Run contains `D0–D3 → Loop Owner Acceptance` and returns evidence to its calling phase;
+- after all required third-phase integration work is accepted, `Independent layered Verification` contains the centralized independent vulnerability audit, remediation, re-audit, and closure;
 - the mainline `Owner Acceptance` is the distinct Post-Security Owner Acceptance;
 - Delivery begins with customer-specific Delivery Method Q&A.
 
-The mainline has not been replaced. Loop Owner Acceptance remains inside SLK, CLK, and GLK so the Owner accepts small completed Runs as work advances. The later Post-Security Owner Acceptance is a distinct, focused acceptance of the security-remediated delivery candidate.
+SLK, CLK, and GLK are no longer a fixed mainline node and are not an exhaustive method list. They remain available across all four phases. One Run uses one execution topology; separate Runs may choose different methods. Completing a Run supplies evidence but never advances a phase by itself. The later Post-Security Owner Acceptance remains a distinct, focused acceptance of the security-remediated delivery candidate.
 
 ## Personal origin, adaptable use, and contribution
 
@@ -45,7 +46,7 @@ Takeover stays inside Project Initialization and ends as `READY`, `BLOCKED`, or 
 
 ## Fixed mainline, proportional depth
 
-Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. `UNKNOWN` is a recorded pending state that requires assessment and conservative deeper coverage; it is never treated as all-low or a sufficient final judgment. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` remains topology-only.
+Every mandatory node remains. Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty govern analysis, material, and evidence depth. `UNKNOWN` is a recorded pending state that requires assessment and conservative deeper coverage; it is never treated as all-low or a sufficient final judgment. Sufficient evidence is reused; simple work may be concise, while high-risk work must deepen. `recommended_loop` is only an advisory topology hint for the current bounded work, never a project-global method lock.
 
 ## Simulation-first product formation
 
@@ -57,13 +58,15 @@ One project Git/GitHub repository contains multiple UI, Workflow, and Simulation
 
 ## Built-in BI and Windows desktop
 
-LCCoding 2.5.2 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
+LCCoding 2.6.0 ships one reusable, current-user Windows BI installer. The Tauri 2 + React application keeps the accepted standalone 300×480 window, four phases, 21 steps, eight protected reports, English-first/Chinese interface, Pin, Refresh, and visual language. Projects install no BI source or toolchain: launch `lccoding-bi.exe --project <root>` or bind a folder through the native picker.
 
 The Rust adapter binds one immutable canonical project root, reads only the closed LCCoding and published Loop contract allowlist, and sends the webview a sanitized Snapshot with no path, repository, commit, hash, evidence body, raw error, or thread identifier. `status.json` remains the sole authority; the BI never writes the project or controls Agent/runtime behavior. Missing facts display as Unknown or Not recorded. Formal Release is blocked until SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 are each published on their canonical main/tag/Release. See [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md).
 
-## Slice execution and Owner gaps
+## Cross-phase execution methods and Owner gaps
 
-A Feature Slice enters SLK/CLK/GLK only after product-level Execution Coverage Preflight passes. Unproven cross-layer wiring requires a thin production-quality first proving Run or cited sufficient evidence; its failure halts expansion. LCCoding defines admission and handoff, while the selected Loop retains all GO/CELL internals.
+Any bounded work item in `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, or `DELIVERY_PREPARATION` may select SLK, CLK, GLK, or another registered execution method. Each Run records its phase scope and phase-owned objective. The calling phase owns meaning, acceptance, and its gate; the method owns Run/GO/CELL execution and returns evidence to that phase.
+
+Product Integration Runs still require product-level Execution Coverage Preflight. Unproven cross-layer wiring requires a thin production-quality first proving Run or cited sufficient evidence; its failure halts expansion. This Product Integration requirement is not a universal precondition for method use in the other phases.
 
 Owner rework, definition changes, and deferrals receive stable gap IDs. A blocking gap stays open through Impact Analysis or Calabash routing, correction Run, affected D0–D3, delta re-verification, and Owner re-acceptance. The canonical status indexes open gaps and evidence pointers without becoming a gap archive.
 
@@ -83,8 +86,8 @@ INITIAL
 ```
 
 - `INITIAL` ends before Calabash Draft.
-- `PRODUCT_FORMATION` ends before Mandatory Calabash Upgrade.
-- `ENGINEERING_RUNS` repeats one Run at a time and exits each Run at Loop Owner Acceptance.
+- `PRODUCT_FORMATION` builds Workflow, UI, and Simulation separately as runnable product ends and ends before Mandatory Calabash Upgrade.
+- `ENGINEERING_RUNS` is the real Product Integration phase: it tightly connects Workflow, UI, and Simulation and proves the integrated product end to end. The stable ID remains for compatibility; it does not reserve engineering methods for this phase.
 - `DELIVERY_PREPARATION` starts after all required normal Runs are Owner-accepted, then performs one centralized independent security audit, remediation, re-audit, Post-Security Owner Acceptance, Delivery Method Q&A, and packaging governance.
 
 ## Security independence

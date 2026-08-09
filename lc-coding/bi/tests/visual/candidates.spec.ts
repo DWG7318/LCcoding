@@ -326,7 +326,7 @@ for (const candidate of VISUAL_CASES) {
   });
 }
 
-test("2.5.2 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
+test("2.6.0 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
   await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
   await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);
@@ -341,7 +341,7 @@ test("2.5.2 protected reports stay inside the fixed scrollable client area", asy
 
   await page.locator(".language-button").click();
   await page.locator('[data-step-id="LOOP_RUN_D0_D3"] .open-report').click();
-  await expect(page.locator(".report-heading")).toHaveText("Loop 治理");
+  await expect(page.locator(".report-heading")).toHaveText("工程方法治理");
   await expect(page.locator(".report-row")).toHaveCount(7);
   await expect(page.locator(".app-body")).toHaveCSS("overflow-y", "auto");
   await assertFixedViewport(page);

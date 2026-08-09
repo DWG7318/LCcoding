@@ -1124,7 +1124,7 @@ pub fn snapshot_from_status(
     };
 
     Ok(Snapshot {
-        schema: "LCCoding 2.5.2 derived BI",
+        schema: "LCCoding 2.6.0 derived BI",
         authoritative: false,
         read_only: true,
         health: "ok",

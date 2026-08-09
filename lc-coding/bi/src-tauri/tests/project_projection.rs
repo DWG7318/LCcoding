@@ -135,7 +135,7 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
         1,
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
-    let unsupported = valid.replace("\"2.5.2\"", "\"2.3.0\"");
+    let unsupported = valid.replace("\"2.6.0\"", "\"2.3.0\"");
 
     for malformed in [duplicate, unknown, unsafe_name] {
         let error = parse_status(&malformed).unwrap_err();
@@ -214,7 +214,7 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replace("\"2.5.2\"", "\"2.4.1\"");
+    let mismatched = manifest_text.replace("\"2.6.0\"", "\"2.4.1\"");
     let manifest = parse_manifest(&mismatched).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))

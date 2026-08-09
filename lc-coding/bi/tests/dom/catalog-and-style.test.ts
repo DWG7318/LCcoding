@@ -81,7 +81,10 @@ const EXPECTED_CATALOG = {
   "report.workflow": { en: "Workflow", zh_CN: "Workflow" },
   "report.ui": { en: "UI Baseline", zh_CN: "UI 基线" },
   "report.baseline": { en: "Product Baseline", zh_CN: "产品基线" },
-  "report.loop_governance": { en: "Loop Governance", zh_CN: "Loop 治理" },
+  "report.loop_governance": {
+    en: "Execution Method Governance",
+    zh_CN: "工程方法治理",
+  },
   "row.conclusion": { en: "Conclusion", zh_CN: "结论" },
   "row.initial_gate": { en: "Initial gate", zh_CN: "初始门禁" },
   "row.identity": { en: "Identity", zh_CN: "身份" },
@@ -117,7 +120,7 @@ const EXPECTED_CATALOG = {
   "metric.not_recorded": { en: "Not recorded", zh_CN: "未记录" },
   "phase.INITIAL": { en: "INITIAL", zh_CN: "初始" },
   "phase.PRODUCT_FORMATION": { en: "PRODUCT_FORMATION", zh_CN: "产品形成" },
-  "phase.ENGINEERING_RUNS": { en: "ENGINEERING_RUNS", zh_CN: "工程运行" },
+  "phase.ENGINEERING_RUNS": { en: "PRODUCT_INTEGRATION", zh_CN: "真实产品集成" },
   "phase.DELIVERY_PREPARATION": { en: "DELIVERY_PREPARATION", zh_CN: "交付准备" },
   "step.PROPOSAL_READINESS": { en: "Proposal Readiness", zh_CN: "提案就绪" },
   "step.PROJECT_INITIALIZATION": { en: "Project Initialization", zh_CN: "工程初始化" },
@@ -153,8 +156,8 @@ const EXPECTED_CATALOG = {
     zh_CN: "UI 锁定集成基线",
   },
   "step.LOOP_RUN_D0_D3": {
-    en: "SLK / CLK / GLK Run · D0–D3 Verification",
-    zh_CN: "SLK / CLK / GLK Run · D0–D3 验证",
+    en: "Real Product Integration · D0–D3 Proof",
+    zh_CN: "真实产品集成 · D0–D3 证明",
   },
   "step.LOOP_OWNER_ACCEPTANCE": {
     en: "Loop Owner Acceptance",

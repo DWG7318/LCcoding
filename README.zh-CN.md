@@ -1,4 +1,4 @@
-# LCCoding 2.5.2
+# LCCoding 2.6.0
 
 **由 Owner 掌握产品方向、AI 完成工程闭环，并通过分段验收避免把所有人工工作堆到最后的企业级产品开发方法。**
 
@@ -21,9 +21,7 @@ Product Baseline
       ↓
 Feature Slice
       ↓
-锁定 UI 的 Feature Integration
-      ↓
-SLK / CLK / GLK
+锁定 UI 的真实产品集成
       ↓
 独立、分层、尽量不重复的 Verification
       ↓
@@ -33,14 +31,16 @@ Delivery
 ```
 
 
-主干节点没有增加；具体含义是：
+具体含义是：
 
-- 每个正常 Loop Run 在 `SLK / CLK / GLK` 内部完成 `D0–D3 → Loop Owner Acceptance`；
-- 所有正常 Run 验收后，主干中的 `Verification` 承载集中漏洞审计、修复、独立复验与关闭；
+- LCCoding 生命周期轴决定每个阶段必须形成什么产品状态；
+- 横向工程方法轴允许四个阶段中的任意一个有界工作按需选择 SLK、CLK、GLK 或其他合适方法；
+- 每个被选中的 Loop Run 在方法内部完成 `D0–D3 → Loop Owner Acceptance`，然后把证据交回调用它的阶段；
+- 第三阶段所需的真实集成工作全部验收后，主干中的 `Verification` 承载集中漏洞审计、修复、独立复验与关闭；
 - 主干中的 `Owner Acceptance` 是安全修复后的 Post-Security Owner Acceptance；
 - Delivery 先做当前客户的 Delivery Method Q&A。
 
-这里需要特别说明：**SLK、CLK、GLK 内部本来就有 Owner/Human Acceptance，而且必须保留。**它不是 Handoff，也不能被 LCCoding 合并成最后一次大验收。
+SLK、CLK、GLK 不再是主干固定节点，也不是全部工程方法。它们贯穿四阶段按需使用；同一个 Run 只使用一种拓扑，不同 Run 可以选择不同方法。完成一个 Run 只产生证据，不能自行推进阶段。Loop 内部的 Owner/Human Acceptance 仍然保留，不能被 LCCoding 合并成最后一次大验收。
 
 ## 方法来源、适配与贡献
 
@@ -58,7 +58,7 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 固定主干、按风险调深浅
 
-所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。`UNKNOWN` 是允许记录的待判定状态，必须继续评估并采用保守的更深覆盖，不能被视为 all-low 或最终充分判断。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只负责执行拓扑。
+所有强制主干节点始终保留。Project Fingerprint 中的产品不确定性、系统耦合、真实风险、不可逆性和新颖性决定分析、材料与证据深度。`UNKNOWN` 是允许记录的待判定状态，必须继续评估并采用保守的更深覆盖，不能被视为 all-low 或最终充分判断。充分证据应引用复用；简单工作可以简洁，高风险工作必须加深；`recommended_loop` 只是当前有界工作的拓扑建议，不是全项目方法锁。
 
 ## Simulation-first 产品形成
 
@@ -70,13 +70,15 @@ Project Initialization 支持 `NEW` 与 `EXISTING` 两种模式，但不会增�
 
 ## 内置 BI 与 Windows 独立窗口
 
-LCCoding 2.5.2 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
+LCCoding 2.6.0 提供一个所有项目复用的 Windows current-user 安装包。Tauri 2 + React 应用保持已验收的独立 300×480 窗口、四阶段、21 步、八个受保护报告、英文默认/完整中文、Pin、Refresh 与原视觉。项目不安装 BI 源码或构建工具；可用 `lccoding-bi.exe --project <root>` 启动，或通过原生目录选择器绑定。
 
 Rust 适配器只绑定一个不可变的规范项目根目录，只读闭合的 LCCoding 与已发布 Loop 合同白名单，并只向 webview 发送不含路径、仓库、commit、hash、证据正文、原始错误或任务 ID 的去敏 Snapshot。`status.json` 仍是唯一权威；BI 不写项目，也不控制 Agent/runtime。缺失事实显示为“未知”或“未记录”。正式发布前，SLK 2.5.0、CLK 2.5.0 与 GLK 3.1.0 必须分别在各自 canonical main/tag/Release 上正式发布。完整合同见 [`lc-coding/references/built-in-bi.md`](lc-coding/references/built-in-bi.md)。
 
-## Slice 执行准入与 Owner gap
+## 跨阶段工程方法与 Owner gap
 
-Feature Slice 只有在产品级 Execution Coverage Preflight 通过后才能进入 SLK/CLK/GLK。尚未证明的跨层连接必须由最薄但生产级的首个贯通 Run 证明，或引用充分的既有证据；该 Run 失败时不得继续扩展。LCCoding只定义准入和交接，GO/CELL 内部仍归选定 Loop。
+`INITIAL`、`PRODUCT_FORMATION`、`ENGINEERING_RUNS`、`DELIVERY_PREPARATION` 中任何一个有边界的工作点，都可以选择 SLK、CLK、GLK 或其他登记方法。每个 Run 记录所属阶段与阶段目标；阶段拥有工作含义、验收边界和阶段门禁，方法只负责 Run/GO/CELL 的组织执行，并把证据交回该阶段。
+
+真实产品集成 Run 仍必须通过产品级 Execution Coverage Preflight。尚未证明的跨层连接必须由最薄但生产级的首个贯通 Run 证明，或引用充分的既有证据；该 Run 失败时不得继续扩展。这个条件属于第三阶段真实集成，不是其他阶段调用工程方法的通用前提。
 
 Owner 的 rework、definition change 或 defer 会得到稳定 gap ID。阻断性 gap 必须沿 Impact Analysis 或 Calabash 路由、修正 Run、受影响 D0–D3、增量复验和 Owner 再验收关闭；权威状态只索引开放 gap 与证据指针，不成为 gap 档案库。
 
@@ -140,11 +142,11 @@ POST_SECURITY_OWNER_DEFERRED
 | 阶段 | 覆盖范围 | 出口 Gate |
 |---|---|---|
 | `INITIAL` | Owner Proposal、PRC、Project Initialization | `INITIAL_READY`，进入 Calabash Draft |
-| `PRODUCT_FORMATION` | Calabash Draft、Workflow、UI、Simulation World | `CALABASH_UPGRADE_READY`，进入 Mandatory Calabash Upgrade |
-| `ENGINEERING_RUNS` | Calabash Upgrade、Product Baseline、Feature Slice、Integration、单个 Loop Run、D0–D3 | 每个 Run 输出 `LOOP_OWNER_ACCEPTANCE_READY`；全部通过后输出 `ALL_REQUIRED_RUNS_ACCEPTED` |
+| `PRODUCT_FORMATION` | Calabash Draft，以及分别制作成可运行产品端的 Workflow、UI、Simulation World | `CALABASH_UPGRADE_READY`，进入 Mandatory Calabash Upgrade |
+| `ENGINEERING_RUNS` | 真实产品集成：把 Workflow、UI、Simulation 通过真实 API/MCP、状态/数据/副作用与 UI 结果紧密接通并完成集成/端到端证明 | 每个 Run 输出 `LOOP_OWNER_ACCEPTANCE_READY`；第三阶段所需集成工作全部通过后输出兼容门禁 `ALL_REQUIRED_RUNS_ACCEPTED` |
 | `DELIVERY_PREPARATION` | 集中漏洞审计、修复、独立复验、Post-Security Owner Acceptance、交付方式问答和 Package 检查 | `DELIVERY_READY` |
 
-`ENGINEERING_RUNS` 是可重复阶段：一个 Run 验收后，如果还有 Run，就继续下一轮；不会等到所有 Run 做完以后才让 Owner 一次性验收。
+`ENGINEERING_RUNS` 保留为兼容机器标识，但它的规范含义是 Product Integration，不表示工程方法只能在这里使用。它是可重复阶段：一个集成 Run 验收后，如果还有所需集成工作，就继续下一轮；不会等到所有 Run 做完以后才让 Owner 一次性验收。
 
 ## 集中漏洞检测与排除
 

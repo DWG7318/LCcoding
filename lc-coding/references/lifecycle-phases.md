@@ -1,6 +1,6 @@
 # Lifecycle Phases
 
-The LCCoding mainline remains unchanged. Four phases make progress visible without moving Loop Owner Acceptance out of SLK, CLK, or GLK.
+Four phases make product progress visible. SLK, CLK, GLK, and other execution methods are available across all four phases and are not lifecycle nodes.
 
 ## PHASE 0 — INITIAL
 
@@ -16,9 +16,11 @@ EXISTING takeover readiness is an INITIAL gate input, not a new phase. `READY` m
 
 **Exit:** `CALABASH_UPGRADE_READY` before Mandatory Calabash Upgrade.
 
-## PHASE 2 — ENGINEERING RUNS
+Workflow, UI, and Simulation are built as separate runnable product ends. They coordinate through Owner meaning, Calabash, and shared scenarios, but tight connection and integration testing are not yet required.
 
-**Range:** Mandatory Calabash Upgrade through Product Baseline, Feature Slice, UI-locked Integration, and one normal SLK/CLK/GLK Run through D3.
+## PHASE 2 — ENGINEERING RUNS (REAL PRODUCT INTEGRATION)
+
+**Range:** Mandatory Calabash Upgrade through Product Baseline, Feature Slice, and UI-locked Real Product Integration. This phase connects Workflow, UI, and Simulation through real API/MCP-backed capability, real state/data/side effects, visible UI results, and integration/end-to-end proof.
 
 **Per-Run exit:** `LOOP_OWNER_ACCEPTANCE_READY`.
 
@@ -26,8 +28,8 @@ The selected Loop Supervisor immediately facilitates Owner acceptance for that R
 
 After Owner decision:
 
-- accepted and more Runs remain: continue another ENGINEERING_RUNS cycle;
-- accepted and all required Runs are complete: issue `ALL_REQUIRED_RUNS_ACCEPTED`;
+- accepted and more required integration work remains: continue another ENGINEERING_RUNS cycle;
+- accepted and all required third-phase integration work is complete: issue the compatibility gate `ALL_REQUIRED_RUNS_ACCEPTED`;
 - rework or definition change: route according to the selected Loop and LCCoding impact rules.
 
 ## PHASE 3 — DELIVERY PREPARATION
@@ -38,10 +40,12 @@ After Owner decision:
 
 ## Rules
 
-- Loop Owner Acceptance is incremental and belongs to SLK/CLK/GLK.
+- A bounded work item in `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, or `DELIVERY_PREPARATION` may use a suitable execution method.
+- A Run records its phase scope and phase-owned objective. Method completion returns evidence to the calling phase and never auto-advances the phase.
+- Loop Owner Acceptance is incremental and belongs to the selected Loop, regardless of phase.
 - Post-Security Owner Acceptance is a second, distinct, delta-focused acceptance after security remediation.
 - Vulnerability audit is centralized once over the final accepted candidate; it is not distributed as repeated formal audits across D0–D3.
 - Phase artifacts reference canonical evidence and do not copy it.
 - `status.json` is authoritative; Project Health is assessment evidence; `PHASE-STATUS.json` is derived.
-- Feature Slice Execution Coverage Preflight is an ENGINEERING_RUNS admission condition, not an added phase.
+- Feature Slice Execution Coverage Preflight is a Product Integration work admission condition, not a universal precondition for method use in other phases and not an added phase.
 - Blocking open Owner gaps prevent `ALL_REQUIRED_RUNS_ACCEPTED`.

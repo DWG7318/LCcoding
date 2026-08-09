@@ -2,7 +2,9 @@
 
 - Acceptance ID:
 - Run ID:
-- Feature Slice ID / version:
+- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / ENGINEERING_RUNS / DELIVERY_PREPARATION
+- Phase-owned objective:
+- Feature Slice ID / version (when applicable):
 - Candidate ID / hash:
 - D3 Receipt:
 - Entry / role / account:
@@ -12,6 +14,8 @@
 - Prior accepted dependencies reused:
 - Invisible risks already verified:
 - Known limits:
+- Evidence return target in the calling phase:
+- Calling phase gate remains independently evaluated: YES
 - Owner result: LOOP_OWNER_ACCEPTED / LOOP_PRODUCT_REWORK / LOOP_PRODUCT_DEFINITION_CHANGE / LOOP_OWNER_DEFERRED
 - Owner Gap ID (blank when accepted):
 - Gap source Acceptance ID:

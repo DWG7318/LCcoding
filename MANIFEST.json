@@ -1,6 +1,6 @@
 {
   "name": "LCCoding",
-  "version": "2.5.2",
+  "version": "2.6.0",
   "skill": "lc-coding",
   "invocation": "$lc-coding",
   "mainline": [
@@ -11,8 +11,7 @@
     "Mandatory Calabash Upgrade",
     "Product Baseline",
     "Feature Slice",
-    "UI-locked Integration",
-    "SLK/CLK/GLK",
+    "UI-locked Real Product Integration",
     "Layered Verification",
     "Owner Acceptance",
     "Delivery"
@@ -53,6 +52,19 @@
     ],
     "reuse_sufficient_evidence": true,
     "recommended_loop_is_topology_only": true
+  },
+  "execution_method_overlay": {
+    "available_in_phases": [
+      "INITIAL",
+      "PRODUCT_FORMATION",
+      "ENGINEERING_RUNS",
+      "DELIVERY_PREPARATION"
+    ],
+    "selection_scope": "PER_RUN",
+    "one_topology_per_run": true,
+    "registered_methods_not_exhaustive": true,
+    "result_returns_to_calling_phase": true,
+    "method_completion_advances_phase": false
   },
   "product_subtree_governance": {
     "repository_default": "ONE_TOTAL_PROJECT_REPOSITORY",

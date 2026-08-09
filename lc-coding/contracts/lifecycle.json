@@ -1,5 +1,5 @@
 {
-  "version": "2.5.2",
+  "version": "2.6.0",
   "mainline": [
     "PROPOSAL_READINESS",
     "PROJECT_INITIALIZATION",
@@ -9,7 +9,6 @@
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
     "FEATURE_INTEGRATION",
-    "LOOP_ENGINEERING",
     "FINAL_VERIFICATION",
     "OWNER_ACCEPTANCE",
     "DELIVERY"
@@ -22,8 +21,7 @@
     "MANDATORY_CALABASH_UPGRADE": "PRODUCT_BASELINE",
     "PRODUCT_BASELINE": "FEATURE_SLICE",
     "FEATURE_SLICE": "FEATURE_INTEGRATION",
-    "FEATURE_INTEGRATION": "LOOP_ENGINEERING",
-    "LOOP_ENGINEERING": "FINAL_VERIFICATION",
+    "FEATURE_INTEGRATION": "FINAL_VERIFICATION",
     "FINAL_VERIFICATION": "OWNER_ACCEPTANCE",
     "OWNER_ACCEPTANCE": "DELIVERY"
   },
@@ -40,7 +38,12 @@
       "FIRST_PROVING_RUN_WHEN_CROSS_LAYER_UNPROVEN",
       "NO_LOOP_INTERNAL_DECOMPOSITION"
     ],
-    "LOOP_ENGINEERING": [
+    "FEATURE_INTEGRATION": [
+      "REAL_WORKFLOW_UI_SIMULATION_CONNECTION",
+      "REAL_API_MCP_BACKED_CAPABILITY",
+      "REAL_STATE_DATA_SIDE_EFFECT",
+      "VISIBLE_UI_RESULT",
+      "INTEGRATION_AND_END_TO_END_PROOF",
       "D0_D3_PER_RUN",
       "LOOP_OWNER_ACCEPTANCE_PER_NORMAL_RUN",
       "OWNER_GAP_CLOSURE_LINEAGE",
@@ -60,5 +63,12 @@
       "DELIVERY_PACKAGE_GUARD"
     ]
   },
-  "phase_contract": "phases.json"
+  "phase_contract": "phases.json",
+  "execution_method_overlay": {
+    "phase_scope": "ANY_PHASE",
+    "selection_scope": "PER_RUN",
+    "one_topology_per_run": true,
+    "registered_methods_not_exhaustive": true,
+    "phase_gate_authority": "CALLING_PHASE"
+  }
 }

@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.5.2
+# LCCoding Constitution 2.6.0
 
 ## Identity
 
@@ -27,9 +27,7 @@ Product Baseline
       ↓
 Feature Slice
       ↓
-UI-locked Feature Integration
-      ↓
-SLK / CLK / GLK Loop Engineering
+UI-locked Real Product Integration
       ↓
 Independent layered Verification
       ↓
@@ -42,10 +40,12 @@ The bracket is the one existing `WORKFLOW_UI_SIMULATION` node: it states interna
 
 Inside this node, one project Git/GitHub repository may contain multiple UI, Workflow, and peer Simulation logical subtrees. Each realized subtree has its own component version and content hash. Every CORE Workflow and implemented EXTRA Workflow directly exposes API and MCP contracts backed by the same capability; no Workflow Core layer, mandatory microservice, or runtime is introduced. The Owner confirms one Primary product mainline across Simulation, CORE Workflow, and UI for proving priority, while all other CORE obligations remain.
 
-The mainline is unchanged. Its operational meaning is:
+Its operational meaning is:
 
-- each normal Loop Run contains its own D0–D3 and Loop Owner Acceptance;
-- after all required normal Runs are Owner-accepted, LCCoding performs one centralized independent vulnerability audit and remediation closure;
+- the lifecycle axis defines the product condition each phase must establish;
+- SLK, CLK, GLK, and other suitable execution methods are a separate cross-phase axis, not mainline nodes or an exhaustive list;
+- each selected Loop Run contains its own D0–D3 and Loop Owner Acceptance and returns evidence to the calling phase;
+- after all required third-phase integration work is Owner-accepted, LCCoding performs one centralized independent vulnerability audit and remediation closure;
 - the mainline Owner Acceptance is the distinct Post-Security Owner Acceptance of the final remediated candidate;
 - Delivery begins only after that acceptance and customer-specific Delivery Method Q&A.
 
@@ -57,11 +57,15 @@ Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HO
 
 `status.json` is the one authoritative durable project status. Project Health is assessment evidence and `PHASE-STATUS.json` is derived from status. None may contain runtime, session, Agent, queue, retry, model, hook, or orchestration state.
 
-## Fixed mainline, proportional depth
+## Cross-Phase Execution Methods
+
+Any bounded work item in any LCCoding phase may select SLK, CLK, GLK, or another suitable registered method. These methods guide execution and are not mainline nodes or an exhaustive list. One Run uses one execution topology, returns its evidence to the calling phase, and never advances the phase by itself.
+
+## Fixed lifecycle, proportional depth
 
 Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. `UNKNOWN` is recorded without being normalized to low, requires conservative deeper coverage, and blocks a sufficient final depth judgment until assessed. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
 
-Before Loop execution, the Feature Slice must pass product-level execution coverage preflight. Unproven cross-layer wiring requires a first thin production-quality proving Run or cited sufficient evidence. LCCoding specifies admission and handoff; the selected Loop owns all internal execution decomposition.
+Before third-phase Product Integration execution, the Feature Slice must pass product-level execution coverage preflight. Unproven cross-layer wiring requires a first thin production-quality proving Run or cited sufficient evidence. This is not a universal precondition for execution-method use in other phases. LCCoding specifies phase authority and handoff; the selected method owns its internal execution decomposition.
 
 Owner gaps retain one trace from source Acceptance through candidate/scenario, Impact or Calabash route, correction Run, affected D0–D3, delta re-verification, and delta re-acceptance. Open blocking gaps prevent aggregate acceptance.
 
@@ -75,15 +79,16 @@ Boundary: before Calabash Draft
 
 PHASE 1 — PRODUCT_FORMATION
 Calabash Draft → [Simulation foundation first → Workflow ∥ UI]
+Workflow, UI, and Simulation become separately runnable product ends
 Exit: CALABASH_UPGRADE_READY
 Boundary: before Mandatory Calabash Upgrade
 
-PHASE 2 — ENGINEERING_RUNS
+PHASE 2 — ENGINEERING_RUNS (REAL PRODUCT INTEGRATION)
 Mandatory Calabash Upgrade → Product Baseline → Feature Slice
-→ UI-locked Integration → one selected Loop Run → D0–D3
+→ UI-locked Real Product Integration and end-to-end proof
 Exit per Run: LOOP_OWNER_ACCEPTANCE_READY
 Owner decision: Loop Owner Acceptance
-Aggregate exit: ALL_REQUIRED_RUNS_ACCEPTED
+Aggregate exit: ALL_REQUIRED_RUNS_ACCEPTED for required Phase-3 integration work
 
 PHASE 3 — DELIVERY_PREPARATION
 Centralized Vulnerability Audit → Security Remediation → independent Re-audit
@@ -93,7 +98,7 @@ Exit: DELIVERY_READY
 Boundary: before Delivery
 ```
 
-The phase overlay is navigation and gating only. `ENGINEERING_RUNS` repeats until every required normal Run is Owner-accepted.
+The phase overlay is navigation and gating only. `ENGINEERING_RUNS` is the stable compatibility ID for the real Product Integration phase. Any bounded work item in any phase may select a suitable execution method; method completion returns evidence and never advances a phase by itself.
 
 ## Foundation principles
 

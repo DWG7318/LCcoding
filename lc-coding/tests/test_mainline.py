@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/lifecycle.json').read_text())
-expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','LOOP_ENGINEERING','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
+expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
 assert contract['mainline']==expected
 assert contract['required_transitions']==dict(zip(expected,expected[1:]))
 con=(root/'CONSTITUTION.md').read_text(encoding='utf-8')
