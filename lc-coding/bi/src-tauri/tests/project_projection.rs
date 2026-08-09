@@ -149,6 +149,34 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
 }
 
 #[test]
+fn unicode_evidence_references_are_accepted_without_relaxing_path_safety() {
+    let valid = initial_status().replace(
+        "\"evidence_pointers\": []",
+        "\"evidence_pointers\": [\"docs/proposal/LCGEO_完整方案_v0.5.md\"]",
+    );
+    assert!(parse_status(&valid).is_ok());
+
+    for reference in [
+        "C:/private/project.md",
+        "../private/project.md",
+        "docs/../private.md",
+        "docs//private.md",
+        "docs\\private.md",
+        "docs/\u{202e}private.md",
+    ] {
+        let unsafe_status = initial_status().replace(
+            "\"evidence_pointers\": []",
+            &format!("\"evidence_pointers\": [\"{reference}\"]"),
+        );
+        assert_eq!(
+            parse_status(&unsafe_status).unwrap_err().code(),
+            "BI_RECORD_INVALID",
+            "unsafe reference was accepted: {reference:?}",
+        );
+    }
+}
+
+#[test]
 fn lifecycle_history_future_and_aggregate_contradictions_are_rejected() {
     let future_complete =
         initial_status().replace("\"workflow\": \"PENDING\"", "\"workflow\": \"COMPLETE\"");

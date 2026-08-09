@@ -267,18 +267,18 @@ fn safe_project_name(value: &str) -> bool {
 }
 
 fn safe_ref(value: &str) -> bool {
-    if value.is_empty() || value.len() > 256 || !value.is_ascii() {
+    if value.is_empty() || value.len() > 256 {
         return false;
     }
     let components: Vec<&str> = value.split('/').collect();
     components.len() <= 16
         && components.iter().all(|component| {
             !component.is_empty()
-                && component.len() <= 64
-                && component.as_bytes()[0].is_ascii_alphanumeric()
-                && component
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+                && component.chars().count() <= 64
+                && component.chars().next().is_some_and(char::is_alphanumeric)
+                && component.chars().all(|character| {
+                    character.is_alphanumeric() || matches!(character, '.' | '_' | '-')
+                })
         })
 }
 
