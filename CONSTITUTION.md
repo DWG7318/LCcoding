@@ -1,138 +1,64 @@
 # LCCoding Constitution 2.6.0
 
-## Identity
+## Principle Zero
 
-LCCoding is an Owner-led, AI-executed enterprise product-development method. It governs the path from a sufficiently mature proposal to a protected customer delivery.
+Source clauses: [LC-AUTH-001](SPEC.md#lc-auth-001)
 
-LCCoding is an Agent-platform-independent methodology. It defines product governance and evidence boundaries; it does not own runtime, session control, or an Agent execution kernel.
+Owner decides product meaning. AI completes routine engineering autonomously inside frozen boundaries.
 
-LCCoding may expose a built-in read-only BI projection of its fixed phases, milestones, states, artifacts, and protected subreports. That projection is observational only: it never becomes authoritative project state, reads or mutates no project files without a separately authorized adapter, and controls neither Agent nor runtime behavior. Window-local presentation features such as language and native Pin do not expand method authority.
+## Constitutional identity
+
+Source clauses: [LC-AUTH-001](SPEC.md#lc-auth-001), [LC-AUTH-002](SPEC.md#lc-auth-002)
+
+LCCoding is an Owner-led, AI-executed, Agent-platform-independent enterprise product-development method. `SPEC.md` is its sole complete semantic authority; this Constitution retains only immutable principles, Owner rights, and the method/runtime boundary.
+
+LCCoding coordinates product definition, formation, Real Product Integration, verification, acceptance, and protected delivery. It does not own an Agent kernel, session/runtime control, or a second project-status authority.
+
+## Owner rights
+
+Source clauses: [LC-AUTH-001](SPEC.md#lc-auth-001), [LC-INTEG-002](SPEC.md#lc-integ-002), [LC-ACCEPT-001](SPEC.md#lc-accept-001), [LC-ACCEPT-003](SPEC.md#lc-accept-003), [LC-DELIVERY-001](SPEC.md#lc-delivery-001)
+
+The Owner has final authority over product meaning, value, Workflow intent, UI/UX direction, scope and trade-offs, every baseline/UI meaning change, release, final Owner Acceptance, and delivery rights. For an existing product the Owner alone chooses `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`. No projection, Workflow, Simulation, execution method, Agent, runtime, or automation may silently reinterpret those decisions.
 
 ## Frozen mainline
 
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-FORM-001](SPEC.md#lc-form-001), [LC-INTEG-001](SPEC.md#lc-integ-001)
+
 ```text
 Owner Proposal
-      ↓
-Proposal Readiness Check
-      ↓
-Project Initialization
-      ↓
-Calabash Draft
-      ↓
-[Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
-      ↓
-Mandatory Calabash Upgrade
-      ↓
-Product Baseline
-      ↓
-Feature Slice
-      ↓
-UI-locked Real Product Integration
-      ↓
-Independent layered Verification
-      ↓
-Owner Acceptance
-      ↓
-Delivery
+→ Proposal Readiness Check
+→ Project Initialization
+→ Calabash Draft
+→ [Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
+→ Mandatory Calabash Upgrade
+→ Product Baseline
+→ Feature Slice
+→ UI-locked Real Product Integration
+→ Independent layered Verification
+→ Owner Acceptance
+→ Delivery
 ```
 
-The bracket is the one existing `WORKFLOW_UI_SIMULATION` node: it states internal formation order, not a new lifecycle node, phase, gate, or readiness verdict.
+The compatible compact expression is `Calabash Draft → [Simulation foundation first → Workflow ∥ UI] → Mandatory Calabash Upgrade → Product Baseline`. The bracket is formation inside the existing lifecycle, not a new node.
 
-Inside this node, one project Git/GitHub repository may contain multiple UI, Workflow, and peer Simulation logical subtrees. Each realized subtree has its own component version and content hash. Every CORE Workflow and implemented EXTRA Workflow directly exposes API and MCP contracts backed by the same capability; no Workflow Core layer, mandatory microservice, or runtime is introduced. The Owner confirms one Primary product mainline across Simulation, CORE Workflow, and UI for proving priority, while all other CORE obligations remain.
+## Four phases and the execution axis
 
-Its operational meaning is:
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003), [LC-COMPAT-001](SPEC.md#lc-compat-001)
 
-- the lifecycle axis defines the product condition each phase must establish;
-- SLK, CLK, GLK, and other suitable execution methods are a separate cross-phase axis, not mainline nodes or an exhaustive list;
-- each selected Loop Run contains its own D0–D3 and Loop Owner Acceptance and returns evidence to the calling phase;
-- after all required third-phase integration work is Owner-accepted, LCCoding performs one centralized independent vulnerability audit and remediation closure;
-- the mainline Owner Acceptance is the distinct Post-Security Owner Acceptance of the final remediated candidate;
-- Delivery begins only after that acceptance and customer-specific Delivery Method Q&A.
+The four human phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration (compatibility status ID `ENGINEERING_RUNS`), and Delivery Preparation (`DELIVERY_PREPARATION`). The compatibility ID explains persisted state; it is not the human phase name.
 
-## Existing engineering mode
+SLK, CLK, GLK, and another registered method form a cross-phase execution axis. It is not a lifecycle node: bounded work in any phase may use a compatible method and return evidence to its calling phase without advancing that phase.
 
-Project Initialization may admit an existing engineering project without creating a new lifecycle. LCCoding preserves its repository, history, declared version, materials, and valid evidence. A prior completion statement is only `CLAIMED_UNATTESTED` until the current candidate, coverage, authority, and evidence are independently established.
+## Non-negotiable boundaries
 
-Before engineering resumes, the Owner decides `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`. Runnable UI may anchor Owner understanding but is not completion proof; Workflow, state, data, permissions, failure/recovery, and invisible behavior still require trace and evidence. Takeover remains inside Project Initialization and outputs only `READY`, `BLOCKED`, or `NOT_CONTINUING`. Only real gaps enter the existing Feature Slice and Loop path.
+Source clauses: [LC-AUTH-002](SPEC.md#lc-auth-002), [LC-INTEG-002](SPEC.md#lc-integ-002), [LC-VERIFY-001](SPEC.md#lc-verify-001), [LC-SEC-001](SPEC.md#lc-sec-001), [LC-SEC-002](SPEC.md#lc-sec-002), [LC-DELIVERY-001](SPEC.md#lc-delivery-001), [LC-BI-001](SPEC.md#lc-bi-001)
 
-`status.json` is the one authoritative durable project status. Project Health is assessment evidence and `PHASE-STATUS.json` is derived from status. None may contain runtime, session, Agent, queue, retry, model, hook, or orchestration state.
+Owner authority, one authoritative `status.json`, independent Verification, the one-way Owner UI lock, current candidate-bound security closure, and protected Delivery must remain intact. Worker never accepts its own work; the system must not silently overwrite Owner material. BI remains a read-only projection, not authority or runtime control.
 
-## Cross-Phase Execution Methods
+## Navigation
 
-Any bounded work item in any LCCoding phase may select SLK, CLK, GLK, or another suitable registered method. These methods guide execution and are not mainline nodes or an exhaustive list. One Run uses one execution topology, returns its evidence to the calling phase, and never advances the phase by itself.
+Source clauses: [LC-AUTH-002](SPEC.md#lc-auth-002)
 
-## Fixed lifecycle, proportional depth
+Read the [complete specification](SPEC.md), then use the focused [project initialization guidance](lc-coding/references/project-initialization.md) and [execution-method selection guidance](lc-coding/references/loop-method-selection.md). `lc-coding/SKILL.md` is the concise operator entry.
 
-Every mandatory mainline node remains. Analysis, material, and evidence depth is proportional to product uncertainty, system coupling, real risk, irreversibility, and novelty. `UNKNOWN` is recorded without being normalized to low, requires conservative deeper coverage, and blocks a sufficient final depth judgment until assessed. Sufficient evidence is cited and reused. Concise work must remain truthful; high-risk work must deepen coverage. Depth never deletes a node or authorizes an empty artifact.
-
-Before third-phase Product Integration execution, the Feature Slice must pass product-level execution coverage preflight. Unproven cross-layer wiring requires a first thin production-quality proving Run or cited sufficient evidence. This is not a universal precondition for execution-method use in other phases. LCCoding specifies phase authority and handoff; the selected method owns its internal execution decomposition.
-
-Owner gaps retain one trace from source Acceptance through candidate/scenario, Impact or Calabash route, correction Run, affected D0–D3, delta re-verification, and delta re-acceptance. Open blocking gaps prevent aggregate acceptance.
-
-## Four-phase overlay
-
-```text
-PHASE 0 — INITIAL
-Owner Proposal → Proposal Readiness Check → Project Initialization
-Exit: INITIAL_READY
-Boundary: before Calabash Draft
-
-PHASE 1 — PRODUCT_FORMATION
-Calabash Draft → [Simulation foundation first → Workflow ∥ UI]
-Workflow, UI, and Simulation become separately runnable product ends
-Exit: CALABASH_UPGRADE_READY
-Boundary: before Mandatory Calabash Upgrade
-
-PHASE 2 — ENGINEERING_RUNS (REAL PRODUCT INTEGRATION)
-Mandatory Calabash Upgrade → Product Baseline → Feature Slice
-→ UI-locked Real Product Integration and end-to-end proof
-Exit per Run: LOOP_OWNER_ACCEPTANCE_READY
-Owner decision: Loop Owner Acceptance
-Aggregate exit: ALL_REQUIRED_RUNS_ACCEPTED for required Phase-3 integration work
-
-PHASE 3 — DELIVERY_PREPARATION
-Centralized Vulnerability Audit → Security Remediation → independent Re-audit
-→ VULNERABILITY_CLOSED → Post-Security Owner Acceptance
-→ customer-specific Delivery Method Q&A → package governance
-Exit: DELIVERY_READY
-Boundary: before Delivery
-```
-
-The phase overlay is navigation and gating only. `ENGINEERING_RUNS` is the stable compatibility ID for the real Product Integration phase. Any bounded work item in any phase may select a suitable execution method; method completion returns evidence and never advances a phase by itself.
-
-## Foundation principles
-
-1. Everything Starts Small.
-2. Everything is Governed.
-3. Everything is an Artifact.
-4. Everything is Traceable.
-5. Canonical Before Reasoning.
-6. Compatibility Before Execution.
-7. Enterprise First.
-8. AI Autonomous, Owner Controlled.
-
-## Method laws
-
-- Workflow, UI, and Calabash are three distinct product layers.
-- Logical product subtrees live in one total project repository; worktrees are optional construction isolation and never baseline identity.
-- Multiple Simulation subtrees are peers, and UI/Workflow/Simulation relations use IDs rather than directory nesting.
-- Every implemented CORE or EXTRA Workflow provides both API and MCP contracts from the same capability.
-- Simulation makes Workflow and UI observable; it does not replace real integration.
-- Calabash begins as a Draft and must receive Mandatory Upgrade before Product Baseline.
-- Feature Slice is the product-progress unit; GO and CELL are engineering-execution units.
-- During integration, UI is the default locked target.
-- Select the lightest truthful Loop method: SLK, then CLK, then GLK.
-- Worker never accepts its own work.
-- Higher Verification layers reuse lower evidence and verify only the new claim or risk.
-- Every normal SLK/CLK/GLK Run ends with incremental Loop Owner Acceptance; it must not be replaced by one giant end-of-project acceptance.
-- Formal vulnerability assessment is centralized after all required normal Runs are Owner-accepted.
-- The Security Auditor must be independent from implementation, checking, Verification, supervision, and prior Owner acceptance preparation.
-- The Security Auditor discovers and verifies; separate engineering roles remediate.
-- Post-Security Owner Acceptance is distinct from Loop Owner Acceptance and checks only the security-remediation delta plus critical smoke paths.
-- Delivery method is confirmed for each customer through Owner Q&A; defaults are recommendations, while Owner-locked exclusions remain mandatory.
-- Delivery exposes the product, not the internal LC development system.
-- Every addition must reduce internal or external engineering friction.
-- Project Fingerprint complexity governs depth; `recommended_loop` governs execution topology only.
-- `status.json` is authoritative; Project Health is evidence; Phase Status is derived.
-- Feature Slice readiness is decided before execution without importing GO/CELL internals.
-- Owner gaps close only on evidenced correction and Owner re-acceptance.
+Focused navigation also covers [Cross-Phase Execution Methods](lc-coding/references/loop-method-selection.md), [Centralized Vulnerability Audit](lc-coding/references/vulnerability-closure.md), [Post-Security Owner Acceptance](lc-coding/references/loop-acceptance-boundary.md), [Delivery Method Q&A](lc-coding/references/delivery-governance.md), [Existing engineering mode](lc-coding/references/project-initialization.md), [Fixed lifecycle, proportional depth](SPEC.md#lc-auth-002), [authoritative durable project status](lc-coding/references/project-initialization.md), [Execution Coverage Preflight](lc-coding/references/feature-slice-and-integration.md), and [Owner gap](lc-coding/references/loop-acceptance-boundary.md).

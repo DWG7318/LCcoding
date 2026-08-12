@@ -1,11 +1,13 @@
 ---
 name: lc-coding
-description: Use when an Owner wants AI to develop or admit an existing enterprise product through four lifecycle phases while selecting SLK, CLK, GLK, or another suitable execution method per bounded work item in any phase.
+description: Use when an Owner wants AI to develop or admit an enterprise product through four lifecycle phases and bounded cross-phase execution methods.
 ---
 
 # LCCoding 2.6.0
 
 ## Canonical mainline
+
+Source clauses: [LC-PHASE-001](../SPEC.md#lc-phase-001), [LC-PHASE-002](../SPEC.md#lc-phase-002), [LC-PHASE-003](../SPEC.md#lc-phase-003), [LC-PHASE-004](../SPEC.md#lc-phase-004)
 
 ```text
 Owner Proposal
@@ -24,165 +26,70 @@ Owner Proposal
 
 Operational meaning:
 
-- the lifecycle axis defines what product condition each phase must establish;
-- the execution-method axis defines how a bounded item of work is organized in any LCCoding phase;
-- every selected Loop Run includes D0–D3 and its own Loop Owner Acceptance, then returns evidence to its calling phase;
-- after all required third-phase integration work is accepted, Independent Verification performs one centralized vulnerability audit and remediation closure;
-- the mainline Owner Acceptance is Post-Security Owner Acceptance;
-- Delivery begins only after customer-specific Q&A.
+The lifecycle axis identifies the product condition of each phase. The execution-method axis organizes bounded work in any LCCoding phase. The four phases are `INITIAL`, `PRODUCT_FORMATION`, the Real Product Integration phase (compatibility ID `ENGINEERING_RUNS`), and `DELIVERY_PREPARATION`.
 
-## Phase overlay
+## Principle Zero and Owner authority
 
-- `INITIAL`: through Project Initialization; exit `INITIAL_READY` before Calabash Draft.
-- `PRODUCT_FORMATION`: Calabash Draft through separately runnable Workflow, UI, and Simulation product ends; exit `CALABASH_UPGRADE_READY`.
-- `ENGINEERING_RUNS`: the real product integration phase; connect Workflow, UI, and Simulation through real API/MCP-backed capability and end-to-end proof. The compatibility aggregate exit is `ALL_REQUIRED_RUNS_ACCEPTED` for required Phase-3 integration work.
-- `DELIVERY_PREPARATION`: centralized vulnerability audit/remediation/re-audit, Post-Security Owner Acceptance, Delivery Method Q&A, and package governance; exit `DELIVERY_READY`.
+Source clauses: [LC-AUTH-001](../SPEC.md#lc-auth-001), [LC-AUTH-002](../SPEC.md#lc-auth-002)
 
-SLK, CLK, GLK, and other registered execution methods may be used in any LCCoding phase. They are not lifecycle nodes.
+Owner decides product meaning. AI completes routine engineering autonomously inside frozen boundaries. The Owner retains final authority over baselines/UI changes, continuation, acceptance, release, and Delivery; `SPEC.md` remains the complete semantic authority.
 
-## Principle Zero
+## Start, stop, and route
 
-Owner decides product meaning. AI completes routine engineering autonomously inside frozen boundaries.
+Source clauses: [LC-AUTH-001](../SPEC.md#lc-auth-001), [LC-PHASE-001](../SPEC.md#lc-phase-001), [LC-INTEG-003](../SPEC.md#lc-integ-003)
 
-## Start
+1. Load [SPEC](../SPEC.md), Owner/project rules, the applicable contract/template, and current evidence.
+2. Identify the calling phase and bounded objective; use [Proposal Readiness](references/proposal-readiness.md) and [Project Initialization](references/project-initialization.md) for entry work.
+3. `STOP` on `HOLD`, `TERMINATE`, contradiction, or a failed authoritative boundary; preserve evidence before changing course.
+4. Then route `NARROW_REDIRECT`, meaning change, rework, or invalidation through the calling phase and its cited focused reference.
+5. Only resume inside the accepted authority and current evidence boundary.
 
-1. Run Proposal Readiness once over all supplied material.
-2. Ask only blocking gaps; persist answers and never re-ask without contradictory evidence.
-3. Select NEW or EXISTING Project Initialization.
-4. For NEW, initialize Git/GitHub and version `0.0.1`. For EXISTING, preserve repository/history/version/materials and record current HEAD/candidate before adding LCCoding artifacts.
-5. Initialize or reuse Agents Rule, skills, capabilities, canonical lock, profile, fingerprint, health, and the one authoritative `status.json`.
-6. Revalidate only changed initialization inputs.
+## Product Formation operator summary
 
-Use one project Git/GitHub repository by default. Do not pre-create empty UI, Workflow, or Simulation directories. Product units become logical subtrees only when real work exists. A worktree is optional for parallel work or environment isolation and never becomes product structure or baseline identity.
+Source clauses: [LC-FORM-001](../SPEC.md#lc-form-001), [LC-FORM-002](../SPEC.md#lc-form-002), [LC-FORM-003](../SPEC.md#lc-form-003)
 
-## Existing engineering intake
+Build at least one minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction. Never treat the foundation as a complete or frozen Simulation. Then advance Workflow and UI as equal product ends, independently; they may proceed in parallel, and each forms a real, runnable, inspectable result. Do not require early Workflow-to-UI connection or three-way joint integration. Continue semantic and scenario synchronization without treating it as early integration. Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration.
 
-- Treat inherited completion as `CLAIMED_UNATTESTED` until candidate identity and evidence coverage are valid.
-- Present facts and obtain Owner `CONTINUE`, `NARROW_REDIRECT`, `HOLD`, or `TERMINATE`; do not optimize the Owner's product direction.
-- Use runnable UI as the first Owner-visible cognition anchor, not proof. Trace it to Workflow, state, data, permissions, exceptions, recovery, and independently evidenced invisible behavior.
-- Reuse trustworthy evidence; unknown remains unknown. Route only real gaps into existing Feature Slices and Loop Runs.
-- Classify the result as `ATTESTED_COMPLETE`, `NEEDS_GAP_CLOSURE`, `PARTIAL`, `DIRECTION_CHANGED`, or `NOT_CONTINUING`.
-- Keep takeover inside Project Initialization. Output only `READY`, `BLOCKED`, or `NOT_CONTINUING`; do not enter engineering until repository/version/candidate, historical materials, evidence, product mainline, and blockers support the result.
-- Treat Project Health as assessment evidence and `PHASE-STATUS.json` as a derived view of authoritative `status.json`. Persist method facts only, never runtime/session/Agent state.
+Use Calabash and available Simulation Worlds to split Workflow into enough business lines and produce real, runnable business functions; plans or simulation-only results cannot replace real Workflow while formation continues until Mandatory Calabash Upgrade is complete. Mark each Workflow business line `CORE` or `EXTRA`. CORE means Calabash and Owner confirmation make the business line required product capability. EXTRA comes from Calabash extension space, external research, or comparable-product analysis. Do not claim unimplemented EXTRA as product capability. Never reclassify CORE as EXTRA to pass Product Baseline.
 
-## Fixed lifecycle, proportional depth
+The Product Baseline gate applies only to CORE Workflow. Freeze Product Baseline only after every CORE business line is real, runnable, and proved feasible. If a CORE is proved infeasible under current product constraints, adjust Calabash, narrow, hold, or terminate; EXTRA does not block Product Baseline. Details: [LC-FORM-003](../SPEC.md#lc-form-003).
 
-Keep every mandatory lifecycle node. Use Project Fingerprint product uncertainty, system coupling, real risk, irreversibility, and novelty to deepen analysis, material, and evidence where needed. Record `UNKNOWN` as unresolved, require depth assessment plus conservative rationale and coverage, and do not treat it as a sufficient final judgment or all-low work. Cite sufficient existing evidence instead of duplicating it. Concise is allowed; empty or risk-blind is not. `recommended_loop` selects execution topology for one bounded Run only.
+## Real Product Integration operator summary
 
-## Product formation
+Source clauses: [LC-INTEG-001](../SPEC.md#lc-integ-001), [LC-INTEG-002](../SPEC.md#lc-integ-002), [LC-INTEG-003](../SPEC.md#lc-integ-003)
 
-1. Create Calabash Draft from the ready Proposal.
-2. Build at least one minimal, real, runnable, versioned Simulation World foundation before actual Workflow or UI construction. A project may then add multiple peer Simulation logical subtrees; never nest one Simulation under another. Reuse scenario IDs downstream and strengthen each Simulation as scenarios and learning grow. Never treat the foundation as a complete or frozen Simulation; all Simulation subtrees remain `VERSIONED_MUTABLE`.
-3. Then advance Workflow and UI as equal product ends, independently; they may proceed in parallel, and each must produce a real, runnable, inspectable result. Multiple UI, Workflow, and Simulation logical subtrees may coexist inside the one project Git/GitHub repository. Each realized subtree has a safe relative path, component version, and content hash. Do not require early Workflow-to-UI connection or three-way joint integration. Continue semantic and scenario synchronization without treating it as early integration; use Map IDs, not directory nesting, and allow UI-to-Workflow and Simulation-to-Workflow many-to-many relations. Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration. Use Calabash and available Simulation Worlds to split Workflow into enough business lines and progressively implement real, runnable business functions. Plans, empty shells, mocks, and simulation-only results cannot replace real Workflow; it may continue to iterate with Calabash and Simulation until Mandatory Calabash Upgrade is complete. Mark each Workflow business line `CORE` or `EXTRA`; this classification is business necessity, not a Workflow Core technical layer. CORE means Calabash and Owner confirmation make the business line required product capability. EXTRA comes from Calabash extension space, external research, or comparable-product analysis. Every CORE Workflow and every implemented EXTRA Workflow directly provides both API and MCP contracts backed by the same capability. Do not introduce duplicate logic, mandatory microservices, runtime, or deployment topology. An unimplemented EXTRA remains only a registry row with no subtree, API, or MCP claim. Do not claim unimplemented EXTRA as product capability. Never reclassify CORE as EXTRA to pass Product Baseline; change classification only through Calabash with Owner confirmation.
-4. Synchronize only consequential learning into one existing canonical artifact; the field may be blank when no future decision, constraint, check, template, or reuse rule changes.
-5. When several subtrees exist, obtain Owner confirmation for one Primary product mainline linking at least one Simulation, one CORE Workflow, and one UI. Use it as the first proving and construction priority; finish every other CORE without downgrading it. A controlled Calabash upgrade may re-confirm the selection.
-6. Run Mandatory Calabash Upgrade before Product Baseline.
-7. The Product Baseline gate applies only to CORE Workflow. Freeze Product Baseline only after every CORE business line is real, runnable, and proved feasible; each must also have direct API and MCP evidence. If any CORE is not real and runnable, lacks either interface, or is proved infeasible under current product constraints, first adjust Calabash, narrow, hold, or terminate under Owner authority. EXTRA does not block Product Baseline and remains a non-capability until implemented and verified. Product Baseline Handoff locks one total project repository at an exact Git-resolvable commit plus every realized UI, Workflow, and Simulation subtree name/path/`MAJOR.MINOR.PATCH` component version/content hash, their ID relations, and the Owner-confirmed Primary product mainline. Recompute every subtree hash from the frozen commit with the one canonical tracked-blob manifest algorithm, never from the worktree, and require Handoff identities, Workflow classification/API/MCP evidence, relations, and mainline markers to match the three canonical Maps. Commit and content hash are authoritative; component version is the human-readable label.
+Feature Slice considers all already implemented and verified Workflow capabilities across CORE and EXTRA; identify already implemented and verified Workflow capabilities and inherit and reuse them wherever possible. It may supplement, adjust, or improve Workflow under Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
-## Feature Slice and Integration
+Pin the applicable UI subtree to the one total project repository and total-project exact commit; never use a branch, tag, `HEAD`, worktree, or `latest` as the lock. The lock is one-way Owner authority: system actors must not autonomously modify a locked UI.
 
-Create one canonical Slice contract tracing actor intent through UI, Integration, Workflow, state/data/side effects, visible result, evidence, and acceptance. Start from the Owner-confirmed Primary product mainline unless impact evidence selects another governed route. Identify all already implemented and verified Workflow capabilities across CORE and EXTRA and inherit and reuse them wherever possible. Pin the applicable UI subtree to the total-project exact commit/path/component version/content hash. Because the Slice covers UI, Integration, state, data, permissions, exceptions, recovery, and visible results more completely, it may supplement, adjust, or improve Workflow under the existing Impact Analysis and `CONTROLLED_MUTABLE` rules. In Engineering Runs, each Slice proves a real UI operation through an API/MCP-backed Workflow capability to real state, data, or side effect and back to a visible UI result. Its applicable Simulation scenario traces the same capability, state, and exception behavior; Simulation need not be the production backend. Static UI, mock, stub, or manually staged state is Product Formation evidence only and cannot prove third-phase integration, delivery readiness, or D0-D3 acceptance. Update only the affected connected layers and their evidence; do not mechanically alter unrelated layers.
+Each Slice proves a real UI operation through a real API/MCP-backed Workflow to state/data/side effects and a visible result. Static UI, mock, stub, or manually staged state is demonstration evidence, not integration proof. Details: [Feature Slice and integration](references/feature-slice-and-integration.md) and [UI lock](references/integration-baseline-lock.md).
 
-Before selecting a Product Integration Run for execution, require Execution Coverage Preflight `PASS` across Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. It must include the total project repository/full exact baseline commit, applicable UI subtree ID/path/component version/content hash and scope, Product/Integration identity `MATCH`, Slice/Run-start `MATCH`, and a required before-acceptance comparison route. `HIGH/UNKNOWN` requires deeper evidence or smaller independently verifiable Runs. This preflight is not a universal prerequisite for method use in `INITIAL`, `PRODUCT_FORMATION`, or `DELIVERY_PREPARATION`; those phases supply their own authoritative contracts.
+## Cross-phase execution axis
 
-If cross-layer wiring is unproven, make the first Required Run a thin production-quality E2E proving path. Halt expansion when it fails. Reuse sufficient existing proof instead of manufacturing a new Run.
+Source clauses: [LC-RUN-001](../SPEC.md#lc-run-001), [LC-RUN-002](../SPEC.md#lc-run-002), [LC-RUN-003](../SPEC.md#lc-run-003), [LC-COMPAT-002](../SPEC.md#lc-compat-002)
 
-Use the integration lock:
+SLK, CLK, GLK, and other registered methods may run in any LCCoding phase. This cross-phase execution axis is not a lifecycle node and is not an exhaustive method list. One Run selects one compatible method and returns evidence to its calling phase. Completing or accepting a Run does not advance a phase. See [method selection](references/loop-method-selection.md) and [shared Loop Control](references/loop-control-contract.md).
 
-```text
-UI = LOCKED
-Workflow = CONTROLLED_MUTABLE
-Simulation = VERSIONED_MUTABLE
-Calabash = LIVING_WITH_IMPACT_TRACE
-```
+## Verification and acceptance entry
 
-The UI lock applies to the applicable UI logical subtree in the total project repository. `LOCKED` is one-way Owner authority: the Owner may initiate or explicitly approve a UI change, while Workflow, Simulation, integrations, Loops, Agents, runtimes, automation, and all other system actors must not autonomously modify a locked UI. Screenshots, exports, previews, and build output are evidence only, never the recoverable baseline. Integration Baseline pins the total-project exact commit plus UI subtree ID/path/component version/deterministic content hash and must match Product Handoff; never use a branch, tag, `HEAD`, worktree, or `latest` as the lock.
+Source clauses: [LC-VERIFY-001](../SPEC.md#lc-verify-001), [LC-ACCEPT-001](../SPEC.md#lc-accept-001), [LC-ACCEPT-002](../SPEC.md#lc-accept-002), [LC-ACCEPT-003](../SPEC.md#lc-accept-003)
 
-Compare current UI subtree to the locked project commit and hash before a Slice/Run and before acceptance. A difference without Owner initiation or approval evidence blocks progress or acceptance; preserve its evidence and isolate it without changing the authoritative UI. Never silently overwrite user material or automatically restore UI. An Owner-initiated or Owner-approved change is legal through the existing Baseline Change Request, which records its authority, necessity, distinct total-project commit, matching affected UI subtree component version/hash updates in Product and Integration Baselines, and affected evidence re-verification. Logical subtree means an in-repository product path, not Git's external-repository subtree mechanism.
+D0–D3 use independent evidence and reuse unaffected proof. Every normal SLK/CLK/GLK Run must end in its own Loop Owner Acceptance; Post-Security Owner Acceptance remains a distinct final-candidate decision. Use [acceptance boundaries](references/loop-acceptance-boundary.md) and [verification reuse](references/verification-de-duplication.md).
 
-## Cross-phase execution-method axis
+## Security and Delivery entry
 
-Any bounded work item in any LCCoding phase may select an execution method. Record the current phase, phase-owned objective, authoritative phase contract, Run scope, evidence return target, and acceptance conditions. The calling phase owns meaning and its phase gate; the selected method owns only its bounded execution topology and evidence production.
+Source clauses: [LC-SEC-001](../SPEC.md#lc-sec-001), [LC-SEC-002](../SPEC.md#lc-sec-002), [LC-DELIVERY-001](../SPEC.md#lc-delivery-001)
 
-- SLK for one serial stream.
-- CLK for fixed Chains and ordered Stages/full barriers.
-- GLK for a real GO-to-GO graph.
-- another registered execution method when its contract fits the work better.
+Centralized independent vulnerability closure and current Post-Security acceptance precede customer-specific Q&A and protected Delivery. Later material change invalidates affected evidence. Use [vulnerability closure](references/vulnerability-closure.md), [Delivery Q&A](references/delivery-method-qa.md), and [delivery governance](references/delivery-governance.md).
 
-SLK, CLK, and GLK are not an exhaustive method list. Another registered method is eligible only when its evidence and acceptance interface satisfies the calling LCCoding work contract. Use one method per Run. Separate Runs may use different methods in the same or different phases. Each Run has a fresh Run Supervisor, Run Scope, and Run Feature.
+## Built-in BI entry
 
-Completing or accepting a Run does not advance a phase. It returns evidence to the calling phase, which evaluates its own gate with all required evidence. Product Baseline, Feature Slice, and Integration Baseline inputs are mandatory for third-phase Product Integration work where applicable, not for unrelated earlier or later phase work.
+Source clauses: [LC-BI-001](../SPEC.md#lc-bi-001), [LC-BI-002](../SPEC.md#lc-bi-002)
 
-Every selected Loop also binds the one versioned `LCCODING_LOOP_CONTROL` contract. It standardizes cross-Loop Worker wake, Supervisor no-wait, Patrol, actual-subagent/Pin prohibitions, progress ownership, capacity, and model policy without becoming a fourth Loop method or a runtime. LCCoding defines the policy; LCagent or another trusted runtime performs thread, wait, heartbeat, and model operations. A missing or failed binding blocks the Run. See [`references/loop-control-contract.md`](references/loop-control-contract.md).
+The built-in BI is a read-only projection, not project authority or runtime control. Product, compatibility, implementation, and release navigation begins at [built-in BI](references/built-in-bi.md).
 
-## Verification without waste
+## Version navigation
 
-- D0: Worker local self-check; never acceptance.
-- D1: independent Checker CELL acceptance.
-- D2: independent GO outcome Verification using D0/D1 receipts.
-- D3: fresh independent Stage/Run/Final composition Verification using lower receipts.
+Source clauses: [LC-COMPAT-001](../SPEC.md#lc-compat-001)
 
-Worker, CELL Checker, and Run Supervisor cannot author D2/D3 verdicts. Repeat lower checks only for candidate change, stale/contradictory evidence, material environment difference, composition-sensitive behavior, affected regression, or a named risk.
-
-## Loop Owner Acceptance
-
-Every normal SLK/CLK/GLK Run must end:
-
-```text
-D3 PASS
-→ LOOP_OWNER_ACCEPTANCE_READY
-→ Supervisor-guided Loop Owner Acceptance
-```
-
-Do not aggregate several normal Runs into one late Owner acceptance. The Owner accepts each small completed Run while context is fresh.
-
-Only after every required normal Run is `LOOP_OWNER_ACCEPTED` issue `ALL_REQUIRED_RUNS_ACCEPTED`.
-
-For rework, definition change, or defer, assign one Owner gap ID. Keep the full lineage in existing Acceptance, Impact/Calabash route, correction Run, D0–D3, re-verification, and re-acceptance artifacts; keep only open gap indexes and evidence pointers in `status.json`. Never close a gap or aggregate the Slice without the required evidence and Owner result.
-
-## Centralized vulnerability audit
-
-Immediately after `ALL_REQUIRED_RUNS_ACCEPTED`:
-
-1. Freeze the accepted aggregate candidate.
-2. Create a fresh independent Security Auditor Agent/context/workspace.
-3. Ensure the auditor did not act as Worker, Checker, Verifier, Run Supervisor, acceptance preparer, or remediation implementer.
-4. Perform one coverage-complete audit over the final accepted candidate.
-5. Reuse valid local security evidence but do not treat D0–D3 as the centralized verdict.
-6. Route findings to separate engineering roles for remediation.
-7. Re-run only invalidated engineering evidence.
-8. Security Auditor independently re-audits and issues `VULNERABILITY_CLOSED` or blocks.
-
-Formal vulnerability audit is centralized, not scattered across every engineering layer.
-
-## Post-Security Owner Acceptance
-
-After `VULNERABILITY_CLOSED`, perform one focused Owner Acceptance of the security-remediated candidate.
-
-Reuse all Loop Owner Acceptance receipts. Check only remediation-affected UI/Workflow surfaces, affected Feature behavior, final candidate identity, and a critical smoke route. Do not make the Owner repeat unchanged prior acceptance.
-
-Delivery requires `POST_SECURITY_OWNER_ACCEPTED`.
-
-## Delivery
-
-Run customer-specific Delivery Method Q&A after Post-Security Owner Acceptance. Load Owner Policy and contract facts, ask only unresolved questions, give a recommended option, persist every answer, and require `DELIVERY_METHOD_CONFIRMED`.
-
-Deliver only approved product assets. Exclude LCagent, LCapi, LCCoding, Calabash, SLK, CLK, GLK, internal tools, canonical assets, internal knowledge/workflow/recommendation logic, development evidence, and source code unless Owner authorizes them.
-
-Ubuntu remains the preferred recommendation where suitable. Docker is not required. Enforce Owner-confirmed no-resale, redistribution, sublicense, repackaging, unauthorized-modification, reverse-engineering, transfer, and control-removal boundaries.
-
-## Built-in BI
-
-Use the built-in BI only as a read-only Owner-visible projection of the fixed four phases, fine-grained milestones, states, artifacts, and protected subreports. The compact Windows window starts in English, can switch to Chinese, and may Pin only its own native always-on-top state.
-
-The 2.6.0 desktop release keeps the existing Product Baseline and Execution Method Governance Open relations without adding lifecycle nodes. Project-subtree and published lower-method governance facts may appear only as strict sanitized metrics with `UNKNOWN`/`NOT_RECORDED` for absent evidence. Never infer `7/7`, progress, versions, API/MCP coverage, Heartbeat interval, or compliance from missing data.
-
-Install the unified current-user BI once; projects contain no BI source or toolchain. CLI `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust-owned immutable binding. The adapter may read only the closed canonical record allowlist and formally published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 contracts, then emit only the sanitized Snapshot through no-argument `get_snapshot`. Never expose project paths or raw identities/evidence to the webview. The BI does not write project files, control Agent/runtime behavior, or become a second status authority; `status.json` remains authoritative.
-
-## Version policy
-
-- NEW initial `0.0.1`; EXISTING preserves its declared version or records `UNKNOWN`;
-- small upgrade: commit only;
-- medium: `0.0.x`;
-- large: `0.x.1`;
-- `1.0.1+`: Owner approval required.
+Version and migration rules are defined by the clause and explained in [version governance](references/version-governance.md).

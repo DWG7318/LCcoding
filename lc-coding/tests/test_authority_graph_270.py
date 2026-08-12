@@ -396,4 +396,175 @@ for clause_id, relation, markers in relationship_requirements:
     for marker in markers:
         assert marker in body, f"{clause_id} {relation} missing: {marker}"
 
+
+PROJECTIONS = (
+    root / "CONSTITUTION.md",
+    root / "README.md",
+    root / "README.zh-CN.md",
+    root / "lc-coding/SKILL.md",
+)
+RETIRED_ENTRY_TARGETS = {
+    (root / "lc-coding/references" / ("method-" + "mainline.md")).resolve(),
+}
+MODAL_RE = re.compile(
+    r"(?i)\b(?:must|shall|required|never|forbidden|prohibited|may not|cannot)\b"
+    r"|(?:必须|不得|禁止|不可|只能)"
+)
+SOURCE_LINE_RE = re.compile(r"(?m)^Source clauses: (.+)$")
+SOURCE_LINK_RE = re.compile(
+    r"\[(LC-[A-Z]+-\d{3})\]\(([^)#]+)#(lc-[a-z]+-\d{3})\)"
+)
+MARKDOWN_ANCHORED_LINK_RE = re.compile(r"\[([^]]+)\]\(([^)#]+)#([^)]+)\)")
+SEMANTIC_NAVIGATION = {
+    "fixed_lifecycle_proportional_depth": {
+        "labels": {
+            "fixed lifecycle, proportional depth",
+            "fixed lifecycle and proportional depth",
+            "固定生命周期与比例深度",
+        },
+        "clause_id": "LC-AUTH-002",
+    },
+}
+
+
+def projection_sections(text: str):
+    headings = list(re.finditer(r"(?m)^## ([^\n]+)$", text))
+    preface = text[: headings[0].start()] if headings else text
+    sections = []
+    for index, heading in enumerate(headings):
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+        sections.append((heading.group(1).strip(), text[heading.end() : end]))
+    return preface, sections
+
+
+def projection_errors(path: Path, text: str):
+    errors = []
+    preface, sections = projection_sections(text)
+    if MODAL_RE.search(preface):
+        errors.append("normative preface has no section-level source")
+    for title, body in sections:
+        source_lines = SOURCE_LINE_RE.findall(body)
+        if MODAL_RE.search(body) and len(source_lines) != 1:
+            errors.append(f"{title}: normative section requires exactly one Source clauses line")
+        if not source_lines:
+            continue
+        links = SOURCE_LINK_RE.findall(source_lines[0])
+        residue = SOURCE_LINK_RE.sub("", source_lines[0]).replace(",", "").strip()
+        if not links or residue:
+            errors.append(f"{title}: Source clauses line is not closed and parseable")
+            continue
+        source_ids = [clause_id for clause_id, _, _ in links]
+        if len(source_ids) != len(set(source_ids)):
+            errors.append(f"{title}: duplicate source clause")
+        for clause_id, relative, anchor in links:
+            if clause_id not in EXPECTED:
+                errors.append(f"{title}: unknown source clause {clause_id}")
+                continue
+            target = (path.parent / relative).resolve()
+            if target != (root / "SPEC.md").resolve():
+                errors.append(f"{title}: source does not resolve to canonical SPEC")
+            if anchor != clause_id.lower():
+                errors.append(f"{title}: clause/anchor mismatch")
+    return errors
+
+
+for projection in PROJECTIONS:
+    projection_text = projection.read_text(encoding="utf-8")
+    errors = projection_errors(projection, projection_text)
+    assert not errors, f"{projection.relative_to(root)} projection drift: {errors}"
+    assert "SPEC.md" in projection_text, f"{projection.relative_to(root)} lacks SPEC navigation"
+    local_targets = []
+    for target in re.findall(r"\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)", projection_text):
+        if target.startswith(("http://", "https://")):
+            continue
+        resolved = (projection.parent / target).resolve()
+        assert resolved.exists(), f"{projection.relative_to(root)} missing link target: {target}"
+        local_targets.append(resolved)
+    references_root = (root / "lc-coding/references").resolve()
+    assert any(
+        target.parent == references_root for target in local_targets
+    ), f"{projection.relative_to(root)} lacks focused-reference navigation"
+    retired_targets = RETIRED_ENTRY_TARGETS.intersection(local_targets)
+    assert not retired_targets, (
+        f"{projection.relative_to(root)} retains retired entry navigation: "
+        f"{sorted(str(target.relative_to(root)) for target in retired_targets)}"
+    )
+    assert "Real Product Integration" in projection_text
+    assert "ENGINEERING_RUNS" in projection_text
+    assert not re.search(r"(?m)^#{1,6} .*ENGINEERING_RUNS", projection_text)
+
+
+def normalized_navigation_label(label: str) -> str:
+    return re.sub(r"\s+", " ", label).strip().casefold()
+
+
+fixed_lifecycle_navigation = SEMANTIC_NAVIGATION[
+    "fixed_lifecycle_proportional_depth"
+]
+expected_labels = {
+    normalized_navigation_label(label)
+    for label in fixed_lifecycle_navigation["labels"]
+}
+expected_clause_id = fixed_lifecycle_navigation["clause_id"]
+assert expected_clause_id in EXPECTED
+for projection in PROJECTIONS[:3]:
+    matches = []
+    projection_text = projection.read_text(encoding="utf-8")
+    for label, target, anchor in MARKDOWN_ANCHORED_LINK_RE.findall(projection_text):
+        if normalized_navigation_label(label) in expected_labels:
+            matches.append((target, anchor))
+    assert len(matches) == 1, (
+        f"{projection.relative_to(root)} must expose one fixed-lifecycle semantic link"
+    )
+    target, anchor = matches[0]
+    assert (projection.parent / target).resolve() == (root / "SPEC.md").resolve()
+    assert anchor == expected_clause_id.lower(), (
+        f"{projection.relative_to(root)} fixed-lifecycle navigation maps to {anchor}, "
+        f"expected {expected_clause_id.lower()}"
+    )
+
+valid_projection_sample = """# Projection
+
+## Governed summary
+
+Source clauses: [LC-AUTH-001](SPEC.md#lc-auth-001)
+
+The Owner must decide product meaning.
+"""
+assert not projection_errors(root / "README.md", valid_projection_sample)
+assert projection_errors(
+    root / "README.md", valid_projection_sample.replace("Source clauses: ", "Sources: ")
+)
+assert projection_errors(
+    root / "README.md", valid_projection_sample.replace("LC-AUTH-001", "LC-AUTH-999")
+)
+assert projection_errors(
+    root / "README.md", valid_projection_sample.replace("#lc-auth-001", "#lc-phase-001")
+)
+
+constitution = (root / "CONSTITUTION.md").read_text(encoding="utf-8")
+for marker in (
+    "Principle Zero",
+    "Owner decides product meaning",
+    "CONTINUE",
+    "NARROW_REDIRECT",
+    "HOLD",
+    "TERMINATE",
+    "final Owner Acceptance",
+    "delivery rights",
+):
+    assert marker in constitution, f"constitutional Owner right missing: {marker}"
+
+skill_projection = (root / "lc-coding/SKILL.md").read_text(encoding="utf-8")
+_, parsed_skill_sections = projection_sections(skill_projection)
+skill_sections = dict(parsed_skill_sections)
+stop_projection = skill_sections["Start, stop, and route"]
+stop_order = ["STOP", "preserve evidence", "route", "resume"]
+positions = [stop_projection.index(marker) for marker in stop_order]
+assert positions == sorted(positions), "SKILL stop/route order drifted"
+for projection in PROJECTIONS:
+    text = projection.read_text(encoding="utf-8")
+    assert "cross-phase execution axis" in text.casefold()
+    assert "not a lifecycle node" in text.casefold()
+
 print("PASS: SPEC exposes one closed 26-clause semantic authority graph")
