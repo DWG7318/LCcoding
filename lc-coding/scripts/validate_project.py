@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import argparse, hashlib, json, re, subprocess
+import argparse, hashlib, importlib.util, json, re, subprocess
+
+_PHASE_VALIDATOR_PATH=Path(__file__).with_name('validate_phase_status.py')
+_PHASE_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
+    'lccoding_validate_phase_status',_PHASE_VALIDATOR_PATH
+)
+_PHASE_VALIDATOR=importlib.util.module_from_spec(_PHASE_VALIDATOR_SPEC)
+_PHASE_VALIDATOR_SPEC.loader.exec_module(_PHASE_VALIDATOR)
+COMPLETED_PHASE_STATES=_PHASE_VALIDATOR.COMPLETED_PHASE_STATES
+completed_evidence=_PHASE_VALIDATOR.completed_evidence
+normalize_lifecycle_state=_PHASE_VALIDATOR.normalize_lifecycle_state
+validate_phase_status_record=_PHASE_VALIDATOR.validate_phase_status
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -26,7 +37,7 @@ def nested_forbidden_fields(value, forbidden, path=''):
     return found
 
 def validate_status_authority(status,phase_status,health):
-    errors=[]
+    errors=validate_phase_status_record(phase_status)
     roles=[status.get('record_role'),phase_status.get('record_role'),health.get('record_role')]
     if roles.count('AUTHORITATIVE_PROJECT_STATUS')!=1:
         errors.append('single authoritative project status required')
@@ -39,19 +50,42 @@ def validate_status_authority(status,phase_status,health):
     for name,value in [('status.json',status),('PHASE-STATUS.json',phase_status),('PROJECT-HEALTH.json',health)]:
         for field in nested_forbidden_fields(value,RUNTIME_STATUS_FIELDS):
             errors.append(f'{name} contains runtime field {field}')
+        for field in nested_forbidden_fields(value,{'product_baseline_ready'}):
+            errors.append(f'{name} contains forbidden invented gate PRODUCT_BASELINE_READY at {field}')
     if phase_status.get('current_phase')!=status.get('current_phase'):
         errors.append('derived phase status disagrees with authoritative current_phase')
     gate_map={
         'INITIAL':('exit_gate','INITIAL_READY'),
-        'PRODUCT_FORMATION':('exit_gate','CALABASH_UPGRADE_READY'),
         'ENGINEERING_RUNS':('aggregate_exit_gate','ALL_REQUIRED_RUNS_ACCEPTED'),
         'DELIVERY_PREPARATION':('exit_gate','DELIVERY_READY'),
     }
     for phase,(field,gate) in gate_map.items():
         derived=phase_status.get('phases',{}).get(phase,{}).get(field)
         authoritative=status.get('phase_gates',{}).get(gate)
+        if normalize_lifecycle_state(authoritative) is None:
+            errors.append(f'invalid authoritative boundary state: {gate}')
         if derived!=authoritative:
             errors.append(f'derived phase status disagrees with authoritative gate {gate}')
+    formation=phase_status.get('phases',{}).get('PRODUCT_FORMATION',{})
+    if 'exit_gate' in formation:
+        errors.append('derived Product Formation must use exit_evidence, not exit_gate')
+    derived_baseline=formation.get('exit_evidence')
+    authoritative_baseline=status.get('product_baseline')
+    if normalize_lifecycle_state(authoritative_baseline) is None:
+        errors.append('invalid Product Baseline evidence state in status.json')
+    if derived_baseline!=authoritative_baseline:
+        errors.append('derived Product Formation exit evidence disagrees with authoritative product_baseline')
+    authoritative_complete=completed_evidence(authoritative_baseline)
+    derived_complete=completed_evidence(derived_baseline)
+    if authoritative_complete and formation.get('status') not in COMPLETED_PHASE_STATES:
+        errors.append('derived Product Formation completion is pending despite accepted Product Baseline')
+    if not authoritative_complete and formation.get('status') in COMPLETED_PHASE_STATES:
+        errors.append('derived Product Formation completion lacks accepted Product Baseline')
+    if status.get('current_phase') in {'ENGINEERING_RUNS','DELIVERY_PREPARATION'}:
+        if not authoritative_complete:
+            errors.append('ENGINEERING_RUNS requires accepted Product Baseline')
+        if not derived_complete or formation.get('status') not in COMPLETED_PHASE_STATES:
+            errors.append('ENGINEERING_RUNS requires matching derived Product Formation completion')
     return errors
 
 def validate_takeover_readiness(start,status,health):
@@ -569,16 +603,18 @@ def main():
     workflow_rows=parse_markdown_table(lc/'WORKFLOW-MAP.md','Workflow ID') if (lc/'WORKFLOW-MAP.md').exists() else []
     ui_rows=parse_markdown_table(lc/'UI-MAP.md','UI ID') if (lc/'UI-MAP.md').exists() else []
     simulation_rows=parse_markdown_table(lc/'SIMULATION-WORLD.md','Simulation ID') if (lc/'SIMULATION-WORLD.md').exists() else []
-    handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'
+    handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]
     if handoff.exists():
         handoff_fields=parse_markdown_fields(handoff)
+        if str(handoff_fields.get('Handoff status','')).strip().upper()!='COMPLETE':
+            handoff_errors.append('Product Baseline Handoff status must be COMPLETE')
         repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
         project_repository=canonical_github_repository(start.get('repository'))
         if not repository or (project_repository and repository!=project_repository):
-            errors.append('Product Baseline Handoff must use the total project repository')
+            handoff_errors.append('Product Baseline Handoff must use the total project repository')
         frozen_commit=handoff_fields.get('Project frozen exact commit SHA','')
-        errors.extend(validate_workflow_subtrees(workflow_rows,Path(args.project),frozen_commit))
-        errors.extend(validate_product_subtree_baseline(
+        handoff_errors.extend(validate_workflow_subtrees(workflow_rows,Path(args.project),frozen_commit))
+        handoff_errors.extend(validate_product_subtree_baseline(
             parse_markdown_table(handoff,'Subtree type'),
             handoff_fields.get('Primary product mainline ID'),
             handoff_fields.get('Primary mainline Owner confirmation'),
@@ -595,6 +631,12 @@ def main():
         ))
     else:
         errors.extend(validate_workflow_subtrees(workflow_rows))
+    errors.extend(handoff_errors)
+    if completed_evidence(status.get('product_baseline')):
+        if not handoff.exists():
+            errors.append('accepted Product Baseline requires PRODUCT-BASELINE-HANDOFF.md')
+        elif handoff_errors:
+            errors.append('accepted Product Baseline requires a mechanically valid and COMPLETE Product Baseline Handoff')
     if status.get('active_slice'):
         slice_path=resolve_active_slice(lc,status.get('active_slice'))
         if not slice_path: errors.append('active Slice artifact missing')

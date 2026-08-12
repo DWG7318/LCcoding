@@ -2,6 +2,9 @@ from pathlib import Path
 import copy
 import importlib.util
 import json
+import subprocess
+import sys
+import tempfile
 
 root = Path(__file__).resolve().parents[2]
 module_path = root / "lc-coding/scripts/validate_project.py"
@@ -21,8 +24,139 @@ assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
 assert health.get("record_role") == "ASSESSMENT_EVIDENCE"
+assert status.get("status_schema_version") == "2.6.0"
+assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
+assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
+assert status.get("product_baseline") == "PENDING"
+assert "product_baseline" not in status.get("phase_gates", {})
+formation_view = phase_status["phases"]["PRODUCT_FORMATION"]
+assert "exit_gate" not in formation_view
+assert formation_view.get("exit_evidence") == "PENDING"
 assert hasattr(module, "validate_status_authority")
 assert module.validate_status_authority(status, phase_status, health) == []
+
+
+def product_formation_pending():
+    current_status = copy.deepcopy(status)
+    current_view = copy.deepcopy(phase_status)
+    current_status["current_phase"] = "PRODUCT_FORMATION"
+    current_status["phase_gates"]["INITIAL_READY"] = "PASS"
+    current_status["phase_gates"]["CALABASH_UPGRADE_READY"] = "PASS"
+    current_status["product_baseline"] = "PENDING"
+    current_view["current_phase"] = "PRODUCT_FORMATION"
+    current_view["phases"]["INITIAL"]["status"] = "COMPLETE"
+    current_view["phases"]["INITIAL"]["exit_gate"] = "PASS"
+    current_view["phases"]["PRODUCT_FORMATION"]["status"] = "ACTIVE"
+    current_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "PENDING"
+    return current_status, current_view
+
+
+# Upgrade readiness is only internal compatibility evidence. It does not finish
+# Product Formation while the authoritative Product Baseline remains pending.
+formation_status, formation_phase_status = product_formation_pending()
+assert module.validate_status_authority(
+    formation_status, formation_phase_status, health
+) == []
+
+# Boundary evidence is a raw projection of the authoritative lifecycle state.
+# ACTIVE is valid evidence while Product Formation remains in progress.
+active_baseline_status = copy.deepcopy(formation_status)
+active_baseline_view = copy.deepcopy(formation_phase_status)
+active_baseline_status["product_baseline"] = "ACTIVE"
+active_baseline_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "ACTIVE"
+assert module.validate_status_authority(
+    active_baseline_status, active_baseline_view, health
+) == []
+
+# READY is a completed lifecycle value for the Initial boundary; the derived
+# phase record status remains the separate conservative COMPLETE value.
+ready_initial_status = copy.deepcopy(formation_status)
+ready_initial_view = copy.deepcopy(formation_phase_status)
+ready_initial_status["phase_gates"]["INITIAL_READY"] = "READY"
+ready_initial_view["phases"]["INITIAL"]["exit_gate"] = "READY"
+assert module.validate_status_authority(
+    ready_initial_status, ready_initial_view, health
+) == []
+
+premature_engineering_status = copy.deepcopy(formation_status)
+premature_engineering_view = copy.deepcopy(formation_phase_status)
+premature_engineering_status["current_phase"] = "ENGINEERING_RUNS"
+premature_engineering_view["current_phase"] = "ENGINEERING_RUNS"
+assert any(
+    "ENGINEERING_RUNS requires accepted Product Baseline" in error
+    for error in module.validate_status_authority(
+        premature_engineering_status, premature_engineering_view, health
+    )
+)
+
+# Authoritative acceptance may not be hidden by a stale derived pending view.
+accepted_with_pending_view = copy.deepcopy(formation_status)
+accepted_with_pending_view["product_baseline"] = "ACCEPTED"
+assert any(
+    "derived Product Formation exit evidence" in error
+    for error in module.validate_status_authority(
+        accepted_with_pending_view, formation_phase_status, health
+    )
+)
+
+# Accepted/current Product Baseline plus matching derived completion admits
+# Real Product Integration when Initial is also complete.
+engineering_status = copy.deepcopy(formation_status)
+engineering_view = copy.deepcopy(formation_phase_status)
+engineering_status["current_phase"] = "ENGINEERING_RUNS"
+engineering_status["product_baseline"] = "ACCEPTED"
+engineering_view["current_phase"] = "ENGINEERING_RUNS"
+engineering_view["phases"]["PRODUCT_FORMATION"]["status"] = "COMPLETE"
+engineering_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "ACCEPTED"
+engineering_view["phases"]["ENGINEERING_RUNS"]["status"] = "ACTIVE"
+assert module.validate_status_authority(engineering_status, engineering_view, health) == []
+
+# The aggregate boundary keeps its exact authoritative raw value and
+# normalizes to completed when Delivery Preparation begins.
+delivery_status = copy.deepcopy(engineering_status)
+delivery_view = copy.deepcopy(engineering_view)
+delivery_status["current_phase"] = "DELIVERY_PREPARATION"
+delivery_status["phase_gates"][
+    "ALL_REQUIRED_RUNS_ACCEPTED"
+] = "ALL_REQUIRED_RUNS_ACCEPTED"
+delivery_view["current_phase"] = "DELIVERY_PREPARATION"
+delivery_view["phases"]["ENGINEERING_RUNS"]["status"] = "COMPLETE"
+delivery_view["phases"]["ENGINEERING_RUNS"][
+    "aggregate_exit_gate"
+] = "ALL_REQUIRED_RUNS_ACCEPTED"
+delivery_view["phases"]["DELIVERY_PREPARATION"]["status"] = "ACTIVE"
+assert module.validate_status_authority(delivery_status, delivery_view, health) == []
+
+engineering_without_initial = copy.deepcopy(engineering_view)
+engineering_without_initial["phases"]["INITIAL"]["status"] = "PENDING"
+assert any(
+    "prior phase status not complete: INITIAL" in error
+    for error in module.validate_status_authority(
+        engineering_status, engineering_without_initial, health
+    )
+)
+
+arbitrary_baseline_status = copy.deepcopy(engineering_status)
+arbitrary_baseline_view = copy.deepcopy(engineering_view)
+arbitrary_baseline_status["product_baseline"] = "FINISHEDISH"
+arbitrary_baseline_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "FINISHEDISH"
+assert any(
+    "invalid Product Baseline evidence state" in error
+    for error in module.validate_status_authority(
+        arbitrary_baseline_status, arbitrary_baseline_view, health
+    )
+)
+
+unknown_baseline_status = copy.deepcopy(engineering_status)
+unknown_baseline_view = copy.deepcopy(engineering_view)
+unknown_baseline_status["product_baseline"] = "UNKNOWN"
+unknown_baseline_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "UNKNOWN"
+assert any(
+    "invalid Product Baseline evidence state" in error
+    for error in module.validate_status_authority(
+        unknown_baseline_status, unknown_baseline_view, health
+    )
+)
 
 duplicate_authority = copy.deepcopy(phase_status)
 duplicate_authority["record_role"] = "AUTHORITATIVE_PROJECT_STATUS"
@@ -44,6 +178,37 @@ assert any(
     "derived phase status disagrees" in error
     for error in module.validate_status_authority(status, drifted_view, health)
 )
+
+invented_gate = copy.deepcopy(status)
+invented_gate["phase_gates"]["PRODUCT_BASELINE_READY"] = "PASS"
+assert any(
+    "PRODUCT_BASELINE_READY" in error
+    for error in module.validate_status_authority(invented_gate, phase_status, health)
+)
+
+
+def run_phase_status_validator(view):
+    with tempfile.TemporaryDirectory() as temporary:
+        path = Path(temporary) / "PHASE-STATUS.json"
+        path.write_text(json.dumps(view), encoding="utf-8")
+        return subprocess.run(
+            [
+                sys.executable,
+                str(root / "lc-coding/scripts/validate_phase_status.py"),
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+
+valid_phase_result = run_phase_status_validator(engineering_view)
+assert valid_phase_result.returncode == 0, valid_phase_result.stdout + valid_phase_result.stderr
+invalid_phase_view = copy.deepcopy(engineering_view)
+invalid_phase_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "FINISHEDISH"
+invalid_phase_result = run_phase_status_validator(invalid_phase_view)
+assert invalid_phase_result.returncode != 0
+assert "invalid exit evidence state" in invalid_phase_result.stdout
 
 start = {
     "initialization_mode": "EXISTING",
@@ -125,6 +290,93 @@ stopped_health["takeover_readiness"] = "NOT_CONTINUING"
 assert module.validate_takeover_readiness(
     not_continuing, stopped_status, stopped_health
 ) == []
+
+
+def write_project_fixture(project, status_record, phase_record):
+    lc = project / ".lccoding"
+    lc.mkdir(parents=True)
+    (project / "VERSION").write_text("0.0.1\n", encoding="utf-8")
+    (lc / "PROJECT-START.json").write_text(
+        json.dumps({"initialization_mode": "NEW", "repository": "owner/project"}),
+        encoding="utf-8",
+    )
+    for name in ("OWNER-POLICY.md", "PROJECT-PROFILE.md", "AGENT-RULE.md"):
+        (lc / name).write_text("fixture\n", encoding="utf-8")
+    fingerprint = {
+        "complexity": {
+            "product_uncertainty": "LOW",
+            "system_coupling": "LOW",
+            "real_risk": "LOW",
+            "irreversibility": "LOW",
+            "novelty": "LOW",
+        },
+        "depth": {"rationale": "", "analysis": [], "materials": [], "evidence": []},
+    }
+    (lc / "PROJECT-FINGERPRINT.json").write_text(
+        json.dumps(fingerprint), encoding="utf-8"
+    )
+    fixture_health = copy.deepcopy(health)
+    fixture_health["initialization_mode"] = "NEW"
+    (lc / "PROJECT-HEALTH.json").write_text(
+        json.dumps(fixture_health), encoding="utf-8"
+    )
+    (lc / "CANONICAL-MANIFEST.json").write_text("{}\n", encoding="utf-8")
+    (lc / "INTERPRETATION-LOCK.json").write_text(
+        json.dumps({"status": "VALID"}), encoding="utf-8"
+    )
+    for name in ("WORKFLOW-MAP.md", "UI-MAP.md", "SIMULATION-WORLD.md"):
+        (lc / name).write_text(
+            (root / "lc-coding/templates" / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
+    (lc / "status.json").write_text(json.dumps(status_record), encoding="utf-8")
+    (lc / "PHASE-STATUS.json").write_text(json.dumps(phase_record), encoding="utf-8")
+    return lc
+
+
+def run_project_validator(project):
+    return subprocess.run(
+        [
+            sys.executable,
+            str(root / "lc-coding/scripts/validate_project.py"),
+            str(project),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+
+with tempfile.TemporaryDirectory() as temporary:
+    project = Path(temporary) / "missing-handoff"
+    write_project_fixture(project, engineering_status, engineering_view)
+    result = run_project_validator(project)
+    assert result.returncode != 0
+    assert "accepted Product Baseline requires PRODUCT-BASELINE-HANDOFF.md" in result.stdout
+
+with tempfile.TemporaryDirectory() as temporary:
+    project = Path(temporary) / "invalid-handoff"
+    lc = write_project_fixture(project, engineering_status, engineering_view)
+    (lc / "PRODUCT-BASELINE-HANDOFF.md").write_text(
+        "# Product Baseline Handoff\n\n- Handoff status: COMPLETE\n",
+        encoding="utf-8",
+    )
+    result = run_project_validator(project)
+    assert result.returncode != 0
+    assert (
+        "accepted Product Baseline requires a mechanically valid and COMPLETE Product Baseline Handoff"
+        in result.stdout
+    )
+
+# The normal project validator must apply the shared phase-view ordering
+# validator, even when all raw authoritative boundary mappings agree.
+with tempfile.TemporaryDirectory() as temporary:
+    project = Path(temporary) / "malformed-future-phase"
+    malformed_future_view = copy.deepcopy(formation_phase_status)
+    malformed_future_view["phases"]["ENGINEERING_RUNS"]["status"] = "ACTIVE"
+    write_project_fixture(project, formation_status, malformed_future_view)
+    result = run_project_validator(project)
+    assert result.returncode != 0
+    assert "future phase status must be PENDING: ENGINEERING_RUNS" in result.stdout
 
 phases = json.loads(
     (root / "lc-coding/contracts/phases.json").read_text(encoding="utf-8")

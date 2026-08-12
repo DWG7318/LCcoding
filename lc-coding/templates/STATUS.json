@@ -20,6 +20,7 @@
     "ALL_REQUIRED_RUNS_ACCEPTED": "PENDING",
     "DELIVERY_READY": "PENDING"
   },
+  "product_baseline": "PENDING",
   "proposal": "PENDING",
   "initialization": "PENDING",
   "calabash_draft": "PENDING",
@@ -27,7 +28,6 @@
   "ui": "PENDING",
   "simulation": "PENDING",
   "mandatory_calabash_upgrade": "PENDING",
-  "product_baseline": "PENDING",
   "active_slice": null,
   "integration_baseline": null,
   "active_runs": [],

@@ -9,7 +9,7 @@
     },
     "PRODUCT_FORMATION": {
       "status": "PENDING",
-      "exit_gate": "PENDING"
+      "exit_evidence": "PENDING"
     },
     "ENGINEERING_RUNS": {
       "status": "PENDING",
