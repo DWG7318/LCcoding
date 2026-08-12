@@ -1,6 +1,24 @@
 # Final Feature Verification
 
+- Artifact role: FINAL_FEATURE_VERIFICATION
+- Verification ID:
 - Feature Slice ID / version:
+- Integration Route ID:
+- Integration candidate ID / exact hash:
+- Product Baseline identity / frozen commit:
+- Primary product mainline ID:
+- Applicable UI identity: ID:<UI ID>; PATH:<subtree path>; VERSION:<component semver>; HASH:<sha256>
+- Workflow capability identity: WORKFLOW:<Workflow ID>; CAPABILITY:<Workflow Capability ID>
+- Selected entry interface: TYPE:<API/MCP>; CAPABILITY:<same Capability ID>; CONTRACT:<Map contract ID>; MAP_EVIDENCE:<Map evidence ID>; INVOCATION:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Simulation scenario identity: SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; VERSION:<scenario semver>
+- Connected route evidence: UI_ACTION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; WORKFLOW_RULES:<candidate-id>~<sha256>~<route-id>~<evidence-id>; STATE_TRANSITION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; DATA_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; SIDE_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; VISIBLE_UI_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; FAILURE_PATH:<candidate-id>~<sha256>~<route-id>~<evidence-id>; RECOVERY_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Integration Baseline ID / reference:
+- D3 / Loop Owner Acceptance evidence: D3:<candidate-id>~<sha256>~<route-id>~<evidence-id>; OWNER:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Phase-2-only evidence used as acceptance proof: NO
+- Changed connected links: NONE / <closed link IDs>
+- Reused unchanged connected links: NONE / <closed link IDs>
+- New / repeated connected links: NONE / <closed link IDs>
+- Evidence reuse basis: CANDIDATE:<Candidate ID / exact sha256>; ROUTE:<Route ID>; SCOPE:<candidate-id>~<sha256>~<route-id>~<evidence-id>; ENVIRONMENT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; REASON:UNCHANGED_EQUIVALENT
 - Candidate / locked total-project repository and exact commit:
 - Applicable UI subtree ID / path / component version / content hash:
 - UI Product / Integration Baseline identity: MATCH / BLOCKED + evidence

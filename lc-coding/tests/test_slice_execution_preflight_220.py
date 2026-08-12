@@ -95,6 +95,20 @@ unproven["First Proving Run requirement"] = "REQUIRED"
 unproven["First Proving Run ID / evidence"] = "RUN-002"
 assert validate(unproven, low) == []
 
+unproven_not_required = copy.deepcopy(unproven)
+unproven_not_required["Required Run IDs"] = "RUN-OTHER"
+assert any(
+    "first proving Run in Required Run IDs" in error
+    for error in validate(unproven_not_required, low)
+)
+
+unproven_without_halt = copy.deepcopy(unproven)
+unproven_without_halt["Failure expansion rule"] = "CONTINUE_EXPANSION"
+assert any(
+    "halt expansion" in error
+    for error in validate(unproven_without_halt, low)
+)
+
 high = copy.deepcopy(low)
 high["complexity"]["real_risk"] = "HIGH"
 high["depth"]["rationale"] = "Recovery changes persistent state."
@@ -118,6 +132,14 @@ assert any(
 template = (root / "lc-coding/templates/FEATURE-SLICE.md").read_text(encoding="utf-8")
 assert "First Proving Run" in template
 assert "tracer task" not in template.lower()
+for marker in (
+    "Integration Route ID",
+    "Integration candidate ID / exact hash",
+    "Selected entry interface",
+    "Connected route evidence",
+    "Phase-2-only demonstration evidence",
+):
+    assert marker in template
 
 with tempfile.TemporaryDirectory() as td:
     temporary_root = Path(td)

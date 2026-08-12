@@ -219,6 +219,187 @@ def table(columns, rows):
     return "\n".join(lines)
 
 
+def markdown_record(title, fields):
+    return "# " + title + "\n\n" + "\n".join(
+        f"- {key}: {value}" for key, value in fields.items()
+    ) + "\n"
+
+
+def bound_evidence(candidate, route, evidence_id, candidate_hash="sha256:" + "a" * 64):
+    return f"{candidate}~{candidate_hash}~{route}~{evidence_id}"
+
+
+def connected_evidence(candidate="CANDIDATE-1", route="ROUTE-1"):
+    return "; ".join(
+        f"{key}:{bound_evidence(candidate, route, evidence_id)}"
+        for key, evidence_id in (
+            ("UI_ACTION", "E-UI-ACTION"),
+            ("WORKFLOW_RULES", "E-WORKFLOW-RULES"),
+            ("STATE_TRANSITION", "E-STATE"),
+            ("DATA_EFFECT", "E-DATA"),
+            ("SIDE_EFFECT", "E-SIDE-EFFECT"),
+            ("VISIBLE_UI_RESULT", "E-VISIBLE-RESULT"),
+            ("FAILURE_PATH", "E-FAILURE"),
+            ("RECOVERY_RESULT", "E-RECOVERY"),
+        )
+    )
+
+
+def integration_fields(commit, ui_hash):
+    candidate = "CANDIDATE-1"
+    route = "ROUTE-1"
+    candidate_identity = candidate + " / sha256:" + "a" * 64
+    product_identity = "PB-TASK9 / " + commit
+    ui_identity = (
+        "ID:UI-MAIN; PATH:product/ui/main; VERSION:1.0.0; HASH:" + ui_hash
+    )
+    workflow_identity = "WORKFLOW:WF-CORE; CAPABILITY:CAP-CORE"
+    selected_interface = (
+        "TYPE:API; CAPABILITY:CAP-CORE; CONTRACT:API-CORE; MAP_EVIDENCE:E-API-CORE; "
+        "INVOCATION:" + bound_evidence(candidate, route, "E-API-INVOKE")
+    )
+    scenario_identity = "SIMULATION:SIM-MAIN; SCENARIO:SCN-MAIN; VERSION:1.0.0"
+    common = {
+        "Slice ID / version": "FS-1 / 1.0.0",
+        "Integration Route ID": route,
+        "Integration candidate ID / exact hash": candidate_identity,
+        "Product Baseline identity / frozen commit": product_identity,
+        "Primary product mainline ID": "MAINLINE-1",
+        "Applicable UI identity": ui_identity,
+        "Workflow capability identity": workflow_identity,
+        "Selected entry interface": selected_interface,
+        "Simulation scenario identity": scenario_identity,
+        "Connected route evidence": connected_evidence(candidate, route),
+    }
+    slice_fields = {
+        "Artifact role": "FEATURE_SLICE_INTEGRATION",
+        **common,
+        "Actor intent": "Owner invokes the primary product route",
+        "Product outcome": "The real state change is visible in the primary UI",
+        "Product Baseline trace": "PB-TASK9",
+        "Accepted integration candidate / baseline identity": candidate_identity,
+        "Workflow references": "WF-CORE",
+        "UI references": "UI-MAIN",
+        "Primary product mainline ID / Owner confirmation": "MAINLINE-1 / OWNER_CONFIRMED",
+        "Project repository / exact baseline commit": "github.com/example/project :: " + commit,
+        "Applicable UI subtree ID / path": "UI-MAIN :: product/ui/main",
+        "UI component version": "1.0.0",
+        "UI content hash": ui_hash,
+        "UI content hash scope / manifest evidence": "HASH_SCOPE: E-UI-MANIFEST",
+        "UI Product / Integration Baseline identity": "MATCH: E-UI-LOCK",
+        "UI subtree comparison before Slice / Run": "MATCH: E-UI-COMPARE",
+        "UI comparison before acceptance route": "REQUIRED",
+        "Scenario IDs / versions": "SCN-MAIN / 1.0.0",
+        "Real integration route": route,
+        "Applicable Simulation scenario trace": bound_evidence(candidate, route, "E-SCENARIO"),
+        "Phase-2-only demonstration evidence": "NONE",
+        "State / data / permission trace": bound_evidence(candidate, route, "E-STATE-DATA-PERMISSION"),
+        "Exception / recovery trace": bound_evidence(candidate, route, "E-FAILURE-RECOVERY"),
+        "Shared capability result": bound_evidence(candidate, route, "E-CAPABILITY-RESULT"),
+        "Impact Analysis ID": "IA-1",
+        "Integration Baseline ID": "IB-1",
+        "Integration Baseline reference": "INTEGRATION-BASELINE.md",
+        "Final Feature Verification reference": "FINAL-FEATURE-VERIFICATION.md",
+        "Required Run IDs": "RUN-E2E-1",
+        "Optional Run IDs": "NONE",
+        "Superseded Run IDs": "NONE",
+        "Invalidated Run IDs": "NONE",
+        "D0-D3 evidence plan": bound_evidence(candidate, route, "E-D0-D3-PLAN"),
+        "Visible completion": bound_evidence(candidate, route, "E-VISIBLE-COMPLETE"),
+        "Invisible completion": bound_evidence(candidate, route, "E-INVISIBLE-COMPLETE"),
+        "Normal Loop Owner Acceptance route(s)": bound_evidence(candidate, route, "E-OWNER-ROUTE"),
+        "Post-Security Owner Acceptance route": bound_evidence(candidate, route, "E-POST-SECURITY-ROUTE"),
+        "Execution Coverage Preflight": "PASS",
+        "Coverage gaps / unknowns": "NONE",
+        "Cross-layer connection evidence": "PROVEN:" + bound_evidence(candidate, route, "E-CONNECTION"),
+        "First Proving Run requirement": "NOT_REQUIRED",
+        "First Proving Run ID / evidence": "RUN-E2E-1 / " + bound_evidence(candidate, route, "E-D3"),
+        "First Proving Run production E2E scenario": "SCN-MAIN / 1.0.0",
+        "Failure expansion rule": "HALT_EXPANSION",
+        "Fingerprint depth response": "CONCISE_TRUTHFUL",
+        "State": "ACTIVE",
+    }
+    baseline_fields = {
+        "Artifact role": "INTEGRATION_BASELINE",
+        "Baseline ID": "IB-1",
+        **common,
+        "Feature Slice reference": "slices/FS-1.md",
+        "Integration candidate provenance": (
+            "PROJECT_COMMIT:" + commit + "; EVIDENCE:"
+            + bound_evidence(candidate, route, "E-CANDIDATE-PROVENANCE")
+        ),
+        "Product Handoff identity match": "MATCH:" + bound_evidence(candidate, route, "E-PRODUCT-HANDOFF"),
+        "Branch / latest accepted": "NO",
+        "Locked actor surfaces": "UI-MAIN",
+        "Lock authority": "ONE_WAY_OWNER_AUTHORITY",
+        "System autonomous UI modification": "FORBIDDEN",
+        "Owner-initiated / Owner-approved UI change route": "BASELINE_CHANGE_REQUEST",
+        "Explicitly editable regions": "NONE",
+        "Workflow contract and controlled adjustment boundary": "WF-CORE / CAP-CORE",
+        "Simulation scenario versions": "SCN-MAIN / 1.0.0",
+        "Calabash/Product Baseline reference": "PB-TASK9",
+        "Owner approval": "OWNER_CONFIRMED",
+        "Lock time": "2026-08-12T00:00:00Z",
+    }
+    final_fields = {
+        "Artifact role": "FINAL_FEATURE_VERIFICATION",
+        "Verification ID": "FFV-1",
+        **common,
+        "Integration Baseline ID / reference": "IB-1 / INTEGRATION-BASELINE.md",
+        "D3 / Loop Owner Acceptance evidence": (
+            "D3:" + bound_evidence(candidate, route, "E-D3") + "; OWNER:"
+            + bound_evidence(candidate, route, "E-OWNER-ACCEPTANCE")
+        ),
+        "Phase-2-only evidence used as acceptance proof": "NO",
+        "Changed connected links": "VISIBLE_UI_RESULT",
+        "Reused unchanged connected links": (
+            "UI_ACTION, WORKFLOW_RULES, STATE_TRANSITION, DATA_EFFECT, SIDE_EFFECT, FAILURE_PATH, RECOVERY_RESULT"
+        ),
+        "New / repeated connected links": "VISIBLE_UI_RESULT",
+        "Evidence reuse basis": (
+            "CANDIDATE:CANDIDATE-1 / sha256:" + "a" * 64
+            + "; ROUTE:ROUTE-1; SCOPE:"
+            + bound_evidence(candidate, route, "E-UNCHANGED-SCOPE")
+            + "; ENVIRONMENT:"
+            + bound_evidence(candidate, route, "E-PRODUCTION")
+            + "; REASON:UNCHANGED_EQUIVALENT"
+        ),
+        "Final verdict": "PASS",
+    }
+    return slice_fields, baseline_fields, final_fields
+
+
+def install_integration_fixture(repo, commit, ui_hash):
+    slice_fields, baseline_fields, final_fields = integration_fields(commit, ui_hash)
+    lc = repo / ".lccoding"
+    write(lc / "slices/FS-1.md", markdown_record("Feature Slice", slice_fields))
+    write(lc / "INTEGRATION-BASELINE.md", markdown_record("Integration Baseline", baseline_fields))
+    write(
+        lc / "FINAL-FEATURE-VERIFICATION.md",
+        markdown_record("Final Feature Verification", final_fields),
+    )
+    write(lc / "status.json", json.dumps({"active_slice": "slices/FS-1.md"}) + "\n")
+    return slice_fields, baseline_fields, final_fields
+
+
+def replace_markdown_field(text, key, value):
+    prefix = f"- {key}:"
+    lines = text.splitlines()
+    matches = [index for index, line in enumerate(lines) if line.startswith(prefix)]
+    assert len(matches) == 1, key
+    lines[matches[0]] = f"- {key}: {value}"
+    return "\n".join(lines) + "\n"
+
+
+def remove_markdown_field(text, key):
+    prefix = f"- {key}:"
+    lines = text.splitlines()
+    matches = [index for index, line in enumerate(lines) if line.startswith(prefix)]
+    assert len(matches) == 1, key
+    del lines[matches[0]]
+    return "\n".join(lines) + "\n"
+
+
 def definition_handoff():
     return """# Calabash Definition Handoff
 
@@ -299,7 +480,23 @@ def install_product_markdown_fixture(repo, commit, workflows, uis, simulations, 
         "## Simulation subtree registry\n\n"
         + table(SIMULATION_COLUMNS, simulations)
         + "\n\n## Scenario registry\n\n"
-        + table(SCENARIO_COLUMNS, [])
+        + table(
+            SCENARIO_COLUMNS,
+            [
+                {
+                    "Simulation ID": "SIM-MAIN",
+                    "Scenario ID": "SCN-MAIN",
+                    "Actors": "Owner",
+                    "Data/state/time": "candidate-bound state",
+                    "Path": "primary route",
+                    "Failure/recovery": "failure and recovery",
+                    "Fidelity": "PRODUCTION_EQUIVALENT",
+                    "Visible / invisible evidence": "E-SCENARIO",
+                    "Used by Slice/Run/Acceptance": "FS-1 / RUN-E2E-1",
+                    "Scenario version": "1.0.0",
+                }
+            ],
+        )
         + "\n",
     )
     write(
@@ -706,5 +903,409 @@ with tempfile.TemporaryDirectory(prefix="lccoding-product-integration-") as temp
         repo,
         "malformed Scenario table cannot hide a Simulation identity",
     )
+
+    # A current Phase-3 claim must join Slice, Integration Baseline, Final
+    # Verification and the same Product Formation route through the CLI.
+    slice_fields, baseline_fields, final_fields = install_integration_fixture(
+        repo, commit, hashes["UI-MAIN"]
+    )
+    integrated = validate_cli(repo)
+    assert integrated.returncode == 0, integrated.stdout + integrated.stderr
+    integration_paths = {
+        "Slice": lc / "slices/FS-1.md",
+        "Baseline": lc / "INTEGRATION-BASELINE.md",
+        "Final": lc / "FINAL-FEATURE-VERIFICATION.md",
+    }
+
+    stale_hash_originals = {
+        surface: path.read_text(encoding="utf-8")
+        for surface, path in integration_paths.items()
+    }
+    try:
+        for surface, path in integration_paths.items():
+            changed = replace_markdown_field(
+                stale_hash_originals[surface],
+                "Integration candidate ID / exact hash",
+                "CANDIDATE-1 / sha256:" + "b" * 64,
+            )
+            if surface == "Slice":
+                changed = replace_markdown_field(
+                    changed,
+                    "Accepted integration candidate / baseline identity",
+                    "CANDIDATE-1 / sha256:" + "b" * 64,
+                )
+            write(path, changed)
+        assert validate_cli(repo).returncode != 0, (
+            "synchronized candidate SHA drift must invalidate all evidence bound to the prior candidate"
+        )
+    finally:
+        for surface, path in integration_paths.items():
+            write(path, stale_hash_originals[surface])
+
+    mcp_interface = (
+        "TYPE:MCP; CAPABILITY:CAP-CORE; CONTRACT:MCP-CORE; MAP_EVIDENCE:E-MCP-CORE; "
+        "INVOCATION:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-MCP-INVOKE")
+    )
+    api_originals = {
+        surface: path.read_text(encoding="utf-8")
+        for surface, path in integration_paths.items()
+    }
+    try:
+        for surface, path in integration_paths.items():
+            write(
+                path,
+                replace_markdown_field(api_originals[surface], "Selected entry interface", mcp_interface),
+            )
+        mcp_valid = validate_cli(repo)
+        assert mcp_valid.returncode == 0, mcp_valid.stdout + mcp_valid.stderr
+    finally:
+        for surface, path in integration_paths.items():
+            write(path, api_originals[surface])
+
+    def integration_failure(surface, key, value, label):
+        expect_markdown_failure(
+            integration_paths[surface],
+            lambda text: replace_markdown_field(text, key, value),
+            repo,
+            label,
+        )
+
+    expect_markdown_failure(
+        product_paths["Simulation"],
+        lambda text: text.replace("| PRODUCTION_EQUIVALENT |", "| MOCK |", 1),
+        repo,
+        "mock Simulation scenario cannot prove real integration",
+    )
+    expect_markdown_failure(
+        product_paths["Simulation"],
+        lambda text: text.replace("| failure and recovery |", "| PENDING |", 1),
+        repo,
+        "Simulation scenario requires real failure/recovery evidence",
+    )
+
+    # This is the first RED at Task start: the pre-Task-10 entrypoint ignored
+    # an Integration Baseline candidate that disagreed with the active Slice.
+    integration_failure(
+        "Baseline",
+        "Integration candidate ID / exact hash",
+        "CANDIDATE-OTHER / sha256:" + "b" * 64,
+        "Integration Baseline candidate must equal the Slice candidate",
+    )
+
+    for surface in ("Baseline", "Final"):
+        for key, value in (
+            ("Slice ID / version", "FS-OTHER / 1.0.0"),
+            ("Integration Route ID", "ROUTE-OTHER"),
+            ("Product Baseline identity / frozen commit", "PB-TASK9 / " + "0" * 40),
+            (
+                "Applicable UI identity",
+                "ID:UI-OPS; PATH:product/ui/ops; VERSION:1.0.0; HASH:sha256:" + "b" * 64,
+            ),
+            ("Workflow capability identity", "WORKFLOW:WF-EXTRA; CAPABILITY:CAP-EXTRA"),
+            (
+                "Selected entry interface",
+                "TYPE:API; CAPABILITY:CAP-EXTRA; CONTRACT:API-EXTRA; MAP_EVIDENCE:E-API-EXTRA; "
+                "INVOCATION:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-API-INVOKE"),
+            ),
+            (
+                "Simulation scenario identity",
+                "SIMULATION:SIM-LOAD; SCENARIO:SCN-MAIN; VERSION:1.0.0",
+            ),
+        ):
+            integration_failure(
+                surface, key, value, f"{surface} {key} mismatch must fail"
+            )
+
+    for evidence_key in (
+        "UI_ACTION",
+        "WORKFLOW_RULES",
+        "STATE_TRANSITION",
+        "DATA_EFFECT",
+        "SIDE_EFFECT",
+        "VISIBLE_UI_RESULT",
+        "FAILURE_PATH",
+        "RECOVERY_RESULT",
+    ):
+        missing = "; ".join(
+            item
+            for item in connected_evidence().split("; ")
+            if not item.startswith(evidence_key + ":")
+        )
+        integration_failure(
+            "Slice",
+            "Connected route evidence",
+            missing,
+            "missing connected evidence " + evidence_key + " must fail",
+        )
+
+    integration_failure(
+        "Slice",
+        "Selected entry interface",
+        "TYPE:MCP; CAPABILITY:CAP-OTHER; CONTRACT:MCP-CORE; MAP_EVIDENCE:E-MCP-CORE; "
+        "INVOCATION:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-MCP-INVOKE"),
+        "selected API or MCP must bind the mapped Workflow capability",
+    )
+    original_slice_for_missing = integration_paths["Slice"].read_text(encoding="utf-8")
+    try:
+        write(
+            integration_paths["Slice"],
+            remove_markdown_field(original_slice_for_missing, "Selected entry interface"),
+        )
+        assert validate_cli(repo).returncode != 0, "missing selected interface must fail"
+    finally:
+        write(integration_paths["Slice"], original_slice_for_missing)
+    for key, value, label in (
+        (
+            "Accepted integration candidate / baseline identity",
+            "CANDIDATE-OTHER / sha256:" + "b" * 64,
+            "legacy accepted candidate shadow",
+        ),
+        ("Product Baseline trace", "PB-OTHER", "Product Baseline trace"),
+        ("Workflow references", "WF-EXTRA", "Workflow reference"),
+        ("UI references", "UI-OPS", "UI reference"),
+        ("Scenario IDs / versions", "SCN-MAIN / 2.0.0", "Scenario version"),
+        (
+            "Primary product mainline ID / Owner confirmation",
+            "OTHER / OWNER_CONFIRMED",
+            "Primary mainline",
+        ),
+        (
+            "Project repository / exact baseline commit",
+            "github.com/example/project :: " + "0" * 40,
+            "Product frozen commit",
+        ),
+        (
+            "Applicable UI subtree ID / path",
+            "UI-MAIN :: product/ui/other",
+            "legacy UI path",
+        ),
+    ):
+        integration_failure("Slice", key, value, label + " mismatch must fail")
+    integration_failure(
+        "Slice",
+        "Connected route evidence",
+        connected_evidence().replace(
+            "SIDE_EFFECT:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-SIDE-EFFECT"),
+            "SIDE_EFFECT:DONE",
+        ),
+        "generic route evidence token must fail",
+    )
+    wrong_hash_evidence = bound_evidence(
+        "CANDIDATE-1", "ROUTE-1", "E-WRONG-HASH", "sha256:" + "b" * 64
+    )
+    integration_failure(
+        "Slice",
+        "Connected route evidence",
+        connected_evidence().replace(
+            "SIDE_EFFECT:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-SIDE-EFFECT"),
+            "SIDE_EFFECT:" + wrong_hash_evidence,
+        ),
+        "connected link evidence with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Slice",
+        "Selected entry interface",
+        "TYPE:API; CAPABILITY:CAP-CORE; CONTRACT:API-CORE; MAP_EVIDENCE:E-API-CORE; "
+        "INVOCATION:" + wrong_hash_evidence,
+        "interface invocation with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Slice",
+        "Cross-layer connection evidence",
+        "PROVEN:" + wrong_hash_evidence,
+        "connection proof with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Slice",
+        "State / data / permission trace",
+        wrong_hash_evidence,
+        "Slice route evidence with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Slice",
+        "First Proving Run ID / evidence",
+        "RUN-E2E-1 / " + wrong_hash_evidence,
+        "First Proving Run evidence with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Baseline",
+        "Integration candidate provenance",
+        "PROJECT_COMMIT:" + commit + "; EVIDENCE:" + wrong_hash_evidence,
+        "candidate provenance with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Baseline",
+        "Product Handoff identity match",
+        "MATCH:" + wrong_hash_evidence,
+        "Product Handoff match with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Final",
+        "D3 / Loop Owner Acceptance evidence",
+        "D3:" + wrong_hash_evidence + "; OWNER:"
+        + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-OWNER-ACCEPTANCE"),
+        "Final D3 with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Final",
+        "D3 / Loop Owner Acceptance evidence",
+        "D3:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-D3")
+        + "; OWNER:" + wrong_hash_evidence,
+        "Final Owner receipt with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Final",
+        "Evidence reuse basis",
+        final_fields["Evidence reuse basis"].replace(
+            bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UNCHANGED-SCOPE"),
+            wrong_hash_evidence,
+        ),
+        "reuse scope with stale candidate hash must fail",
+    )
+    integration_failure(
+        "Final",
+        "Evidence reuse basis",
+        final_fields["Evidence reuse basis"].replace(
+            "CANDIDATE-1 / sha256:" + "a" * 64,
+            "CANDIDATE-1 / sha256:" + "b" * 64,
+        ),
+        "reuse basis candidate hash drift must fail",
+    )
+    integration_failure(
+        "Slice",
+        "State / data / permission trace",
+        "CANDIDATE-1@ROUTE-1@E-LEGACY",
+        "legacy ID-only route evidence must fail in 2.7",
+    )
+    integration_failure(
+        "Slice",
+        "State / data / permission trace",
+        bound_evidence("CANDIDATE-1", "ROUTE-OTHER", "E-WRONG-ROUTE"),
+        "wrong-route evidence must fail",
+    )
+    integration_failure(
+        "Slice",
+        "State / data / permission trace",
+        bound_evidence(
+            "CANDIDATE-1", "ROUTE-1", "E-UPPER-HASH", "sha256:" + "A" * 64
+        ),
+        "uppercase candidate hash evidence must fail",
+    )
+    integration_failure(
+        "Slice",
+        "Phase-2-only demonstration evidence",
+        "NON_ACCEPTANCE:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-SIDE-EFFECT"),
+        "mock or demonstration evidence cannot satisfy a connected link",
+    )
+    for demonstration in ("IMAGE_ONLY", "MOCK_ONLY", "STUB_ONLY", "SCRIPTED_STATE", "MANUALLY_STAGED"):
+        integration_failure(
+            "Slice",
+            "Phase-2-only demonstration evidence",
+            demonstration,
+            demonstration + " cannot become integration evidence",
+        )
+    for value in (
+        "PB-TASK9 / HEAD",
+        "PB-TASK9 / latest",
+        "PB-TASK9 / worktree",
+        "PB-TASK9 / feature/integration",
+    ):
+        integration_failure(
+            "Baseline",
+            "Product Baseline identity / frozen commit",
+            value,
+            "symbolic or worktree Product identity must fail",
+        )
+    for surface, key in (
+        ("Slice", "Integration Baseline reference"),
+        ("Slice", "Final Feature Verification reference"),
+        ("Baseline", "Feature Slice reference"),
+        ("Final", "Integration Baseline ID / reference"),
+    ):
+        integration_failure(
+            surface,
+            key,
+            "IB-1 / ../../outside.md" if surface == "Final" else "../../outside.md",
+            f"{surface} contained evidence reference must reject traversal",
+        )
+    integration_failure(
+        "Baseline",
+        "Integration candidate provenance",
+        "PROJECT_COMMIT:HEAD; EVIDENCE:"
+        + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-CANDIDATE-PROVENANCE"),
+        "candidate provenance cannot use HEAD",
+    )
+
+    original_slice = integration_paths["Slice"].read_text(encoding="utf-8")
+    try:
+        write(
+            integration_paths["Slice"],
+            original_slice + "\n- Integration Route Shadow: ROUTE-SHADOW\n",
+        )
+        assert validate_cli(repo).returncode != 0, "unknown route key must fail"
+        write(
+            integration_paths["Slice"],
+            original_slice + "\n- Integration Route ID: ROUTE-1\n",
+        )
+        assert validate_cli(repo).returncode != 0, "duplicate route field must fail"
+    finally:
+        write(integration_paths["Slice"], original_slice)
+    for surface in ("Baseline", "Final"):
+        original = integration_paths[surface].read_text(encoding="utf-8")
+        try:
+            write(
+                integration_paths[surface],
+                original + "\n- Integration Route ID: ROUTE-1\n",
+            )
+            assert validate_cli(repo).returncode != 0, surface + " duplicate route field must fail"
+        finally:
+            write(integration_paths[surface], original)
+
+    for surface, key, value, label in (
+        ("Slice", "Integration Route ID", "bad route", "unsafe route ID"),
+        ("Slice", "Integration candidate ID / exact hash", "CANDIDATE-1 / sha256:" + "A" * 64, "non-lowercase candidate hash"),
+        ("Slice", "Cross-layer connection evidence", "SCRIPTED", "scripted route enum"),
+        ("Final", "D3 / Loop Owner Acceptance evidence", "D3:NONE; OWNER:NONE", "missing D3 and Owner evidence"),
+        (
+            "Final",
+            "D3 / Loop Owner Acceptance evidence",
+            "D3:" + bound_evidence("CANDIDATE-OTHER", "ROUTE-1", "E-D3")
+            + "; OWNER:" + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-OWNER-ACCEPTANCE"),
+            "wrong D3 candidate",
+        ),
+        ("Final", "Phase-2-only evidence used as acceptance proof", "YES", "Phase-2 acceptance proof"),
+        ("Final", "Final verdict", "READY", "invalid Final verdict enum"),
+    ):
+        integration_failure(surface, key, value, label + " must fail")
+
+    integration_failure(
+        "Final",
+        "Reused unchanged connected links",
+        final_fields["Reused unchanged connected links"] + ", VISIBLE_UI_RESULT",
+        "changed route link cannot reuse stale evidence",
+    )
+    integration_failure(
+        "Final",
+        "Evidence reuse basis",
+        "CANDIDATE:CANDIDATE-OTHER / sha256:" + "a" * 64
+        + "; ROUTE:ROUTE-1; SCOPE:"
+        + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UNCHANGED-SCOPE")
+        + "; ENVIRONMENT:"
+        + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-PRODUCTION")
+        + "; REASON:UNCHANGED_EQUIVALENT",
+        "reuse must bind the exact candidate and route",
+    )
+
+    original_final = integration_paths["Final"].read_text(encoding="utf-8")
+    try:
+        write(
+            integration_paths["Final"],
+            remove_markdown_field(original_final, "D3 / Loop Owner Acceptance evidence"),
+        )
+        assert validate_cli(repo).returncode != 0, "Final PASS requires D3 and Owner evidence field"
+        write(integration_paths["Final"], remove_markdown_field(original_final, "Final verdict"))
+        assert validate_cli(repo).returncode != 0, "Final PASS cannot be omitted"
+    finally:
+        write(integration_paths["Final"], original_final)
 
 print("PASS: Product Baseline closes exact peer subtrees and same-capability interfaces")

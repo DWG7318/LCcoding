@@ -738,6 +738,10 @@ def validate_slice_execution_preflight(fields,fingerprint,product_repository=Non
     if connection.startswith('UNPROVEN'):
         if proving!='REQUIRED' or not present(fields.get('First Proving Run ID / evidence')):
             errors.append('unproven cross-layer connection requires a first proving Run')
+        first_run=str(fields.get('First Proving Run ID / evidence','')).partition('/')[0].strip()
+        required_runs,_=parse_closed_id_list(fields.get('Required Run IDs'),'Slice Required Run IDs')
+        if first_run not in required_runs:
+            errors.append('unproven cross-layer connection requires its first proving Run in Required Run IDs')
         if not present(fields.get('First Proving Run production E2E scenario')):
             errors.append('first proving Run requires a production E2E scenario')
         if fields.get('Failure expansion rule')!='HALT_EXPANSION':
@@ -751,6 +755,450 @@ def validate_slice_execution_preflight(fields,fingerprint,product_repository=Non
     if any(str(complexity.get(factor,'')).upper() in {'HIGH','UNKNOWN'} for factor in COMPLEXITY_FACTORS):
         if fields.get('Fingerprint depth response') not in {'DEEPER_EVIDENCE','SMALLER_INDEPENDENT_RUNS'}:
             errors.append('HIGH or UNKNOWN complexity requires deeper evidence or smaller independent Runs')
+    return errors
+
+ROUTE_LINKS=(
+    'UI_ACTION','WORKFLOW_RULES','STATE_TRANSITION','DATA_EFFECT','SIDE_EFFECT',
+    'VISIBLE_UI_RESULT','FAILURE_PATH','RECOVERY_RESULT',
+)
+ROUTE_COMMON_FIELDS={
+    'Slice ID / version','Integration Route ID','Integration candidate ID / exact hash',
+    'Product Baseline identity / frozen commit','Primary product mainline ID',
+    'Applicable UI identity','Workflow capability identity','Selected entry interface',
+    'Simulation scenario identity','Connected route evidence',
+}
+SLICE_ROUTE_ALLOWED={
+    'Artifact role',*ROUTE_COMMON_FIELDS,'Actor intent','Product outcome','Product Baseline trace',
+    'Accepted integration candidate / baseline identity','Workflow references','UI references',
+    'Primary product mainline ID / Owner confirmation','Project repository / exact baseline commit',
+    'Applicable UI subtree ID / path','UI component version','UI content hash',
+    'UI content hash scope / manifest evidence','UI Product / Integration Baseline identity',
+    'UI subtree comparison before Slice / Run','UI comparison before acceptance route',
+    'Scenario IDs / versions','Real integration route','Applicable Simulation scenario trace',
+    'Phase-2-only demonstration evidence','State / data / permission trace',
+    'Exception / recovery trace','Shared capability result','Impact Analysis ID',
+    'Integration Baseline ID','Integration Baseline reference','Final Feature Verification reference',
+    'Required Run IDs','Optional Run IDs','Superseded Run IDs','Invalidated Run IDs',
+    'D0-D3 evidence plan','Visible completion','Invisible completion',
+    'Normal Loop Owner Acceptance route(s)','Post-Security Owner Acceptance route',
+    'Execution Coverage Preflight','Coverage gaps / unknowns','Cross-layer connection evidence',
+    'First Proving Run requirement','First Proving Run ID / evidence',
+    'First Proving Run production E2E scenario','Failure expansion rule',
+    'Fingerprint depth response','State',
+}
+BASELINE_ROUTE_REQUIRED={
+    'Artifact role','Baseline ID',*ROUTE_COMMON_FIELDS,'Feature Slice reference',
+    'Integration candidate provenance','Product Handoff identity match','Branch / latest accepted',
+    'Locked actor surfaces','Lock authority','System autonomous UI modification',
+    'Owner-initiated / Owner-approved UI change route','Explicitly editable regions',
+    'Workflow contract and controlled adjustment boundary','Simulation scenario versions',
+    'Calabash/Product Baseline reference','Owner approval','Lock time',
+}
+BASELINE_ROUTE_ALLOWED=BASELINE_ROUTE_REQUIRED|{
+    'Feature Slice ID / version','Primary product mainline ID','Project repository identity',
+    'Project exact frozen commit SHA','Applicable UI subtree ID / path','UI component version',
+    'UI content hash','UI content hash scope / manifest evidence','Real integration route / evidence',
+}
+FINAL_ROUTE_REQUIRED={
+    'Artifact role','Verification ID',*ROUTE_COMMON_FIELDS,
+    'Integration Baseline ID / reference','D3 / Loop Owner Acceptance evidence',
+    'Phase-2-only evidence used as acceptance proof','Changed connected links',
+    'Reused unchanged connected links','New / repeated connected links',
+    'Evidence reuse basis','Final verdict',
+}
+FINAL_ROUTE_ALLOWED=FINAL_ROUTE_REQUIRED|{
+    'Feature Slice ID / version','Candidate / locked total-project repository and exact commit',
+    'Applicable UI subtree ID / path / component version / content hash',
+    'UI Product / Integration Baseline identity','UI comparison before acceptance',
+    'Unauthorized UI delta','Real integration route',
+    'Phase-2-only static UI / mock / stub / manually staged state used as acceptance proof',
+    'Run D3 receipts','Receipt coverage map','Promotion-only eligible',
+    'New seam / uncovered-claim checks','Repeated checks and reasons','Security evidence coverage',
+    'Normal Run D3 complete','Loop Owner Acceptance Receipt(s)',
+    'Centralized Vulnerability Audit occurs after all normal Run acceptances',
+    'Invisible behavior evidence',
+}
+GENERIC_EVIDENCE_IDS={
+    'DONE','PASS','READY','COMPLETE','EVIDENCE','GENERIC','MOCK','STUB','SCRIPTED','MANUAL',
+    'PENDING','UNKNOWN','NONE','NOT_APPLICABLE','TBD','TODO','PROOF','RESULT',
+}
+
+def parse_exact_record_values(value,keys,label):
+    raw=[part.strip() for part in str(value or '').split(';')]
+    record={}; errors=[]
+    if any(not part for part in raw): errors.append(label+' contains an empty record field')
+    for part in [part for part in raw if part]:
+        key,separator,item=part.partition(':'); key=key.strip(); item=item.strip()
+        if not separator or key not in keys:
+            errors.append(label+' has malformed or unknown record fields'); continue
+        if key in record: errors.append(label+' has duplicate '+key)
+        record[key]=item
+    if set(record)!=set(keys): errors.append(label+' must contain exactly '+', '.join(keys))
+    return record,errors
+
+def parse_slice_identity(value,label='Slice identity'):
+    match=re.fullmatch(r'([A-Za-z0-9][A-Za-z0-9._-]{0,127}) / (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)',str(value or '').strip())
+    if not match or not stable_id(match.group(1)) or not SEMVER_RE.fullmatch(match.group(2)):
+        return None,[label+' requires exact safe ID / semantic version']
+    return match.groups(),[]
+
+def parse_product_commit_identity(value):
+    match=re.fullmatch(r'([A-Za-z0-9][A-Za-z0-9._-]{0,127}) / ([0-9a-f]{40}|[0-9a-f]{64})',str(value or '').strip())
+    if not match: return None,['Product Baseline integration identity requires safe ID / exact lowercase commit']
+    return match.groups(),[]
+
+def parse_bound_route_evidence(value,candidate_identity,route_id,label):
+    if (
+        not isinstance(candidate_identity,tuple) or len(candidate_identity)!=2
+        or not stable_id(candidate_identity[0]) or not EXACT_HASH_RE.fullmatch(str(candidate_identity[1] or ''))
+    ):
+        return None,[label+' requires the full current candidate ID/hash identity']
+    match=re.fullmatch(
+        r'([A-Za-z0-9][A-Za-z0-9._-]{0,127})~(sha256:[0-9a-f]{64})~([A-Za-z0-9][A-Za-z0-9._-]{0,127})~([A-Za-z0-9][A-Za-z0-9._-]{0,127})',
+        str(value or '').strip(),
+    )
+    if not match or not all(stable_id(match.group(index)) for index in (1,3,4)):
+        return None,[label+' requires exact candidate~sha256~route~evidence identity']
+    bound_candidate,bound_hash,bound_route,evidence_id=match.groups(); errors=[]
+    if (bound_candidate,bound_hash)!=candidate_identity or bound_route!=route_id:
+        errors.append(label+' is not bound to the current candidate and Route')
+    if evidence_id.upper() in GENERIC_EVIDENCE_IDS:
+        errors.append(label+' cannot use a generic evidence token')
+    return (bound_candidate,bound_hash,bound_route,evidence_id),errors
+
+def parse_route_evidence_record(value,candidate_identity,route_id):
+    record,errors=parse_exact_record_values(value,ROUTE_LINKS,'Connected route evidence')
+    parsed={}
+    for link,item in record.items():
+        identity,item_errors=parse_bound_route_evidence(item,candidate_identity,route_id,link+' evidence')
+        errors.extend(item_errors); parsed[link]=identity
+    return parsed,errors
+
+def parse_route_link_set(value,label):
+    text=str(value or '').strip()
+    if text=='NONE': return set(),[]
+    raw=[item.strip() for item in text.split(',')]; values=[item for item in raw if item]
+    errors=[]
+    if any(not item for item in raw): errors.append(label+' contains an empty route link')
+    if len(values)!=len(set(values)): errors.append(label+' contains duplicate route links')
+    unknown=set(values)-set(ROUTE_LINKS)
+    if unknown: errors.append(label+' contains unknown route links '+', '.join(sorted(unknown)))
+    return set(values),errors
+
+def parse_route_common(fields,label):
+    errors=[]; parsed={}
+    missing=ROUTE_COMMON_FIELDS-set(fields)
+    if missing: errors.append(label+' missing route fields '+', '.join(sorted(missing)))
+    slice_identity,slice_errors=parse_slice_identity(fields.get('Slice ID / version'),label+' Slice')
+    errors.extend(slice_errors); parsed['slice']=slice_identity
+    route_id=str(fields.get('Integration Route ID','')).strip()
+    if not stable_id(route_id): errors.append(label+' requires a safe Integration Route ID')
+    parsed['route']=route_id
+    candidate=exact_id_hash(fields.get('Integration candidate ID / exact hash'))
+    if not candidate: errors.append(label+' requires candidate ID / exact lowercase sha256 identity')
+    parsed['candidate']=candidate
+    product,product_errors=parse_product_commit_identity(fields.get('Product Baseline identity / frozen commit'))
+    errors.extend(product_errors); parsed['product']=product
+    mainline=str(fields.get('Primary product mainline ID','')).strip()
+    if not stable_id(mainline): errors.append(label+' requires a safe Primary product mainline ID')
+    parsed['mainline']=mainline
+
+    ui,ui_errors=parse_exact_record_values(
+        fields.get('Applicable UI identity'),('ID','PATH','VERSION','HASH'),label+' UI identity'
+    ); errors.extend(ui_errors)
+    if ui:
+        if not stable_id(ui.get('ID')) or not safe_subtree_path(ui.get('PATH')):
+            errors.append(label+' UI identity requires safe ID and subtree path')
+        if not component_version(ui.get('VERSION')) or not EXACT_HASH_RE.fullmatch(str(ui.get('HASH',''))):
+            errors.append(label+' UI identity requires semantic version and lowercase content hash')
+    parsed['ui']=ui
+    workflow,workflow_errors=parse_exact_record_values(
+        fields.get('Workflow capability identity'),('WORKFLOW','CAPABILITY'),label+' Workflow identity'
+    ); errors.extend(workflow_errors)
+    if workflow and not all(stable_id(workflow.get(key)) for key in ('WORKFLOW','CAPABILITY')):
+        errors.append(label+' Workflow identity requires safe IDs')
+    parsed['workflow']=workflow
+    interface,interface_errors=parse_exact_record_values(
+        fields.get('Selected entry interface'),
+        ('TYPE','CAPABILITY','CONTRACT','MAP_EVIDENCE','INVOCATION'),label+' selected interface'
+    ); errors.extend(interface_errors)
+    if interface:
+        if interface.get('TYPE') not in {'API','MCP'}:
+            errors.append(label+' selected interface type must be API or MCP')
+        for key in ('CAPABILITY','CONTRACT','MAP_EVIDENCE'):
+            if not stable_id(interface.get(key)) or str(interface.get(key,'')).upper() in GENERIC_EVIDENCE_IDS:
+                errors.append(label+' selected interface '+key+' requires a non-generic safe ID')
+        if candidate:
+            invocation_identity,invocation_errors=parse_bound_route_evidence(
+                interface.get('INVOCATION'),candidate,route_id,label+' interface invocation'
+            ); errors.extend(invocation_errors); parsed['invocation']=invocation_identity
+    parsed['interface']=interface
+    scenario,scenario_errors=parse_exact_record_values(
+        fields.get('Simulation scenario identity'),('SIMULATION','SCENARIO','VERSION'),label+' Simulation scenario'
+    ); errors.extend(scenario_errors)
+    if scenario:
+        if not stable_id(scenario.get('SIMULATION')) or not stable_id(scenario.get('SCENARIO')) or not component_version(scenario.get('VERSION')):
+            errors.append(label+' Simulation scenario requires safe IDs and semantic version')
+    parsed['scenario']=scenario
+    if candidate:
+        evidence_record,evidence_errors=parse_route_evidence_record(
+            fields.get('Connected route evidence'),candidate,route_id
+        ); errors.extend(evidence_errors); parsed['evidence']=evidence_record
+    else: parsed['evidence']={}
+    return parsed,errors
+
+def validate_route_against_product(parsed,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields):
+    errors=[]
+    if parsed.get('product'):
+        baseline_id=str(handoff_fields.get('Baseline ID / version / hash','')).partition('/')[0].strip()
+        if parsed['product']!=(baseline_id,str(handoff_fields.get('Project frozen exact commit SHA','')).strip()):
+            errors.append('integration route Product Baseline identity/commit mismatch')
+    if parsed.get('mainline')!=str(handoff_fields.get('Primary product mainline ID','')).strip():
+        errors.append('integration route Primary product mainline mismatch')
+    ui=parsed.get('ui',{}); ui_rows_by_id={str(row.get('UI ID','')).strip():row for row in ui_rows}
+    ui_row=ui_rows_by_id.get(ui.get('ID'))
+    if not ui_row or any(str(ui_row.get(field,'')).strip()!=ui.get(key) for field,key in (
+        ('Subtree path','PATH'),('Component version','VERSION'),('Content hash','HASH')
+    )): errors.append('integration route UI identity disagrees with UI Map')
+    workflow=parsed.get('workflow',{}); workflow_rows_by_id={str(row.get('Workflow ID','')).strip():row for row in workflow_rows}
+    workflow_row=workflow_rows_by_id.get(workflow.get('WORKFLOW'))
+    if not workflow_row or str(workflow_row.get('Workflow Capability ID','')).strip()!=workflow.get('CAPABILITY'):
+        errors.append('integration route Workflow Capability disagrees with Workflow Map')
+    else:
+        interface=parsed.get('interface',{}); kind=interface.get('TYPE')
+        map_interface,_=parse_closed_record(
+            workflow_row.get(kind+' contract / evidence') if kind in {'API','MCP'} else '',
+            ['CAPABILITY','CONTRACT','EVIDENCE'],'Workflow Map selected interface'
+        )
+        if (
+            interface.get('CAPABILITY')!=workflow.get('CAPABILITY')
+            or map_interface.get('CAPABILITY')!=interface.get('CAPABILITY')
+            or map_interface.get('CONTRACT')!=interface.get('CONTRACT')
+            or map_interface.get('EVIDENCE')!=interface.get('MAP_EVIDENCE')
+        ): errors.append('selected interface must exactly bind the mapped Workflow Capability record')
+    scenario=parsed.get('scenario',{}); simulation_ids={str(row.get('Simulation ID','')).strip() for row in simulation_rows}
+    if scenario.get('SIMULATION') not in simulation_ids:
+        errors.append('integration route Simulation identity disagrees with Simulation Map')
+    scenario_matches=[row for row in scenario_rows if str(row.get('Simulation ID','')).strip()==scenario.get('SIMULATION') and str(row.get('Scenario ID','')).strip()==scenario.get('SCENARIO')]
+    if len(scenario_matches)!=1 or str(scenario_matches[0].get('Scenario version','')).strip()!=scenario.get('VERSION'):
+        errors.append('integration route requires the exact Simulation scenario ID/version')
+    elif scenario_matches:
+        scenario_row=scenario_matches[0]
+        for field in ('Path','Failure/recovery','Visible / invisible evidence'):
+            value=str(scenario_row.get(field,'')).strip()
+            if not semantic_present(value) or value.upper() in GENERIC_EVIDENCE_IDS:
+                errors.append('integration Simulation scenario requires real '+field+' evidence')
+        if str(scenario_row.get('Fidelity','')).strip() not in {'REAL','PRODUCTION_EQUIVALENT'}:
+            errors.append('integration Simulation scenario must have real/production-equivalent fidelity')
+        slice_id=parsed.get('slice')[0] if parsed.get('slice') else None
+        used_by={token for token in re.split(r'[\s,;/]+',str(scenario_row.get('Used by Slice/Run/Acceptance','')).strip()) if token}
+        if slice_id not in used_by:
+            errors.append('integration Simulation scenario must be explicitly used by the current Slice')
+    return errors
+
+def validate_real_product_integration(
+    lc,slice_path,slice_fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields
+):
+    errors=[]
+    if not present(slice_fields.get('Integration Route ID')): return errors
+    unknown=set(slice_fields)-SLICE_ROUTE_ALLOWED; missing=SLICE_ROUTE_ALLOWED-set(slice_fields)
+    if unknown: errors.append('Feature Slice has unknown integration fields '+', '.join(sorted(unknown)))
+    if missing: errors.append('Feature Slice missing integration fields '+', '.join(sorted(missing)))
+    slice_parsed,slice_errors=parse_route_common(slice_fields,'Feature Slice')
+    errors.extend(slice_errors)
+    connection=str(slice_fields.get('Cross-layer connection evidence','')).strip()
+    if connection=='UNPROVEN': return errors
+    if not connection.startswith('PROVEN:') or not slice_parsed.get('candidate'):
+        errors.append('Feature Slice real integration must be PROVEN by current route evidence')
+    else:
+        connection_identity,connection_errors=parse_bound_route_evidence(
+            connection.split(':',1)[1].strip(),slice_parsed['candidate'],slice_parsed['route'],
+            'Feature Slice connection proof'
+        ); errors.extend(connection_errors)
+        slice_parsed['connection']=connection_identity
+    errors.extend(validate_route_against_product(
+        slice_parsed,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields
+    ))
+    candidate=slice_parsed.get('candidate'); product=slice_parsed.get('product')
+    ui=slice_parsed.get('ui',{}); workflow=slice_parsed.get('workflow',{}); scenario=slice_parsed.get('scenario',{})
+    if candidate and slice_fields.get('Accepted integration candidate / baseline identity')!=str(slice_fields.get('Integration candidate ID / exact hash','')).strip():
+        errors.append('Feature Slice accepted candidate identity disagrees with integration candidate')
+    if product and str(slice_fields.get('Product Baseline trace','')).strip()!=product[0]:
+        errors.append('Feature Slice Product Baseline trace disagrees with route identity')
+    workflow_references,workflow_reference_errors=parse_closed_id_list(
+        slice_fields.get('Workflow references'),'Feature Slice Workflow references'
+    ); errors.extend(workflow_reference_errors)
+    ui_references,ui_reference_errors=parse_closed_id_list(
+        slice_fields.get('UI references'),'Feature Slice UI references'
+    ); errors.extend(ui_reference_errors)
+    if workflow and workflow_references!={workflow.get('WORKFLOW')}:
+        errors.append('Feature Slice Workflow references must equal the connected Workflow')
+    if ui and ui_references!={ui.get('ID')}:
+        errors.append('Feature Slice UI references must equal the connected UI')
+    expected_scenario=(scenario.get('SCENARIO')+' / '+scenario.get('VERSION')) if scenario else None
+    if expected_scenario and str(slice_fields.get('Scenario IDs / versions','')).strip()!=expected_scenario:
+        errors.append('Feature Slice Scenario ID/version disagrees with connected Simulation scenario')
+    expected_mainline=str(slice_parsed.get('mainline',''))+' / OWNER_CONFIRMED'
+    if str(slice_fields.get('Primary product mainline ID / Owner confirmation','')).strip()!=expected_mainline:
+        errors.append('Feature Slice Primary mainline/Owner confirmation disagrees with route')
+    repository_commit=str(slice_fields.get('Project repository / exact baseline commit','')).split('::',1)
+    if len(repository_commit)!=2 or not product or repository_commit[1].strip()!=product[1] or canonical_github_repository(repository_commit[0].strip())!=canonical_github_repository(handoff_fields.get('Project repository identity')):
+        errors.append('Feature Slice repository/commit disagrees with Product Baseline')
+    if ui and (
+        str(slice_fields.get('Applicable UI subtree ID / path','')).strip()!=ui.get('ID')+' :: '+ui.get('PATH')
+        or str(slice_fields.get('UI component version','')).strip()!=ui.get('VERSION')
+        or str(slice_fields.get('UI content hash','')).strip()!=ui.get('HASH')
+    ): errors.append('Feature Slice legacy UI tuple disagrees with connected UI identity')
+    if str(slice_fields.get('Real integration route','')).strip()!=slice_parsed.get('route'):
+        errors.append('Feature Slice real integration route must equal Integration Route ID')
+    phase2=str(slice_fields.get('Phase-2-only demonstration evidence','')).strip()
+    demonstration_identity=None
+    if phase2!='NONE':
+        prefix,separator,item=phase2.partition(':')
+        if prefix!='NON_ACCEPTANCE' or not separator or not slice_parsed.get('candidate'):
+            errors.append('Phase-2 demonstration evidence must be NONE or explicit NON_ACCEPTANCE evidence')
+        else:
+            demonstration_identity,demo_errors=parse_bound_route_evidence(
+                item,slice_parsed['candidate'],slice_parsed['route'],'Phase-2 demonstration evidence'
+            ); errors.extend(demo_errors)
+            if demonstration_identity in set(slice_parsed.get('evidence',{}).values()):
+                errors.append('Phase-2 demonstration evidence cannot satisfy connected route evidence')
+            if demonstration_identity in {slice_parsed.get('invocation'),slice_parsed.get('connection')}:
+                errors.append('Phase-2 demonstration evidence cannot satisfy interface or connection proof')
+    route_bound_slice_fields=(
+        'Applicable Simulation scenario trace','State / data / permission trace',
+        'Exception / recovery trace','Shared capability result','D0-D3 evidence plan',
+        'Visible completion','Invisible completion','Normal Loop Owner Acceptance route(s)',
+        'Post-Security Owner Acceptance route',
+    )
+    if candidate:
+        for field in route_bound_slice_fields:
+            identity,item_errors=parse_bound_route_evidence(
+                slice_fields.get(field),candidate,slice_parsed['route'],'Feature Slice '+field
+            ); errors.extend(item_errors)
+            if identity==demonstration_identity:
+                errors.append('Phase-2 demonstration evidence cannot satisfy '+field)
+        first_run_parts=str(slice_fields.get('First Proving Run ID / evidence','')).split(' / ',1)
+        if len(first_run_parts)!=2 or not stable_id(first_run_parts[0]):
+            errors.append('First Proving Run requires exact Run ID / candidate-bound evidence')
+        else:
+            first_identity,first_errors=parse_bound_route_evidence(
+                first_run_parts[1],candidate,slice_parsed['route'],'First Proving Run evidence'
+            ); errors.extend(first_errors)
+            if first_identity==demonstration_identity:
+                errors.append('Phase-2 demonstration evidence cannot satisfy First Proving Run proof')
+        if expected_scenario and str(slice_fields.get('First Proving Run production E2E scenario','')).strip()!=expected_scenario:
+            errors.append('First Proving Run must use the exact connected Simulation scenario')
+
+    _,baseline_path=_safe_lccoding_evidence(slice_path,slice_fields.get('Integration Baseline reference'))
+    _,final_path=_safe_lccoding_evidence(slice_path,slice_fields.get('Final Feature Verification reference'))
+    if not baseline_path: errors.append('Feature Slice requires a contained Integration Baseline reference')
+    if not final_path: errors.append('Feature Slice requires a contained Final Feature Verification reference')
+    if not baseline_path or not final_path: return errors
+    baseline_fields,baseline_field_errors=parse_markdown_fields_strict(baseline_path)
+    final_fields,final_field_errors=parse_markdown_fields_strict(final_path)
+    errors.extend(baseline_field_errors+final_field_errors)
+    for label,fields,allowed,required in (
+        ('Integration Baseline',baseline_fields,BASELINE_ROUTE_ALLOWED,BASELINE_ROUTE_REQUIRED),
+        ('Final Feature Verification',final_fields,FINAL_ROUTE_ALLOWED,FINAL_ROUTE_REQUIRED),
+    ):
+        unknown=set(fields)-allowed; missing=required-set(fields)
+        if unknown: errors.append(label+' has unknown integration fields '+', '.join(sorted(unknown)))
+        if missing: errors.append(label+' missing integration fields '+', '.join(sorted(missing)))
+    if baseline_fields.get('Artifact role')!='INTEGRATION_BASELINE': errors.append('Integration Baseline artifact role mismatch')
+    if final_fields.get('Artifact role')!='FINAL_FEATURE_VERIFICATION': errors.append('Final Feature Verification artifact role mismatch')
+    baseline_parsed,baseline_errors=parse_route_common(baseline_fields,'Integration Baseline')
+    final_parsed,final_errors=parse_route_common(final_fields,'Final Feature Verification')
+    errors.extend(baseline_errors+final_errors)
+    for field in ROUTE_COMMON_FIELDS:
+        if baseline_fields.get(field)!=slice_fields.get(field) or final_fields.get(field)!=slice_fields.get(field):
+            errors.append('integration artifacts disagree on '+field)
+    baseline_id=str(baseline_fields.get('Baseline ID','')).strip()
+    if not stable_id(baseline_id) or baseline_id!=str(slice_fields.get('Integration Baseline ID','')).strip():
+        errors.append('Integration Baseline ID disagrees with Feature Slice')
+    _,slice_reference=_safe_lccoding_evidence(baseline_path,baseline_fields.get('Feature Slice reference'))
+    if not slice_reference or slice_reference.resolve()!=slice_path.resolve():
+        errors.append('Integration Baseline must reference the exact Feature Slice')
+    provenance,provenance_errors=parse_exact_record_values(
+        baseline_fields.get('Integration candidate provenance'),('PROJECT_COMMIT','EVIDENCE'),
+        'Integration candidate provenance'
+    ); errors.extend(provenance_errors)
+    if slice_parsed.get('product') and provenance.get('PROJECT_COMMIT')!=slice_parsed['product'][1]:
+        errors.append('Integration candidate provenance must use the frozen Product commit')
+    if slice_parsed.get('candidate'):
+        provenance_identity,provenance_evidence_errors=parse_bound_route_evidence(
+            provenance.get('EVIDENCE'),slice_parsed['candidate'],slice_parsed['route'],
+            'Integration candidate provenance evidence'
+        ); errors.extend(provenance_evidence_errors)
+        if provenance_identity==demonstration_identity:
+            errors.append('Phase-2 evidence cannot satisfy candidate provenance')
+    if baseline_fields.get('Branch / latest accepted')!='NO':
+        errors.append('Integration Baseline rejects branch, tag, HEAD, latest and worktree substitution')
+    handoff_match=str(baseline_fields.get('Product Handoff identity match','')).strip()
+    if not handoff_match.startswith('MATCH:') or not slice_parsed.get('candidate'):
+        errors.append('Integration Baseline requires candidate-bound Product Handoff MATCH evidence')
+    else:
+        match_identity,match_errors=parse_bound_route_evidence(
+            handoff_match.split(':',1)[1],slice_parsed['candidate'],slice_parsed['route'],
+            'Product Handoff identity match'
+        ); errors.extend(match_errors)
+        if match_identity==demonstration_identity:
+            errors.append('Phase-2 evidence cannot satisfy Product Handoff proof')
+
+    baseline_reference=str(final_fields.get('Integration Baseline ID / reference','')).split(' / ',1)
+    if len(baseline_reference)!=2 or baseline_reference[0]!=baseline_id:
+        errors.append('Final Verification Integration Baseline identity mismatch')
+    else:
+        _,resolved_baseline=_safe_lccoding_evidence(final_path,baseline_reference[1])
+        if not resolved_baseline or resolved_baseline.resolve()!=baseline_path.resolve():
+            errors.append('Final Verification must reference the exact Integration Baseline')
+    terminal,terminal_errors=parse_exact_record_values(
+        final_fields.get('D3 / Loop Owner Acceptance evidence'),('D3','OWNER'),
+        'Final terminal evidence'
+    ); errors.extend(terminal_errors)
+    if slice_parsed.get('candidate'):
+        for key,value in terminal.items():
+            identity,item_errors=parse_bound_route_evidence(
+                value,slice_parsed['candidate'],slice_parsed['route'],'Final '+key+' evidence'
+            ); errors.extend(item_errors)
+            if identity==demonstration_identity: errors.append('Phase-2 evidence cannot satisfy Final terminal proof')
+    if final_fields.get('Phase-2-only evidence used as acceptance proof')!='NO':
+        errors.append('Final Verification must exclude Phase-2-only evidence from acceptance')
+    if (
+        'Phase-2-only static UI / mock / stub / manually staged state used as acceptance proof' in final_fields
+        and final_fields.get('Phase-2-only static UI / mock / stub / manually staged state used as acceptance proof')!='NO'
+    ): errors.append('Final Verification legacy Phase-2 projection must remain exact NO')
+    changed,changed_errors=parse_route_link_set(final_fields.get('Changed connected links'),'Changed connected links')
+    reused,reused_errors=parse_route_link_set(final_fields.get('Reused unchanged connected links'),'Reused unchanged connected links')
+    new,new_errors=parse_route_link_set(final_fields.get('New / repeated connected links'),'New / repeated connected links')
+    errors.extend(changed_errors+reused_errors+new_errors)
+    if not changed.issubset(new): errors.append('every changed connected link requires new or repeated evidence')
+    if changed.intersection(reused): errors.append('changed connected links cannot reuse stale evidence')
+    if reused.intersection(new): errors.append('connected links cannot be both reused and new')
+    if reused.union(new)!=set(ROUTE_LINKS): errors.append('Final Verification must cover every connected route link')
+    reuse_basis,reuse_errors=parse_exact_record_values(
+        final_fields.get('Evidence reuse basis'),('CANDIDATE','ROUTE','SCOPE','ENVIRONMENT','REASON'),
+        'Evidence reuse basis'
+    ); errors.extend(reuse_errors)
+    if slice_parsed.get('candidate'):
+        reuse_candidate=exact_id_hash(reuse_basis.get('CANDIDATE'))
+        scope_identity,scope_errors=parse_bound_route_evidence(
+            reuse_basis.get('SCOPE'),slice_parsed['candidate'],slice_parsed['route'],
+            'reuse scope evidence'
+        )
+        environment_identity,environment_errors=parse_bound_route_evidence(
+            reuse_basis.get('ENVIRONMENT'),slice_parsed['candidate'],slice_parsed['route'],
+            'reuse environment evidence'
+        )
+        errors.extend(scope_errors+environment_errors)
+        if (
+            reuse_candidate!=slice_parsed['candidate']
+            or reuse_basis.get('ROUTE')!=slice_parsed['route']
+            or reuse_basis.get('REASON')!='UNCHANGED_EQUIVALENT'
+            or not scope_identity or not environment_identity
+        ): errors.append('reused evidence requires exact candidate/route/scope/environment unchanged proof')
+    if final_fields.get('Final verdict')!='PASS':
+        errors.append('current real integration Final verdict must PASS or remain blocked')
     return errors
 
 def validate_owner_gap_lineage(status,records):
@@ -1537,7 +1985,7 @@ def main():
     if (lc/'PROJECT-FINGERPRINT.json').exists():
         fingerprint=json.loads((lc/'PROJECT-FINGERPRINT.json').read_text(encoding='utf-8'))
         errors.extend(validate_complexity_depth(fingerprint))
-    workflow_rows=[]; ui_rows=[]; simulation_rows=[]
+    workflow_rows=[]; ui_rows=[]; simulation_rows=[]; scenario_rows=[]
     workflow_fields={}; ui_fields={}; simulation_fields={}; product_surface_errors=[]
     workflow_path=lc/'WORKFLOW-MAP.md'; ui_path=lc/'UI-MAP.md'; simulation_path=lc/'SIMULATION-WORLD.md'
     if workflow_path.exists():
@@ -1572,6 +2020,7 @@ def main():
             ],
         )
         simulation_rows=tables.get('Simulation subtree registry',[])
+        scenario_rows=tables.get('Scenario registry',[])
         product_surface_errors.extend(table_errors)
     calabash_handoff=lc/'CALABASH-UPGRADE-GATE.md'
     if calabash_handoff.exists():
@@ -1583,7 +2032,7 @@ def main():
         impact_fields=parse_markdown_fields(impact_path)
         if impact_fields.get('Meaning impact classification') in {'MEANING_CHANGING','MEANING_NEUTRAL'}:
             errors.extend(validate_impact_analysis(impact_path))
-    handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]
+    handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]; handoff_fields={}; handoff_rows=[]; handoff_complete=False
     if handoff.exists():
         handoff_errors.extend(product_surface_errors)
         handoff_fields,handoff_field_errors=parse_markdown_fields_strict(handoff)
@@ -1636,8 +2085,12 @@ def main():
         slice_path=resolve_active_slice(lc,status.get('active_slice'))
         if not slice_path: errors.append('active Slice artifact missing')
         else:
-            fields=parse_markdown_fields(slice_path)
+            fields,slice_field_errors=parse_markdown_fields_strict(slice_path)
+            errors.extend(slice_field_errors)
             errors.extend(validate_slice_execution_preflight(fields,fingerprint,start.get('repository')))
+            errors.extend(validate_real_product_integration(
+                lc,slice_path,fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields
+            ))
     gap_records=[]
     if (lc/'reviews').is_dir():
         for review in (lc/'reviews').rglob('*.md'):

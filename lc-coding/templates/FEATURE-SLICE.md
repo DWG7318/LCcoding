@@ -1,6 +1,16 @@
 # Feature Slice
 
+- Artifact role: FEATURE_SLICE_INTEGRATION
 - Slice ID / version:
+- Integration Route ID:
+- Integration candidate ID / exact hash:
+- Product Baseline identity / frozen commit:
+- Primary product mainline ID:
+- Applicable UI identity: ID:<UI ID>; PATH:<subtree path>; VERSION:<component semver>; HASH:<sha256>
+- Workflow capability identity: WORKFLOW:<Workflow ID>; CAPABILITY:<Workflow Capability ID>
+- Selected entry interface: TYPE:<API/MCP>; CAPABILITY:<same Capability ID>; CONTRACT:<Map contract ID>; MAP_EVIDENCE:<Map evidence ID>; INVOCATION:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Simulation scenario identity: SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; VERSION:<scenario semver>
+- Connected route evidence: UI_ACTION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; WORKFLOW_RULES:<candidate-id>~<sha256>~<route-id>~<evidence-id>; STATE_TRANSITION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; DATA_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; SIDE_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; VISIBLE_UI_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; FAILURE_PATH:<candidate-id>~<sha256>~<route-id>~<evidence-id>; RECOVERY_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Actor intent:
 - Product outcome:
 - Product Baseline trace:
@@ -17,28 +27,30 @@
 - UI subtree comparison before Slice / Run: PENDING / MATCH: evidence / BLOCKED
 - UI comparison before acceptance route: REQUIRED
 - Scenario IDs / versions:
-- Real integration route: UI operation -> API/MCP-backed Workflow capability -> real state/data/side effect -> visible UI result
-- Applicable Simulation scenario trace:
-- Phase-2-only demonstration evidence: static UI / mock / stub / manually staged state; not third-phase, delivery, or D0-D3 proof
-- State / data / permission trace:
-- Exception / recovery trace:
-- Shared capability result:
+- Real integration route: <Integration Route ID>
+- Applicable Simulation scenario trace: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Phase-2-only demonstration evidence: NONE / NON_ACCEPTANCE:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- State / data / permission trace: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Exception / recovery trace: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Shared capability result: <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Impact Analysis ID:
 - Integration Baseline ID:
+- Integration Baseline reference: INTEGRATION-BASELINE.md
+- Final Feature Verification reference: FINAL-FEATURE-VERIFICATION.md
 - Required Run IDs:
 - Optional Run IDs:
 - Superseded Run IDs:
 - Invalidated Run IDs:
-- D0-D3 evidence plan:
-- Visible completion:
-- Invisible completion:
-- Normal Loop Owner Acceptance route(s):
-- Post-Security Owner Acceptance route:
+- D0-D3 evidence plan: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Visible completion: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Invisible completion: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Normal Loop Owner Acceptance route(s): <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Post-Security Owner Acceptance route: <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Execution Coverage Preflight: PENDING / PASS / BLOCKED
 - Coverage gaps / unknowns:
-- Cross-layer connection evidence: PROVEN: evidence / UNPROVEN
+- Cross-layer connection evidence: PROVEN:<candidate-id>~<sha256>~<route-id>~<evidence-id> / UNPROVEN
 - First Proving Run requirement: REQUIRED / NOT_REQUIRED
-- First Proving Run ID / evidence:
+- First Proving Run ID / evidence: <Run ID> / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - First Proving Run production E2E scenario:
 - Failure expansion rule: HALT_EXPANSION
 - Fingerprint depth response: CONCISE_TRUTHFUL / DEEPER_EVIDENCE / SMALLER_INDEPENDENT_RUNS

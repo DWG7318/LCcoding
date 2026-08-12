@@ -216,6 +216,23 @@ for obsolete in [
 ]:
     assert obsolete not in current_authority, obsolete
 
+feature_slice = read("lc-coding/templates/FEATURE-SLICE.md")
+integration_baseline = read("lc-coding/templates/INTEGRATION-BASELINE.md")
+final_verification = read("lc-coding/templates/FINAL-FEATURE-VERIFICATION.md")
+for surface in (feature_slice, integration_baseline, final_verification):
+    for marker in (
+        "Integration Route ID",
+        "Integration candidate ID / exact hash",
+        "Applicable UI identity",
+        "Workflow capability identity",
+        "Selected entry interface",
+        "Simulation scenario identity",
+        "Connected route evidence",
+    ):
+        assert marker in surface, marker
+assert "NON_ACCEPTANCE" in feature_slice
+assert "Phase-2-only evidence used as acceptance proof: NO" in final_verification
+
 workflow_map = read("lc-coding/templates/WORKFLOW-MAP.md")
 assert "- Primary product mainline ID:" in workflow_map
 for column in [

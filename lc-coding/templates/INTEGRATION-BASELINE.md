@@ -1,8 +1,19 @@
 # Integration Baseline
 
+- Artifact role: INTEGRATION_BASELINE
 - Baseline ID:
 - Feature Slice ID / version:
+- Feature Slice reference: slices/<Slice ID>.md
+- Integration Route ID:
+- Integration candidate ID / exact hash:
+- Integration candidate provenance: PROJECT_COMMIT:<exact frozen commit>; EVIDENCE:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Product Baseline identity / frozen commit:
 - Primary product mainline ID:
+- Applicable UI identity: ID:<UI ID>; PATH:<subtree path>; VERSION:<component semver>; HASH:<sha256>
+- Workflow capability identity: WORKFLOW:<Workflow ID>; CAPABILITY:<Workflow Capability ID>
+- Selected entry interface: TYPE:<API/MCP>; CAPABILITY:<same Capability ID>; CONTRACT:<Map contract ID>; MAP_EVIDENCE:<Map evidence ID>; INVOCATION:<candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Simulation scenario identity: SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; VERSION:<scenario semver>
+- Connected route evidence: UI_ACTION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; WORKFLOW_RULES:<candidate-id>~<sha256>~<route-id>~<evidence-id>; STATE_TRANSITION:<candidate-id>~<sha256>~<route-id>~<evidence-id>; DATA_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; SIDE_EFFECT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; VISIBLE_UI_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>; FAILURE_PATH:<candidate-id>~<sha256>~<route-id>~<evidence-id>; RECOVERY_RESULT:<candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Project repository identity:
 - Project exact frozen commit SHA:
 - Applicable UI subtree ID / path:
