@@ -89,14 +89,14 @@ def definition_handoff():
 """
 
 
-def workflow_map(mainline_id, path, version, content_hash, *, classification="CORE", api="API-WF / D2-API", mcp="MCP-WF / D2-MCP", primary="YES"):
+def workflow_map(mainline_id, path, version, content_hash, *, classification="CORE", authority="CLASSIFICATION:CORE; CALABASH:CAL-WF; OWNER_CONFIRMED:OA-WF", capability="CAP-WF", api="CAPABILITY:CAP-WF; CONTRACT:API-WF; EVIDENCE:D2-API", mcp="CAPABILITY:CAP-WF; CONTRACT:MCP-WF; EVIDENCE:D2-MCP", primary="YES"):
     return f"""# Workflow Map
 
 - Primary product mainline ID: {mainline_id}
 
-| Workflow ID | Classification (CORE/EXTRA) | Implementation status | Subtree path | Component version | Content hash | Actors | Trigger | States / rules | Data / permissions | Failure / recovery | API contract / evidence | MCP contract / evidence | UI subtree references | Simulation subtree references | Evidence / attestation | Calabash trace | Primary mainline |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| WF-CORE | {classification} | IMPLEMENTED | {path} | {version} | {content_hash} | Owner | Invoke | Defined | Defined | Defined | {api} | {mcp} | UI-MAIN | SIM-MAIN | D2-WF | CAL-1 | {primary} |
+| Workflow ID | Classification (CORE/EXTRA) | Implementation status | Classification authority | Subtree path | Component version | Content hash | Workflow Capability ID | Actors | Trigger | Rules / state / side-effect trace | Data / permissions | Failure / recovery | API contract / evidence | MCP contract / evidence | UI subtree references | Simulation subtree references | Evidence / attestation | Primary mainline |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| WF-CORE | {classification} | IMPLEMENTED | {authority} | {path} | {version} | {content_hash} | {capability} | Owner | Invoke | RULES:R-WF; STATE:S-WF; SIDE_EFFECTS:SE-WF | Defined | Defined | {api} | {mcp} | UI-MAIN | SIM-MAIN | IMPLEMENTATION:E-IMPL-WF; RUNNABLE:E-RUN-WF | {primary} |
 """
 
 
@@ -129,7 +129,7 @@ def simulation_map(mainline_id, path, version, content_hash, *, primary="YES"):
 """
 
 
-def handoff(commit, mainline_id, owner_confirmation, identities, definition_hash, *, workflow_classification="CORE", workflow_api="API-WF / D2-API", workflow_mcp="MCP-WF / D2-MCP", primary="YES"):
+def handoff(commit, mainline_id, owner_confirmation, identities, definition_hash, *, workflow_classification="CORE", workflow_authority="CLASSIFICATION:CORE; CALABASH:CAL-WF; OWNER_CONFIRMED:OA-WF", workflow_capability="CAP-WF", workflow_api="CAPABILITY:CAP-WF; CONTRACT:API-WF; EVIDENCE:D2-API", workflow_mcp="CAPABILITY:CAP-WF; CONTRACT:MCP-WF; EVIDENCE:D2-MCP", primary="YES", status="COMPLETE"):
     ui, workflow, simulation = identities
     return f"""# Product Baseline Handoff
 
@@ -144,15 +144,15 @@ def handoff(commit, mainline_id, owner_confirmation, identities, definition_hash
 - Simulation World: .lccoding/SIMULATION-WORLD.md
 - Primary product mainline ID: {mainline_id}
 - Primary mainline Owner confirmation: {owner_confirmation}
-- Handoff status: COMPLETE
+- Handoff status: {status}
 
 ## Locked logical subtrees
 
-| Subtree type | Subtree ID | Path | Component version | Content hash | Classification | API evidence | MCP evidence | Primary mainline | Related subtree IDs |
-|---|---|---|---|---|---|---|---|---|---|
-| UI | UI-MAIN | {ui[0]} | {ui[1]} | {ui[2]} | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | {primary} | WF-CORE, SIM-MAIN |
-| WORKFLOW | WF-CORE | {workflow[0]} | {workflow[1]} | {workflow[2]} | {workflow_classification} | {workflow_api} | {workflow_mcp} | {primary} | UI-MAIN, SIM-MAIN |
-| SIMULATION | SIM-MAIN | {simulation[0]} | {simulation[1]} | {simulation[2]} | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | {primary} | WF-CORE, UI-MAIN |
+| Subtree type | Subtree ID | Path | Component version | Content hash | Classification | Classification authority | Workflow Capability ID | API evidence | MCP evidence | Primary mainline | Related subtree IDs |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| UI | UI-MAIN | {ui[0]} | {ui[1]} | {ui[2]} | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | {primary} | WF-CORE, SIM-MAIN |
+| WORKFLOW | WF-CORE | {workflow[0]} | {workflow[1]} | {workflow[2]} | {workflow_classification} | {workflow_authority} | {workflow_capability} | {workflow_api} | {workflow_mcp} | {primary} | UI-MAIN, SIM-MAIN |
+| SIMULATION | SIM-MAIN | {simulation[0]} | {simulation[1]} | {simulation[2]} | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | {primary} | WF-CORE, UI-MAIN |
 """
 
 
@@ -181,8 +181,10 @@ def write_identity_artifacts(repo, base_commit, hashes, **changes):
     write(lc / "WORKFLOW-MAP.md", workflow_map(
         mainline_map, workflow[0], workflow[1], workflow[2],
         classification=changes.get("workflow_map_classification", "CORE"),
-        api=changes.get("workflow_map_api", "API-WF / D2-API"),
-        mcp=changes.get("workflow_map_mcp", "MCP-WF / D2-MCP"),
+        authority=changes.get("workflow_map_authority", "CLASSIFICATION:CORE; CALABASH:CAL-WF; OWNER_CONFIRMED:OA-WF"),
+        capability=changes.get("workflow_map_capability", "CAP-WF"),
+        api=changes.get("workflow_map_api", "CAPABILITY:CAP-WF; CONTRACT:API-WF; EVIDENCE:D2-API"),
+        mcp=changes.get("workflow_map_mcp", "CAPABILITY:CAP-WF; CONTRACT:MCP-WF; EVIDENCE:D2-MCP"),
         primary=changes.get("map_primary", "YES"),
     ))
     write(lc / "UI-MAP.md", ui_map(
@@ -203,9 +205,12 @@ def write_identity_artifacts(repo, base_commit, hashes, **changes):
         locked,
         definition_hash,
         workflow_classification=changes.get("workflow_handoff_classification", "CORE"),
-        workflow_api=changes.get("workflow_handoff_api", "API-WF / D2-API"),
-        workflow_mcp=changes.get("workflow_handoff_mcp", "MCP-WF / D2-MCP"),
+        workflow_authority=changes.get("workflow_handoff_authority", "CLASSIFICATION:CORE; CALABASH:CAL-WF; OWNER_CONFIRMED:OA-WF"),
+        workflow_capability=changes.get("workflow_handoff_capability", "CAP-WF"),
+        workflow_api=changes.get("workflow_handoff_api", "CAPABILITY:CAP-WF; CONTRACT:API-WF; EVIDENCE:D2-API"),
+        workflow_mcp=changes.get("workflow_handoff_mcp", "CAPABILITY:CAP-WF; CONTRACT:MCP-WF; EVIDENCE:D2-MCP"),
         primary=changes.get("handoff_primary", "YES"),
+        status=changes.get("handoff_status", "COMPLETE"),
     ))
 
 
@@ -255,6 +260,16 @@ with tempfile.TemporaryDirectory(prefix="lccoding-subtree-git-") as temporary:
     write_identity_artifacts(repo, commit, hashes)
     valid = validate(repo)
     assert valid.returncode == 0, valid.stdout + valid.stderr
+
+    write_identity_artifacts(repo, commit, hashes, handoff_status="BLOCKED")
+    blocked = validate(repo)
+    assert blocked.returncode == 0, blocked.stdout + blocked.stderr
+    write(lc / "status.json", json.dumps({"product_baseline": "ACCEPTED"}) + "\n")
+    false_closure = validate(repo)
+    assert false_closure.returncode != 0
+    assert "mechanically valid and COMPLETE" in false_closure.stdout
+    write(lc / "status.json", "{}\n")
+    write_identity_artifacts(repo, commit, hashes)
 
     # The frozen commit, never the mutable worktree, supplies the locked blobs.
     write(repo / "product/ui/main/index.html", "<main>uncommitted change</main>\n")

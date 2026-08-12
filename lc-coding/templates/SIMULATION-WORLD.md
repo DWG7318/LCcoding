@@ -7,7 +7,7 @@
 | Simulation ID | Subtree path | Component version | Content hash | Foundation status | Workflow subtree references | UI subtree references | Primary mainline |
 |---|---|---|---|---|---|---|---|
 
-Peer simulations do not nest inside other Simulation subtrees. Relationships are recorded by ID, not directory structure. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`.
+Peer simulations do not nest inside any realized UI, Workflow, or other Simulation subtree. Relationships are closed reciprocal IDs, not directory structure, and many-to-many relations remain allowed. Every realized Simulation is `RUNNABLE` at Product Baseline. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`.
 
 ## Scenario registry
 

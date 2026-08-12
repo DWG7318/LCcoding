@@ -326,15 +326,60 @@ def verify_frozen_subtree_identity(repository_path,commit,row,prefix,path_field=
     if actual!=expected: return [prefix+' content hash does not match the frozen commit subtree']
     return []
 
+def parse_closed_record(value,labels,label):
+    raw_parts=[part.strip() for part in str(value or '').split(';')]
+    parts=[part for part in raw_parts if part]
+    record={}; errors=[]
+    if any(not part for part in raw_parts): errors.append(label+' contains an empty field')
+    for part in parts:
+        key,separator,item=part.partition(':')
+        key=key.strip(); item=item.strip()
+        if not separator or key not in labels:
+            errors.append(label+' has malformed or unknown fields'); continue
+        if key in record: errors.append(label+' has duplicate '+key)
+        record[key]=item
+    if set(record)!=set(labels): errors.append(label+' must contain exactly '+', '.join(labels))
+    for key,item in record.items():
+        if not stable_id(item): errors.append(label+' '+key+' must be a safe evidence ID')
+        elif not semantic_present(item) or item.upper() in {
+            'PASS','READY','COMPLETE','IMPLEMENTED','EVIDENCE','CONTRACT','CAPABILITY','GENERIC','TBD','TODO'
+        }: errors.append(label+' '+key+' cannot use placeholder evidence')
+    return record,errors
+
+def parse_closed_id_list(value,label):
+    text=str(value or '').strip()
+    if text=='NONE': return set(),[]
+    raw_tokens=[token.strip() for token in text.split(',')]
+    tokens=[token for token in raw_tokens if token]
+    errors=[]
+    if any(not token for token in raw_tokens): errors.append(label+' contains an empty ID')
+    if not tokens: errors.append(label+' requires IDs or exact NONE')
+    if len(tokens)!=len(set(tokens)): errors.append(label+' contains duplicate IDs')
+    for token in tokens:
+        if not stable_id(token): errors.append(label+' contains unsafe ID '+token)
+    return set(tokens),errors
+
+def workflow_map_uses_270(rows):
+    markers={'Classification authority','Workflow Capability ID','Rules / state / side-effect trace'}
+    return any(markers.intersection(row) for row in rows)
+
+def validate_classification_authority(value,classification,prefix):
+    record,errors=parse_closed_record(
+        value,['CLASSIFICATION','CALABASH','OWNER_CONFIRMED'],prefix+' classification authority'
+    )
+    if record.get('CLASSIFICATION')!=classification:
+        errors.append(prefix+' classification authority disagrees with CORE/EXTRA classification')
+    return errors
+
 def validate_workflow_subtrees(rows,repository_path=None,frozen_commit=None):
-    errors=[]; ids=set(); paths=set()
+    errors=[]; ids=set(); paths=set(); capabilities=set(); strict=workflow_map_uses_270(rows)
     for index,row in enumerate(rows):
         prefix=f'Workflow row {index+1}'
         workflow_id=str(row.get('Workflow ID','')).strip()
         classification=str(row.get('Classification (CORE/EXTRA)','')).strip().upper()
         implementation=str(row.get('Implementation status','')).strip().upper()
         primary=str(row.get('Primary mainline','')).strip().upper()
-        if not workflow_id: errors.append(prefix+' missing Workflow ID')
+        if not stable_id(workflow_id): errors.append(prefix+' requires a safe Workflow ID')
         elif workflow_id in ids: errors.append('duplicate Workflow ID '+workflow_id)
         ids.add(workflow_id)
         if classification not in {'CORE','EXTRA'}: errors.append(prefix+' requires CORE or EXTRA classification')
@@ -343,36 +388,80 @@ def validate_workflow_subtrees(rows,repository_path=None,frozen_commit=None):
         if classification=='CORE' and implementation!='IMPLEMENTED': errors.append(prefix+' CORE must be implemented')
         if primary=='YES' and (classification!='CORE' or implementation!='IMPLEMENTED'):
             errors.append(prefix+' primary mainline Workflow must be implemented CORE')
+        if strict:
+            errors.extend(validate_classification_authority(
+                row.get('Classification authority'),classification,prefix
+            ))
         if implementation=='IMPLEMENTED':
             path=str(row.get('Subtree path','')).strip()
             if not safe_subtree_path(path): errors.append(prefix+' requires a safe relative subtree path')
             elif path in paths: errors.append('duplicate subtree path '+path)
             paths.add(path)
             if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
-            if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()):
+            hash_pattern=EXACT_HASH_RE if strict else CONTENT_HASH_RE
+            if not hash_pattern.fullmatch(str(row.get('Content hash','')).strip()):
                 errors.append(prefix+' requires content hash')
             if not evidence(row.get('API contract / evidence')): errors.append(prefix+' implemented Workflow requires API evidence')
             if not evidence(row.get('MCP contract / evidence')): errors.append(prefix+' implemented Workflow requires MCP evidence')
+            if strict:
+                capability=str(row.get('Workflow Capability ID','')).strip()
+                if not stable_id(capability): errors.append(prefix+' requires a safe Workflow Capability ID')
+                elif capability in capabilities: errors.append('duplicate Workflow Capability ID '+capability)
+                capabilities.add(capability)
+                rules,rule_errors=parse_closed_record(
+                    row.get('Rules / state / side-effect trace'),
+                    ['RULES','STATE','SIDE_EFFECTS'],prefix+' rules/state/side-effect trace'
+                )
+                errors.extend(rule_errors)
+                for kind,field in [('API','API contract / evidence'),('MCP','MCP contract / evidence')]:
+                    interface,interface_errors=parse_closed_record(
+                        row.get(field),['CAPABILITY','CONTRACT','EVIDENCE'],prefix+' '+kind+' interface'
+                    )
+                    errors.extend(interface_errors)
+                    if interface.get('CAPABILITY')!=capability:
+                        errors.append(prefix+' '+kind+' interface must bind the same Workflow Capability ID')
+                _,implementation_errors=parse_closed_record(
+                    row.get('Evidence / attestation'),['IMPLEMENTATION','RUNNABLE'],
+                    prefix+' implementation/runnable evidence'
+                )
+                errors.extend(implementation_errors)
             if repository_path is not None and frozen_commit is not None and safe_subtree_path(path):
                 errors.extend(verify_frozen_subtree_identity(
                     repository_path,frozen_commit,row,prefix,path_field='Subtree path'
                 ))
         elif classification=='EXTRA':
-            for field in ['Subtree path','Component version','Content hash','API contract / evidence','MCP contract / evidence']:
+            absent=['Subtree path','Component version','Content hash','API contract / evidence','MCP contract / evidence']
+            if strict:
+                absent+=['Workflow Capability ID','Rules / state / side-effect trace','Evidence / attestation']
+            for field in absent:
                 if str(row.get(field,'')).strip().upper()!='NOT_APPLICABLE':
                     errors.append(prefix+' unimplemented EXTRA cannot claim '+field)
+            if strict:
+                for field in ['UI subtree references','Simulation subtree references']:
+                    if str(row.get(field,'')).strip()!='NONE':
+                        errors.append(prefix+' unimplemented EXTRA cannot claim '+field)
     return errors
 
 def split_ids(value):
     return {item.strip() for item in str(value or '').split(',') if item.strip() and item.strip().upper()!='NONE'}
 
 def map_identity_rows(workflow_rows,ui_rows,simulation_rows):
-    identities={}; errors=[]
+    identities={}; errors=[]; strict=workflow_map_uses_270(workflow_rows)
     sources=[
         ('WORKFLOW',workflow_rows,'Workflow ID','Subtree path',('UI subtree references','Simulation subtree references')),
         ('UI',ui_rows,'UI ID','Subtree path',('Workflow subtree references','Simulation subtree references')),
         ('SIMULATION',simulation_rows,'Simulation ID','Subtree path',('Workflow subtree references','UI subtree references')),
     ]
+    declared={kind:set() for kind,_,_,_,_ in sources}; all_ids={}; realized={kind:set() for kind in declared}
+    for subtree_type,rows,id_field,_,_ in sources:
+        for index,row in enumerate(rows):
+            subtree_id=str(row.get(id_field,'')).strip(); prefix=f'{subtree_type} Map row {index+1}'
+            if not stable_id(subtree_id): errors.append(prefix+' requires a safe subtree ID'); continue
+            if subtree_id in all_ids: errors.append('duplicate or ambiguous Map subtree ID '+subtree_id)
+            all_ids[subtree_id]=subtree_type; declared[subtree_type].add(subtree_id)
+            if subtree_type!='WORKFLOW' or str(row.get('Implementation status','')).strip().upper()=='IMPLEMENTED':
+                realized[subtree_type].add(subtree_id)
+    paths={}
     for subtree_type,rows,id_field,path_field,relation_fields in sources:
         for index,row in enumerate(rows):
             if subtree_type=='WORKFLOW' and str(row.get('Implementation status','')).strip().upper()!='IMPLEMENTED':
@@ -380,48 +469,127 @@ def map_identity_rows(workflow_rows,ui_rows,simulation_rows):
             prefix=f'{subtree_type} Map row {index+1}'
             subtree_id=str(row.get(id_field,'')).strip()
             primary=str(row.get('Primary mainline','')).strip().upper()
-            if not subtree_id:
-                errors.append(prefix+' missing subtree ID'); continue
+            if not stable_id(subtree_id): continue
             key=(subtree_type,subtree_id)
             if key in identities:
                 errors.append(prefix+' duplicates a Map subtree ID'); continue
             if primary not in {'YES','NO'}: errors.append(prefix+' Primary mainline must be YES or NO')
-            if not safe_subtree_path(row.get(path_field)): errors.append(prefix+' requires a safe relative subtree path')
+            path=str(row.get(path_field,'')).strip()
+            if not safe_subtree_path(path): errors.append(prefix+' requires a safe relative subtree path')
+            elif strict:
+                for other,other_key in paths.items():
+                    if path==other or path.startswith(other.rstrip('/')+'/') or other.startswith(path.rstrip('/')+'/'):
+                        errors.append(prefix+' subtree path must be a peer of '+other_key[1])
+                paths[path]=key
             if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
-            if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()): errors.append(prefix+' requires content hash')
-            relations=set()
-            for field in relation_fields: relations.update(split_ids(row.get(field)))
+            hash_pattern=EXACT_HASH_RE if strict else CONTENT_HASH_RE
+            if not hash_pattern.fullmatch(str(row.get('Content hash','')).strip()): errors.append(prefix+' requires content hash')
+            if strict and subtree_type=='UI':
+                if not semantic_present(row.get('Evidence / attestation')):
+                    errors.append(prefix+' requires UI implementation evidence')
+                if str(row.get('Lock status','')).strip()!='LOCKED':
+                    errors.append(prefix+' UI must be LOCKED at Product Baseline')
+            if strict and subtree_type=='SIMULATION' and str(row.get('Foundation status','')).strip()!='RUNNABLE':
+                errors.append(prefix+' Simulation must be RUNNABLE at Product Baseline')
+            typed_relations={}; relations=set()
+            relation_targets={
+                'UI subtree references':'UI','Workflow subtree references':'WORKFLOW',
+                'Simulation subtree references':'SIMULATION',
+            }
+            for field in relation_fields:
+                if strict:
+                    values,relation_errors=parse_closed_id_list(row.get(field),prefix+' '+field)
+                    errors.extend(relation_errors)
+                else: values=split_ids(row.get(field))
+                target_type=relation_targets[field]; typed_relations[target_type]=values; relations.update(values)
+                if strict:
+                    for reference in values:
+                        if reference not in realized[target_type]:
+                            actual_type=all_ids.get(reference)
+                            if actual_type: errors.append(prefix+' '+field+' contains wrong-type or unrealized ID '+reference)
+                            else: errors.append(prefix+' '+field+' contains unknown ID '+reference)
             identities[key]={
                 'path':str(row.get(path_field,'')).strip(),
                 'version':str(row.get('Component version','')).strip(),
-                'hash':str(row.get('Content hash','')).strip().lower(),
+                'hash':str(row.get('Content hash','')).strip() if strict else str(row.get('Content hash','')).strip().lower(),
                 'classification':str(row.get('Classification (CORE/EXTRA)','NOT_APPLICABLE')).strip().upper(),
+                'classification_authority':str(row.get('Classification authority','NOT_APPLICABLE')).strip(),
+                'capability':str(row.get('Workflow Capability ID','NOT_APPLICABLE')).strip(),
                 'api':str(row.get('API contract / evidence','NOT_APPLICABLE')).strip(),
                 'mcp':str(row.get('MCP contract / evidence','NOT_APPLICABLE')).strip(),
                 'primary':primary,
                 'relations':relations,
+                'typed_relations':typed_relations,
+                'strict':strict,
             }
+    if strict:
+        reciprocal=[('WORKFLOW','UI'),('WORKFLOW','SIMULATION'),('UI','SIMULATION')]
+        for left_type,right_type in reciprocal:
+            for (kind,item_id),item in identities.items():
+                if kind!=left_type: continue
+                for target in item['typed_relations'].get(right_type,set()):
+                    peer=identities.get((right_type,target))
+                    if peer and item_id not in peer['typed_relations'].get(left_type,set()):
+                        errors.append(f'{left_type} {item_id} relation to {right_type} {target} is not reciprocal')
+            for (kind,item_id),item in identities.items():
+                if kind!=right_type: continue
+                for target in item['typed_relations'].get(left_type,set()):
+                    peer=identities.get((left_type,target))
+                    if peer and item_id not in peer['typed_relations'].get(right_type,set()):
+                        errors.append(f'{right_type} {item_id} relation to {left_type} {target} is not reciprocal')
+        primary={kind:{item_id for (item_kind,item_id),item in identities.items() if item_kind==kind and item['primary']=='YES'} for kind in realized}
+        primary_core={item_id for item_id in primary['WORKFLOW'] if identities[('WORKFLOW',item_id)]['classification']=='CORE'}
+        if primary['WORKFLOW']-primary_core: errors.append('Primary product mainline Workflow must be implemented CORE')
+        triples=[]
+        for workflow_id in primary_core:
+            workflow=identities[('WORKFLOW',workflow_id)]
+            for ui_id in primary['UI']:
+                ui=identities[('UI',ui_id)]
+                for simulation_id in primary['SIMULATION']:
+                    simulation=identities[('SIMULATION',simulation_id)]
+                    if (
+                        ui_id in workflow['typed_relations'].get('UI',set())
+                        and simulation_id in workflow['typed_relations'].get('SIMULATION',set())
+                        and workflow_id in ui['typed_relations'].get('WORKFLOW',set())
+                        and simulation_id in ui['typed_relations'].get('SIMULATION',set())
+                        and workflow_id in simulation['typed_relations'].get('WORKFLOW',set())
+                        and ui_id in simulation['typed_relations'].get('UI',set())
+                    ): triples.append((workflow_id,ui_id,simulation_id))
+        if not triples: errors.append('Primary product mainline requires one mutually linked UI/CORE Workflow/Simulation route')
+        else:
+            joined={kind:set() for kind in primary}
+            for workflow_id,ui_id,simulation_id in triples:
+                joined['WORKFLOW'].add(workflow_id); joined['UI'].add(ui_id); joined['SIMULATION'].add(simulation_id)
+            for kind in primary:
+                if primary[kind]-joined[kind]: errors.append('Primary product mainline contains an unrelated '+kind+' claim')
     return identities,errors
 
 def validate_map_handoff_identity(rows,workflow_rows,ui_rows,simulation_rows,primary_mainline_id,map_mainline_ids):
     expected,errors=map_identity_rows(workflow_rows,ui_rows,simulation_rows)
     for source,value in map_mainline_ids.items():
-        if not evidence(value): errors.append(source+' Map requires a Primary product mainline ID')
+        if not stable_id(value): errors.append(source+' Map requires a safe Primary product mainline ID')
         elif str(value).strip()!=str(primary_mainline_id or '').strip():
             errors.append(source+' Map Primary product mainline ID does not match Product Baseline Handoff')
     actual={}
     for index,row in enumerate(rows):
         key=(str(row.get('Subtree type','')).strip().upper(),str(row.get('Subtree ID','')).strip())
-        if key in actual: continue
+        if key in actual:
+            errors.append('duplicate Product Baseline Handoff subtree identity '+key[1]); continue
+        relations,relation_errors=parse_closed_id_list(
+            row.get('Related subtree IDs'),f'Baseline subtree row {index+1} relations'
+        ) if expected and next(iter(expected.values())).get('strict') else (split_ids(row.get('Related subtree IDs')),[])
+        errors.extend(relation_errors)
         actual[key]={
             'path':str(row.get('Path','')).strip(),
             'version':str(row.get('Component version','')).strip(),
-            'hash':str(row.get('Content hash','')).strip().lower(),
+            'hash':str(row.get('Content hash','')).strip() if expected and next(iter(expected.values())).get('strict') else str(row.get('Content hash','')).strip().lower(),
             'classification':str(row.get('Classification','')).strip().upper(),
+            'classification_authority':str(row.get('Classification authority','NOT_APPLICABLE')).strip(),
+            'capability':str(row.get('Workflow Capability ID','NOT_APPLICABLE')).strip(),
             'api':str(row.get('API evidence','')).strip(),
             'mcp':str(row.get('MCP evidence','')).strip(),
             'primary':str(row.get('Primary mainline','')).strip().upper(),
-            'relations':split_ids(row.get('Related subtree IDs')),
+            'relations':relations,
         }
     missing=set(expected)-set(actual)
     extra=set(actual)-set(expected)
@@ -431,7 +599,9 @@ def validate_map_handoff_identity(rows,workflow_rows,ui_rows,simulation_rows,pri
         errors.append(f'Product Baseline Handoff subtree {subtree_id} is absent from the {subtree_type} Map')
     for key in sorted(set(expected).intersection(actual)):
         subtree_type,subtree_id=key
-        for field in ['path','version','hash','classification','api','mcp','primary','relations']:
+        fields=['path','version','hash','classification','api','mcp','primary','relations']
+        if expected[key].get('strict'): fields+=['classification_authority','capability']
+        for field in fields:
             if expected[key][field]!=actual[key][field]:
                 errors.append(f'{subtree_type} Map / Product Baseline Handoff identity mismatch for {subtree_id}: {field}')
     return errors
@@ -442,9 +612,10 @@ def validate_product_subtree_baseline(
     workflow_rows=None,ui_rows=None,simulation_rows=None,map_mainline_ids=None,
 ):
     errors=[]; ids=set(); paths={}; by_type={'UI':set(),'WORKFLOW':set(),'SIMULATION':set()}; primary={key:set() for key in by_type}
-    if not evidence(primary_mainline_id): errors.append('Primary product mainline ID required')
+    strict=workflow_map_uses_270(workflow_rows or [])
+    if not stable_id(primary_mainline_id): errors.append('Primary product mainline ID required')
     confirmation=str(owner_confirmation or '').strip()
-    if not re.fullmatch(r'OWNER_CONFIRMED:\s*\S(?:.*\S)?',confirmation,re.IGNORECASE):
+    if not re.fullmatch(r'OWNER_CONFIRMED:\s*\S(?:.*\S)?',confirmation):
         errors.append('Primary product mainline requires Owner confirmation')
     resolved_commit=None
     if repository_path is not None:
@@ -457,20 +628,34 @@ def validate_product_subtree_baseline(
         path=str(row.get('Path','')).strip()
         if subtree_type not in by_type:
             errors.append(prefix+' has invalid subtree type'); continue
-        if not subtree_id: errors.append(prefix+' missing Subtree ID')
+        if not stable_id(subtree_id): errors.append(prefix+' requires a safe Subtree ID')
         elif subtree_id in ids: errors.append('duplicate Subtree ID '+subtree_id)
         ids.add(subtree_id); by_type[subtree_type].add(subtree_id)
         if not safe_subtree_path(path): errors.append(prefix+' requires a safe relative subtree path')
         elif path in paths: errors.append('duplicate subtree path '+path)
+        elif strict:
+            for other,kind in paths.items():
+                if path.startswith(other.rstrip('/')+'/') or other.startswith(path.rstrip('/')+'/'):
+                    errors.append('realized product subtree paths must be peers, not nested')
         paths[path]=subtree_type
         if not component_version(row.get('Component version')): errors.append(prefix+' requires a three-part component version')
-        if not CONTENT_HASH_RE.fullmatch(str(row.get('Content hash','')).strip()):
+        hash_pattern=EXACT_HASH_RE if strict else CONTENT_HASH_RE
+        if not hash_pattern.fullmatch(str(row.get('Content hash','')).strip()):
             errors.append(prefix+' requires content hash')
         if subtree_type=='WORKFLOW':
             if str(row.get('Classification','')).strip().upper() not in {'CORE','EXTRA'}:
                 errors.append(prefix+' Workflow requires CORE or EXTRA classification')
             if not evidence(row.get('API evidence')): errors.append(prefix+' implemented Workflow requires API evidence')
             if not evidence(row.get('MCP evidence')): errors.append(prefix+' implemented Workflow requires MCP evidence')
+            if strict:
+                if not stable_id(row.get('Workflow Capability ID')): errors.append(prefix+' requires Workflow Capability ID')
+                errors.extend(validate_classification_authority(
+                    row.get('Classification authority'),str(row.get('Classification','')).strip().upper(),prefix
+                ))
+        elif strict:
+            for field in ['Classification','Classification authority','Workflow Capability ID','API evidence','MCP evidence']:
+                if str(row.get(field,'')).strip()!='NOT_APPLICABLE':
+                    errors.append(prefix+' non-Workflow identity requires '+field+' NOT_APPLICABLE')
         primary_flag=str(row.get('Primary mainline','')).strip().upper()
         if primary_flag not in {'YES','NO'}: errors.append(prefix+' Primary mainline must be YES or NO')
         if primary_flag=='YES': primary[subtree_type].add(subtree_id)
@@ -1185,6 +1370,98 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
                 errors.append('required Run terminal evidence is not accepted/current: '+run_id)
     return errors
 
+WORKFLOW_MAP_COLUMNS_260=(
+    'Workflow ID','Classification (CORE/EXTRA)','Implementation status','Subtree path',
+    'Component version','Content hash','Actors','Trigger','States / rules',
+    'Data / permissions','Failure / recovery','API contract / evidence',
+    'MCP contract / evidence','UI subtree references','Simulation subtree references',
+    'Evidence / attestation','Calabash trace','Primary mainline',
+)
+WORKFLOW_MAP_COLUMNS_270=(
+    'Workflow ID','Classification (CORE/EXTRA)','Implementation status',
+    'Classification authority','Subtree path','Component version','Content hash',
+    'Workflow Capability ID','Actors','Trigger','Rules / state / side-effect trace',
+    'Data / permissions','Failure / recovery','API contract / evidence',
+    'MCP contract / evidence','UI subtree references','Simulation subtree references',
+    'Evidence / attestation','Primary mainline',
+)
+UI_MAP_COLUMNS=(
+    'UI ID','Subtree path','Component version','Content hash','Actor','Surface / state',
+    'Actions / feedback','Workflow subtree references','Simulation subtree references',
+    'Evidence / attestation','Lock status','Primary mainline',
+)
+SIMULATION_MAP_COLUMNS=(
+    'Simulation ID','Subtree path','Component version','Content hash','Foundation status',
+    'Workflow subtree references','UI subtree references','Primary mainline',
+)
+SCENARIO_COLUMNS=(
+    'Simulation ID','Scenario ID','Actors','Data/state/time','Path','Failure/recovery',
+    'Fidelity','Visible / invisible evidence','Used by Slice/Run/Acceptance',
+    'Scenario version',
+)
+HANDOFF_COLUMNS_260=(
+    'Subtree type','Subtree ID','Path','Component version','Content hash','Classification',
+    'API evidence','MCP evidence','Primary mainline','Related subtree IDs',
+)
+HANDOFF_COLUMNS_270=(
+    'Subtree type','Subtree ID','Path','Component version','Content hash','Classification',
+    'Classification authority','Workflow Capability ID','API evidence','MCP evidence',
+    'Primary mainline','Related subtree IDs',
+)
+
+def _markdown_pipe_cells(line):
+    stripped=line.strip()
+    if not stripped.startswith('|') or not stripped.endswith('|'): return None
+    return tuple(cell.strip() for cell in stripped[1:-1].split('|'))
+
+def parse_closed_product_tables(path,specifications):
+    """Parse only the four product identity surfaces; every pipe line is accounted for."""
+    try: lines=path.read_text(encoding='utf-8').splitlines()
+    except (OSError,UnicodeError): return {},['cannot read UTF-8 product identity record '+str(path)]
+    parsed={}; errors=[]; occupied=set()
+    malformed_pipe_lines={index for index,line in enumerate(lines) if line.strip().startswith('|') and _markdown_pipe_cells(line) is None}
+    for index in sorted(malformed_pipe_lines):
+        errors.append(f'malformed product identity pipe row at line {index+1}')
+    pipe_cells={index:_markdown_pipe_cells(line) for index,line in enumerate(lines)}
+    pipe_cells={index:cells for index,cells in pipe_cells.items() if cells is not None}
+    for specification in specifications:
+        label,allowed_headers=specification[:2]
+        required=specification[2] if len(specification)>2 else True
+        matches=[
+            (index,cells) for index,cells in pipe_cells.items()
+            if cells in allowed_headers
+        ]
+        if len(matches)>1 or (required and len(matches)!=1):
+            errors.append(f'{label} requires exactly one closed table header')
+        if not matches:
+            parsed[label]=[]; continue
+        header_index,headers=matches[0]
+        occupied.add(header_index)
+        separator_index=header_index+1
+        separator=pipe_cells.get(separator_index)
+        if separator is None or len(separator)!=len(headers) or any(cell!='---' for cell in separator):
+            errors.append(f'{label} requires one exact table separator')
+            parsed[label]=[]; continue
+        occupied.add(separator_index)
+        rows=[]; row_index=separator_index+1
+        while row_index<len(lines):
+            cells=pipe_cells.get(row_index)
+            if cells is None: break
+            occupied.add(row_index)
+            if len(cells)!=len(headers):
+                errors.append(f'{label} contains a malformed table row at line {row_index+1}')
+            elif all(cell=='---' for cell in cells):
+                errors.append(f'{label} contains an unexpected table separator at line {row_index+1}')
+            elif cells in allowed_headers:
+                errors.append(f'{label} contains a duplicate table header at line {row_index+1}')
+            else:
+                rows.append(dict(zip(headers,cells)))
+            row_index+=1
+        parsed[label]=rows
+    for index in sorted(set(pipe_cells)-occupied):
+        errors.append(f'unexpected product identity pipe row at line {index+1}')
+    return parsed,errors
+
 def parse_markdown_table(path,first_header):
     lines=path.read_text(encoding='utf-8').splitlines(); headers=None; rows=[]
     for index,line in enumerate(lines):
@@ -1260,9 +1537,42 @@ def main():
     if (lc/'PROJECT-FINGERPRINT.json').exists():
         fingerprint=json.loads((lc/'PROJECT-FINGERPRINT.json').read_text(encoding='utf-8'))
         errors.extend(validate_complexity_depth(fingerprint))
-    workflow_rows=parse_markdown_table(lc/'WORKFLOW-MAP.md','Workflow ID') if (lc/'WORKFLOW-MAP.md').exists() else []
-    ui_rows=parse_markdown_table(lc/'UI-MAP.md','UI ID') if (lc/'UI-MAP.md').exists() else []
-    simulation_rows=parse_markdown_table(lc/'SIMULATION-WORLD.md','Simulation ID') if (lc/'SIMULATION-WORLD.md').exists() else []
+    workflow_rows=[]; ui_rows=[]; simulation_rows=[]
+    workflow_fields={}; ui_fields={}; simulation_fields={}; product_surface_errors=[]
+    workflow_path=lc/'WORKFLOW-MAP.md'; ui_path=lc/'UI-MAP.md'; simulation_path=lc/'SIMULATION-WORLD.md'
+    if workflow_path.exists():
+        workflow_fields,field_errors=parse_markdown_fields_strict(workflow_path)
+        product_surface_errors.extend(field_errors)
+        if 'Primary product mainline ID' not in workflow_fields:
+            product_surface_errors.append('Workflow Map requires exactly one Primary product mainline ID')
+        tables,table_errors=parse_closed_product_tables(
+            workflow_path,
+            [('Workflow Map',(WORKFLOW_MAP_COLUMNS_260,WORKFLOW_MAP_COLUMNS_270))],
+        )
+        workflow_rows=tables.get('Workflow Map',[]); product_surface_errors.extend(table_errors)
+    if ui_path.exists():
+        ui_fields,field_errors=parse_markdown_fields_strict(ui_path)
+        product_surface_errors.extend(field_errors)
+        if 'Primary product mainline ID' not in ui_fields:
+            product_surface_errors.append('UI Map requires exactly one Primary product mainline ID')
+        tables,table_errors=parse_closed_product_tables(
+            ui_path,[('UI Map',(UI_MAP_COLUMNS,))]
+        )
+        ui_rows=tables.get('UI Map',[]); product_surface_errors.extend(table_errors)
+    if simulation_path.exists():
+        simulation_fields,field_errors=parse_markdown_fields_strict(simulation_path)
+        product_surface_errors.extend(field_errors)
+        if 'Primary product mainline ID' not in simulation_fields:
+            product_surface_errors.append('Simulation World requires exactly one Primary product mainline ID')
+        tables,table_errors=parse_closed_product_tables(
+            simulation_path,
+            [
+                ('Simulation subtree registry',(SIMULATION_MAP_COLUMNS,)),
+                ('Scenario registry',(SCENARIO_COLUMNS,),False),
+            ],
+        )
+        simulation_rows=tables.get('Simulation subtree registry',[])
+        product_surface_errors.extend(table_errors)
     calabash_handoff=lc/'CALABASH-UPGRADE-GATE.md'
     if calabash_handoff.exists():
         calabash_fields=parse_markdown_fields(calabash_handoff)
@@ -1275,43 +1585,52 @@ def main():
             errors.extend(validate_impact_analysis(impact_path))
     handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]
     if handoff.exists():
-        handoff_fields=parse_markdown_fields(handoff)
-        handoff_complete=str(handoff_fields.get('Handoff status','')).strip().upper()=='COMPLETE'
-        if not handoff_complete:
-            handoff_errors.append('Product Baseline Handoff status must be COMPLETE')
+        handoff_errors.extend(product_surface_errors)
+        handoff_fields,handoff_field_errors=parse_markdown_fields_strict(handoff)
+        handoff_errors.extend(handoff_field_errors)
+        handoff_tables,handoff_table_errors=parse_closed_product_tables(
+            handoff,[('Product Baseline locked subtrees',(HANDOFF_COLUMNS_260,HANDOFF_COLUMNS_270))]
+        )
+        handoff_rows=handoff_tables.get('Product Baseline locked subtrees',[])
+        handoff_errors.extend(handoff_table_errors)
+        handoff_status=str(handoff_fields.get('Handoff status','')).strip().upper()
+        handoff_complete=handoff_status=='COMPLETE'
+        if handoff_status not in {'BLOCKED','COMPLETE'}:
+            handoff_errors.append('Product Baseline Handoff status must be BLOCKED or COMPLETE')
         definition_citation_fields={'Calabash Definition Handoff ID / exact hash','Calabash Definition Handoff result'}
         if handoff_complete:
             if not definition_citation_fields.issubset(handoff_fields):
                 handoff_errors.append('Product Baseline COMPLETE requires Calabash Definition Handoff citation and result')
             handoff_errors.extend(validate_product_definition_basis(lc,handoff_fields))
-        repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
-        project_repository=canonical_github_repository(start.get('repository'))
-        if not repository or (project_repository and repository!=project_repository):
-            handoff_errors.append('Product Baseline Handoff must use the total project repository')
-        frozen_commit=handoff_fields.get('Project frozen exact commit SHA','')
-        handoff_errors.extend(validate_workflow_subtrees(workflow_rows,Path(args.project),frozen_commit))
-        handoff_errors.extend(validate_product_subtree_baseline(
-            parse_markdown_table(handoff,'Subtree type'),
-            handoff_fields.get('Primary product mainline ID'),
-            handoff_fields.get('Primary mainline Owner confirmation'),
-            Path(args.project),
-            frozen_commit,
-            workflow_rows,
-            ui_rows,
-            simulation_rows,
-            {
-                'Workflow':parse_markdown_fields(lc/'WORKFLOW-MAP.md').get('Primary product mainline ID') if (lc/'WORKFLOW-MAP.md').exists() else None,
-                'UI':parse_markdown_fields(lc/'UI-MAP.md').get('Primary product mainline ID') if (lc/'UI-MAP.md').exists() else None,
-                'Simulation':parse_markdown_fields(lc/'SIMULATION-WORLD.md').get('Primary product mainline ID') if (lc/'SIMULATION-WORLD.md').exists() else None,
-            },
-        ))
+            repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
+            project_repository=canonical_github_repository(start.get('repository'))
+            if not repository or (project_repository and repository!=project_repository):
+                handoff_errors.append('Product Baseline Handoff must use the total project repository')
+            frozen_commit=handoff_fields.get('Project frozen exact commit SHA','')
+            handoff_errors.extend(validate_workflow_subtrees(workflow_rows,Path(args.project),frozen_commit))
+            handoff_errors.extend(validate_product_subtree_baseline(
+                handoff_rows,
+                handoff_fields.get('Primary product mainline ID'),
+                handoff_fields.get('Primary mainline Owner confirmation'),
+                Path(args.project),
+                frozen_commit,
+                workflow_rows,
+                ui_rows,
+                simulation_rows,
+                {
+                    'Workflow':workflow_fields.get('Primary product mainline ID'),
+                    'UI':ui_fields.get('Primary product mainline ID'),
+                    'Simulation':simulation_fields.get('Primary product mainline ID'),
+                },
+            ))
     else:
+        errors.extend(product_surface_errors)
         errors.extend(validate_workflow_subtrees(workflow_rows))
     errors.extend(handoff_errors)
     if completed_evidence(status.get('product_baseline')):
         if not handoff.exists():
             errors.append('accepted Product Baseline requires PRODUCT-BASELINE-HANDOFF.md')
-        elif handoff_errors:
+        elif not handoff_complete or handoff_errors:
             errors.append('accepted Product Baseline requires a mechanically valid and COMPLETE Product Baseline Handoff')
     if status.get('active_slice'):
         slice_path=resolve_active_slice(lc,status.get('active_slice'))

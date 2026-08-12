@@ -7,4 +7,4 @@ For EXISTING intake, runnable UI is the first Owner-visible cognition anchor, no
 | UI ID | Subtree path | Component version | Content hash | Actor | Surface / state | Actions / feedback | Workflow subtree references | Simulation subtree references | Evidence / attestation | Lock status | Primary mainline |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 
-UI relationships are ID references. They do not require a one-to-one Workflow mapping or directory nesting. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`.
+UI relationships are closed, reciprocal peer-subtree ID references. They allow many-to-many Workflow and Simulation relations but never encode directory nesting. Every realized UI is a safe non-root logical path in the one total project repository. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`.
