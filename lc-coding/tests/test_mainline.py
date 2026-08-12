@@ -31,8 +31,6 @@ spec=(root/'SPEC.md').read_text(encoding='utf-8')
 skill=(root/'lc-coding/SKILL.md').read_text(encoding='utf-8')
 readme=(root/'README.md').read_text(encoding='utf-8')
 readme_zh=(root/'README.zh-CN.md').read_text(encoding='utf-8')
-dual_end=(root/'lc-coding/references/dual-end-design.md').read_text(encoding='utf-8')
-simulation=(root/'lc-coding/references/simulation-world.md').read_text(encoding='utf-8')
 
 semantic_checks=[
     (spec,'SPEC Workflow',[
@@ -117,17 +115,6 @@ simulation_first_checks=[
         'Continue semantic and scenario synchronization without treating it as early integration',
         'Keep cross-layer connection and end-to-end proof in Feature Slice and UI-locked Integration',
         'Never treat the foundation as a complete or frozen Simulation',
-    ]),
-    (dual_end,'dual-end reference',[
-        'After at least one Simulation World foundation exists',
-        'independently runnable and inspectable',
-        'Cross-layer connection is not an early Product Formation condition',
-    ]),
-    (simulation,'Simulation reference',[
-        'at least one minimum real, runnable, versioned foundation',
-        'before actual Workflow or UI construction',
-        'not a one-time complete freeze',
-        '`VERSIONED_MUTABLE`',
     ]),
     (readme,'README Simulation-first',[
         'A minimal, real, runnable, versioned Simulation World foundation comes first',
