@@ -4,6 +4,7 @@
 - Actor intent:
 - Product outcome:
 - Product Baseline trace:
+- Accepted integration candidate / baseline identity:
 - Workflow references:
 - UI references:
 - Primary product mainline ID / Owner confirmation:
@@ -25,6 +26,9 @@
 - Impact Analysis ID:
 - Integration Baseline ID:
 - Required Run IDs:
+- Optional Run IDs:
+- Superseded Run IDs:
+- Invalidated Run IDs:
 - D0-D3 evidence plan:
 - Visible completion:
 - Invisible completion:

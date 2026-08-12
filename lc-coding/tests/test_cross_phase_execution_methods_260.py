@@ -36,6 +36,25 @@ assert "UI-locked Real Product Integration" in manifest["mainline"]
 canonical_manifest = json.loads(text("lc-coding/templates/CANONICAL-MANIFEST.json"))
 assert "Selected Loop" not in canonical_manifest["load_order"]
 assert "Per-Run Execution Method" in canonical_manifest["load_order"]
+assert canonical_manifest["execution_methods"] == []
+assert {"slk", "clk", "glk"}.issubset(canonical_manifest)
+
+interpretation_lock = json.loads(text("lc-coding/templates/INTERPRETATION-LOCK.json"))
+assert interpretation_lock["manifest_reference"] == "CANONICAL-MANIFEST.json"
+assert interpretation_lock["validated_execution_method_ids"] == []
+
+slice_fields = {}
+for line in text("lc-coding/templates/FEATURE-SLICE.md").splitlines():
+    if line.startswith("- ") and ":" in line:
+        key, value = line[2:].split(":", 1)
+        slice_fields[key.strip()] = value.strip()
+assert {
+    "Accepted integration candidate / baseline identity",
+    "Required Run IDs",
+    "Optional Run IDs",
+    "Superseded Run IDs",
+    "Invalidated Run IDs",
+}.issubset(slice_fields)
 
 for relative in ["README.md", "README.zh-CN.md", "SPEC.md", "lc-coding/SKILL.md"]:
     require(
