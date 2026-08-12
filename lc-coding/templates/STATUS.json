@@ -9,7 +9,9 @@
   "canonical_candidate": {
     "repository": "",
     "version": "",
-    "commit": ""
+    "commit": "",
+    "candidate_id": "",
+    "candidate_hash": ""
   },
   "existing_project_attestation": "PENDING",
   "existing_project_classification": "PENDING",
@@ -36,8 +38,30 @@
   "all_required_runs_accepted": "PENDING",
   "centralized_security_audit": "PENDING",
   "security_remediation": "PENDING",
-  "vulnerability_closure": "PENDING",
-  "post_security_owner_acceptance": "PENDING",
+  "vulnerability_closure": {
+    "state": "PENDING",
+    "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE",
+    "current_receipt_id": "NOT_APPLICABLE",
+    "current_receipt_reference": "NOT_APPLICABLE",
+    "superseded_receipt_id": "NOT_APPLICABLE",
+    "superseded_receipt_reference": "NOT_APPLICABLE",
+    "superseded_candidate_id": "NOT_APPLICABLE",
+    "superseded_candidate_hash": "NOT_APPLICABLE"
+  },
+  "post_security_owner_acceptance": {
+    "state": "PENDING",
+    "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE",
+    "current_acceptance_id": "NOT_APPLICABLE",
+    "current_acceptance_reference": "NOT_APPLICABLE",
+    "vulnerability_closure_receipt_id": "NOT_APPLICABLE",
+    "vulnerability_closure_receipt_reference": "NOT_APPLICABLE",
+    "superseded_acceptance_id": "NOT_APPLICABLE",
+    "superseded_acceptance_reference": "NOT_APPLICABLE",
+    "superseded_candidate_id": "NOT_APPLICABLE",
+    "superseded_candidate_hash": "NOT_APPLICABLE"
+  },
   "delivery_method_qa": "PENDING",
   "delivery": "PENDING",
   "last_material_change": "",

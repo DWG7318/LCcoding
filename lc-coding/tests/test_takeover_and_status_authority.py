@@ -28,12 +28,37 @@ assert status.get("status_schema_version") == "2.6.0"
 assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
 assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
 assert status.get("product_baseline") == "PENDING"
+assert status["vulnerability_closure"]["state"] == "PENDING"
+assert status["post_security_owner_acceptance"]["state"] == "PENDING"
+assert set(status["vulnerability_closure"]) == module.VULNERABILITY_STATUS_FIELDS
+assert set(status["post_security_owner_acceptance"]) == module.POST_SECURITY_STATUS_FIELDS
 assert "product_baseline" not in status.get("phase_gates", {})
 formation_view = phase_status["phases"]["PRODUCT_FORMATION"]
 assert "exit_gate" not in formation_view
 assert formation_view.get("exit_evidence") == "PENDING"
 assert hasattr(module, "validate_status_authority")
 assert module.validate_status_authority(status, phase_status, health) == []
+
+# Explicit legacy/non-current scalar security status remains readable, but a
+# current record cannot mix scalar and structured truth or add a second ledger.
+legacy_security = copy.deepcopy(status)
+legacy_security["vulnerability_closure"] = "PENDING"
+legacy_security["post_security_owner_acceptance"] = "PENDING"
+assert module.validate_status_authority(legacy_security, phase_status, health) == []
+mixed_security = copy.deepcopy(status)
+mixed_security["vulnerability_closure"] = "PENDING"
+assert any(
+    "mix scalar and structured" in error
+    for error in module.validate_status_authority(mixed_security, phase_status, health)
+)
+second_security_authority = copy.deepcopy(status)
+second_security_authority["security_invalidation_ledger"] = []
+assert any(
+    "second security invalidation authority" in error
+    for error in module.validate_status_authority(
+        second_security_authority, phase_status, health
+    )
+)
 
 
 def product_formation_pending():

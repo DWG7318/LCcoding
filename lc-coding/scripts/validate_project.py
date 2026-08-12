@@ -9,9 +9,17 @@ _PHASE_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
 _PHASE_VALIDATOR=importlib.util.module_from_spec(_PHASE_VALIDATOR_SPEC)
 _PHASE_VALIDATOR_SPEC.loader.exec_module(_PHASE_VALIDATOR)
 COMPLETED_PHASE_STATES=_PHASE_VALIDATOR.COMPLETED_PHASE_STATES
-completed_evidence=_PHASE_VALIDATOR.completed_evidence
-normalize_lifecycle_state=_PHASE_VALIDATOR.normalize_lifecycle_state
+_completed_evidence=_PHASE_VALIDATOR.completed_evidence
+_normalize_lifecycle_state=_PHASE_VALIDATOR.normalize_lifecycle_state
 validate_phase_status_record=_PHASE_VALIDATOR.validate_phase_status
+
+def normalize_lifecycle_state(value):
+    if isinstance(value,dict) and set(value).issuperset({'state'}): value=value.get('state')
+    return _normalize_lifecycle_state(value)
+
+def completed_evidence(value):
+    if isinstance(value,dict) and set(value).issuperset({'state'}): value=value.get('state')
+    return _completed_evidence(value)
 
 _METHOD_BASELINE_VALIDATOR_PATH=Path(__file__).with_name('validate_method_baseline.py')
 _METHOD_BASELINE_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
@@ -20,6 +28,18 @@ _METHOD_BASELINE_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
 _METHOD_BASELINE_VALIDATOR=importlib.util.module_from_spec(_METHOD_BASELINE_VALIDATOR_SPEC)
 _METHOD_BASELINE_VALIDATOR_SPEC.loader.exec_module(_METHOD_BASELINE_VALIDATOR)
 validate_method_baseline_records=_METHOD_BASELINE_VALIDATOR.validate_method_baseline_records
+
+_VULNERABILITY_VALIDATOR_PATH=Path(__file__).with_name('validate_vulnerability_closure.py')
+_VULNERABILITY_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
+    'lccoding_validate_vulnerability_closure',_VULNERABILITY_VALIDATOR_PATH
+)
+_VULNERABILITY_VALIDATOR=importlib.util.module_from_spec(_VULNERABILITY_VALIDATOR_SPEC)
+_VULNERABILITY_VALIDATOR_SPEC.loader.exec_module(_VULNERABILITY_VALIDATOR)
+validate_vulnerability_receipt=_VULNERABILITY_VALIDATOR.validate_receipt
+strict_vulnerability_json=_VULNERABILITY_VALIDATOR.strict_json
+VULNERABILITY_CONTRACT=json.loads(
+    _VULNERABILITY_VALIDATOR.CONTRACT_PATH.read_text(encoding='utf-8')
+)
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -113,6 +133,89 @@ IMPACT_ALLOWED_FIELDS=IMPACT_REQUIRED_FIELDS|{
     'Release / rollback','Delta history','Gap closure evidence pointers',
     'Owner decision',
 }
+SECURITY_IMPACT_FIELDS={
+    'Security change timing','Prior candidate ID / exact hash',
+    'Current candidate ID / exact hash','Security change classification',
+    'Changed security surface categories','Affected security surface IDs',
+    'Transitive affected surface IDs / evidence',
+    'Prior Vulnerability Closure Receipt ID / reference',
+    'Prior Post-Security Owner Acceptance ID / reference',
+    'Security neutral / preservation evidence','Security invalidation evidence',
+    'Required security action',
+}
+IMPACT_ALLOWED_FIELDS=IMPACT_ALLOWED_FIELDS|SECURITY_IMPACT_FIELDS
+SECURITY_CHANGE_TIMINGS={
+    'BEFORE_SECURITY_CLOSURE','AFTER_VULNERABILITY_CLOSED',
+    'AFTER_POST_SECURITY_OWNER_ACCEPTED',
+}
+SECURITY_CHANGE_CLASSIFICATIONS={
+    'MATERIAL_SECURITY_SURFACE_CHANGE','PROVEN_SECURITY_SURFACE_NEUTRAL',
+    'EVIDENCE_EQUIVALENT_PACKAGING_TRANSFORMATION',
+}
+IMPACT_UNSTARTED_FIELD_VALUES={
+    'Artifact role':'IMPACT_ANALYSIS',
+    'Meaning impact classification':'MEANING_CHANGING / MEANING_NEUTRAL',
+    'Definition invalidation effect':'INVALIDATES / NO_DEFINITION_INVALIDATION',
+    'Security change timing':(
+        'BEFORE_SECURITY_CLOSURE / AFTER_VULNERABILITY_CLOSED / '
+        'AFTER_POST_SECURITY_OWNER_ACCEPTED'
+    ),
+    'Security change classification':(
+        'MATERIAL_SECURITY_SURFACE_CHANGE / PROVEN_SECURITY_SURFACE_NEUTRAL / '
+        'EVIDENCE_EQUIVALENT_PACKAGING_TRANSFORMATION'
+    ),
+    'Changed security surface categories':'NONE',
+    'Affected security surface IDs':'NONE',
+    'Transitive affected surface IDs / evidence':'NONE',
+    'Prior Vulnerability Closure Receipt ID / reference':'NOT_APPLICABLE',
+    'Prior Post-Security Owner Acceptance ID / reference':'NOT_APPLICABLE',
+    'Security neutral / preservation evidence':'NOT_APPLICABLE',
+    'Security invalidation evidence':'NOT_APPLICABLE',
+    'Required security action':'PRESERVE_EXACT_CLOSURE / INVALIDATE_AND_RETURN_TO_AUDIT',
+    'Impact result':'PASS / BLOCKED',
+}
+SECURITY_SURFACE_CATEGORIES={
+    'PRODUCT_BEHAVIOR','DEPENDENCIES_SUPPLY_CHAIN','CONFIGURATION',
+    'AUTHENTICATION_AUTHORIZATION','PRIVILEGE_BOUNDARIES',
+    'DATA_HANDLING_ISOLATION','API_EXPOSURE','CLIENT_EXPOSURE',
+    'INSTALLER_RUNTIME','MIGRATION_RECOVERY_LOGGING_OBSERVABILITY',
+    'OTHER_DECLARED_SECURITY_SURFACE',
+}
+VULNERABILITY_STATUS_FIELDS={
+    'state','candidate_id','candidate_hash','current_receipt_id',
+    'current_receipt_reference','superseded_receipt_id',
+    'superseded_receipt_reference','superseded_candidate_id',
+    'superseded_candidate_hash',
+}
+POST_SECURITY_STATUS_FIELDS={
+    'state','candidate_id','candidate_hash','current_acceptance_id',
+    'current_acceptance_reference','vulnerability_closure_receipt_id',
+    'vulnerability_closure_receipt_reference','superseded_acceptance_id',
+    'superseded_acceptance_reference','superseded_candidate_id',
+    'superseded_candidate_hash',
+}
+POST_SECURITY_RECEIPT_FIELDS={
+    'Schema version','Artifact role','Acceptance ID',
+    'Candidate ID / exact hash','Vulnerability Closure Receipt ID / reference',
+    'Vulnerability Closure candidate ID / exact hash',
+    'Covered remediation surface IDs','Changed remediation surface IDs',
+    'Reused Loop Owner Acceptance Receipt IDs','Security Remediation Run IDs',
+    'Critical smoke / delta evidence','Owner result','Supersession status',
+    'Superseded by Acceptance ID / reference','Accepted at',
+}
+STATUS_FIELDS_270={
+    'record_role','status_schema_version','project_id','updated_at',
+    'initialization_mode','continuity_decision','takeover_readiness',
+    'canonical_candidate','existing_project_attestation',
+    'existing_project_classification','current_phase','phase_gates',
+    'product_baseline','proposal','initialization','calabash_draft','workflow',
+    'ui','simulation','mandatory_calabash_upgrade','active_slice',
+    'integration_baseline','active_runs','loop_owner_acceptances',
+    'open_owner_gaps','all_required_runs_accepted','centralized_security_audit',
+    'security_remediation','vulnerability_closure',
+    'post_security_owner_acceptance','delivery_method_qa','delivery',
+    'last_material_change','next_action','evidence_pointers','blockers',
+}
 DEFINITION_CLAUSE_RE=re.compile(
     r'^baseline:/(?:grandpa|product_architecture|ontology)(?:/[^,\s]+)*$'
     r'|^baseline:/full_layers/(?:contract|policy|workflow|action_catalog|adapter|eval_and_audit)(?:/[^,\s]+)*$'
@@ -130,6 +233,119 @@ def nested_forbidden_fields(value, forbidden, path=''):
             found.extend(nested_forbidden_fields(item,forbidden,f'{path}[{index}]'))
     return found
 
+def exact_security_identity(candidate_id,candidate_hash):
+    candidate_id=str(candidate_id or '').strip()
+    candidate_hash=str(candidate_hash or '').strip()
+    return (
+        _VULNERABILITY_VALIDATOR.safe_id(candidate_id)
+        and bool(EXACT_HASH_RE.fullmatch(candidate_hash))
+    )
+
+def _not_applicable_record(record,fields):
+    return all(str(record.get(field,'')).strip()=='NOT_APPLICABLE' for field in fields)
+
+def validate_security_status_shape(status):
+    errors=[]
+    closure=status.get('vulnerability_closure')
+    acceptance=status.get('post_security_owner_acceptance')
+    strict=isinstance(closure,dict) or isinstance(acceptance,dict)
+    if not strict:
+        return errors
+    if not isinstance(closure,dict) or not isinstance(acceptance,dict):
+        return ['current security status cannot mix scalar and structured authority']
+    unknown=set(status)-STATUS_FIELDS_270
+    if unknown:
+        errors.append('current security status has unknown or second-authority fields '+', '.join(sorted(unknown)))
+    for record,required,label in [
+        (closure,VULNERABILITY_STATUS_FIELDS,'vulnerability_closure'),
+        (acceptance,POST_SECURITY_STATUS_FIELDS,'post_security_owner_acceptance'),
+    ]:
+        missing=required-set(record); extra=set(record)-required
+        if missing: errors.append(label+' missing closed identity fields '+', '.join(sorted(missing)))
+        if extra: errors.append(label+' has unknown identity fields '+', '.join(sorted(extra)))
+    if errors: return errors
+    closure_state=closure.get('state')
+    acceptance_state=acceptance.get('state')
+    if closure_state not in {'PENDING','VULNERABILITY_CLOSED','INVALID'}:
+        errors.append('vulnerability_closure state is invalid')
+    if acceptance_state not in {'PENDING','POST_SECURITY_OWNER_ACCEPTED','INVALID'}:
+        errors.append('post_security_owner_acceptance state is invalid')
+    closure_identity_fields=VULNERABILITY_STATUS_FIELDS-{'state'}
+    acceptance_identity_fields=POST_SECURITY_STATUS_FIELDS-{'state'}
+    if closure_state=='PENDING' and acceptance_state=='PENDING':
+        if not _not_applicable_record(closure,closure_identity_fields):
+            errors.append('pending vulnerability_closure cannot claim receipt or candidate identity')
+        if not _not_applicable_record(acceptance,acceptance_identity_fields):
+            errors.append('pending Post-Security acceptance cannot claim receipt or candidate identity')
+        return errors
+    candidate=status.get('canonical_candidate')
+    if not isinstance(candidate,dict) or not exact_security_identity(
+        candidate.get('candidate_id'),candidate.get('candidate_hash')
+    ):
+        errors.append('current security status requires exact canonical candidate ID/hash')
+        return errors
+    current=(candidate.get('candidate_id'),candidate.get('candidate_hash'))
+    invalid_states=(closure_state=='INVALID',acceptance_state=='INVALID')
+    gate=status.get('phase_gates',{}).get('DELIVERY_READY')
+    if any(invalid_states):
+        for record,label in [(closure,'vulnerability_closure'),(acceptance,'post_security_owner_acceptance')]:
+            if not exact_security_identity(record.get('candidate_id'),record.get('candidate_hash')):
+                errors.append(label+' requires exact candidate ID/hash')
+            elif (record.get('candidate_id'),record.get('candidate_hash'))!=current:
+                errors.append(label+' security candidate identity disagrees with canonical candidate')
+        if invalid_states!=(True,True) or gate!='INVALID':
+            errors.append('security invalidation must atomically invalidate closure, Post-Security acceptance, and DELIVERY_READY')
+        if not _not_applicable_record(closure,{'current_receipt_id','current_receipt_reference'}):
+            errors.append('invalid closure cannot claim a current receipt')
+        if not _not_applicable_record(
+            acceptance,{
+                'current_acceptance_id','current_acceptance_reference',
+                'vulnerability_closure_receipt_id','vulnerability_closure_receipt_reference',
+            }
+        ):
+            errors.append('invalid Post-Security acceptance cannot claim current receipts')
+    elif closure_state=='VULNERABILITY_CLOSED':
+        if (closure.get('candidate_id'),closure.get('candidate_hash'))!=current:
+            errors.append('vulnerability_closure security candidate identity disagrees with canonical candidate')
+        if any(
+            str(closure.get(field,'')).strip() in {'','NOT_APPLICABLE'}
+            for field in {'current_receipt_id','current_receipt_reference'}
+        ):
+            errors.append('current closure requires exact receipt identity/reference')
+        if not _not_applicable_record(
+            closure,{
+                'superseded_receipt_id','superseded_receipt_reference',
+                'superseded_candidate_id','superseded_candidate_hash',
+            }
+        ):
+            errors.append('current closure cannot also claim superseded receipt identity')
+        if acceptance_state=='POST_SECURITY_OWNER_ACCEPTED':
+            if (acceptance.get('candidate_id'),acceptance.get('candidate_hash'))!=current:
+                errors.append('post_security_owner_acceptance security candidate identity disagrees with canonical candidate')
+            if any(
+                str(acceptance.get(field,'')).strip() in {'','NOT_APPLICABLE'}
+                for field in {
+                    'current_acceptance_id','current_acceptance_reference',
+                    'vulnerability_closure_receipt_id','vulnerability_closure_receipt_reference',
+                }
+            ):
+                errors.append('current Post-Security acceptance requires exact receipt identity/reference')
+            if not _not_applicable_record(
+                acceptance,{
+                    'superseded_acceptance_id','superseded_acceptance_reference',
+                    'superseded_candidate_id','superseded_candidate_hash',
+                }
+            ):
+                errors.append('current Post-Security acceptance cannot also claim superseded receipt identity')
+        elif acceptance_state=='PENDING':
+            if not _not_applicable_record(acceptance,acceptance_identity_fields):
+                errors.append('pending Post-Security acceptance cannot claim receipt or candidate identity')
+        else:
+            errors.append('current Vulnerability Closure has an invalid Post-Security state relation')
+    elif acceptance_state=='POST_SECURITY_OWNER_ACCEPTED':
+        errors.append('Post-Security Owner Acceptance requires current Vulnerability Closure')
+    return errors
+
 def validate_status_authority(status,phase_status,health):
     errors=validate_phase_status_record(phase_status)
     roles=[status.get('record_role'),phase_status.get('record_role'),health.get('record_role')]
@@ -146,6 +362,8 @@ def validate_status_authority(status,phase_status,health):
             errors.append(f'{name} contains runtime field {field}')
         for field in nested_forbidden_fields(value,{'product_baseline_ready'}):
             errors.append(f'{name} contains forbidden invented gate PRODUCT_BASELINE_READY at {field}')
+        for field in nested_forbidden_fields(value,{'security_invalidation_ledger'}):
+            errors.append(f'{name} contains forbidden second security invalidation authority at {field}')
     if phase_status.get('current_phase')!=status.get('current_phase'):
         errors.append('derived phase status disagrees with authoritative current_phase')
     gate_map={
@@ -180,6 +398,7 @@ def validate_status_authority(status,phase_status,health):
             errors.append('ENGINEERING_RUNS requires accepted Product Baseline')
         if not derived_complete or formation.get('status') not in COMPLETED_PHASE_STATES:
             errors.append('ENGINEERING_RUNS requires matching derived Product Formation completion')
+    errors.extend(validate_security_status_shape(status))
     return errors
 
 def validate_takeover_readiness(start,status,health):
@@ -1559,6 +1778,244 @@ def exact_ui_integration_identity(value):
 def comma_values(value):
     return [item.strip() for item in str(value or '').split(',') if item.strip()]
 
+def non_generic_evidence(value):
+    return _VULNERABILITY_VALIDATOR.safe_id(value)
+
+def exact_security_id_hash(value):
+    identity=exact_id_hash(value)
+    return identity if identity and non_generic_evidence(identity[0]) else None
+
+def parse_security_id_set(value,label,allowed=None,allow_none=False):
+    text=str(value or '').strip()
+    if allow_none and text=='NONE': return set(),[]
+    raw=[item.strip() for item in text.split(',')]
+    values=[item for item in raw if item]
+    errors=[]
+    if not values or any(not item for item in raw):
+        errors.append(label+' requires a closed non-empty ID set')
+    if len(values)!=len(set(values)):
+        errors.append(label+' contains duplicate IDs')
+    for item in values:
+        if not non_generic_evidence(item): errors.append(label+' contains unsafe or generic ID '+item)
+        elif allowed is not None and item not in allowed:
+            errors.append(label+' contains unknown value '+item)
+    return set(values),errors
+
+def parse_id_reference(value,label,allow_not_applicable=False):
+    text=str(value or '').strip()
+    if allow_not_applicable and text=='NOT_APPLICABLE': return None,[]
+    parts=text.split(' / ')
+    if len(parts)!=2 or not non_generic_evidence(parts[0]) or not safe_subtree_path(parts[1]):
+        return None,[label+' requires exact safe ID / contained-reference form']
+    return (parts[0],parts[1]),[]
+
+def parse_transitive_security_evidence(value,current_identity):
+    text=str(value or '').strip()
+    if text=='NONE': return {},[]
+    records={}; errors=[]
+    raw=[item.strip() for item in text.split(',')]
+    if not raw or any(not item for item in raw):
+        return {},['Transitive affected surface evidence is malformed']
+    for item in raw:
+        parts=item.split('@')
+        if len(parts)!=4:
+            errors.append('Transitive affected surface evidence requires SURFACE@CANDIDATE@HASH@EVIDENCE')
+            continue
+        surface_id,candidate_id,candidate_hash,evidence_id=parts
+        if not stable_id(surface_id): errors.append('Transitive affected surface has unsafe ID')
+        elif surface_id in records: errors.append('Transitive affected surface has duplicate ID '+surface_id)
+        if (candidate_id,candidate_hash)!=current_identity:
+            errors.append('Transitive affected surface evidence binds the wrong candidate')
+        if not non_generic_evidence(evidence_id):
+            errors.append('Transitive affected surface evidence requires non-generic evidence ID')
+        records[surface_id]=evidence_id
+    return records,errors
+
+def parse_security_preservation(value,classification,prior_identity,current_identity):
+    text=str(value or '').strip(); records={}; errors=[]
+    for item in [part.strip() for part in text.split(';') if part.strip()]:
+        parts=item.split('@'); key=parts[0]
+        if key in records: errors.append('Security preservation evidence has duplicate '+key); continue
+        if key in {'PRIOR','CURRENT'}:
+            if len(parts)!=3 or not exact_security_identity(parts[1],parts[2]):
+                errors.append('Security preservation '+key+' identity is malformed'); continue
+            records[key]=(parts[1],parts[2])
+        elif len(parts)==2:
+            records[key]=parts[1]
+        else: errors.append('Security preservation evidence is malformed')
+    if classification=='PROVEN_SECURITY_SURFACE_NEUTRAL':
+        expected={'MODE','EVIDENCE','PRIOR','CURRENT'}
+        if set(records)!=expected or records.get('MODE')!='NEUTRAL':
+            errors.append('neutral preservation requires one closed evidence record')
+        if not non_generic_evidence(records.get('EVIDENCE')):
+            errors.append('neutral preservation requires non-generic evidence')
+    else:
+        expected={'MODE','TRANSFORMATION','SECURITY_EQUIVALENCE','PRIOR','CURRENT'}
+        if set(records)!=expected or records.get('MODE')!='PACKAGING_EQUIVALENCE':
+            errors.append('packaging preservation requires closed transformation and security equivalence evidence')
+        for field in ['TRANSFORMATION','SECURITY_EQUIVALENCE']:
+            if not non_generic_evidence(records.get(field)):
+                errors.append('packaging preservation requires non-generic '+field+' evidence')
+    if records.get('PRIOR')!=prior_identity or records.get('CURRENT')!=current_identity:
+        errors.append('Security preservation evidence candidate identities mismatch')
+    return errors
+
+def parse_bound_security_records(value,label,with_evidence=False,allow_none=False):
+    text=str(value or '').strip()
+    if allow_none and text=='NONE': return {},[]
+    records={}; errors=[]
+    parts=[part.strip() for part in text.split(';')]
+    if not parts or any(not part for part in parts):
+        return {},[label+' requires closed candidate/surface-bound records']
+    expected_parts=5 if with_evidence else 4
+    for part in parts:
+        fields=part.split('@')
+        if len(fields)!=expected_parts:
+            errors.append(label+' record must use exact ID@CANDIDATE@HASH@SURFACES'+('@EVIDENCE' if with_evidence else '')+' form')
+            continue
+        record_id,candidate_id,candidate_hash,surface_text=fields[:4]
+        evidence_id=fields[4] if with_evidence else None
+        if not non_generic_evidence(record_id):
+            errors.append(label+' record requires a safe non-generic ID')
+        elif record_id in records:
+            errors.append(label+' contains duplicate record ID '+record_id)
+        if not exact_security_identity(candidate_id,candidate_hash):
+            errors.append(label+' record requires exact candidate ID/hash')
+        surface_tokens=surface_text.split('+')
+        surfaces=set(surface_tokens)
+        if (
+            not surface_tokens or any(not non_generic_evidence(item) for item in surface_tokens)
+            or len(surface_tokens)!=len(surfaces)
+        ):
+            errors.append(label+' record requires a unique non-empty surface set')
+        if with_evidence and not non_generic_evidence(evidence_id):
+            errors.append(label+' remediation record requires non-generic evidence ID')
+        records[record_id]={
+            'candidate':(candidate_id,candidate_hash),'surfaces':surfaces,
+            'evidence_id':evidence_id,
+        }
+    return records,errors
+
+def closure_candidate_evidence(data):
+    records={}
+    sources=[]
+    for field in ['new_checks','reused_security_evidence','affected_receipts']:
+        value=data.get(field,[]) if isinstance(data,dict) else []
+        if isinstance(value,list): sources.extend(value)
+    reaudit=data.get('reaudit',{}) if isinstance(data,dict) else {}
+    if isinstance(reaudit,dict) and isinstance(reaudit.get('receipt_evidence'),list):
+        sources.extend(reaudit['receipt_evidence'])
+    for value in sources:
+        if not isinstance(value,dict): continue
+        evidence_id=value.get('evidence_id')
+        if not non_generic_evidence(evidence_id): continue
+        surfaces=value.get('surface_ids')
+        if not isinstance(surfaces,list): continue
+        records[evidence_id]={
+            'candidate':(value.get('candidate_id'),value.get('candidate_hash')),
+            'surfaces':set(surfaces),'evidence_id':None,
+        }
+    return records
+
+def validate_security_impact_fields(fields,required=False):
+    present_fields=SECURITY_IMPACT_FIELDS.intersection(fields)
+    if not present_fields:
+        return None,(['referenced Impact Analysis requires a closed security delta'] if required else [])
+    completed_general_record=(
+        fields.get('Meaning impact classification') in {'MEANING_CHANGING','MEANING_NEUTRAL'}
+        or fields.get('Impact result') in {'PASS','BLOCKED'}
+    )
+    activated=(
+        required or completed_general_record
+        or fields.get('Security change timing') in SECURITY_CHANGE_TIMINGS
+        or fields.get('Security change classification') in SECURITY_CHANGE_CLASSIFICATIONS
+        or exact_security_id_hash(fields.get('Prior candidate ID / exact hash')) is not None
+        or exact_security_id_hash(fields.get('Current candidate ID / exact hash')) is not None
+        or fields.get('Required security action') in {
+            'PRESERVE_EXACT_CLOSURE','INVALIDATE_AND_RETURN_TO_AUDIT'
+        }
+    )
+    if not activated: return None,[]
+    errors=[]; missing=SECURITY_IMPACT_FIELDS-set(fields)
+    if missing: errors.append('Impact Analysis security delta missing fields '+', '.join(sorted(missing)))
+    timing=fields.get('Security change timing')
+    classification=fields.get('Security change classification')
+    if timing not in SECURITY_CHANGE_TIMINGS: errors.append('Security change timing is invalid')
+    if classification not in SECURITY_CHANGE_CLASSIFICATIONS:
+        errors.append('Security change classification is invalid')
+    prior=exact_security_id_hash(fields.get('Prior candidate ID / exact hash'))
+    current=exact_security_id_hash(fields.get('Current candidate ID / exact hash'))
+    if not prior: errors.append('Security delta requires exact prior candidate ID/hash')
+    if not current: errors.append('Security delta requires exact current candidate ID/hash')
+    categories,category_errors=parse_security_id_set(
+        fields.get('Changed security surface categories'),
+        'Changed security surface categories',SECURITY_SURFACE_CATEGORIES,allow_none=True
+    )
+    affected,affected_errors=parse_security_id_set(
+        fields.get('Affected security surface IDs'),'Affected security surface IDs',allow_none=True
+    )
+    errors.extend(category_errors); errors.extend(affected_errors)
+    transitive,transitive_errors=parse_transitive_security_evidence(
+        fields.get('Transitive affected surface IDs / evidence'),current or ('','')
+    )
+    errors.extend(transitive_errors)
+    closure_reference,reference_errors=parse_id_reference(
+        fields.get('Prior Vulnerability Closure Receipt ID / reference'),
+        'Prior Vulnerability Closure Receipt'
+    )
+    acceptance_reference,acceptance_errors=parse_id_reference(
+        fields.get('Prior Post-Security Owner Acceptance ID / reference'),
+        'Prior Post-Security Owner Acceptance',allow_not_applicable=True
+    )
+    errors.extend(reference_errors); errors.extend(acceptance_errors)
+    if timing=='AFTER_POST_SECURITY_OWNER_ACCEPTED' and acceptance_reference is None:
+        errors.append('post-acceptance security delta requires the prior Owner acceptance reference')
+    if timing=='AFTER_VULNERABILITY_CLOSED' and acceptance_reference is not None:
+        errors.append('pre-acceptance security delta must not fabricate a prior Owner acceptance')
+    preservation=str(fields.get('Security neutral / preservation evidence','')).strip()
+    invalidation=str(fields.get('Security invalidation evidence','')).strip()
+    action=fields.get('Required security action')
+    if classification=='MATERIAL_SECURITY_SURFACE_CHANGE':
+        if timing not in {'AFTER_VULNERABILITY_CLOSED','AFTER_POST_SECURITY_OWNER_ACCEPTED'}:
+            errors.append('material post-closure change requires an after-closure timing')
+        if not prior or not current or prior==current:
+            errors.append('material security change requires distinct exact prior/current candidates')
+        if not categories or not affected or not transitive:
+            errors.append('material security change requires explicit categories, affected surfaces, and transitive evidence')
+        if preservation!='NOT_APPLICABLE': errors.append('material change cannot claim preservation evidence')
+        if not non_generic_evidence(invalidation):
+            errors.append('material change requires non-generic invalidation evidence')
+        if action!='INVALIDATE_AND_RETURN_TO_AUDIT':
+            errors.append('material change must return to audit')
+    elif classification in {
+        'PROVEN_SECURITY_SURFACE_NEUTRAL','EVIDENCE_EQUIVALENT_PACKAGING_TRANSFORMATION'
+    }:
+        if categories or affected or transitive:
+            errors.append('preserved security closure requires exact NONE surface delta')
+        if invalidation!='NOT_APPLICABLE': errors.append('preservation cannot claim invalidation evidence')
+        if action!='PRESERVE_EXACT_CLOSURE': errors.append('preservation requires PRESERVE_EXACT_CLOSURE')
+        if prior and current:
+            if classification=='PROVEN_SECURITY_SURFACE_NEUTRAL' and prior!=current:
+                errors.append('security-neutral preservation requires unchanged candidate identity')
+            if classification=='EVIDENCE_EQUIVALENT_PACKAGING_TRANSFORMATION' and prior==current:
+                errors.append('packaging transformation requires explicit prior/current candidate relationship')
+            errors.extend(parse_security_preservation(
+                preservation,classification,prior,current
+            ))
+    return {
+        'timing':timing,'classification':classification,'prior':prior,'current':current,
+        'categories':categories,'affected':affected,'transitive':set(transitive),
+        'closure_reference':closure_reference,'acceptance_reference':acceptance_reference,
+    },errors
+
+def impact_analysis_started(fields):
+    for field,value in fields.items():
+        text=str(value or '').strip()
+        if not text: continue
+        if IMPACT_UNSTARTED_FIELD_VALUES.get(field)==text: continue
+        return True
+    return False
+
 def validate_definition_clause_refs(value,label,allow_none=False):
     text=str(value or '').strip()
     if allow_none and text=='NONE': return []
@@ -1754,6 +2211,8 @@ def validate_impact_analysis(path):
             errors.append('meaning-neutral work must not fabricate a Calabash update route')
         if not semantic_present(fields.get('Neutral rationale / evidence')):
             errors.append('meaning-neutral work requires evidence-backed neutral rationale')
+    _,security_errors=validate_security_impact_fields(fields)
+    errors.extend(security_errors)
     return errors
 
 def _safe_lccoding_evidence(path,reference):
@@ -1765,6 +2224,321 @@ def _safe_lccoding_evidence(path,reference):
     try: contained=resolved.is_relative_to(lc.resolve())
     except AttributeError: contained=str(resolved).startswith(str(lc.resolve())+str(Path('/')))
     return lc,resolved if contained and resolved.is_file() else None
+
+def resolve_security_reference(lc,reference):
+    _,resolved=_safe_lccoding_evidence(lc/'status.json',reference)
+    return resolved
+
+def validate_post_security_receipt(
+    path,expected_candidate,expected_closure,expected_closure_data=None
+):
+    fields,errors=parse_markdown_fields_strict(path)
+    missing=POST_SECURITY_RECEIPT_FIELDS-set(fields); unknown=set(fields)-POST_SECURITY_RECEIPT_FIELDS
+    if missing: errors.append('Post-Security Owner Acceptance missing fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('Post-Security Owner Acceptance has unknown fields '+', '.join(sorted(unknown)))
+    if errors: return fields,errors
+    if fields.get('Schema version')!='2.7.0': errors.append('Post-Security Owner Acceptance schema must be 2.7.0')
+    if fields.get('Artifact role')!='POST_SECURITY_OWNER_ACCEPTANCE_RECEIPT':
+        errors.append('Post-Security Owner Acceptance artifact role is invalid')
+    if not non_generic_evidence(fields.get('Acceptance ID')):
+        errors.append('Post-Security Owner Acceptance requires a safe Acceptance ID')
+    candidate=exact_security_id_hash(fields.get('Candidate ID / exact hash'))
+    closure_candidate=exact_security_id_hash(fields.get('Vulnerability Closure candidate ID / exact hash'))
+    if candidate!=expected_candidate:
+        errors.append('Post-Security Owner Acceptance candidate identity mismatch')
+    if closure_candidate!=expected_candidate:
+        errors.append('Post-Security Owner Acceptance closure candidate identity mismatch')
+    closure_reference,reference_errors=parse_id_reference(
+        fields.get('Vulnerability Closure Receipt ID / reference'),
+        'Post-Security Vulnerability Closure Receipt'
+    )
+    errors.extend(reference_errors)
+    if closure_reference!=expected_closure:
+        errors.append('Post-Security Owner Acceptance closure receipt mismatch')
+    covered,covered_errors=parse_security_id_set(
+        fields.get('Covered remediation surface IDs'),'Covered remediation surface IDs',
+        allow_none=True
+    )
+    changed,changed_errors=parse_security_id_set(
+        fields.get('Changed remediation surface IDs'),'Changed remediation surface IDs',allow_none=True
+    )
+    errors.extend(covered_errors); errors.extend(changed_errors)
+    if not changed.issubset(covered):
+        errors.append('changed remediation surfaces must be covered')
+    closure_data=expected_closure_data if isinstance(expected_closure_data,dict) else {}
+    required_surfaces=set(closure_data.get('required_surface_ids',[]))
+    if not required_surfaces or not covered.issubset(required_surfaces):
+        errors.append('Post-Security remediation surfaces must stay inside Vulnerability Closure coverage')
+    owner_records,owner_errors=parse_bound_security_records(
+        fields.get('Reused Loop Owner Acceptance Receipt IDs'),
+        'Reused Loop Owner Acceptance Receipt IDs'
+    )
+    remediation_records,remediation_errors=parse_bound_security_records(
+        fields.get('Security Remediation Run IDs'),'Security Remediation Run IDs',
+        with_evidence=True,allow_none=True
+    )
+    critical_records,critical_errors=parse_bound_security_records(
+        fields.get('Critical smoke / delta evidence'),'Critical smoke / delta evidence'
+    )
+    errors.extend(owner_errors); errors.extend(remediation_errors); errors.extend(critical_errors)
+    expected_owners={}
+    for record in closure_data.get('pre_audit_loop_owner_acceptance_receipts',[]):
+        if isinstance(record,dict):
+            expected_owners[record.get('evidence_id')]={
+                'candidate':(record.get('candidate_id'),record.get('candidate_hash')),
+                'surfaces':set(record.get('surface_ids',[])),'evidence_id':None,
+            }
+    if owner_records!=expected_owners:
+        errors.append('reused Loop Owner acceptance records do not exactly match Vulnerability Closure evidence')
+    expected_remediation={}; remediated_surfaces=set()
+    for record in closure_data.get('remediation_runs',[]):
+        if isinstance(record,dict):
+            record_surfaces=set(record.get('surface_ids',[])); remediated_surfaces.update(record_surfaces)
+            expected_remediation[record.get('run_id')]={
+                'candidate':(record.get('candidate_id'),record.get('candidate_hash')),
+                'surfaces':record_surfaces,'evidence_id':record.get('evidence_id'),
+            }
+    if remediation_records!=expected_remediation:
+        errors.append('security remediation Run records do not exactly match Vulnerability Closure evidence')
+    if changed!=remediated_surfaces:
+        errors.append('changed remediation surfaces must exactly equal Vulnerability Closure remediation surfaces')
+    focused_surfaces=set(remediated_surfaces)
+    for record in closure_data.get('affected_receipts',[]):
+        if isinstance(record,dict): focused_surfaces.update(record.get('surface_ids',[]))
+    if covered!=focused_surfaces:
+        errors.append('Post-Security covered surfaces must exactly equal remediation-affected focused scope')
+    known_critical=closure_candidate_evidence(closure_data); critical_surfaces=set()
+    for evidence_id,record in critical_records.items():
+        if known_critical.get(evidence_id)!=record:
+            errors.append('critical smoke/delta evidence is not exact candidate-bound Vulnerability Closure evidence')
+        critical_surfaces.update(record.get('surfaces',set()))
+    if not critical_records or not focused_surfaces.issubset(critical_surfaces):
+        errors.append('critical smoke/delta evidence must cover every remediation-affected focused surface')
+    if fields.get('Owner result') not in {
+        'POST_SECURITY_OWNER_ACCEPTED','POST_SECURITY_PRODUCT_REWORK',
+        'POST_SECURITY_OWNER_DEFERRED',
+    }:
+        errors.append('Post-Security Owner Acceptance result is invalid')
+    supersession=fields.get('Supersession status')
+    if supersession!='CURRENT':
+        errors.append('referenced Post-Security Owner Acceptance receipt must remain CURRENT immutable evidence')
+    superseded_reference=fields.get('Superseded by Acceptance ID / reference')
+    if supersession=='CURRENT' and superseded_reference!='NOT_APPLICABLE':
+        errors.append('current Post-Security acceptance cannot claim supersession')
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z',fields.get('Accepted at','')):
+        errors.append('Post-Security Owner Acceptance requires an exact accepted-at timestamp')
+    return fields,errors
+
+def load_vulnerability_reference(lc,reference,expected_id,expected_candidate):
+    errors=[]
+    if not expected_candidate or not exact_security_identity(*expected_candidate):
+        return None,['Vulnerability Closure expected candidate identity is invalid']
+    path=resolve_security_reference(lc,reference)
+    if path is None: return None,['Vulnerability Closure reference is missing or escapes .lccoding']
+    try: data=strict_vulnerability_json(path)
+    except (OSError,UnicodeError,ValueError) as error:
+        return None,['Vulnerability Closure receipt is unreadable or not strict JSON: '+str(error)]
+    if data.get('closure_id')!=expected_id:
+        errors.append('Vulnerability Closure receipt ID mismatch')
+    required=data.get('required_surface_ids') if isinstance(data.get('required_surface_ids'),list) else None
+    errors.extend(validate_vulnerability_receipt(
+        data,VULNERABILITY_CONTRACT,expected_candidate[0],expected_candidate[1],required
+    ))
+    return data,errors
+
+def load_post_security_reference(
+    lc,reference,expected_id,expected_candidate,expected_closure,expected_closure_data=None
+):
+    if not expected_candidate or not exact_security_identity(*expected_candidate):
+        return None,['Post-Security expected candidate identity is invalid']
+    path=resolve_security_reference(lc,reference)
+    if path is None: return None,['Post-Security Owner Acceptance reference is missing or escapes .lccoding']
+    fields,errors=validate_post_security_receipt(
+        path,expected_candidate,expected_closure,expected_closure_data
+    )
+    if fields.get('Acceptance ID')!=expected_id:
+        errors.append('Post-Security Owner Acceptance ID mismatch')
+    if fields.get('Owner result')!='POST_SECURITY_OWNER_ACCEPTED':
+        errors.append('prior/current Post-Security receipt is not Owner accepted')
+    return fields,errors
+
+def _status_reference_matches(record,id_field,reference_field,expected,label):
+    if expected is None:
+        if record.get(id_field)!='NOT_APPLICABLE' or record.get(reference_field)!='NOT_APPLICABLE':
+            return [label+' must be NOT_APPLICABLE']
+        return []
+    if (record.get(id_field),record.get(reference_field))!=expected:
+        return [label+' identity/reference mismatch']
+    return []
+
+def _validate_status_pointer_set(lc,status,expected):
+    pointers=status.get('evidence_pointers')
+    if not isinstance(pointers,list) or len(pointers)!=len(set(pointers)):
+        return ['security evidence_pointers must be one unique closed list']
+    if set(pointers)!=set(expected):
+        return ['security evidence_pointers do not exactly preserve current/superseded evidence']
+    errors=[]
+    for pointer in pointers:
+        if not isinstance(pointer,str) or resolve_security_reference(lc,pointer) is None:
+            errors.append('security evidence pointer is missing, generic, or outside .lccoding')
+    return errors
+
+def validate_security_invalidation(lc,status):
+    lc=Path(lc); errors=validate_security_status_shape(status)
+    closure=status.get('vulnerability_closure'); acceptance=status.get('post_security_owner_acceptance')
+    strict=isinstance(closure,dict) or isinstance(acceptance,dict)
+    impact_path=lc/'IMPACT-ANALYSIS.md'; impact_fields={}; impact_record=None
+    required_security_delta=bool(str(status.get('last_material_change','')).strip())
+    if impact_path.exists():
+        impact_fields,impact_parse_errors=parse_markdown_fields_strict(impact_path)
+        errors.extend(impact_parse_errors)
+        started_impact=impact_analysis_started(impact_fields)
+        security_decision_current=(
+            isinstance(closure,dict) and closure.get('state')!='PENDING'
+        ) or (
+            isinstance(acceptance,dict) and acceptance.get('state')!='PENDING'
+        )
+        security_delta_required=(
+            required_security_delta or (started_impact and security_decision_current)
+        )
+        if started_impact or required_security_delta:
+            errors.extend(validate_impact_analysis(impact_path))
+        if security_delta_required:
+            impact_record,impact_errors=validate_security_impact_fields(
+                impact_fields,required=security_delta_required
+            )
+            errors.extend(impact_errors)
+    elif required_security_delta:
+        errors.append('last_material_change requires a contained Impact Analysis security delta')
+    if not strict:
+        if impact_record is not None:
+            errors.append('2.7 security delta requires one structured authoritative status')
+        return errors
+    if errors and (not isinstance(closure,dict) or not isinstance(acceptance,dict)):
+        return errors
+    closure_state=closure.get('state'); acceptance_state=acceptance.get('state')
+    if closure_state=='PENDING' and acceptance_state=='PENDING':
+        if impact_record is not None and impact_record.get('timing')!='BEFORE_SECURITY_CLOSURE':
+            errors.append('post-closure security delta cannot remain a pending bootstrap')
+        return errors
+    canonical=status.get('canonical_candidate',{})
+    current=(canonical.get('candidate_id'),canonical.get('candidate_hash'))
+    last_change=str(status.get('last_material_change','')).strip()
+    if impact_record is None:
+        if last_change:
+            errors.append('current security state with a material-change pointer requires a closed security Impact Analysis')
+        if closure_state=='INVALID' or acceptance_state=='INVALID':
+            errors.append('invalid security state requires exact Impact Analysis evidence')
+            return errors
+        closure_reference=(closure.get('current_receipt_id'),closure.get('current_receipt_reference'))
+        closure_data,closure_errors=load_vulnerability_reference(
+            lc,closure_reference[1],closure_reference[0],current
+        )
+        errors.extend(closure_errors)
+        if acceptance_state=='PENDING':
+            errors.extend(_validate_status_pointer_set(
+                lc,status,[closure_reference[1]]
+            ))
+            return errors
+        post_reference=(acceptance.get('current_acceptance_id'),acceptance.get('current_acceptance_reference'))
+        _,post_errors=load_post_security_reference(
+            lc,post_reference[1],post_reference[0],current,closure_reference,
+            closure_data
+        )
+        errors.extend(post_errors)
+        errors.extend(_status_reference_matches(
+            acceptance,'vulnerability_closure_receipt_id',
+            'vulnerability_closure_receipt_reference',closure_reference,
+            'current Post-Security closure receipt'
+        ))
+        errors.extend(_validate_status_pointer_set(
+            lc,status,[closure_reference[1],post_reference[1]]
+        ))
+        return errors
+    analysis_identity=str(impact_fields.get('Analysis ID / version','')).split(' / ')[0]
+    expected_change=(analysis_identity,'IMPACT-ANALYSIS.md')
+    parsed_change,change_errors=parse_id_reference(last_change,'last_material_change')
+    errors.extend(change_errors)
+    if parsed_change!=expected_change:
+        errors.append('last_material_change must bind the exact current Impact Analysis')
+    prior=impact_record.get('prior'); impact_current=impact_record.get('current')
+    if impact_current!=current:
+        errors.append('security Impact current candidate disagrees with canonical candidate')
+    prior_closure=impact_record.get('closure_reference')
+    prior_acceptance=impact_record.get('acceptance_reference')
+    prior_closure_data=None
+    if prior_closure:
+        prior_closure_data,closure_errors=load_vulnerability_reference(
+            lc,prior_closure[1],prior_closure[0],prior
+        )
+        errors.extend(closure_errors)
+    if prior_acceptance:
+        _,post_errors=load_post_security_reference(
+            lc,prior_acceptance[1],prior_acceptance[0],prior,prior_closure,
+            prior_closure_data
+        )
+        errors.extend(post_errors)
+    classification=impact_record.get('classification')
+    expected_pointers=['IMPACT-ANALYSIS.md',prior_closure[1] if prior_closure else '']
+    if prior_acceptance: expected_pointers.append(prior_acceptance[1])
+    expected_pointers=[pointer for pointer in expected_pointers if pointer]
+    errors.extend(_validate_status_pointer_set(lc,status,expected_pointers))
+    if classification=='MATERIAL_SECURITY_SURFACE_CHANGE':
+        if (
+            closure_state!='INVALID' or acceptance_state!='INVALID'
+            or status.get('phase_gates',{}).get('DELIVERY_READY')!='INVALID'
+        ):
+            errors.append(
+                'material security change must invalidate closure, Post-Security acceptance, and DELIVERY_READY'
+            )
+        errors.extend(_status_reference_matches(
+            closure,'superseded_receipt_id','superseded_receipt_reference',prior_closure,
+            'superseded Vulnerability Closure receipt'
+        ))
+        if (closure.get('superseded_candidate_id'),closure.get('superseded_candidate_hash'))!=prior:
+            errors.append('superseded Vulnerability Closure candidate identity mismatch')
+        errors.extend(_status_reference_matches(
+            acceptance,'superseded_acceptance_id','superseded_acceptance_reference',
+            prior_acceptance,'superseded Post-Security acceptance'
+        ))
+        if prior_acceptance is None:
+            if not _not_applicable_record(
+                acceptance,{'superseded_candidate_id','superseded_candidate_hash'}
+            ): errors.append('pre-acceptance invalidation must not fabricate a superseded Owner candidate')
+        elif (acceptance.get('superseded_candidate_id'),acceptance.get('superseded_candidate_hash'))!=prior:
+            errors.append('superseded Post-Security candidate identity mismatch')
+        if status.get('blockers')!=['SECURITY_EVIDENCE_INVALIDATED:'+analysis_identity]:
+            errors.append('material security invalidation requires one exact blocker')
+        if status.get('next_action')!=(
+            'FRESH_INDEPENDENT_SECURITY_REAUDIT_THEN_NEW_CLOSURE_'
+            'THEN_FOCUSED_POST_SECURITY_OWNER_ACCEPTANCE'
+        ):
+            errors.append('material security invalidation requires fresh re-audit, closure, and focused Owner acceptance')
+    elif classification in {
+        'PROVEN_SECURITY_SURFACE_NEUTRAL','EVIDENCE_EQUIVALENT_PACKAGING_TRANSFORMATION'
+    }:
+        if impact_fields.get('Impact result')!='PASS':
+            errors.append('security preservation requires Impact result PASS')
+        if closure_state!='VULNERABILITY_CLOSED' or acceptance_state!='POST_SECURITY_OWNER_ACCEPTED':
+            errors.append('explicit preservation requires current closed/accepted status')
+        if status.get('phase_gates',{}).get('DELIVERY_READY')=='INVALID':
+            errors.append('explicitly preserved closure cannot claim an invalid Delivery boundary')
+        if status.get('blockers') not in ([],None):
+            errors.append('explicit preservation cannot retain a security invalidation blocker')
+        if status.get('next_action')!='PRESERVE_EXACT_SECURITY_CLOSURE':
+            errors.append('explicit preservation requires exact next action evidence')
+        current_closure=(closure.get('current_receipt_id'),closure.get('current_receipt_reference'))
+        current_acceptance=(acceptance.get('current_acceptance_id'),acceptance.get('current_acceptance_reference'))
+        if current_closure!=prior_closure:
+            errors.append('preserved status must cite the exact prior Vulnerability Closure')
+        if current_acceptance!=prior_acceptance:
+            errors.append('preserved status must cite the exact prior Post-Security acceptance')
+        errors.extend(_status_reference_matches(
+            acceptance,'vulnerability_closure_receipt_id',
+            'vulnerability_closure_receipt_reference',prior_closure,
+            'preserved Post-Security closure receipt'
+        ))
+    return errors
 
 def validate_product_definition_basis(lc,handoff_fields):
     errors=[]; gate=lc/'CALABASH-UPGRADE-GATE.md'
@@ -2247,7 +3021,10 @@ def main():
             if not start.get('source_version'): errors.append('existing project source_version missing')
             if start.get('completion_claim_status') not in {'NO_CLAIM','CLAIMED_UNATTESTED'}:
                 errors.append('existing completion claim crossed the evidence boundary')
-    if (lc/'status.json').exists(): status=json.loads((lc/'status.json').read_text(encoding='utf-8'))
+    if (lc/'status.json').exists():
+        try: status=strict_vulnerability_json(lc/'status.json')
+        except (OSError,UnicodeError,ValueError) as error:
+            errors.append('status.json is not strict JSON: '+str(error)); status={}
     if (lc/'PHASE-STATUS.json').exists(): phase_status=json.loads((lc/'PHASE-STATUS.json').read_text(encoding='utf-8'))
     if (lc/'PROJECT-HEALTH.json').exists(): health=json.loads((lc/'PROJECT-HEALTH.json').read_text(encoding='utf-8'))
     if status and phase_status and health:
@@ -2306,6 +3083,8 @@ def main():
         impact_fields=parse_markdown_fields(impact_path)
         if impact_fields.get('Meaning impact classification') in {'MEANING_CHANGING','MEANING_NEUTRAL'}:
             errors.extend(validate_impact_analysis(impact_path))
+    if status:
+        errors.extend(validate_security_invalidation(lc,status))
     handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]; handoff_fields={}; handoff_rows=[]; handoff_complete=False
     if handoff.exists():
         handoff_errors.extend(product_surface_errors)
