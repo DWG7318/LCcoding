@@ -12,20 +12,45 @@
     {
       "id": "PRODUCT_FORMATION",
       "start": "CALABASH_DRAFT",
-      "end_before": "MANDATORY_CALABASH_UPGRADE",
-      "exit_gate": "CALABASH_UPGRADE_READY"
+      "end_after": "PRODUCT_BASELINE",
+      "exit_evidence": {
+        "artifact": "PRODUCT_BASELINE_HANDOFF",
+        "mechanical_validation": "PASS",
+        "owner_acceptance": "ACCEPTED"
+      },
+      "internal_readiness": {
+        "id": "CALABASH_UPGRADE_READY",
+        "meaning": "READY_TO_BEGIN_MANDATORY_CALABASH_UPGRADE",
+        "compatibility_readable": true,
+        "phase_exit": false
+      }
     },
     {
       "id": "ENGINEERING_RUNS",
       "display_meaning": "REAL_PRODUCT_INTEGRATION",
-      "start": "MANDATORY_CALABASH_UPGRADE",
+      "start": "FEATURE_SLICE",
       "repeatable": true,
-      "entry_gate": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS",
+      "slice_run_admission": {
+        "relation": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS",
+        "scope": [
+          "PER_SLICE",
+          "PER_INTEGRATION_RUN"
+        ],
+        "phase_entry": false
+      },
       "per_run_end_before": "LOOP_OWNER_ACCEPTANCE",
       "per_run_exit_gate": "LOOP_OWNER_ACCEPTANCE_READY",
       "per_run_acceptance_receipt": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
       "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED",
-      "aggregate_exit_scope": "REQUIRED_PHASE_3_INTEGRATION_WORK",
+      "aggregate_exit_scope": "REQUIRED_PHASE_3_INTEGRATION_RUNS",
+      "aggregate_excludes": [
+        "INITIAL_RUNS",
+        "PRODUCT_FORMATION_RUNS",
+        "DELIVERY_PREPARATION_RUNS",
+        "OPTIONAL_RUNS",
+        "SUPERSEDED_RUNS",
+        "INVALIDATED_RUNS"
+      ],
       "aggregate_blocker": "OPEN_BLOCKING_OWNER_GAP"
     },
     {

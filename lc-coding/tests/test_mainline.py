@@ -8,16 +8,24 @@ assert contract['required_transitions']==dict(zip(expected,expected[1:]))
 con=(root/'CONSTITUTION.md').read_text(encoding='utf-8')
 for x in ['Workflow capability end','UI product-surface end','Simulation World','Mandatory Calabash Upgrade','Feature Slice','Owner Acceptance','Delivery']:
     assert x in con
-print('PASS: mainline')
 
 phases=json.loads((root/'lc-coding/contracts/phases.json').read_text())
 assert phases['mainline_unchanged'] is True
-assert phases['phases'][1]=={
-    'id':'PRODUCT_FORMATION','start':'CALABASH_DRAFT',
-    'end_before':'MANDATORY_CALABASH_UPGRADE','exit_gate':'CALABASH_UPGRADE_READY',
-}
-assert phases['phases'][2]['aggregate_exit_gate']=='ALL_REQUIRED_RUNS_ACCEPTED'
-assert phases['phases'][3]['exit_gate']=='DELIVERY_READY'
+phase_by_id={phase['id']:phase for phase in phases['phases']}
+assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','ENGINEERING_RUNS','DELIVERY_PREPARATION']
+formation=phase_by_id['PRODUCT_FORMATION']
+assert formation['start']=='CALABASH_DRAFT'
+assert formation['end_after']=='PRODUCT_BASELINE'
+assert formation['exit_evidence']['artifact']=='PRODUCT_BASELINE_HANDOFF'
+assert 'exit_gate' not in formation
+assert formation['internal_readiness']['phase_exit'] is False
+integration=phase_by_id['ENGINEERING_RUNS']
+assert integration['display_meaning']=='REAL_PRODUCT_INTEGRATION'
+assert integration['start']=='FEATURE_SLICE'
+assert 'entry_gate' not in integration
+assert integration['slice_run_admission']['phase_entry'] is False
+assert integration['aggregate_exit_scope']=='REQUIRED_PHASE_3_INTEGRATION_RUNS'
+assert phase_by_id['DELIVERY_PREPARATION']['exit_gate']=='DELIVERY_READY'
 
 spec=(root/'SPEC.md').read_text(encoding='utf-8')
 skill=(root/'lc-coding/SKILL.md').read_text(encoding='utf-8')
@@ -157,3 +165,4 @@ simulation_map=(root/'lc-coding/templates/SIMULATION-WORLD.md').read_text(encodi
 assert 'UI ID | Subtree path | Component version | Content hash' in ui_map
 assert 'Simulation ID | Subtree path | Component version | Content hash' in simulation_map
 assert 'Peer simulations do not nest' in simulation_map
+print('PASS: mainline')
