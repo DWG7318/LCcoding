@@ -11,6 +11,7 @@ import tempfile
 root = Path(__file__).resolve().parents[2]
 validator = root / "lc-coding/scripts/validate_vulnerability_closure.py"
 project_validator_path = root / "lc-coding/scripts/validate_project.py"
+delivery_decision_validator = root / "lc-coding/scripts/validate_delivery_decision.py"
 project_spec = importlib.util.spec_from_file_location(
     "validate_project_security_270", project_validator_path
 )
@@ -1374,6 +1375,49 @@ with tempfile.TemporaryDirectory(prefix="lccoding-security-invalidation-270-") a
     runtime_status = copy.deepcopy(invalid)
     runtime_status["session_id"] = "RUNTIME-SESSION"
     assert validate_security_unchanged(lc, runtime_status)
+
+    # Task 14 RED: a Delivery Decision for the changed candidate must not pass
+    # while its closure and Post-Security receipts still belong to the prior
+    # candidate. The legacy decision validator accepted this self-report.
+    groups = [
+        "delivery_model", "assets", "source_and_modification_rights",
+        "runtime_and_infrastructure", "data", "internal_dependencies",
+        "license", "operations",
+    ]
+    stale_decision = {
+        "delivery_decision_id": "DD-STALE-1",
+        "delivery_id": "DELIVERY-1",
+        "customer": "Customer A",
+        "candidate_id": f"{CURRENT_ID} / {CURRENT_HASH}",
+        "owner_policy_version": "1.0.0",
+        "locked_exclusions": json.loads(
+            (root / "lc-coding/contracts/delivery-policy.json").read_text(
+                encoding="utf-8"
+            )
+        )["owner_locked_default_exclusions"],
+        "decisions": {
+            group: {"selected": "customer-choice-" + group} for group in groups
+        },
+        "qa_status": "COMPLETE",
+        "owner_confirmed": True,
+        "confirmed_at": "2026-08-13T00:00:00Z",
+    }
+    stale_decision_path = lc / "DELIVERY-DECISION.json"
+    stale_decision_path.write_text(json.dumps(stale_decision), encoding="utf-8")
+    stale_delivery_status = copy.deepcopy(stale_green)
+    stale_delivery_status["delivery_method_qa"] = "DELIVERY_METHOD_CONFIRMED"
+    (lc / "status.json").write_text(
+        json.dumps(stale_delivery_status), encoding="utf-8"
+    )
+    write_security_fixture(lc, material, current_post)
+    stale_delivery_result = subprocess.run(
+        [sys.executable, str(delivery_decision_validator), str(stale_decision_path)],
+        capture_output=True, text=True,
+    )
+    assert stale_delivery_result.returncode != 0, (
+        "Delivery Decision accepted stale prior-candidate security evidence: "
+        + stale_delivery_result.stdout + stale_delivery_result.stderr
+    )
 
 
 # validate_project's formal path must invoke the Task-13 relationship validator.

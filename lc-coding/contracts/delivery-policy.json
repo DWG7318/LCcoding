@@ -36,5 +36,58 @@
     "internal_dependencies",
     "license",
     "operations"
-  ]
+  ],
+  "delivery_decision_candidate_identity": "ID / sha256:<64 lowercase hex>",
+  "delivery_manifest_candidate_identity": "ID / sha256:<64 lowercase hex>",
+  "json_contract": "strict UTF-8 JSON; duplicate keys, NaN, Infinity, -Infinity, trailing data, malformed bytes rejected",
+  "meaningful_delivery_value_contract": "one shared safe syntax and closed generic/status/test vocabulary for Decision, Manifest and verification receipt identities/text; identity first token cannot be a generic/status/test value",
+  "decision_answer_contract": "each required group is exactly {selected: non-placeholder customer answer}",
+  "delivery_qa_status_join": "decision COMPLETE requires status.delivery_method_qa=DELIVERY_METHOD_CONFIRMED for the exact current candidate",
+  "decision_locked_exclusions_contract": "exact ordered equality with owner_locked_default_exclusions",
+  "protected_asset_match": "case-insensitive path-segment and packaged-basename match across slash styles; repeatedly peel the one finite archive/package/library suffix table longest-first to a fixed point, checking every layer against canonical basename plus semantic-version/build suffix grammar",
+  "protected_package_suffixes": [
+    ".tar.gz",
+    ".nupkg",
+    ".appx",
+    ".msix",
+    ".dylib",
+    ".wasm",
+    ".whl",
+    ".deb",
+    ".rpm",
+    ".pkg",
+    ".dmg",
+    ".lib",
+    ".dll",
+    ".pdb",
+    ".jar",
+    ".zip",
+    ".tar",
+    ".tgz",
+    ".gz",
+    ".7z",
+    ".exe",
+    ".msi",
+    ".so",
+    ".a"
+  ],
+  "delivery_metadata_contract": "meaningful non-generic IDs, existing three-part version format, and exact valid UTC confirmation timestamp",
+  "required_current_security_relationship": [
+    "status.canonical_candidate",
+    "status.vulnerability_closure=VULNERABILITY_CLOSED",
+    "status.post_security_owner_acceptance=POST_SECURITY_OWNER_ACCEPTED",
+    "status.phase_gates.DELIVERY_READY=DELIVERY_READY"
+  ],
+  "required_delivery_joins": [
+    "manifest.candidate_id=decision.candidate_id=status.canonical_candidate",
+    "manifest.delivery_decision_id=decision.delivery_decision_id",
+    "manifest.delivery_id=decision.delivery_id"
+  ],
+  "package_hashes_contract": {
+    "shape": "non-empty closed asset-path to sha256:<64 lowercase hex> object verified against actual bytes",
+    "path_root": "total project root containing .lccoding",
+    "path_boundary": "canonical NFC Windows-casefold-unique safe relative regular-file path; no hidden metadata component, .lccoding, .git, protected basename, ADS, drive, UNC, dot segment, control, bidi, reserved component, trailing dot/space, escape, symlink, physical-file alias or st_nlink greater than one",
+    "duplicate_keys": "REJECT"
+  },
+  "verification_receipt_contract": "Receipt ID | Candidate ID / sha256:<64 lowercase hex> | package path | package sha256:<64 lowercase hex>; exact one-to-one package coverage"
 }
