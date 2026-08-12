@@ -73,16 +73,29 @@ require(
 )
 require(
     "lc-coding/templates/RUN-HANDOFF.md",
+    "Artifact role: RUN_START_CONTRACT",
+    "Start Contract ID",
+    "Start Contract SHA-256",
     "LCCoding phase scope",
     "Phase-owned objective",
-    "Selected execution method",
+    "Frozen Run scope",
+    "Explicit exclusions",
+    "Selected execution method ID",
+    "Selected execution method version",
+    "Selected execution method exact hash",
+    "Selected execution method canonical interface / contract reference",
+    "Evidence return target in calling phase",
+    "Readiness result",
 )
 require(
     "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
+    "Artifact role: LOOP_OWNER_ACCEPTANCE_RECEIPT",
+    "Run-start contract ID",
+    "Run-start contract SHA-256",
     "LCCoding phase scope",
     "Phase-owned objective",
-    "Feature Slice ID / version (when applicable)",
     "Evidence return target in the calling phase",
+    "Calling phase gate remains independently evaluated: YES",
 )
 require(
     "lc-coding/references/built-in-bi.md",

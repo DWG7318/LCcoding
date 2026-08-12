@@ -1,10 +1,12 @@
-# Loop Owner Acceptance
+# Loop Owner Acceptance Receipt
 
+- Artifact role: LOOP_OWNER_ACCEPTANCE_RECEIPT
 - Acceptance ID:
 - Run ID:
+- Run-start contract ID:
+- Run-start contract SHA-256:
 - LCCoding phase scope: INITIAL / PRODUCT_FORMATION / ENGINEERING_RUNS / DELIVERY_PREPARATION
 - Phase-owned objective:
-- Feature Slice ID / version (when applicable):
 - Candidate ID / hash:
 - D3 Receipt:
 - Entry / role / account:
@@ -29,3 +31,5 @@
 - Gap status: OPEN / IN_CLOSURE / CLOSED
 - Product learning / route (may be blank; only consequential learning that changes a future decision, constraint, check, template, or reuse rule; update one existing canonical artifact):
 - Accepted at:
+
+This terminal receipt binds the exact frozen Run-start contract instead of redefining its scope, exclusions, method selection, inputs, or readiness. Acceptance returns evidence to the calling phase. It does not pass or advance the calling phase gate.
