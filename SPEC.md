@@ -113,6 +113,8 @@ Before actual Workflow or UI construction begins, Product Formation requires at 
 
 Product Simulation World means the versioned, resettable product world and its actors, data, state, time, permissions, dependencies, failures, recovery, and history. Run Control Simulation means an execution-method or runtime rehearsal of topology, wake, timing, roles, or controls. Neither is evidence for the other.
 
+Focused explanation: [Product Formation guidance](lc-coding/references/product-formation.md#scope-and-formation-sequence).
+
 <a id="lc-form-002"></a>
 ### LC-FORM-002 — Workflow, UI, and Simulation product units
 
@@ -126,6 +128,8 @@ Every CORE Workflow and every implemented EXTRA Workflow directly provides both 
 
 UI covers every relevant actor-facing product surface. UI, Workflow, and Simulation remain separately runnable and inspectable during formation while sharing product meaning and scenario IDs. Their synchronization is not early cross-layer integration.
 
+Focused explanation: [Product Formation guidance](lc-coding/references/product-formation.md#peer-product-ends-interfaces-and-mainline).
+
 <a id="lc-form-003"></a>
 ### LC-FORM-003 — Product Baseline and primary product mainline
 
@@ -138,6 +142,8 @@ Product Baseline Handoff freezes one total project repository at an exact projec
 When multiple subtrees exist, the Owner confirms one Primary product mainline linking at least one peer Product Simulation, one CORE Workflow, and one UI. It selects first proving/construction priority only; every other CORE remains mandatory. A controlled Calabash upgrade may reconfirm the relation.
 
 At the frozen commit, each subtree path must be a Git tree. Recursively enumerate tracked blobs and encode each manifest row as `path UTF-8 bytes + NUL + Git mode + NUL + lowercase blob SHA-256 hex + LF`; sort by path bytes, concatenate, and record `sha256:<lowercase SHA-256 of manifest bytes>`. Validators resolve commit and blobs from Git objects, never worktree content. Exact commit and content hash are authoritative; component version is the human label. Screenshots, builds, branches, tags, `HEAD`, `latest`, or worktree state cannot replace identity.
+
+Focused explanation: [Product Formation guidance](lc-coding/references/product-formation.md#peer-product-ends-interfaces-and-mainline).
 
 ## Real Product Integration
 

@@ -85,6 +85,46 @@ def clause_body(clause_id: str) -> str:
     return spec[start.end() : start.end() + end.start()] if end else spec[start.end() :]
 
 
+PRODUCT_FORMATION_REFERENCE = root / "lc-coding/references/product-formation.md"
+assert PRODUCT_FORMATION_REFERENCE.is_file(), "missing focused Product Formation explanation"
+product_formation_reference = PRODUCT_FORMATION_REFERENCE.read_text(encoding="utf-8")
+source_clause_lines = [
+    line
+    for line in product_formation_reference.splitlines()
+    if line.startswith("Source clauses:")
+]
+product_source_links = re.findall(
+    r"\[(LC-FORM-\d{3})\]\(\.\./\.\./SPEC\.md#(lc-form-\d{3})\)",
+    "\n".join(source_clause_lines),
+)
+assert {clause_id for clause_id, _ in product_source_links} == {
+    "LC-FORM-001",
+    "LC-FORM-002",
+    "LC-FORM-003",
+}
+assert all(anchor == clause_id.lower() for clause_id, anchor in product_source_links)
+assert set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", "\n".join(source_clause_lines))) == {
+    "LC-FORM-001",
+    "LC-FORM-002",
+    "LC-FORM-003",
+}, "Product Formation guidance must cite only its three semantic-core clauses"
+focused_sections = re.findall(
+    r"(?ms)^## [^\n]+\n\n(.*?)(?=^## |\Z)", product_formation_reference
+)
+assert len(focused_sections) <= 3
+assert all(section.count("Source clauses:") == 1 for section in focused_sections)
+reference_anchors = set(
+    re.findall(r'(?m)^<a id="([a-z0-9-]+)"></a>$', product_formation_reference)
+)
+for clause_id in ("LC-FORM-001", "LC-FORM-002", "LC-FORM-003"):
+    focused_links = re.findall(
+        r"\[Product Formation guidance\]\(lc-coding/references/product-formation\.md#([a-z0-9-]+)\)",
+        clause_body(clause_id),
+    )
+    assert len(focused_links) == 1, f"{clause_id} needs one focused explanation link"
+    assert focused_links[0] in reference_anchors, f"{clause_id} focused anchor is missing"
+
+
 required_semantics = {
     "LC-AUTH-001": (
         "Owner decides product meaning",

@@ -1,13 +1,35 @@
 import ast
 import json
 from pathlib import Path
+import re
 import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[2]
 SELF = Path(__file__).resolve()
-RETIRED_REFERENCE = "lc-coding/references/method-mainline.md"
+CONSOLIDATIONS = {
+    "mainline": {
+        "retired": ("lc-coding/references/method-mainline.md",),
+        "replacement": None,
+    },
+    "product_formation": {
+        "retired": (
+            "lc-coding/references/calabash-lifecycle.md",
+            "lc-coding/references/dual-end-design.md",
+            "lc-coding/references/simulation-world.md",
+        ),
+        "replacement": "lc-coding/references/product-formation.md",
+    },
+}
+RETIRED_REFERENCES = tuple(
+    retired
+    for consolidation in CONSOLIDATIONS.values()
+    for retired in consolidation["retired"]
+)
+RETIRED_BASENAMES = tuple(Path(retired).name for retired in RETIRED_REFERENCES)
+RETIRED_REFERENCE = CONSOLIDATIONS["mainline"]["retired"][0]
 RETIRED_BASENAME = Path(RETIRED_REFERENCE).name
+PRODUCT_FORMATION_CLAUSES = {"LC-FORM-001", "LC-FORM-002", "LC-FORM-003"}
 HISTORICAL_PREFIXES = (
     "docs/superpowers/specs/",
     "docs/superpowers/plans/",
@@ -57,11 +79,11 @@ def without_own_retired_declaration(text):
             continue
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
         if any(
-            isinstance(target, ast.Name) and target.id == "RETIRED_REFERENCE"
+            isinstance(target, ast.Name) and target.id == "CONSOLIDATIONS"
             for target in targets
         ):
             declarations.append(node)
-    assert len(declarations) == 1, "retired reference must have one explicit declaration"
+    assert len(declarations) == 1, "consolidations must have one explicit declaration"
     declaration = declarations[0]
     for line_number in range(declaration.lineno, declaration.end_lineno + 1):
         lines[line_number - 1] = "\n"
@@ -70,7 +92,9 @@ def without_own_retired_declaration(text):
 
 def source_references_retired(relative, text):
     normalized = text.replace("\\", "/")
-    if RETIRED_REFERENCE in normalized or RETIRED_BASENAME in normalized:
+    if any(retired in normalized for retired in RETIRED_REFERENCES) or any(
+        basename in normalized for basename in RETIRED_BASENAMES
+    ):
         return True
     if Path(relative).suffix.casefold() != ".py":
         return False
@@ -91,9 +115,8 @@ def source_references_retired(relative, text):
         if value is None:
             continue
         normalized_value = value.replace("\\", "/")
-        if (
-            RETIRED_REFERENCE in normalized_value
-            or RETIRED_BASENAME in normalized_value
+        if any(retired in normalized_value for retired in RETIRED_REFERENCES) or any(
+            basename in normalized_value for basename in RETIRED_BASENAMES
         ):
             return True
     return False
@@ -183,7 +206,7 @@ adversarial_sources = {
 for case, (relative, source, expected) in adversarial_sources.items():
     assert source_references_retired(relative, source) is expected, case
 
-self_declaration = f"RETIRED_REFERENCE = {RETIRED_REFERENCE!r}\n"
+self_declaration = f"CONSOLIDATIONS = {CONSOLIDATIONS!r}\n"
 stripped_self_declaration = without_own_retired_declaration(self_declaration)
 assert not source_references_retired(SELF.as_posix(), stripped_self_declaration)
 self_with_other_split_reference = self_declaration + (
@@ -196,19 +219,44 @@ assert source_references_retired(
 
 
 errors = []
-retired_path = ROOT / RETIRED_REFERENCE
-if retired_path.exists():
-    errors.append(f"retired reference still exists: {RETIRED_REFERENCE}")
-if RETIRED_REFERENCE in required_paths():
-    errors.append("repository validator still requires retired reference")
-
 manifest = json.loads((ROOT / "FILE_HASHES.json").read_text(encoding="utf-8"))
-if RETIRED_REFERENCE in manifest:
-    errors.append("hash manifest still publishes retired reference")
+required = required_paths()
+for group, consolidation in CONSOLIDATIONS.items():
+    replacement = consolidation["replacement"]
+    if replacement:
+        if not (ROOT / replacement).is_file():
+            errors.append(f"{group} replacement missing: {replacement}")
+        if replacement not in manifest:
+            errors.append(f"hash manifest missing {group} replacement: {replacement}")
+    for retired in consolidation["retired"]:
+        if (ROOT / retired).exists():
+            errors.append(f"retired reference still exists: {retired}")
+        if retired in required:
+            errors.append(f"repository validator still requires retired reference: {retired}")
+        if retired in manifest:
+            errors.append(f"hash manifest still publishes retired reference: {retired}")
+
+focused_owners = []
+for reference in sorted((ROOT / "lc-coding/references").glob("*.md")):
+    source_ids = set(
+        re.findall(
+            r"\bLC-FORM-\d{3}\b",
+            "\n".join(
+                line
+                for line in reference.read_text(encoding="utf-8").splitlines()
+                if line.startswith("Source clauses:")
+            ),
+        )
+    )
+    if source_ids.intersection(PRODUCT_FORMATION_CLAUSES):
+        focused_owners.append(reference.relative_to(ROOT).as_posix())
+assert focused_owners == [CONSOLIDATIONS["product_formation"]["replacement"]], (
+    f"Product Formation must have one focused owner: {focused_owners}"
+)
 
 callers = active_callers()
 if callers:
     errors.append(f"active retired-reference callers: {callers}")
 
 assert not errors, "\n".join(errors)
-print("PASS: duplicate mainline reference is absent from the active release graph")
+print("PASS: retired references have one focused owner and no active callers")
