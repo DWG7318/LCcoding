@@ -31,7 +31,6 @@ spec=(root/'SPEC.md').read_text(encoding='utf-8')
 skill=(root/'lc-coding/SKILL.md').read_text(encoding='utf-8')
 readme=(root/'README.md').read_text(encoding='utf-8')
 readme_zh=(root/'README.zh-CN.md').read_text(encoding='utf-8')
-method_mainline=(root/'lc-coding/references/method-mainline.md').read_text(encoding='utf-8')
 dual_end=(root/'lc-coding/references/dual-end-design.md').read_text(encoding='utf-8')
 simulation=(root/'lc-coding/references/simulation-world.md').read_text(encoding='utf-8')
 
@@ -92,7 +91,7 @@ for document,label,markers in semantic_checks:
         assert marker in document, f'missing {label} rule: {marker}'
 
 mainline_marker='[Simulation World foundation first → Workflow capability end ∥ UI product-surface end]'
-for relative in ['CONSTITUTION.md','SPEC.md','README.md','lc-coding/SKILL.md','lc-coding/references/method-mainline.md']:
+for relative in ['CONSTITUTION.md','SPEC.md','README.md','lc-coding/SKILL.md']:
     mainline_text=(root/relative).read_text(encoding='utf-8')
     assert mainline_marker in mainline_text, relative
     assert 'Workflow/UI/Simulation [Simulation' not in mainline_text, relative

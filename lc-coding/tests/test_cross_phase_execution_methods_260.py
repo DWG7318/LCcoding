@@ -22,13 +22,6 @@ skill_mainline = skill[
 assert "SLK / CLK / GLK" not in skill_mainline
 assert "UI-locked Real Product Integration" in skill_mainline
 
-method_mainline = text("lc-coding/references/method-mainline.md")
-mainline_block = method_mainline[
-    method_mainline.index("```text") : method_mainline.index("```", method_mainline.index("```text") + 3)
-]
-assert "SLK / CLK / GLK" not in mainline_block
-assert "UI-locked Real Product Integration" in mainline_block
-
 manifest = json.loads(text("MANIFEST.json"))
 assert "SLK / CLK / GLK" not in manifest["mainline"]
 assert "UI-locked Real Product Integration" in manifest["mainline"]

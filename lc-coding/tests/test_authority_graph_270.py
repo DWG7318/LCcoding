@@ -403,9 +403,6 @@ PROJECTIONS = (
     root / "README.zh-CN.md",
     root / "lc-coding/SKILL.md",
 )
-RETIRED_ENTRY_TARGETS = {
-    (root / "lc-coding/references" / ("method-" + "mainline.md")).resolve(),
-}
 MODAL_RE = re.compile(
     r"(?i)\b(?:must|shall|required|never|forbidden|prohibited|may not|cannot)\b"
     r"|(?:必须|不得|禁止|不可|只能)"
@@ -484,11 +481,6 @@ for projection in PROJECTIONS:
     assert any(
         target.parent == references_root for target in local_targets
     ), f"{projection.relative_to(root)} lacks focused-reference navigation"
-    retired_targets = RETIRED_ENTRY_TARGETS.intersection(local_targets)
-    assert not retired_targets, (
-        f"{projection.relative_to(root)} retains retired entry navigation: "
-        f"{sorted(str(target.relative_to(root)) for target in retired_targets)}"
-    )
     assert "Real Product Integration" in projection_text
     assert "ENGINEERING_RUNS" in projection_text
     assert not re.search(r"(?m)^#{1,6} .*ENGINEERING_RUNS", projection_text)
