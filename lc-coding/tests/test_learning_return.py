@@ -1,18 +1,20 @@
+import re
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-acceptance = (root / "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md").read_text(
-    encoding="utf-8"
+spec = (root / "SPEC.md").read_text(encoding="utf-8")
+clause_start = re.search(
+    r'(?m)^<a id="lc-integ-003"></a>\s*\n### LC-INTEG-003[^\n]*\n', spec
 )
-impact = (root / "lc-coding/references/impact-and-synchronization.md").read_text(
-    encoding="utf-8"
-)
-combined = acceptance + "\n" + impact
+assert clause_start, "SPEC is missing LC-INTEG-003"
+clause_tail = spec[clause_start.end() :]
+clause_end = re.search(r'(?m)^<a id="lc-|^## ', clause_tail)
+impact = clause_tail[: clause_end.start()] if clause_end else clause_tail
 
-assert "may be blank" in combined
+assert "may be blank" in impact
 for marker in ["future decision", "constraint", "check", "template", "reuse"]:
-    assert marker in combined
-assert "one existing canonical artifact" in combined
+    assert marker in impact
+assert "one existing canonical artifact" in impact
 
 for path in root.rglob("*"):
     if path.is_dir():

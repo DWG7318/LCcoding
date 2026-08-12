@@ -62,7 +62,7 @@ Feature Slice considers all already implemented and verified Workflow capabiliti
 
 Pin the applicable UI subtree to the one total project repository and total-project exact commit; never use a branch, tag, `HEAD`, worktree, or `latest` as the lock. The lock is one-way Owner authority: system actors must not autonomously modify a locked UI.
 
-Each Slice proves a real UI operation through a real API/MCP-backed Workflow to state/data/side effects and a visible result. Static UI, mock, stub, or manually staged state is demonstration evidence, not integration proof. Details: [Feature Slice and integration](references/feature-slice-and-integration.md) and [UI lock](references/integration-baseline-lock.md).
+Each Slice proves a real UI operation through a real API/MCP-backed Workflow to state/data/side effects and a visible result. Static UI, mock, stub, or manually staged state is demonstration evidence, not integration proof. Details: [Feature Slice and integration](references/feature-slice-and-integration.md).
 
 ## Cross-phase execution axis
 
