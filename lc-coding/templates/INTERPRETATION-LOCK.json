@@ -2,6 +2,26 @@
   "project_id": "",
   "issued_at": "",
   "agent_platform": "",
+  "calabash": {
+    "version": "2.5.0",
+    "canonical_repository": "github.com/DWG7318/calabash",
+    "exact_commit": "0031c776eaabba21aca66b9d8aa4382f6dfe6015",
+    "referenced_files": [
+      {
+        "path": "SPEC.md",
+        "sha256": "sha256:666f17e0e650e9cf37ad3452eab6db99adf1e6f62b140f8b934176af932c3c79"
+      },
+      {
+        "path": "calabash/contracts/project-calabash-baseline.schema.json",
+        "sha256": "sha256:cd215d03beca3b28cdeeb0ebd7fe51c6d07fbbf17af0753307a73e8df729d7f1"
+      },
+      {
+        "path": "calabash/templates/upgrade-receipt-template.json",
+        "sha256": "sha256:27db7b330b400aba8124fb76014d88369555092433126d36ab51b6a0fdce9449"
+      }
+    ],
+    "combined_identity_hash": "sha256:74602032de04ca47c4ccc9d661119ae1d08913dfe0c5361759798697c0310b21"
+  },
   "manifest_reference": "CANONICAL-MANIFEST.json",
   "manifest_hash": "",
   "validated_execution_method_ids": [],

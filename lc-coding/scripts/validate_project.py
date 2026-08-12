@@ -13,6 +13,14 @@ completed_evidence=_PHASE_VALIDATOR.completed_evidence
 normalize_lifecycle_state=_PHASE_VALIDATOR.normalize_lifecycle_state
 validate_phase_status_record=_PHASE_VALIDATOR.validate_phase_status
 
+_METHOD_BASELINE_VALIDATOR_PATH=Path(__file__).with_name('validate_method_baseline.py')
+_METHOD_BASELINE_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
+    'lccoding_validate_method_baseline',_METHOD_BASELINE_VALIDATOR_PATH
+)
+_METHOD_BASELINE_VALIDATOR=importlib.util.module_from_spec(_METHOD_BASELINE_VALIDATOR_SPEC)
+_METHOD_BASELINE_VALIDATOR_SPEC.loader.exec_module(_METHOD_BASELINE_VALIDATOR)
+validate_method_baseline_records=_METHOD_BASELINE_VALIDATOR.validate_method_baseline_records
+
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
 COMPLEXITY_LEVELS={'LOW','MEDIUM','HIGH','UNKNOWN'}
@@ -1325,6 +1333,7 @@ def main():
         lock=json.loads((lc/'INTERPRETATION-LOCK.json').read_text(encoding='utf-8'))
         if lock.get('status')!='VALID': errors.append('Interpretation Lock is not VALID')
     if manifest_path.exists() and (lc/'INTERPRETATION-LOCK.json').exists():
+        errors.extend(validate_method_baseline_records(manifest,lock))
         errors.extend(validate_run_evidence(lc,status,manifest,lock,manifest_path))
     if (Path(args.project)/'VERSION').exists():
         if not (Path(args.project)/'VERSION').read_text().strip(): errors.append('empty VERSION')
