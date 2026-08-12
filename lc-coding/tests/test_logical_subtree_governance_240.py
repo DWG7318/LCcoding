@@ -271,6 +271,26 @@ for marker in [
 
 ui_map = read("lc-coding/templates/UI-MAP.md")
 assert "- Primary product mainline ID:" in ui_map
+for marker in ("UI change authority", "OWNER_ONLY", "Baseline Change Request"):
+    assert marker in ui_map, marker
+for marker in (
+    "ONE_WAY_OWNER_AUTHORITY",
+    "System autonomous UI modification: FORBIDDEN",
+    "UI change disposition",
+    "Prior Integration Baseline ID",
+):
+    assert marker in integration_baseline, marker
+bcr = read("lc-coding/templates/BASELINE-CHANGE-REQUEST.md")
+for marker in (
+    "OWNER_INITIATED / OWNER_APPROVED",
+    "Prior UI identity",
+    "New UI identity",
+    "Affected evidence invalidation",
+    "Affected evidence re-verification",
+    "Unaffected evidence reuse basis",
+    "PRESERVE_HISTORY_NO_SILENT_OVERWRITE_NO_AUTOMATIC_RESTORE",
+):
+    assert marker in bcr, marker
 for marker in [
     "path UTF-8 bytes + NUL + Git mode + NUL + lowercase blob SHA-256 hex + LF",
     "same algorithm for UI, Workflow, and Simulation",

@@ -26,6 +26,9 @@
 - Lock authority: ONE_WAY_OWNER_AUTHORITY
 - System autonomous UI modification: FORBIDDEN
 - Owner-initiated / Owner-approved UI change route: BASELINE_CHANGE_REQUEST
+- UI change disposition: UNCHANGED / OWNER_INITIATED / OWNER_APPROVED
+- Baseline Change Request reference: NONE / <Request ID> / <contained BCR path>
+- Prior Integration Baseline ID: NOT_APPLICABLE / <prior Baseline ID>
 - Explicitly editable regions:
 - Workflow contract and controlled adjustment boundary:
 - Simulation scenario versions:

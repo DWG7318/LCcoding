@@ -4,7 +4,7 @@ For EXISTING intake, runnable UI is the first Owner-visible cognition anchor, no
 
 - Primary product mainline ID:
 
-| UI ID | Subtree path | Component version | Content hash | Actor | Surface / state | Actions / feedback | Workflow subtree references | Simulation subtree references | Evidence / attestation | Lock status | Primary mainline |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| UI ID | Subtree path | Component version | Content hash | Actor | Surface / state | Actions / feedback | Workflow subtree references | Simulation subtree references | Evidence / attestation | Lock status | Primary mainline | UI change authority | Baseline Change Request |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
-UI relationships are closed, reciprocal peer-subtree ID references. They allow many-to-many Workflow and Simulation relations but never encode directory nesting. Every realized UI is a safe non-root logical path in the one total project repository. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`.
+UI relationships are closed, reciprocal peer-subtree ID references. They allow many-to-many Workflow and Simulation relations but never encode directory nesting. Every realized UI is a safe non-root logical path in the one total project repository. Component version uses `MAJOR.MINOR.PATCH`; Primary mainline is exactly `YES` or `NO`. UI change authority is exactly `OWNER_ONLY`; Baseline Change Request is `NONE` for an unchanged lock or `<Request ID> / <contained BCR path>` for an Owner-governed change.

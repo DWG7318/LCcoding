@@ -21,6 +21,20 @@ def git(repo, *arguments):
     ).stdout.strip()
 
 
+def git_commit_tree(repo, tree, message, parent=None):
+    command = ["git", "commit-tree", tree]
+    if parent:
+        command.extend(["-p", parent])
+    return subprocess.run(
+        command,
+        cwd=repo,
+        input=message + "\n",
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
 def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8", newline="\n")
@@ -99,6 +113,8 @@ def ui(ui_id, path, content_hash, workflow_refs, simulation_refs, *, primary="NO
         "Evidence / attestation": f"E-{ui_id}",
         "Lock status": "LOCKED",
         "Primary mainline": primary,
+        "UI change authority": "OWNER_ONLY",
+        "Baseline Change Request": "NONE",
     }
 
 
@@ -191,6 +207,7 @@ UI_COLUMNS = [
     "Surface / state", "Actions / feedback", "Workflow subtree references",
     "Simulation subtree references", "Evidence / attestation", "Lock status",
     "Primary mainline",
+    "UI change authority", "Baseline Change Request",
 ]
 SIMULATION_COLUMNS = [
     "Simulation ID", "Subtree path", "Component version", "Content hash",
@@ -229,29 +246,41 @@ def bound_evidence(candidate, route, evidence_id, candidate_hash="sha256:" + "a"
     return f"{candidate}~{candidate_hash}~{route}~{evidence_id}"
 
 
+CONNECTED_EVIDENCE_IDS = {
+    "UI_ACTION": "E-UI-ACTION",
+    "WORKFLOW_RULES": "E-WORKFLOW-RULES",
+    "STATE_TRANSITION": "E-STATE",
+    "DATA_EFFECT": "E-DATA",
+    "SIDE_EFFECT": "E-SIDE-EFFECT",
+    "VISIBLE_UI_RESULT": "E-VISIBLE-RESULT",
+    "FAILURE_PATH": "E-FAILURE",
+    "RECOVERY_RESULT": "E-RECOVERY",
+}
+
+
 def connected_evidence(candidate="CANDIDATE-1", route="ROUTE-1"):
     return "; ".join(
         f"{key}:{bound_evidence(candidate, route, evidence_id)}"
-        for key, evidence_id in (
-            ("UI_ACTION", "E-UI-ACTION"),
-            ("WORKFLOW_RULES", "E-WORKFLOW-RULES"),
-            ("STATE_TRANSITION", "E-STATE"),
-            ("DATA_EFFECT", "E-DATA"),
-            ("SIDE_EFFECT", "E-SIDE-EFFECT"),
-            ("VISIBLE_UI_RESULT", "E-VISIBLE-RESULT"),
-            ("FAILURE_PATH", "E-FAILURE"),
-            ("RECOVERY_RESULT", "E-RECOVERY"),
-        )
+        for key, evidence_id in CONNECTED_EVIDENCE_IDS.items()
     )
 
 
-def integration_fields(commit, ui_hash):
+def integration_fields(
+    commit,
+    ui_hash,
+    *,
+    ui_version="1.0.0",
+    change_disposition="UNCHANGED",
+    bcr_reference="NONE",
+    prior_baseline_id="NOT_APPLICABLE",
+    affected_links=("VISIBLE_UI_RESULT",),
+):
     candidate = "CANDIDATE-1"
     route = "ROUTE-1"
     candidate_identity = candidate + " / sha256:" + "a" * 64
     product_identity = "PB-TASK9 / " + commit
     ui_identity = (
-        "ID:UI-MAIN; PATH:product/ui/main; VERSION:1.0.0; HASH:" + ui_hash
+        f"ID:UI-MAIN; PATH:product/ui/main; VERSION:{ui_version}; HASH:" + ui_hash
     )
     workflow_identity = "WORKFLOW:WF-CORE; CAPABILITY:CAP-CORE"
     selected_interface = (
@@ -283,7 +312,7 @@ def integration_fields(commit, ui_hash):
         "Primary product mainline ID / Owner confirmation": "MAINLINE-1 / OWNER_CONFIRMED",
         "Project repository / exact baseline commit": "github.com/example/project :: " + commit,
         "Applicable UI subtree ID / path": "UI-MAIN :: product/ui/main",
-        "UI component version": "1.0.0",
+        "UI component version": ui_version,
         "UI content hash": ui_hash,
         "UI content hash scope / manifest evidence": "HASH_SCOPE: E-UI-MANIFEST",
         "UI Product / Integration Baseline identity": "MATCH: E-UI-LOCK",
@@ -334,6 +363,9 @@ def integration_fields(commit, ui_hash):
         "Lock authority": "ONE_WAY_OWNER_AUTHORITY",
         "System autonomous UI modification": "FORBIDDEN",
         "Owner-initiated / Owner-approved UI change route": "BASELINE_CHANGE_REQUEST",
+        "UI change disposition": change_disposition,
+        "Baseline Change Request reference": bcr_reference,
+        "Prior Integration Baseline ID": prior_baseline_id,
         "Explicitly editable regions": "NONE",
         "Workflow contract and controlled adjustment boundary": "WF-CORE / CAP-CORE",
         "Simulation scenario versions": "SCN-MAIN / 1.0.0",
@@ -351,11 +383,11 @@ def integration_fields(commit, ui_hash):
             + bound_evidence(candidate, route, "E-OWNER-ACCEPTANCE")
         ),
         "Phase-2-only evidence used as acceptance proof": "NO",
-        "Changed connected links": "VISIBLE_UI_RESULT",
-        "Reused unchanged connected links": (
-            "UI_ACTION, WORKFLOW_RULES, STATE_TRANSITION, DATA_EFFECT, SIDE_EFFECT, FAILURE_PATH, RECOVERY_RESULT"
+        "Changed connected links": ", ".join(affected_links),
+        "Reused unchanged connected links": ", ".join(
+            link for link in CONNECTED_EVIDENCE_IDS if link not in affected_links
         ),
-        "New / repeated connected links": "VISIBLE_UI_RESULT",
+        "New / repeated connected links": ", ".join(affected_links),
         "Evidence reuse basis": (
             "CANDIDATE:CANDIDATE-1 / sha256:" + "a" * 64
             + "; ROUTE:ROUTE-1; SCOPE:"
@@ -369,8 +401,10 @@ def integration_fields(commit, ui_hash):
     return slice_fields, baseline_fields, final_fields
 
 
-def install_integration_fixture(repo, commit, ui_hash):
-    slice_fields, baseline_fields, final_fields = integration_fields(commit, ui_hash)
+def install_integration_fixture(repo, commit, ui_hash, **options):
+    slice_fields, baseline_fields, final_fields = integration_fields(
+        commit, ui_hash, **options
+    )
     lc = repo / ".lccoding"
     write(lc / "slices/FS-1.md", markdown_record("Feature Slice", slice_fields))
     write(lc / "INTEGRATION-BASELINE.md", markdown_record("Integration Baseline", baseline_fields))
@@ -380,6 +414,71 @@ def install_integration_fixture(repo, commit, ui_hash):
     )
     write(lc / "status.json", json.dumps({"active_slice": "slices/FS-1.md"}) + "\n")
     return slice_fields, baseline_fields, final_fields
+
+
+def ui_lock_identity(commit, version, content_hash):
+    return (
+        "REPOSITORY:github.com/example/project; COMMIT:" + commit
+        + "; ID:UI-MAIN; PATH:product/ui/main; VERSION:" + version
+        + "; HASH:" + content_hash
+    )
+
+
+def bcr_fields(
+    prior_commit,
+    new_commit,
+    prior_hash,
+    new_hash,
+    *,
+    affected_links=("VISIBLE_UI_RESULT",),
+):
+    prior = ui_lock_identity(prior_commit, "1.0.0", prior_hash)
+    new = ui_lock_identity(new_commit, "1.1.0", new_hash)
+    candidate = "CANDIDATE-1"
+    route = "ROUTE-1"
+    return {
+        "Artifact role": "UI_BASELINE_CHANGE_REQUEST",
+        "Request ID": "BCR-UI-1",
+        "Locked Integration Baseline ID": "IB-PRIOR",
+        "Requested UI change": "Owner-requested visible wording update",
+        "Change authority": "OWNER_INITIATED",
+        "Necessity / impact record": "IA-UI-1",
+        "Prior accepted work affected": ", ".join(affected_links),
+        "Owner decision / approval evidence": "OA-UI-CHANGE-1",
+        "Project repository identity": "github.com/example/project",
+        "Prior project commit SHA": prior_commit,
+        "New project commit SHA": new_commit,
+        "New project commit differs from prior lock": "YES",
+        "Prior UI identity": prior,
+        "New UI identity": new,
+        "Product Baseline Handoff update": new,
+        "Integration Baseline update": new,
+        "Affected evidence set": ", ".join(affected_links),
+        "Affected evidence invalidation": "; ".join(
+            link
+            + ":"
+            + bound_evidence(candidate, route, "E-" + link + "-INVALIDATED")
+            for link in affected_links
+        ),
+        "Affected evidence re-verification": "; ".join(
+            link
+            + ":"
+            + bound_evidence(candidate, route, CONNECTED_EVIDENCE_IDS[link])
+            for link in affected_links
+        ),
+        "Unaffected evidence reuse basis": (
+            "CANDIDATE:CANDIDATE-1 / sha256:" + "a" * 64
+            + "; ROUTE:ROUTE-1; LINKS:"
+            + ", ".join(
+                link for link in CONNECTED_EVIDENCE_IDS if link not in affected_links
+            )
+            + "; SCOPE:"
+            + bound_evidence(candidate, route, "E-UI-UNCHANGED-SCOPE")
+            + "; REASON:UNCHANGED_EQUIVALENT"
+        ),
+        "Preservation route": "PRESERVE_HISTORY_NO_SILENT_OVERWRITE_NO_AUTOMATIC_RESTORE",
+        "New baseline version": "1.1.0",
+    }
 
 
 def replace_markdown_field(text, key, value):
@@ -917,6 +1016,15 @@ with tempfile.TemporaryDirectory(prefix="lccoding-product-integration-") as temp
         "Final": lc / "FINAL-FEATURE-VERIFICATION.md",
     }
 
+    expect_markdown_failure(
+        integration_paths["Baseline"],
+        lambda text: replace_markdown_field(
+            text, "System autonomous UI modification", "ALLOWED"
+        ),
+        repo,
+        "system logic must never receive autonomous locked-UI change authority",
+    )
+
     stale_hash_originals = {
         surface: path.read_text(encoding="utf-8")
         for surface, path in integration_paths.items()
@@ -1307,5 +1415,522 @@ with tempfile.TemporaryDirectory(prefix="lccoding-product-integration-") as temp
         assert validate_cli(repo).returncode != 0, "Final PASS cannot be omitted"
     finally:
         write(integration_paths["Final"], original_final)
+
+    # These three relationships were historically accepted even though none
+    # proves a real, history-preserving, fully reverified UI change.
+    lock_bypasses = []
+    bcr_path = lc / "BASELINE-CHANGE-REQUEST.md"
+
+    write(repo / "other.txt", "non-UI project change\n")
+    git(repo, "add", "other.txt")
+    git(repo, "commit", "--quiet", "-m", "non-UI project change")
+    non_ui_commit = git(repo, "rev-parse", "HEAD")
+    non_ui_uis = copy.deepcopy(uis)
+    non_ui_uis[0]["Baseline Change Request"] = (
+        "BCR-UI-1 / BASELINE-CHANGE-REQUEST.md"
+    )
+    install_product_markdown_fixture(
+        repo,
+        non_ui_commit,
+        workflows,
+        non_ui_uis,
+        simulations,
+        baseline_rows(workflows, non_ui_uis, simulations),
+    )
+    install_integration_fixture(
+        repo,
+        non_ui_commit,
+        hashes["UI-MAIN"],
+        ui_version="1.0.0",
+        change_disposition="OWNER_INITIATED",
+        bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+        prior_baseline_id="IB-PRIOR",
+    )
+    non_ui_bcr = bcr_fields(
+        commit, non_ui_commit, hashes["UI-MAIN"], hashes["UI-MAIN"]
+    )
+    unchanged_identity = ui_lock_identity(
+        non_ui_commit, "1.0.0", hashes["UI-MAIN"]
+    )
+    for field in (
+        "New UI identity",
+        "Product Baseline Handoff update",
+        "Integration Baseline update",
+    ):
+        non_ui_bcr[field] = unchanged_identity
+    non_ui_bcr["New baseline version"] = "1.0.0"
+    write(bcr_path, markdown_record("Baseline Change Request", non_ui_bcr))
+    if validate_cli(repo).returncode == 0:
+        lock_bypasses.append("NON_UI_CHANGE")
+
+    non_ui_uis[0]["Component version"] = "1.1.0"
+    install_product_markdown_fixture(
+        repo,
+        non_ui_commit,
+        workflows,
+        non_ui_uis,
+        simulations,
+        baseline_rows(workflows, non_ui_uis, simulations),
+    )
+    install_integration_fixture(
+        repo,
+        non_ui_commit,
+        hashes["UI-MAIN"],
+        ui_version="1.1.0",
+        change_disposition="OWNER_INITIATED",
+        bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+        prior_baseline_id="IB-PRIOR",
+    )
+    write(
+        bcr_path,
+        markdown_record(
+            "Baseline Change Request",
+            bcr_fields(
+                commit, non_ui_commit, hashes["UI-MAIN"], hashes["UI-MAIN"]
+            ),
+        ),
+    )
+    if validate_cli(repo).returncode == 0:
+        lock_bypasses.append("SAME_UI_HASH")
+
+    write(repo / paths["UI-MAIN"] / "identity.txt", "orphan UI v1.1\n")
+    git(repo, "add", paths["UI-MAIN"])
+    orphan_tree = git(repo, "write-tree")
+    orphan_commit = git_commit_tree(repo, orphan_tree, "orphan UI change")
+    orphan_ui_hash = validator.frozen_subtree_content_hash(
+        repo, orphan_commit, paths["UI-MAIN"]
+    )[0]
+    orphan_uis = copy.deepcopy(uis)
+    orphan_uis[0]["Component version"] = "1.1.0"
+    orphan_uis[0]["Content hash"] = orphan_ui_hash
+    orphan_uis[0]["Baseline Change Request"] = (
+        "BCR-UI-1 / BASELINE-CHANGE-REQUEST.md"
+    )
+    install_product_markdown_fixture(
+        repo,
+        orphan_commit,
+        workflows,
+        orphan_uis,
+        simulations,
+        baseline_rows(workflows, orphan_uis, simulations),
+    )
+    install_integration_fixture(
+        repo,
+        orphan_commit,
+        orphan_ui_hash,
+        ui_version="1.1.0",
+        change_disposition="OWNER_INITIATED",
+        bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+        prior_baseline_id="IB-PRIOR",
+    )
+    write(
+        bcr_path,
+        markdown_record(
+            "Baseline Change Request",
+            bcr_fields(commit, orphan_commit, hashes["UI-MAIN"], orphan_ui_hash),
+        ),
+    )
+    if validate_cli(repo).returncode == 0:
+        lock_bypasses.append("ORPHAN_COMMIT")
+
+    git(repo, "restore", "--source", non_ui_commit, "--staged", "--worktree", "--", paths["UI-MAIN"])
+
+    # Legal Owner-governed UI change: preserve prior identity, commit only the
+    # changed UI subtree, converge Map/Handoff/Baseline, and reverify every
+    # affected connected link for the current candidate.
+    write(repo / paths["UI-MAIN"] / "identity.txt", "UI-MAIN owner-approved v1.1\n")
+    git(repo, "add", paths["UI-MAIN"])
+    git(repo, "commit", "--quiet", "-m", "owner-approved UI baseline change")
+    changed_commit = git(repo, "rev-parse", "HEAD")
+    changed_ui_hash = validator.frozen_subtree_content_hash(
+        repo, changed_commit, paths["UI-MAIN"]
+    )[0]
+    changed_uis = copy.deepcopy(uis)
+    changed_uis[0]["Component version"] = "1.1.0"
+    changed_uis[0]["Content hash"] = changed_ui_hash
+    changed_uis[0]["Baseline Change Request"] = (
+        "BCR-UI-1 / BASELINE-CHANGE-REQUEST.md"
+    )
+    changed_locked = baseline_rows(workflows, changed_uis, simulations)
+    install_product_markdown_fixture(
+        repo, changed_commit, workflows, changed_uis, simulations, changed_locked
+    )
+    install_integration_fixture(
+        repo,
+        changed_commit,
+        changed_ui_hash,
+        ui_version="1.1.0",
+        change_disposition="OWNER_INITIATED",
+        bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+        prior_baseline_id="IB-PRIOR",
+        affected_links=("VISIBLE_UI_RESULT", "UI_ACTION"),
+    )
+    owner_bcr = bcr_fields(
+        commit,
+        changed_commit,
+        hashes["UI-MAIN"],
+        changed_ui_hash,
+        affected_links=("VISIBLE_UI_RESULT", "UI_ACTION"),
+    )
+    write(bcr_path, markdown_record("Baseline Change Request", owner_bcr))
+
+    for invalid_version, bypass_label in (
+        ("1.0.0", "SAME_UI_VERSION"),
+        ("0.9.0", "BACKWARD_UI_VERSION"),
+    ):
+        invalid_uis = copy.deepcopy(changed_uis)
+        invalid_uis[0]["Component version"] = invalid_version
+        install_product_markdown_fixture(
+            repo,
+            changed_commit,
+            workflows,
+            invalid_uis,
+            simulations,
+            baseline_rows(workflows, invalid_uis, simulations),
+        )
+        install_integration_fixture(
+            repo,
+            changed_commit,
+            changed_ui_hash,
+            ui_version=invalid_version,
+            change_disposition="OWNER_INITIATED",
+            bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+            prior_baseline_id="IB-PRIOR",
+            affected_links=("VISIBLE_UI_RESULT", "UI_ACTION"),
+        )
+        invalid_version_bcr = bcr_fields(
+            commit,
+            changed_commit,
+            hashes["UI-MAIN"],
+            changed_ui_hash,
+            affected_links=("VISIBLE_UI_RESULT", "UI_ACTION"),
+        )
+        invalid_identity = ui_lock_identity(
+            changed_commit, invalid_version, changed_ui_hash
+        )
+        for field in (
+            "New UI identity",
+            "Product Baseline Handoff update",
+            "Integration Baseline update",
+        ):
+            invalid_version_bcr[field] = invalid_identity
+        invalid_version_bcr["New baseline version"] = invalid_version
+        write(
+            bcr_path,
+            markdown_record("Baseline Change Request", invalid_version_bcr),
+        )
+        if validate_cli(repo).returncode == 0:
+            lock_bypasses.append(bypass_label)
+
+    install_product_markdown_fixture(
+        repo, changed_commit, workflows, changed_uis, simulations, changed_locked
+    )
+    install_integration_fixture(
+        repo,
+        changed_commit,
+        changed_ui_hash,
+        ui_version="1.1.0",
+        change_disposition="OWNER_INITIATED",
+        bcr_reference="BCR-UI-1 / BASELINE-CHANGE-REQUEST.md",
+        prior_baseline_id="IB-PRIOR",
+        affected_links=("VISIBLE_UI_RESULT", "UI_ACTION"),
+    )
+    write(bcr_path, markdown_record("Baseline Change Request", owner_bcr))
+    legal_owner_change = validate_cli(repo)
+    assert legal_owner_change.returncode == 0, legal_owner_change.stdout + legal_owner_change.stderr
+
+    baseline_owner_initiated = (lc / "INTEGRATION-BASELINE.md").read_text(encoding="utf-8")
+    bcr_owner_initiated = bcr_path.read_text(encoding="utf-8")
+    try:
+        write(
+            lc / "INTEGRATION-BASELINE.md",
+            replace_markdown_field(
+                baseline_owner_initiated, "UI change disposition", "OWNER_APPROVED"
+            ),
+        )
+        write(
+            bcr_path,
+            replace_markdown_field(
+                bcr_owner_initiated, "Change authority", "OWNER_APPROVED"
+            ),
+        )
+        legal_owner_approved = validate_cli(repo)
+        assert legal_owner_approved.returncode == 0, (
+            legal_owner_approved.stdout + legal_owner_approved.stderr
+        )
+    finally:
+        write(lc / "INTEGRATION-BASELINE.md", baseline_owner_initiated)
+        write(bcr_path, bcr_owner_initiated)
+
+    write(repo / paths["UI-MAIN"] / "identity.txt", "future UI v1.2\n")
+    git(repo, "add", paths["UI-MAIN"])
+    future_tree = git(repo, "write-tree")
+    future_commit = git_commit_tree(
+        repo, future_tree, "future descendant UI change", parent=changed_commit
+    )
+    future_ui_hash = validator.frozen_subtree_content_hash(
+        repo, future_commit, paths["UI-MAIN"]
+    )[0]
+    git(repo, "restore", "--source", changed_commit, "--staged", "--worktree", "--", paths["UI-MAIN"])
+    reverse_bcr = copy.deepcopy(owner_bcr)
+    reverse_bcr["Prior project commit SHA"] = future_commit
+    reverse_bcr["Prior UI identity"] = ui_lock_identity(
+        future_commit, "1.2.0", future_ui_hash
+    )
+    write(bcr_path, markdown_record("Baseline Change Request", reverse_bcr))
+    reverse_ancestry = validate_cli(repo)
+    assert reverse_ancestry.returncode != 0, (
+        "a descendant prior commit must not use its ancestor as the new UI lock"
+    )
+    write(bcr_path, markdown_record("Baseline Change Request", owner_bcr))
+
+    legal_bcr = bcr_path.read_text(encoding="utf-8")
+    try:
+        multi_bcr = replace_markdown_field(
+            legal_bcr,
+            "Affected evidence invalidation",
+            "VISIBLE_UI_RESULT:"
+            + bound_evidence(
+                "CANDIDATE-1", "ROUTE-1", "E-VISIBLE_UI_RESULT-INVALIDATED"
+            ),
+        )
+        multi_bcr = replace_markdown_field(
+            multi_bcr,
+            "Affected evidence re-verification",
+            "VISIBLE_UI_RESULT:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-VISIBLE-RESULT"),
+        )
+        write(bcr_path, multi_bcr)
+        if validate_cli(repo).returncode == 0:
+            lock_bypasses.append("MULTI_AFFECTED")
+    finally:
+        write(bcr_path, legal_bcr)
+
+    assert not lock_bypasses, (
+        "one-way UI lock accepted invalid relationships: "
+        + ", ".join(lock_bypasses)
+    )
+
+    changed_baseline = lc / "INTEGRATION-BASELINE.md"
+    for authority in (
+        "WORKFLOW",
+        "SIMULATION",
+        "AI",
+        "AGENT",
+        "SLK",
+        "RUNTIME",
+        "AUTOMATION",
+        "SYSTEM",
+        "IMPLICIT",
+        "",
+    ):
+        expect_markdown_failure(
+            changed_baseline,
+            lambda text, value=authority: replace_markdown_field(
+                text, "UI change disposition", value
+            ),
+            repo,
+            authority + " must not receive locked UI change authority",
+        )
+    expect_markdown_failure(
+        changed_baseline,
+        lambda text: replace_markdown_field(
+            text, "Baseline Change Request reference", "BCR-UI-1 / ../../outside.md"
+        ),
+        repo,
+        "BCR reference traversal must fail",
+    )
+    expect_markdown_failure(
+        changed_baseline,
+        lambda text: replace_markdown_field(
+            text,
+            "Baseline Change Request reference",
+            "BCR-UI-1 / missing-change-request.md",
+        ),
+        repo,
+        "missing contained BCR must fail",
+    )
+    expect_markdown_failure(
+        changed_baseline,
+        lambda text: replace_markdown_field(
+            text, "Prior Integration Baseline ID", "IB-OTHER"
+        ),
+        repo,
+        "prior lock ID mismatch must fail",
+    )
+    expect_markdown_failure(
+        lc / "UI-MAP.md",
+        lambda text: text.replace("| OWNER_ONLY |", "| WORKFLOW |", 1),
+        repo,
+        "UI Map cannot grant Workflow change authority",
+    )
+
+    for key, values in (
+        ("Change authority", ("WORKFLOW", "SIMULATION", "AI", "AGENT", "RUNTIME", "AUTOMATION", "SYSTEM", "IMPLICIT", "")),
+        ("New project commit SHA", (commit, "HEAD", "main", "v1.0.0", "latest", "worktree")),
+        ("Project repository identity", ("github.com/example/other", "PENDING")),
+        ("New project commit differs from prior lock", ("NO", "PENDING")),
+        (
+            "Owner decision / approval evidence",
+            ("PENDING", "PASS", "OWNER_APPROVED", "OWNER_INITIATED", ""),
+        ),
+        ("Affected evidence set", ("NONE", "PENDING", "")),
+        ("Affected evidence invalidation", ("PENDING", "")),
+        ("Affected evidence re-verification", ("PENDING", "")),
+        ("New baseline version", ("latest", "1.1", "1.2.0", "")),
+        ("Locked Integration Baseline ID", ("PENDING", "")),
+        ("Preservation route", ("SILENT_OVERWRITE", "AUTOMATIC_RESTORE", "DESTRUCTIVE_RESET")),
+    ):
+        for value in values:
+            expect_markdown_failure(
+                bcr_path,
+                lambda text, field=key, replacement=value: replace_markdown_field(
+                    text, field, replacement
+                ),
+                repo,
+                f"BCR {key}={value!r} must fail",
+            )
+
+    for key, value in (
+        (
+            "Prior UI identity",
+            ui_lock_identity(commit, "1.0.0", hashes["UI-MAIN"]).replace(
+                "ID:UI-MAIN", "ID:UI-OTHER"
+            ),
+        ),
+        (
+            "Prior UI identity",
+            ui_lock_identity(commit, "1.0.0", hashes["UI-MAIN"]).replace(
+                "PATH:product/ui/main", "PATH:product/ui/other"
+            ),
+        ),
+        ("New UI identity", ui_lock_identity(changed_commit, "1.1.0", "sha256:" + "f" * 64)),
+        ("New UI identity", ui_lock_identity(changed_commit, "1.0.0", changed_ui_hash)),
+        ("New UI identity", ui_lock_identity(changed_commit, "1.1.0", changed_ui_hash.upper().replace("SHA256:", "sha256:"))),
+        (
+            "New UI identity",
+            ui_lock_identity(changed_commit, "1.1.0", changed_ui_hash).replace(
+                "ID:UI-MAIN", "ID:UI-OTHER"
+            ),
+        ),
+        (
+            "New UI identity",
+            ui_lock_identity(changed_commit, "1.1.0", changed_ui_hash).replace(
+                "PATH:product/ui/main", "PATH:product/ui/other"
+            ),
+        ),
+        ("Product Baseline Handoff update", ui_lock_identity(changed_commit, "1.0.0", changed_ui_hash)),
+        ("Integration Baseline update", ui_lock_identity(changed_commit, "1.0.0", changed_ui_hash)),
+        (
+            "Affected evidence re-verification",
+            "VISIBLE_UI_RESULT:"
+            + bound_evidence(
+                "CANDIDATE-1", "ROUTE-1", "E-VISIBLE-RESULT", "sha256:" + "b" * 64
+            )
+            + "; UI_ACTION:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UI-ACTION"),
+        ),
+        (
+            "Affected evidence re-verification",
+            "VISIBLE_UI_RESULT:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UNRELATED-REVERIFY")
+            + "; UI_ACTION:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UI-ACTION"),
+        ),
+        (
+            "Unaffected evidence reuse basis",
+            owner_bcr["Unaffected evidence reuse basis"].replace(
+                "FAILURE_PATH, RECOVERY_RESULT",
+                "FAILURE_PATH, RECOVERY_RESULT, VISIBLE_UI_RESULT",
+            ),
+        ),
+    ):
+        expect_markdown_failure(
+            bcr_path,
+            lambda text, field=key, replacement=value: replace_markdown_field(
+                text, field, replacement
+            ),
+            repo,
+            "BCR identity/evidence drift in " + key + " must fail",
+        )
+
+    invalidation_record = owner_bcr["Affected evidence invalidation"]
+    reverify_record = owner_bcr["Affected evidence re-verification"]
+    visible_invalidation = invalidation_record.split("; ")[0]
+    visible_reverify = reverify_record.split("; ")[0]
+    mapping_mutations = (
+        ("Affected evidence invalidation", visible_invalidation, "missing affected invalidation"),
+        ("Affected evidence re-verification", visible_reverify, "missing affected re-verification"),
+        (
+            "Affected evidence invalidation",
+            invalidation_record + "; WORKFLOW_RULES:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-EXTRA-INVALIDATION"),
+            "extra unaffected invalidation",
+        ),
+        (
+            "Affected evidence re-verification",
+            reverify_record + "; VISIBLE_UI_RESULT:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-VISIBLE-RESULT"),
+            "duplicate affected re-verification",
+        ),
+        (
+            "Affected evidence invalidation",
+            invalidation_record + "; UNKNOWN_LINK:"
+            + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UNKNOWN-LINK"),
+            "unknown-link invalidation",
+        ),
+        (
+            "Affected evidence re-verification",
+            reverify_record.replace(
+                "VISIBLE_UI_RESULT:"
+                + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-VISIBLE-RESULT"),
+                "VISIBLE_UI_RESULT:"
+                + bound_evidence("CANDIDATE-1", "ROUTE-1", "E-UI-ACTION"),
+            ),
+            "wrong connected-link evidence",
+        ),
+        (
+            "Affected evidence invalidation",
+            invalidation_record.replace(
+                "sha256:" + "a" * 64, "sha256:" + "b" * 64, 1
+            ),
+            "wrong-candidate-hash invalidation",
+        ),
+        (
+            "Affected evidence invalidation",
+            invalidation_record.replace("~ROUTE-1~", "~ROUTE-OTHER~", 1),
+            "wrong-route invalidation",
+        ),
+        (
+            "Affected evidence invalidation",
+            invalidation_record.replace("E-VISIBLE_UI_RESULT-INVALIDATED", "PASS", 1),
+            "generic invalidation evidence",
+        ),
+        (
+            "Affected evidence invalidation",
+            reverify_record,
+            "invalidation identical to re-verification",
+        ),
+    )
+    for field, replacement, label in mapping_mutations:
+        expect_markdown_failure(
+            bcr_path,
+            lambda text, field=field, replacement=replacement: replace_markdown_field(
+                text, field, replacement
+            ),
+            repo,
+            label + " must fail",
+        )
+
+    original_bcr = bcr_path.read_text(encoding="utf-8")
+    try:
+        write(bcr_path, remove_markdown_field(original_bcr, "Affected evidence invalidation"))
+        assert validate_cli(repo).returncode != 0, "BCR missing invalidation must fail"
+        write(bcr_path, original_bcr + "\n- Request ID: BCR-SHADOW\n")
+        assert validate_cli(repo).returncode != 0, "BCR duplicate field must fail"
+        write(bcr_path, original_bcr + "\n- Automatic restore: YES\n")
+        assert validate_cli(repo).returncode != 0, "BCR unknown automatic restore field must fail"
+    finally:
+        write(bcr_path, original_bcr)
 
 print("PASS: Product Baseline closes exact peer subtrees and same-capability interfaces")

@@ -11,6 +11,7 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 assert hasattr(module, "validate_ui_subtree_baseline_preflight")
+assert hasattr(module, "validate_ui_map_change_authority")
 assert not hasattr(module, "validate_ui_private_baseline_preflight")
 
 PRODUCT_REPOSITORY = "owner/product"
@@ -89,6 +90,20 @@ missing_acceptance_check = copy.deepcopy(ready)
 missing_acceptance_check["UI comparison before acceptance route"] = "PENDING"
 assert validate(missing_acceptance_check)
 
+ui_lock_row = {
+    "UI ID": "UI-WEB",
+    "UI change authority": "OWNER_ONLY",
+    "Baseline Change Request": "NONE",
+}
+assert module.validate_ui_map_change_authority([ui_lock_row]) == []
+for authority in ("WORKFLOW", "SIMULATION", "AI", "AGENT", "RUNTIME", "AUTOMATION", "SYSTEM"):
+    changed = copy.deepcopy(ui_lock_row)
+    changed["UI change authority"] = authority
+    assert module.validate_ui_map_change_authority([changed])
+traversal = copy.deepcopy(ui_lock_row)
+traversal["Baseline Change Request"] = "BCR-1 / ../../outside.md"
+assert module.validate_ui_map_change_authority([traversal])
+
 
 def require(relative, *markers):
     text = (root / relative).read_text(encoding="utf-8")
@@ -135,15 +150,31 @@ require(
     "UI component version",
     "UI content hash",
     "Branch / latest accepted: NO",
+    "Lock authority: ONE_WAY_OWNER_AUTHORITY",
+    "System autonomous UI modification: FORBIDDEN",
+    "UI change disposition",
+    "Baseline Change Request reference",
+    "Prior Integration Baseline ID",
 )
 require(
     "lc-coding/templates/BASELINE-CHANGE-REQUEST.md",
     "Owner decision / approval evidence",
     "Project repository identity",
     "New project commit differs from prior lock: YES",
-    "New UI component version",
+    "Prior UI identity",
+    "New UI identity",
     "Product Baseline Handoff update",
+    "Integration Baseline update",
+    "Affected evidence invalidation",
     "Affected evidence re-verification",
+    "Unaffected evidence reuse basis",
+    "PRESERVE_HISTORY_NO_SILENT_OVERWRITE_NO_AUTOMATIC_RESTORE",
+)
+require(
+    "lc-coding/templates/UI-MAP.md",
+    "UI change authority",
+    "OWNER_ONLY",
+    "Baseline Change Request",
 )
 require(
     "lc-coding/templates/FEATURE-SLICE.md",

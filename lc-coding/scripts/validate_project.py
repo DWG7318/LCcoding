@@ -793,6 +793,7 @@ BASELINE_ROUTE_REQUIRED={
     'Owner-initiated / Owner-approved UI change route','Explicitly editable regions',
     'Workflow contract and controlled adjustment boundary','Simulation scenario versions',
     'Calabash/Product Baseline reference','Owner approval','Lock time',
+    'UI change disposition','Baseline Change Request reference','Prior Integration Baseline ID',
 }
 BASELINE_ROUTE_ALLOWED=BASELINE_ROUTE_REQUIRED|{
     'Feature Slice ID / version','Primary product mainline ID','Project repository identity',
@@ -821,6 +822,18 @@ FINAL_ROUTE_ALLOWED=FINAL_ROUTE_REQUIRED|{
 GENERIC_EVIDENCE_IDS={
     'DONE','PASS','READY','COMPLETE','EVIDENCE','GENERIC','MOCK','STUB','SCRIPTED','MANUAL',
     'PENDING','UNKNOWN','NONE','NOT_APPLICABLE','TBD','TODO','PROOF','RESULT',
+    'OWNER_APPROVED','OWNER_INITIATED','YES','NO','ALLOWED','FORBIDDEN',
+}
+BCR_FIELDS={
+    'Artifact role','Request ID','Locked Integration Baseline ID','Requested UI change',
+    'Change authority','Necessity / impact record','Prior accepted work affected',
+    'Owner decision / approval evidence','Project repository identity',
+    'Prior project commit SHA','New project commit SHA',
+    'New project commit differs from prior lock','Prior UI identity','New UI identity',
+    'Product Baseline Handoff update','Integration Baseline update',
+    'Affected evidence set','Affected evidence invalidation',
+    'Affected evidence re-verification','Unaffected evidence reuse basis',
+    'Preservation route','New baseline version',
 }
 
 def parse_exact_record_values(value,keys,label):
@@ -884,6 +897,20 @@ def parse_route_link_set(value,label):
     unknown=set(values)-set(ROUTE_LINKS)
     if unknown: errors.append(label+' contains unknown route links '+', '.join(sorted(unknown)))
     return set(values),errors
+
+def parse_affected_route_evidence_record(value,affected,candidate_identity,route_id,label):
+    keys=tuple(link for link in ROUTE_LINKS if link in affected)
+    record,errors=parse_exact_record_values(value,keys,label)
+    parsed={}
+    for link,item in record.items():
+        identity,item_errors=parse_bound_route_evidence(
+            item,candidate_identity,route_id,label+' '+link
+        )
+        errors.extend(item_errors); parsed[link]=identity
+    identities=[identity for identity in parsed.values() if identity]
+    if len(identities)!=len(set(identities)):
+        errors.append(label+' requires independent evidence for every affected link')
+    return parsed,errors
 
 def parse_route_common(fields,label):
     errors=[]; parsed={}
@@ -994,6 +1021,248 @@ def validate_route_against_product(parsed,workflow_rows,ui_rows,simulation_rows,
         used_by={token for token in re.split(r'[\s,;/]+',str(scenario_row.get('Used by Slice/Run/Acceptance','')).strip()) if token}
         if slice_id not in used_by:
             errors.append('integration Simulation scenario must be explicitly used by the current Slice')
+    return errors
+
+def parse_bcr_reference(value,label):
+    text=str(value or '').strip()
+    if text=='NONE': return None,[]
+    parts=text.split(' / ',1)
+    if len(parts)!=2 or not stable_id(parts[0]) or not safe_subtree_path(parts[1]):
+        return None,[label+' requires NONE or exact Request ID / contained relative path']
+    return (parts[0],parts[1]),[]
+
+def validate_ui_map_change_authority(rows):
+    errors=[]
+    for index,row in enumerate(rows):
+        if 'UI change authority' not in row and 'Baseline Change Request' not in row:
+            continue
+        prefix=f'UI Map row {index+1}'
+        if row.get('UI change authority')!='OWNER_ONLY':
+            errors.append(prefix+' UI change authority must be exact OWNER_ONLY')
+        _,reference_errors=parse_bcr_reference(
+            row.get('Baseline Change Request'),prefix+' Baseline Change Request'
+        ); errors.extend(reference_errors)
+    return errors
+
+def parse_ui_lock_identity(value,label):
+    keys=('REPOSITORY','COMMIT','ID','PATH','VERSION','HASH')
+    record,errors=parse_exact_record_values(value,keys,label)
+    repository=canonical_github_repository(record.get('REPOSITORY'))
+    if not repository: errors.append(label+' requires the total GitHub repository identity')
+    commit=str(record.get('COMMIT','')).strip()
+    if not re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})',commit):
+        errors.append(label+' requires an exact lowercase project commit')
+    if not stable_id(record.get('ID')) or not safe_subtree_path(record.get('PATH')):
+        errors.append(label+' requires a safe UI ID and subtree path')
+    if not component_version(record.get('VERSION')):
+        errors.append(label+' requires a semantic component version')
+    if not EXACT_HASH_RE.fullmatch(str(record.get('HASH',''))):
+        errors.append(label+' requires an exact lowercase content hash')
+    record['REPOSITORY']=repository
+    return record,errors
+
+def _meaningful_bcr_value(value):
+    text=str(value or '').strip()
+    return bool(text) and text.upper() not in GENERIC_EVIDENCE_IDS
+
+def _component_version_order(value):
+    if not component_version(value): return None
+    return tuple(int(part) for part in str(value).split('.'))
+
+def _commit_is_ancestor(repository,prior_commit,new_commit):
+    result=subprocess.run(
+        ['git','merge-base','--is-ancestor',prior_commit,new_commit],
+        cwd=repository,capture_output=True,text=True,
+    )
+    if result.returncode==0: return True,None
+    if result.returncode==1: return False,None
+    return False,'could not verify BCR project commit ancestry'
+
+def validate_one_way_ui_lock(
+    lc,baseline_path,baseline_fields,slice_parsed,ui_rows,handoff_fields,final_fields
+):
+    errors=[]
+    exact_lock_values={
+        'Lock authority':'ONE_WAY_OWNER_AUTHORITY',
+        'System autonomous UI modification':'FORBIDDEN',
+        'Owner-initiated / Owner-approved UI change route':'BASELINE_CHANGE_REQUEST',
+    }
+    for field,expected in exact_lock_values.items():
+        if baseline_fields.get(field)!=expected:
+            errors.append('Integration Baseline '+field+' must be '+expected)
+    ui_identity=slice_parsed.get('ui',{})
+    ui_id=ui_identity.get('ID')
+    matches=[row for row in ui_rows if str(row.get('UI ID','')).strip()==ui_id]
+    if len(matches)!=1: return errors+['one-way UI lock requires exactly one current UI Map row']
+    ui_row=matches[0]
+    if ui_row.get('UI change authority')!='OWNER_ONLY':
+        errors.append('UI Map change authority must be exact OWNER_ONLY')
+    map_bcr,map_bcr_errors=parse_bcr_reference(
+        ui_row.get('Baseline Change Request'),'UI Map Baseline Change Request'
+    ); errors.extend(map_bcr_errors)
+    disposition=str(baseline_fields.get('UI change disposition','')).strip()
+    baseline_bcr,baseline_bcr_errors=parse_bcr_reference(
+        baseline_fields.get('Baseline Change Request reference'),
+        'Integration Baseline Change Request reference',
+    ); errors.extend(baseline_bcr_errors)
+    if disposition=='UNCHANGED':
+        if map_bcr is not None or baseline_bcr is not None:
+            errors.append('unchanged locked UI must not claim a Baseline Change Request')
+        if baseline_fields.get('Prior Integration Baseline ID')!='NOT_APPLICABLE':
+            errors.append('unchanged locked UI must not fabricate a prior Integration Baseline')
+        return errors
+    if disposition not in {'OWNER_INITIATED','OWNER_APPROVED'}:
+        errors.append('locked UI change disposition must be UNCHANGED, OWNER_INITIATED, or OWNER_APPROVED')
+        return errors
+    if not map_bcr or not baseline_bcr or map_bcr!=baseline_bcr:
+        errors.append('Owner UI change requires one exact matching Map/Baseline BCR reference')
+        return errors
+    _,bcr_path=_safe_lccoding_evidence(baseline_path,baseline_bcr[1])
+    if not bcr_path:
+        errors.append('Owner UI change requires a contained Baseline Change Request')
+        return errors
+    bcr,bcr_errors=parse_markdown_fields_strict(bcr_path); errors.extend(bcr_errors)
+    missing=BCR_FIELDS-set(bcr); unknown=set(bcr)-BCR_FIELDS
+    if missing: errors.append('Baseline Change Request missing fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('Baseline Change Request has unknown fields '+', '.join(sorted(unknown)))
+    if bcr.get('Artifact role')!='UI_BASELINE_CHANGE_REQUEST': errors.append('BCR artifact role mismatch')
+    if (
+        bcr.get('Request ID')!=baseline_bcr[0]
+        or not stable_id(bcr.get('Request ID'))
+        or not _meaningful_bcr_value(bcr.get('Request ID'))
+    ): errors.append('BCR Request ID disagrees with lock reference or is not a safe evidence ID')
+    if (
+        not stable_id(bcr.get('Locked Integration Baseline ID'))
+        or not _meaningful_bcr_value(bcr.get('Locked Integration Baseline ID'))
+    ):
+        errors.append('BCR requires the exact prior Integration Baseline ID')
+    elif bcr.get('Locked Integration Baseline ID')!=baseline_fields.get('Prior Integration Baseline ID'):
+        errors.append('BCR prior lock ID disagrees with the Integration Baseline reference')
+    if bcr.get('Change authority')!=disposition:
+        errors.append('BCR Change authority must equal the explicit Owner disposition')
+    for field in ('Requested UI change','Necessity / impact record','Prior accepted work affected','Owner decision / approval evidence'):
+        if not _meaningful_bcr_value(bcr.get(field)):
+            errors.append('BCR '+field+' requires non-generic evidence')
+    if not stable_id(bcr.get('Necessity / impact record')) or not stable_id(bcr.get('Owner decision / approval evidence')):
+        errors.append('BCR impact and Owner decision evidence must be safe stable IDs')
+    repository=canonical_github_repository(bcr.get('Project repository identity'))
+    expected_repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
+    if not repository or repository!=expected_repository:
+        errors.append('BCR must retain the same total project repository')
+    prior_commit=str(bcr.get('Prior project commit SHA','')).strip()
+    new_commit=str(bcr.get('New project commit SHA','')).strip()
+    if bcr.get('New project commit differs from prior lock')!='YES' or prior_commit==new_commit:
+        errors.append('BCR new project commit must be distinct from the prior lock')
+    prior,prior_errors=parse_ui_lock_identity(bcr.get('Prior UI identity'),'BCR prior UI identity')
+    new,new_errors=parse_ui_lock_identity(bcr.get('New UI identity'),'BCR new UI identity')
+    handoff_update,handoff_errors=parse_ui_lock_identity(
+        bcr.get('Product Baseline Handoff update'),'BCR Product Handoff update'
+    )
+    baseline_update,baseline_errors=parse_ui_lock_identity(
+        bcr.get('Integration Baseline update'),'BCR Integration Baseline update'
+    )
+    errors.extend(prior_errors+new_errors+handoff_errors+baseline_errors)
+    if prior.get('COMMIT')!=prior_commit or new.get('COMMIT')!=new_commit:
+        errors.append('BCR prior/new UI identities must bind their exact project commits')
+    if prior.get('REPOSITORY')!=repository or new.get('REPOSITORY')!=repository:
+        errors.append('BCR prior/new UI identities must use the same total repository')
+    if prior.get('ID')!=new.get('ID') or prior.get('PATH')!=new.get('PATH'):
+        errors.append('BCR must change the same locked UI ID and subtree path')
+    if prior.get('HASH')==new.get('HASH'):
+        errors.append('BCR must contain a real UI subtree content hash change')
+    prior_version=_component_version_order(prior.get('VERSION'))
+    new_version=_component_version_order(new.get('VERSION'))
+    if prior_version is not None and new_version is not None and new_version<=prior_version:
+        errors.append('BCR new UI component version must advance beyond the prior version')
+    current={
+        'REPOSITORY':expected_repository,
+        'COMMIT':slice_parsed.get('product')[1] if slice_parsed.get('product') else None,
+        'ID':ui_identity.get('ID'),'PATH':ui_identity.get('PATH'),
+        'VERSION':ui_identity.get('VERSION'),'HASH':ui_identity.get('HASH'),
+    }
+    if new!=current or handoff_update!=current or baseline_update!=current:
+        errors.append('UI Map, Product Handoff, Integration Baseline, and BCR must converge on the exact new UI tuple')
+    if new_commit!=str(handoff_fields.get('Project frozen exact commit SHA','')).strip():
+        errors.append('BCR new commit must equal the current Product Baseline frozen commit')
+    resolved_commits={}
+    if repository:
+        for label,identity,commit in (
+            ('prior',prior,prior_commit),('new',new,new_commit)
+        ):
+            resolved,commit_error=resolve_frozen_commit(lc.parent,commit)
+            if commit_error: errors.append('BCR '+label+' '+commit_error); continue
+            resolved_commits[label]=resolved
+            identity_row={'Path':identity.get('PATH'),'Content hash':identity.get('HASH')}
+            errors.extend(verify_frozen_subtree_identity(
+                lc.parent,resolved,identity_row,'BCR '+label+' UI identity'
+            ))
+    if set(resolved_commits)=={'prior','new'}:
+        is_ancestor,ancestry_error=_commit_is_ancestor(
+            lc.parent,resolved_commits['prior'],resolved_commits['new']
+        )
+        if ancestry_error: errors.append(ancestry_error)
+        elif not is_ancestor:
+            errors.append('BCR prior project commit must be an ancestor of the new commit')
+    affected,affected_errors=parse_route_link_set(
+        bcr.get('Affected evidence set'),'BCR affected evidence set'
+    ); errors.extend(affected_errors)
+    prior_affected,prior_errors=parse_route_link_set(
+        bcr.get('Prior accepted work affected'),'BCR prior accepted work affected'
+    ); errors.extend(prior_errors)
+    if not affected or prior_affected!=affected:
+        errors.append('BCR affected evidence set must exactly identify prior accepted work affected')
+    candidate=slice_parsed.get('candidate'); route=slice_parsed.get('route')
+    invalidation={}; reverified={}
+    if candidate and affected:
+        invalidation,invalidation_errors=parse_affected_route_evidence_record(
+            bcr.get('Affected evidence invalidation'),affected,candidate,route,
+            'BCR affected invalidation'
+        )
+        reverified,reverify_errors=parse_affected_route_evidence_record(
+            bcr.get('Affected evidence re-verification'),affected,candidate,route,
+            'BCR affected re-verification'
+        )
+        errors.extend(invalidation_errors+reverify_errors)
+        for link in affected:
+            if invalidation.get(link) and invalidation.get(link)==reverified.get(link):
+                errors.append('BCR '+link+' invalidation and re-verification must be distinct evidence')
+    final_changed,final_changed_errors=parse_route_link_set(
+        final_fields.get('Changed connected links'),'Final changed connected links'
+    ); errors.extend(final_changed_errors)
+    final_reused,final_reused_errors=parse_route_link_set(
+        final_fields.get('Reused unchanged connected links'),'Final reused connected links'
+    ); errors.extend(final_reused_errors)
+    final_new,final_new_errors=parse_route_link_set(
+        final_fields.get('New / repeated connected links'),'Final new connected links'
+    ); errors.extend(final_new_errors)
+    if affected!=final_changed or affected!=final_new:
+        errors.append('BCR affected evidence must be reverified in current-candidate Final Verification')
+    if candidate:
+        for link in affected:
+            if reverified.get(link)!=slice_parsed.get('evidence',{}).get(link):
+                errors.append('BCR '+link+' re-verification must equal current connected-link evidence')
+    reuse,reuse_errors=parse_exact_record_values(
+        bcr.get('Unaffected evidence reuse basis'),
+        ('CANDIDATE','ROUTE','LINKS','SCOPE','REASON'),'BCR unaffected reuse basis'
+    ); errors.extend(reuse_errors)
+    reuse_candidate=exact_id_hash(reuse.get('CANDIDATE'))
+    reuse_links,reuse_link_errors=parse_route_link_set(reuse.get('LINKS'),'BCR reused links')
+    errors.extend(reuse_link_errors)
+    scope_identity,scope_errors=parse_bound_route_evidence(
+        reuse.get('SCOPE'),candidate,route,'BCR reuse scope'
+    ) if candidate else (None,[])
+    errors.extend(scope_errors)
+    if (
+        reuse_candidate!=candidate or reuse.get('ROUTE')!=route
+        or reuse.get('REASON')!='UNCHANGED_EQUIVALENT' or not scope_identity
+        or affected.intersection(reuse_links) or reuse_links!=final_reused
+    ): errors.append('BCR reuse is limited to exact unaffected current-candidate proof')
+    if bcr.get('Preservation route')!='PRESERVE_HISTORY_NO_SILENT_OVERWRITE_NO_AUTOMATIC_RESTORE':
+        errors.append('BCR must preserve history without silent overwrite or automatic restore')
+    if not component_version(bcr.get('New baseline version')):
+        errors.append('BCR requires a semantic new baseline version')
+    elif bcr.get('New baseline version')!=new.get('VERSION'):
+        errors.append('BCR new baseline version must equal the new UI component version')
     return errors
 
 def validate_real_product_integration(
@@ -1199,6 +1468,9 @@ def validate_real_product_integration(
         ): errors.append('reused evidence requires exact candidate/route/scope/environment unchanged proof')
     if final_fields.get('Final verdict')!='PASS':
         errors.append('current real integration Final verdict must PASS or remain blocked')
+    errors.extend(validate_one_way_ui_lock(
+        lc,baseline_path,baseline_fields,slice_parsed,ui_rows,handoff_fields,final_fields
+    ))
     return errors
 
 def validate_owner_gap_lineage(status,records):
@@ -1833,11 +2105,12 @@ WORKFLOW_MAP_COLUMNS_270=(
     'MCP contract / evidence','UI subtree references','Simulation subtree references',
     'Evidence / attestation','Primary mainline',
 )
-UI_MAP_COLUMNS=(
+UI_MAP_COLUMNS_260=(
     'UI ID','Subtree path','Component version','Content hash','Actor','Surface / state',
     'Actions / feedback','Workflow subtree references','Simulation subtree references',
     'Evidence / attestation','Lock status','Primary mainline',
 )
+UI_MAP_COLUMNS_270=UI_MAP_COLUMNS_260+('UI change authority','Baseline Change Request')
 SIMULATION_MAP_COLUMNS=(
     'Simulation ID','Subtree path','Component version','Content hash','Foundation status',
     'Workflow subtree references','UI subtree references','Primary mainline',
@@ -2004,9 +2277,10 @@ def main():
         if 'Primary product mainline ID' not in ui_fields:
             product_surface_errors.append('UI Map requires exactly one Primary product mainline ID')
         tables,table_errors=parse_closed_product_tables(
-            ui_path,[('UI Map',(UI_MAP_COLUMNS,))]
+            ui_path,[('UI Map',(UI_MAP_COLUMNS_260,UI_MAP_COLUMNS_270))]
         )
         ui_rows=tables.get('UI Map',[]); product_surface_errors.extend(table_errors)
+        product_surface_errors.extend(validate_ui_map_change_authority(ui_rows))
     if simulation_path.exists():
         simulation_fields,field_errors=parse_markdown_fields_strict(simulation_path)
         product_surface_errors.extend(field_errors)
