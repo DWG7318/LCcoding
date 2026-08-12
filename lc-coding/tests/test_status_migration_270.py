@@ -99,7 +99,44 @@ def simulation_map(content_hash):
 """
 
 
-def product_handoff(commit, hashes, *, valid=True):
+def definition_handoff():
+    return """# Calabash Definition Handoff
+
+- Artifact role: CALABASH_DEFINITION_HANDOFF
+- Definition Handoff ID: CDH-MIGRATION
+- Definition Baseline kind: CALABASH_DEFINITION_BASELINE
+- Definition Baseline ID: DB-MIGRATION
+- Definition Baseline semantic version: 1.0.0
+- Definition Baseline exact hash: sha256:1111111111111111111111111111111111111111111111111111111111111111
+- Calabash standard version: 2.5.0
+- Baseline status: FROZEN
+- Applicable Definition clause references: baseline:/grandpa/product
+- Snake review status: NONE_IDENTIFIED
+- Snake review scope: Grandpa
+- Snake review evidence refs: E-SNAKE-REVIEW
+- Scorpion review status: NONE_IDENTIFIED
+- Scorpion review scope: Grandpa
+- Scorpion review evidence refs: E-SCORPION-REVIEW
+- Meaning-change / invalidation rules reference: CAL-CHANGE-1
+- Upgrade Receipt ID: UPGRADE-MIGRATION
+- Upgrade Receipt exact hash: sha256:2222222222222222222222222222222222222222222222222222222222222222
+- Upgrade verdict: CALABASH_UPGRADE_PASS
+- Owner change authority: OWNER
+- Handoff result: PASS
+
+## Snake records
+
+| Snake ID | Disposition | Guard / verification reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|
+
+## Scorpion records
+
+| Scorpion ID | Status | Blocking semantics | Hit condition reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|---|
+"""
+
+
+def product_handoff(commit, hashes, definition_hash, *, valid=True):
     confirmation = "OWNER_CONFIRMED: OA-PB-1" if valid else "OWNER_CONFIRMED:"
     return f"""# Product Baseline Handoff
 
@@ -107,6 +144,8 @@ def product_handoff(commit, hashes, *, valid=True):
 - Project repository identity: github.com/example/project
 - Project frozen exact commit SHA: {commit}
 - Calabash source: CAL-1
+- Calabash Definition Handoff ID / exact hash: CDH-MIGRATION / {definition_hash}
+- Calabash Definition Handoff result: PASS
 - Workflow Map: .lccoding/WORKFLOW-MAP.md
 - UI Map: .lccoding/UI-MAP.md
 - Simulation World: .lccoding/SIMULATION-WORLD.md
@@ -284,6 +323,9 @@ def make_project(
     write(lc / "WORKFLOW-MAP.md", workflow_map(hashes["WORKFLOW"]))
     write(lc / "UI-MAP.md", ui_map(hashes["UI"]))
     write(lc / "SIMULATION-WORLD.md", simulation_map(hashes["SIMULATION"]))
+    gate = lc / "CALABASH-UPGRADE-GATE.md"
+    write(gate, definition_handoff())
+    definition_hash = "sha256:" + hashlib.sha256(gate.read_bytes()).hexdigest()
     write(project / "VERSION", "1.0.0\n")
 
     status = copy.deepcopy(
@@ -353,7 +395,10 @@ def make_project(
     write(lc / "status.json", json.dumps(status, indent=2) + "\n")
     write(lc / "PHASE-STATUS.json", json.dumps(phase_view_for(status), indent=2) + "\n")
     if handoff is not None:
-        write(lc / "PRODUCT-BASELINE-HANDOFF.md", product_handoff(commit, hashes, valid=handoff))
+        write(
+            lc / "PRODUCT-BASELINE-HANDOFF.md",
+            product_handoff(commit, hashes, definition_hash, valid=handoff),
+        )
     return status
 
 

@@ -43,6 +43,9 @@ START_REQUIRED = {
     "Selected execution method exact hash",
     "Selected execution method canonical interface / contract reference",
     "Phase-appropriate input evidence / prerequisites",
+    "Meaning impact classification",
+    "Definition basis / neutral Impact Analysis reference",
+    "Applicable Snake / Scorpion disposition evidence reference",
     "Evidence return target in calling phase",
     "D0-D3 evidence / verification condition",
     "Loop Owner Acceptance condition / route",
@@ -116,6 +119,9 @@ RECEIPT_FORBIDDEN = {
     "Blocker evidence",
     "Phase advancement",
     "Current phase",
+    "Meaning impact classification",
+    "Definition basis / neutral Impact Analysis reference",
+    "Applicable Snake / Scorpion disposition evidence reference",
 }
 ADDITIONAL_RECEIPT_START_AUTHORITY = {
     "Product Baseline trace (ENGINEERING_RUNS only)",
@@ -255,6 +261,9 @@ def valid_start(phase):
         "Selected execution method exact hash": "sha256:" + "2" * 64,
         "Selected execution method canonical interface / contract reference": "CANONICAL-MANIFEST / SLK",
         "Phase-appropriate input evidence / prerequisites": f"{phase}-INPUT-1",
+        "Meaning impact classification": "MEANING_NEUTRAL",
+        "Definition basis / neutral Impact Analysis reference": "IMPACT-ANALYSIS.md",
+        "Applicable Snake / Scorpion disposition evidence reference": "CALABASH-UPGRADE-GATE.md",
         "Evidence return target in calling phase": f"{phase}-RETURN-1",
         "D0-D3 evidence / verification condition": "D0 through D3 must pass",
         "Loop Owner Acceptance condition / route": "D3 PASS then normal Loop Owner Acceptance",
@@ -509,6 +518,65 @@ def terminal_receipt(start_fields, *, acceptance_id, candidate, **changes):
     ) + "\n"
 
 
+def definition_evidence(project):
+    lc = project / ".lccoding"
+    write(
+        lc / "CALABASH-UPGRADE-GATE.md",
+        f"""# Calabash Definition Handoff
+
+- Artifact role: CALABASH_DEFINITION_HANDOFF
+- Definition Handoff ID: CDH-RUN
+- Definition Baseline kind: CALABASH_DEFINITION_BASELINE
+- Definition Baseline ID: DB-RUN
+- Definition Baseline semantic version: 1.0.0
+- Definition Baseline exact hash: sha256:{'7' * 64}
+- Calabash standard version: 2.5.0
+- Baseline status: FROZEN
+- Applicable Definition clause references: baseline:/grandpa/product, baseline:/product_architecture/journey, baseline:/ontology/order
+- Snake review status: NONE_IDENTIFIED
+- Snake review scope: Grandpa, Product Architecture, Ontology
+- Snake review evidence refs: E-SNAKE-REVIEW
+- Scorpion review status: NONE_IDENTIFIED
+- Scorpion review scope: Grandpa, Product Architecture, Ontology
+- Scorpion review evidence refs: E-SCORPION-REVIEW
+- Meaning-change / invalidation rules reference: CAL-CHANGE-1
+- Upgrade Receipt ID: UPGRADE-RUN
+- Upgrade Receipt exact hash: sha256:{'8' * 64}
+- Upgrade verdict: CALABASH_UPGRADE_PASS
+- Owner change authority: OWNER
+- Handoff result: PASS
+
+## Snake records
+
+| Snake ID | Disposition | Guard / verification reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|
+
+## Scorpion records
+
+| Scorpion ID | Status | Blocking semantics | Hit condition reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|---|
+""",
+    )
+    write(
+        lc / "IMPACT-ANALYSIS.md",
+        """# Impact Analysis
+
+- Artifact role: IMPACT_ANALYSIS
+- Analysis ID / version: IA-RUN / 1.0.0
+- Trigger / proposed change: bounded implementation
+- Meaning impact classification: MEANING_NEUTRAL
+- Calling phase contract / authority: LC-PHASE
+- Neutral rationale / evidence: E-NEUTRAL-RUN
+- Definition Baseline ID / exact hash: NONE
+- Affected Definition clause references: NONE
+- Definition invalidation effect: NO_DEFINITION_INVALIDATION
+- Governed Calabash update route / Owner authority: NOT_APPLICABLE
+- Snake / Scorpion applicability and effect references: NONE_IDENTIFIED: E-REVIEW
+- Impact result: PASS
+""",
+    )
+
+
 def maps_and_handoff(project, commit):
     lc = project / ".lccoding"
     hashes = {
@@ -558,6 +626,8 @@ def maps_and_handoff(project, commit):
 - Baseline ID / version / hash: PB-1 / 1.0.0 / E-PB
 - Project repository identity: github.com/example/run-contract
 - Project frozen exact commit SHA: {commit}
+- Calabash Definition Handoff ID / exact hash: CDH-RUN / sha256:{hashlib.sha256((lc / 'CALABASH-UPGRADE-GATE.md').read_bytes()).hexdigest()}
+- Calabash Definition Handoff result: PASS
 - Primary product mainline ID: MAINLINE-1
 - Primary mainline Owner confirmation: OWNER_CONFIRMED: OA-PB
 - Handoff status: COMPLETE
@@ -629,6 +699,7 @@ def build_cli_project(project, *, aggregate=True, run_phases=None):
     factors = {name: "LOW" for name in ("product_uncertainty", "system_coupling", "real_risk", "irreversibility", "novelty")}
     write(lc / "PROJECT-FINGERPRINT.json", json.dumps({"complexity": factors, "depth": {}}) + "\n")
     write(lc / "PROJECT-HEALTH.json", json.dumps({"record_role": "ASSESSMENT_EVIDENCE", "initialization_mode": "NEW"}) + "\n")
+    definition_evidence(project)
     hashes = maps_and_handoff(project, commit)
     write_manifest_and_lock(project, manifest_record())
 
@@ -883,7 +954,9 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
         "Loop Owner Acceptance condition / route",
         "Risk / depth decision",
     )
-    direct_root = base / "direct-start-validation"
+    direct_project = base / "direct-start-validation"
+    definition_evidence(direct_project)
+    direct_root = direct_project / ".lccoding/runs"
     for index, field in enumerate(mandatory_semantic_fields):
         fields = valid_start("ENGINEERING_RUNS")
         fields["Selected execution method ID"] = METHOD["method_id"]

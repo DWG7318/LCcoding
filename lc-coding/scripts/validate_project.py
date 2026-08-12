@@ -48,6 +48,12 @@ PHASE3_START_FIELDS={
     'Feature Slice ID / version (ENGINEERING_RUNS only)',
     'Applicable UI / Integration Baseline (ENGINEERING_RUNS only)',
 }
+DEFINITION_START_FIELDS={
+    'Meaning impact classification',
+    'Definition basis / neutral Impact Analysis reference',
+    'Applicable Snake / Scorpion disposition evidence reference',
+}
+START_REQUIRED_FIELDS=START_REQUIRED_FIELDS|DEFINITION_START_FIELDS
 START_ALLOWED_FIELDS=START_REQUIRED_FIELDS|PHASE3_START_FIELDS
 RECEIPT_REQUIRED_FIELDS={
     'Artifact role','Acceptance ID','Run ID','Run-start contract ID',
@@ -70,6 +76,39 @@ LEGACY_METHOD_INTERFACES={
     'CLK':'LEGACY_CLK_RUN_CONTRACT',
     'GLK':'LEGACY_GLK_RUN_CONTRACT',
 }
+CALABASH_HANDOFF_FIELDS={
+    'Artifact role','Definition Handoff ID','Definition Baseline kind',
+    'Definition Baseline ID','Definition Baseline semantic version',
+    'Definition Baseline exact hash','Calabash standard version','Baseline status',
+    'Applicable Definition clause references','Snake review status',
+    'Snake review scope','Snake review evidence refs','Scorpion review status',
+    'Scorpion review scope','Scorpion review evidence refs',
+    'Meaning-change / invalidation rules reference','Upgrade Receipt ID',
+    'Upgrade Receipt exact hash','Upgrade verdict','Owner change authority',
+    'Handoff result',
+}
+IMPACT_REQUIRED_FIELDS={
+    'Artifact role','Analysis ID / version','Trigger / proposed change',
+    'Meaning impact classification','Calling phase contract / authority',
+    'Neutral rationale / evidence','Definition Baseline ID / exact hash',
+    'Affected Definition clause references','Definition invalidation effect',
+    'Governed Calabash update route / Owner authority',
+    'Snake / Scorpion applicability and effect references','Impact result',
+}
+IMPACT_ALLOWED_FIELDS=IMPACT_REQUIRED_FIELDS|{
+    'Owner Gap IDs / source Acceptance (if applicable)','Baseline and Slice',
+    'Affected Calabash','Affected Workflow','Affected UI',
+    'Affected Simulation scenarios','Affected shared capabilities / data / APIs',
+    'Affected accepted Slices / Runs / evidence',
+    'Existing evidence reused / unknown / contradicted',
+    'Fingerprint complexity and proportional-depth response','Regression scope',
+    'Release / rollback','Delta history','Gap closure evidence pointers',
+    'Owner decision',
+}
+DEFINITION_CLAUSE_RE=re.compile(
+    r'^baseline:/(?:grandpa|product_architecture|ontology)(?:/[^,\s]+)*$'
+    r'|^baseline:/full_layers/(?:contract|policy|workflow|action_catalog|adapter|eval_and_audit)(?:/[^,\s]+)*$'
+)
 
 def nested_forbidden_fields(value, forbidden, path=''):
     found=[]
@@ -604,6 +643,274 @@ def exact_ui_integration_identity(value):
     if len(parts)!=2 or not all(stable_id(part) for part in parts): return None
     return parts[0],parts[1]
 
+def comma_values(value):
+    return [item.strip() for item in str(value or '').split(',') if item.strip()]
+
+def validate_definition_clause_refs(value,label,allow_none=False):
+    text=str(value or '').strip()
+    if allow_none and text=='NONE': return []
+    refs=comma_values(text); errors=[]
+    if not refs: return [label+' requires Definition clause references']
+    if len(refs)!=len(set(refs)): errors.append(label+' contains duplicate Definition clause references')
+    for ref in refs:
+        if not DEFINITION_CLAUSE_RE.fullmatch(ref):
+            errors.append(label+' contains invalid Definition clause reference '+ref)
+    return errors
+
+def parse_narrow_handoff_table(path,expected_columns,label):
+    try: lines=path.read_text(encoding='utf-8').splitlines()
+    except (OSError,UnicodeError): return [],['cannot read UTF-8 '+label+' table']
+    headers=[]; errors=[]; expected=list(expected_columns); known=set(expected)
+    for index,line in enumerate(lines):
+        if not line.startswith('|'): continue
+        cells=[cell.strip() for cell in line.strip().strip('|').split('|')]
+        if cells and cells[0]==expected[0]:
+            headers.append(index)
+            if cells!=expected: errors.append(label+' table header has unknown or missing columns')
+        elif expected[0] in cells or len(known.intersection(cells))>=3:
+            errors.append('unexpected additional '+label+' row-shaped table/header')
+    if len(headers)!=1:
+        errors.append('Calabash Definition Handoff requires exactly one '+label+' table')
+    if not headers: return [],errors
+    start=headers[0]
+    if start+1>=len(lines):
+        errors.append(label+' table separator missing'); return [],errors
+    separators=[cell.strip() for cell in lines[start+1].strip().strip('|').split('|')]
+    if not lines[start+1].startswith('|') or len(separators)!=len(expected) or any(not re.fullmatch(r'-+',cell) for cell in separators):
+        errors.append(label+' table separator is malformed')
+    rows=[]
+    for line in lines[start+2:]:
+        if not line.strip() or line.startswith('## '): break
+        if not line.startswith('|'):
+            errors.append(label+' table contains malformed non-pipe row'); continue
+        cells=[cell.strip() for cell in line.strip().strip('|').split('|')]
+        if len(cells)!=len(expected):
+            errors.append(label+' table contains malformed row with wrong column count'); continue
+        rows.append(dict(zip(expected,cells)))
+    return rows,errors
+
+def validate_closed_handoff_pipe_surface(path,table_headers):
+    try: lines=path.read_text(encoding='utf-8').splitlines()
+    except (OSError,UnicodeError): return ['cannot read UTF-8 Calabash Definition Handoff']
+    allowed=set()
+    for expected_columns in table_headers:
+        expected=list(expected_columns); starts=[]
+        for index,line in enumerate(lines):
+            if not line.startswith('|'): continue
+            cells=[cell.strip() for cell in line.strip().strip('|').split('|')]
+            if cells==expected: starts.append(index)
+        if len(starts)==1:
+            index=starts[0]
+            while index<len(lines) and lines[index].startswith('|'):
+                allowed.add(index); index+=1
+    return [
+        'Calabash Definition Handoff contains pipe-delimited content outside closed Snake/Scorpion tables'
+        for index,line in enumerate(lines)
+        if line.lstrip().startswith('|') and index not in allowed
+    ]
+
+def exact_artifact_hash(path):
+    try: return 'sha256:'+hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError: return None
+
+def parse_exact_blocker_ids(value):
+    raw=[item.strip() for item in str(value or '').split(',') if item.strip()]
+    errors=[]
+    if not raw: return set(),['Blocker evidence requires exact blocker IDs']
+    if len(raw)!=len(set(raw)): errors.append('Blocker evidence contains duplicate blocker IDs')
+    for blocker_id in raw:
+        if not stable_id(blocker_id): errors.append('Blocker evidence contains invalid blocker ID '+blocker_id)
+    return set(raw),errors
+
+def _calabash_definition_handoff_record(path):
+    fields,errors=parse_markdown_fields_strict(path)
+    missing=CALABASH_HANDOFF_FIELDS-set(fields); unknown=set(fields)-CALABASH_HANDOFF_FIELDS
+    if missing: errors.append('Calabash Definition Handoff missing fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('Calabash Definition Handoff has unknown fields '+', '.join(sorted(unknown)))
+    exact_values={
+        'Artifact role':'CALABASH_DEFINITION_HANDOFF',
+        'Definition Baseline kind':'CALABASH_DEFINITION_BASELINE',
+        'Calabash standard version':'2.5.0','Baseline status':'FROZEN',
+        'Upgrade verdict':'CALABASH_UPGRADE_PASS','Owner change authority':'OWNER',
+    }
+    for field,expected in exact_values.items():
+        if fields.get(field)!=expected: errors.append('Calabash Definition Handoff '+field+' must be '+expected)
+    for field in ['Definition Handoff ID','Definition Baseline ID','Upgrade Receipt ID']:
+        if not stable_id(fields.get(field)): errors.append('Calabash Definition Handoff '+field+' must be a safe stable ID')
+    if not SEMVER_RE.fullmatch(str(fields.get('Definition Baseline semantic version',''))):
+        errors.append('Calabash Definition Handoff Definition Baseline semantic version is invalid')
+    for field in ['Definition Baseline exact hash','Upgrade Receipt exact hash']:
+        if not EXACT_HASH_RE.fullmatch(str(fields.get(field,''))):
+            errors.append('Calabash Definition Handoff '+field+' must be lowercase SHA-256')
+    errors.extend(validate_definition_clause_refs(
+        fields.get('Applicable Definition clause references'),'Calabash Definition Handoff'
+    ))
+    for field in [
+        'Snake review scope','Snake review evidence refs','Scorpion review scope',
+        'Scorpion review evidence refs','Meaning-change / invalidation rules reference',
+    ]:
+        if not semantic_present(fields.get(field)): errors.append('Calabash Definition Handoff '+field+' required')
+    for field in ['Snake review scope','Scorpion review scope']:
+        scope=comma_values(fields.get(field))
+        allowed={'Grandpa','Product Architecture','Ontology','Contract','Policy','Workflow','Action Catalog','Adapter','Eval & Audit'}
+        if len(scope)!=len(set(scope)) or not scope or not set(scope).issubset(allowed):
+            errors.append('Calabash Definition Handoff '+field+' is invalid')
+    snake_status=fields.get('Snake review status')
+    scorpion_status=fields.get('Scorpion review status')
+    if snake_status not in {'IDENTIFIED','NONE_IDENTIFIED'}: errors.append('Snake review status is invalid')
+    if scorpion_status not in {'IDENTIFIED','NONE_IDENTIFIED'}: errors.append('Scorpion review status is invalid')
+    snake_columns=['Snake ID','Disposition','Guard / verification reference','Evidence refs','Affected Definition clause refs']
+    scorpion_columns=['Scorpion ID','Status','Blocking semantics','Hit condition reference','Evidence refs','Affected Definition clause refs']
+    snake_rows,snake_table_errors=parse_narrow_handoff_table(path,snake_columns,'Snake')
+    scorpion_rows,scorpion_table_errors=parse_narrow_handoff_table(path,scorpion_columns,'Scorpion')
+    errors.extend(snake_table_errors); errors.extend(scorpion_table_errors)
+    errors.extend(validate_closed_handoff_pipe_surface(path,[snake_columns,scorpion_columns]))
+    blockers=[]
+    snake_ids=set()
+    for index,row in enumerate(snake_rows):
+        prefix=f'Snake row {index+1}'
+        snake_id=str(row.get('Snake ID','')).strip()
+        if not stable_id(snake_id): errors.append(prefix+' requires a safe stable ID')
+        elif snake_id in snake_ids: errors.append('duplicate Snake ID '+snake_id)
+        snake_ids.add(snake_id)
+        disposition=row.get('Disposition')
+        if disposition not in {'OPEN','GUARDED','ACCEPTED_WITH_EVIDENCE','INVALIDATED'}:
+            errors.append(prefix+' has invalid disposition')
+        for field in ['Guard / verification reference','Evidence refs']:
+            if not semantic_present(row.get(field)): errors.append(prefix+' '+field+' required')
+        errors.extend(validate_definition_clause_refs(row.get('Affected Definition clause refs'),prefix))
+        if disposition=='OPEN' and snake_id: blockers.append(snake_id)
+    if snake_status=='IDENTIFIED' and not snake_rows: errors.append('IDENTIFIED Snake review requires records')
+    if snake_status=='NONE_IDENTIFIED' and snake_rows: errors.append('NONE_IDENTIFIED Snake review must not contain records')
+    scorpion_ids=set()
+    for index,row in enumerate(scorpion_rows):
+        prefix=f'Scorpion row {index+1}'
+        scorpion_id=str(row.get('Scorpion ID','')).strip()
+        if not stable_id(scorpion_id): errors.append(prefix+' requires a safe stable ID')
+        elif scorpion_id in scorpion_ids: errors.append('duplicate Scorpion ID '+scorpion_id)
+        scorpion_ids.add(scorpion_id)
+        status=row.get('Status')
+        if status not in {'CLEAR','HIT','INVALIDATED'}: errors.append(prefix+' has invalid status')
+        if row.get('Blocking semantics')!='HARD_BLOCK': errors.append(prefix+' must use HARD_BLOCK')
+        for field in ['Hit condition reference','Evidence refs']:
+            if not semantic_present(row.get(field)): errors.append(prefix+' '+field+' required')
+        errors.extend(validate_definition_clause_refs(row.get('Affected Definition clause refs'),prefix))
+        if status=='HIT' and scorpion_id: blockers.append(scorpion_id)
+    if scorpion_status=='IDENTIFIED' and not scorpion_rows: errors.append('IDENTIFIED Scorpion review requires records')
+    if scorpion_status=='NONE_IDENTIFIED' and scorpion_rows: errors.append('NONE_IDENTIFIED Scorpion review must not contain records')
+    result=fields.get('Handoff result')
+    if result not in {'PASS','BLOCKED'}: errors.append('Calabash Definition Handoff result must be PASS or BLOCKED')
+    if result=='PASS' and blockers: errors.append('Calabash Definition Handoff PASS cannot override OPEN/HIT evidence')
+    return fields,blockers,errors
+
+def validate_calabash_definition_handoff(path,require_pass=False):
+    fields,blockers,errors=_calabash_definition_handoff_record(path)
+    if require_pass:
+        if fields.get('Handoff result')!='PASS': errors.append('Calabash Definition Handoff must PASS')
+        if blockers: errors.append('Calabash Definition Handoff has blocking Snake/Scorpion evidence: '+', '.join(blockers))
+    return errors
+
+def validate_impact_analysis(path):
+    fields,errors=parse_markdown_fields_strict(path)
+    missing=IMPACT_REQUIRED_FIELDS-set(fields); unknown=set(fields)-IMPACT_ALLOWED_FIELDS
+    if missing: errors.append('Impact Analysis missing fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('Impact Analysis has unknown fields '+', '.join(sorted(unknown)))
+    if fields.get('Artifact role')!='IMPACT_ANALYSIS': errors.append('Impact Analysis artifact role is invalid')
+    identity=str(fields.get('Analysis ID / version','')).split('/')
+    if len(identity)!=2 or not stable_id(identity[0].strip()) or not SEMVER_RE.fullmatch(identity[1].strip()):
+        errors.append('Impact Analysis ID / version is invalid')
+    for field in ['Trigger / proposed change','Calling phase contract / authority','Snake / Scorpion applicability and effect references']:
+        if not semantic_present(fields.get(field)): errors.append('Impact Analysis '+field+' required')
+    classification=fields.get('Meaning impact classification')
+    if classification not in {'MEANING_CHANGING','MEANING_NEUTRAL'}:
+        errors.append('Meaning impact classification is invalid')
+    if fields.get('Impact result') not in {'PASS','BLOCKED'}: errors.append('Impact result must be PASS or BLOCKED')
+    if classification=='MEANING_CHANGING':
+        if not exact_id_hash(fields.get('Definition Baseline ID / exact hash')):
+            errors.append('meaning-changing work requires exact Definition Baseline identity')
+        errors.extend(validate_definition_clause_refs(fields.get('Affected Definition clause references'),'Impact Analysis'))
+        if fields.get('Definition invalidation effect')!='INVALIDATES': errors.append('meaning-changing work must record INVALIDATES')
+        if fields.get('Governed Calabash update route / Owner authority')!='CALABASH_UPDATE / OWNER':
+            errors.append('meaning-changing work requires governed Calabash update route and Owner authority')
+    if classification=='MEANING_NEUTRAL':
+        if fields.get('Definition Baseline ID / exact hash')!='NONE' or fields.get('Affected Definition clause references')!='NONE':
+            errors.append('meaning-neutral work must not fabricate a Definition Baseline')
+        if fields.get('Definition invalidation effect')!='NO_DEFINITION_INVALIDATION':
+            errors.append('meaning-neutral work must record no Definition invalidation')
+        if fields.get('Governed Calabash update route / Owner authority')!='NOT_APPLICABLE':
+            errors.append('meaning-neutral work must not fabricate a Calabash update route')
+        if not semantic_present(fields.get('Neutral rationale / evidence')):
+            errors.append('meaning-neutral work requires evidence-backed neutral rationale')
+    return errors
+
+def _safe_lccoding_evidence(path,reference):
+    lc=next((parent for parent in path.parents if parent.name=='.lccoding'),None)
+    if lc is None: return None,None
+    text=str(reference or '').strip()
+    if not text or '\\' in text or '://' in text or Path(text).is_absolute(): return lc,None
+    resolved=(lc/text).resolve()
+    try: contained=resolved.is_relative_to(lc.resolve())
+    except AttributeError: contained=str(resolved).startswith(str(lc.resolve())+str(Path('/')))
+    return lc,resolved if contained and resolved.is_file() else None
+
+def validate_product_definition_basis(lc,handoff_fields):
+    errors=[]; gate=lc/'CALABASH-UPGRADE-GATE.md'
+    if not gate.is_file(): return ['Product Baseline COMPLETE requires Calabash Definition Handoff']
+    errors.extend(validate_calabash_definition_handoff(gate,require_pass=True))
+    fields,_,_= _calabash_definition_handoff_record(gate)
+    citation=exact_id_hash(handoff_fields.get('Calabash Definition Handoff ID / exact hash'))
+    expected=(fields.get('Definition Handoff ID'),exact_artifact_hash(gate))
+    if not citation or citation!=expected: errors.append('Product Baseline Calabash Definition Handoff identity/hash mismatch')
+    if handoff_fields.get('Calabash Definition Handoff result')!='PASS':
+        errors.append('Product Baseline requires Calabash Definition Handoff PASS')
+    product_identity=str(handoff_fields.get('Baseline ID / version / hash','')).strip()
+    if product_identity.startswith('CALABASH_DEFINITION_BASELINE'):
+        errors.append('Product Baseline identity cannot be a Definition Baseline')
+    return errors
+
+def validate_run_definition_basis(path,fields):
+    errors=[]
+    classification=fields.get('Meaning impact classification')
+    if classification not in {'MEANING_CHANGING','MEANING_NEUTRAL'}:
+        return ['Run start Meaning impact classification is invalid']
+    lc,impact_path=_safe_lccoding_evidence(path,fields.get('Definition basis / neutral Impact Analysis reference'))
+    if not impact_path: return ['Run start requires a contained Impact Analysis reference']
+    impact_fields=parse_markdown_fields(impact_path)
+    errors.extend(validate_impact_analysis(impact_path))
+    if impact_fields.get('Meaning impact classification')!=classification:
+        errors.append('Run start meaning classification disagrees with Impact Analysis')
+    _,disposition_path=_safe_lccoding_evidence(path,fields.get('Applicable Snake / Scorpion disposition evidence reference'))
+    if not disposition_path: errors.append('Run start requires contained Snake/Scorpion disposition evidence')
+    elif disposition_path.name!='CALABASH-UPGRADE-GATE.md': errors.append('Run start disposition evidence must cite the Definition Handoff')
+    handoff_fields={}; blockers=[]
+    if disposition_path and disposition_path.name=='CALABASH-UPGRADE-GATE.md':
+        handoff_fields,blockers,handoff_errors=_calabash_definition_handoff_record(disposition_path)
+        errors.extend(handoff_errors)
+    if classification=='MEANING_CHANGING' and disposition_path:
+        impact_identity=exact_id_hash(impact_fields.get('Definition Baseline ID / exact hash'))
+        expected=(handoff_fields.get('Definition Baseline ID'),handoff_fields.get('Definition Baseline exact hash'))
+        if impact_identity!=expected: errors.append('meaning-changing Run Definition Baseline disagrees with current handoff')
+    if classification=='MEANING_NEUTRAL' and impact_fields.get('Definition Baseline ID / exact hash')!='NONE':
+        errors.append('meaning-neutral Run fabricates Definition basis')
+    if disposition_path:
+        applicable_blockers=set(blockers)
+        if impact_fields.get('Impact result')=='BLOCKED':
+            analysis_parts=[part.strip() for part in str(impact_fields.get('Analysis ID / version','')).split('/')]
+            if analysis_parts and stable_id(analysis_parts[0]): applicable_blockers.add(analysis_parts[0])
+        if fields.get('Readiness result')=='READY':
+            if fields.get('Blocker evidence')!='NONE': errors.append('READY Run requires Blocker evidence NONE')
+            if impact_fields.get('Impact result')!='PASS': errors.append('READY Run requires Impact result PASS')
+            if handoff_fields.get('Handoff result')!='PASS' or blockers:
+                errors.append('READY Run is blocked by applicable Definition evidence')
+        elif fields.get('Readiness result')=='BLOCKED':
+            if applicable_blockers:
+                blocker_ids,blocker_errors=parse_exact_blocker_ids(fields.get('Blocker evidence'))
+                errors.extend(blocker_errors)
+                if blocker_ids!=applicable_blockers:
+                    errors.append('BLOCKED Run blocker IDs must exactly match applicable Definition blockers')
+        else: errors.append('Run start readiness is invalid for Definition basis')
+    return errors
+
 def validate_execution_method_registry(manifest,lock,manifest_path):
     errors=[]; eligible={}; candidates={}; collection=manifest.get('execution_methods')
     if collection is None:
@@ -721,6 +1028,7 @@ def validate_run_start_record(path,fields,eligible_methods,manifest,lock):
             if fields.get('Selected execution method version')!=legacy.get('version') or fields.get('Selected execution method exact hash')!=legacy.get('hash') or fields.get('Selected execution method canonical interface / contract reference')!=LEGACY_METHOD_INTERFACES[legacy_id]:
                 errors.append(prefix+' selected legacy method does not match dual-read adapter')
     else: errors.append(prefix+' selected method is not registered and eligible')
+    errors.extend(validate_run_definition_basis(path,fields))
     return errors
 
 def validate_terminal_receipt(path,fields):
@@ -947,11 +1255,27 @@ def main():
     workflow_rows=parse_markdown_table(lc/'WORKFLOW-MAP.md','Workflow ID') if (lc/'WORKFLOW-MAP.md').exists() else []
     ui_rows=parse_markdown_table(lc/'UI-MAP.md','UI ID') if (lc/'UI-MAP.md').exists() else []
     simulation_rows=parse_markdown_table(lc/'SIMULATION-WORLD.md','Simulation ID') if (lc/'SIMULATION-WORLD.md').exists() else []
+    calabash_handoff=lc/'CALABASH-UPGRADE-GATE.md'
+    if calabash_handoff.exists():
+        calabash_fields=parse_markdown_fields(calabash_handoff)
+        if semantic_present(calabash_fields.get('Definition Baseline ID')) or calabash_fields.get('Handoff result') in {'PASS','BLOCKED'}:
+            errors.extend(validate_calabash_definition_handoff(calabash_handoff,require_pass=False))
+    impact_path=lc/'IMPACT-ANALYSIS.md'
+    if impact_path.exists():
+        impact_fields=parse_markdown_fields(impact_path)
+        if impact_fields.get('Meaning impact classification') in {'MEANING_CHANGING','MEANING_NEUTRAL'}:
+            errors.extend(validate_impact_analysis(impact_path))
     handoff=lc/'PRODUCT-BASELINE-HANDOFF.md'; handoff_errors=[]
     if handoff.exists():
         handoff_fields=parse_markdown_fields(handoff)
-        if str(handoff_fields.get('Handoff status','')).strip().upper()!='COMPLETE':
+        handoff_complete=str(handoff_fields.get('Handoff status','')).strip().upper()=='COMPLETE'
+        if not handoff_complete:
             handoff_errors.append('Product Baseline Handoff status must be COMPLETE')
+        definition_citation_fields={'Calabash Definition Handoff ID / exact hash','Calabash Definition Handoff result'}
+        if handoff_complete:
+            if not definition_citation_fields.issubset(handoff_fields):
+                handoff_errors.append('Product Baseline COMPLETE requires Calabash Definition Handoff citation and result')
+            handoff_errors.extend(validate_product_definition_basis(lc,handoff_fields))
         repository=canonical_github_repository(handoff_fields.get('Project repository identity'))
         project_repository=canonical_github_repository(start.get('repository'))
         if not repository or (project_repository and repository!=project_repository):

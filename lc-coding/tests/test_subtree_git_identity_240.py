@@ -52,6 +52,43 @@ def write(path, content):
     path.write_text(content, encoding="utf-8", newline="\n")
 
 
+def definition_handoff():
+    return """# Calabash Definition Handoff
+
+- Artifact role: CALABASH_DEFINITION_HANDOFF
+- Definition Handoff ID: CDH-FIXTURE
+- Definition Baseline kind: CALABASH_DEFINITION_BASELINE
+- Definition Baseline ID: DB-FIXTURE
+- Definition Baseline semantic version: 1.0.0
+- Definition Baseline exact hash: sha256:1111111111111111111111111111111111111111111111111111111111111111
+- Calabash standard version: 2.5.0
+- Baseline status: FROZEN
+- Applicable Definition clause references: baseline:/grandpa/product
+- Snake review status: NONE_IDENTIFIED
+- Snake review scope: Grandpa
+- Snake review evidence refs: E-SNAKE-REVIEW
+- Scorpion review status: NONE_IDENTIFIED
+- Scorpion review scope: Grandpa
+- Scorpion review evidence refs: E-SCORPION-REVIEW
+- Meaning-change / invalidation rules reference: CAL-CHANGE-1
+- Upgrade Receipt ID: UPGRADE-FIXTURE
+- Upgrade Receipt exact hash: sha256:2222222222222222222222222222222222222222222222222222222222222222
+- Upgrade verdict: CALABASH_UPGRADE_PASS
+- Owner change authority: OWNER
+- Handoff result: PASS
+
+## Snake records
+
+| Snake ID | Disposition | Guard / verification reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|
+
+## Scorpion records
+
+| Scorpion ID | Status | Blocking semantics | Hit condition reference | Evidence refs | Affected Definition clause refs |
+|---|---|---|---|---|---|
+"""
+
+
 def workflow_map(mainline_id, path, version, content_hash, *, classification="CORE", api="API-WF / D2-API", mcp="MCP-WF / D2-MCP", primary="YES"):
     return f"""# Workflow Map
 
@@ -92,7 +129,7 @@ def simulation_map(mainline_id, path, version, content_hash, *, primary="YES"):
 """
 
 
-def handoff(commit, mainline_id, owner_confirmation, identities, *, workflow_classification="CORE", workflow_api="API-WF / D2-API", workflow_mcp="MCP-WF / D2-MCP", primary="YES"):
+def handoff(commit, mainline_id, owner_confirmation, identities, definition_hash, *, workflow_classification="CORE", workflow_api="API-WF / D2-API", workflow_mcp="MCP-WF / D2-MCP", primary="YES"):
     ui, workflow, simulation = identities
     return f"""# Product Baseline Handoff
 
@@ -100,6 +137,8 @@ def handoff(commit, mainline_id, owner_confirmation, identities, *, workflow_cla
 - Project repository identity: github.com/example/project
 - Project frozen exact commit SHA: {commit}
 - Calabash source: CAL-1
+- Calabash Definition Handoff ID / exact hash: CDH-FIXTURE / {definition_hash}
+- Calabash Definition Handoff result: PASS
 - Workflow Map: .lccoding/WORKFLOW-MAP.md
 - UI Map: .lccoding/UI-MAP.md
 - Simulation World: .lccoding/SIMULATION-WORLD.md
@@ -136,6 +175,9 @@ def write_identity_artifacts(repo, base_commit, hashes, **changes):
         changes.get("simulation_map_hash", hashes["SIMULATION"]),
     )
     lc = repo / ".lccoding"
+    gate = lc / "CALABASH-UPGRADE-GATE.md"
+    write(gate, definition_handoff())
+    definition_hash = "sha256:" + hashlib.sha256(gate.read_bytes()).hexdigest()
     write(lc / "WORKFLOW-MAP.md", workflow_map(
         mainline_map, workflow[0], workflow[1], workflow[2],
         classification=changes.get("workflow_map_classification", "CORE"),
@@ -159,6 +201,7 @@ def write_identity_artifacts(repo, base_commit, hashes, **changes):
         mainline_handoff,
         changes.get("owner_confirmation", "OWNER_CONFIRMED: OA-PB-1"),
         locked,
+        definition_hash,
         workflow_classification=changes.get("workflow_handoff_classification", "CORE"),
         workflow_api=changes.get("workflow_handoff_api", "API-WF / D2-API"),
         workflow_mcp=changes.get("workflow_handoff_mcp", "MCP-WF / D2-MCP"),
