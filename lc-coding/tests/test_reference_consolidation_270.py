@@ -50,9 +50,15 @@ ACCEPTANCE_CLAUSES = {"LC-ACCEPT-001", "LC-ACCEPT-002", "LC-ACCEPT-003"}
 VERIFICATION_CLAUSES = {"LC-VERIFY-001"}
 SECURITY_CLAUSES = {"LC-SEC-001", "LC-SEC-002"}
 DELIVERY_CLAUSES = {"LC-DELIVERY-001"}
-HISTORICAL_PREFIXES = (
-    "docs/superpowers/specs/",
-    "docs/superpowers/plans/",
+HISTORICAL_ROOT = "docs/superpowers"
+HISTORICAL_BOUNDARY = "docs/superpowers/README.md"
+HISTORICAL_MARKERS = (
+    "Artifact class: HISTORICAL_DESIGN_RECORDS",
+    "Authority: NON_NORMATIVE",
+    "Use: PROVENANCE_ONLY",
+    "Validator/runtime input: FORBIDDEN",
+    "Current semantic authority: ../../SPEC.md",
+    "descendant wording never overrides current authority",
 )
 CALLER_SUFFIXES = {".py", ".md", ".json"}
 
@@ -74,7 +80,42 @@ def tracked_active_paths():
         path
         for path in paths
         if path != "FILE_HASHES.json"
-        and not path.startswith(HISTORICAL_PREFIXES)
+        and not is_validated_historical_path(path)
+    )
+
+
+def contained_under(path, parent):
+    candidate = (ROOT / path).resolve(strict=False)
+    boundary = (ROOT / parent).resolve(strict=False)
+    try:
+        candidate.relative_to(boundary)
+        return True
+    except ValueError:
+        return False
+
+
+def validate_historical_boundary():
+    boundary = ROOT / HISTORICAL_BOUNDARY
+    assert boundary.is_file(), "missing historical design boundary"
+    text = boundary.read_text(encoding="utf-8")
+    for marker in HISTORICAL_MARKERS:
+        assert marker in text, marker
+    assert "Source clauses:" not in text
+    readmes = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / HISTORICAL_ROOT).rglob("README.md")
+        if path.is_file()
+    )
+    assert readmes == [HISTORICAL_BOUNDARY]
+
+
+def is_validated_historical_path(path):
+    validate_historical_boundary()
+    normalized = Path(path).as_posix()
+    if normalized == HISTORICAL_BOUNDARY:
+        return True
+    return contained_under(normalized, f"{HISTORICAL_ROOT}/specs") or contained_under(
+        normalized, f"{HISTORICAL_ROOT}/plans"
     )
 
 
@@ -154,6 +195,19 @@ def active_callers():
         if source_references_retired(relative, text):
             callers.append(relative)
     return callers
+
+
+def caller_from_source(relative, text):
+    if is_validated_historical_path(relative):
+        return False
+    return source_references_retired(relative, text)
+
+
+retired_sample = f"[legacy]({RETIRED_REFERENCE})"
+assert not caller_from_source("docs/superpowers/specs/x.md", retired_sample)
+assert not caller_from_source("docs/superpowers/plans/x.md", retired_sample)
+for active_path in ("README.md", "lc-coding/references/x.md", "docs/current.md"):
+    assert caller_from_source(active_path, retired_sample), active_path
 
 
 adversarial_sources = {

@@ -1,9 +1,80 @@
+import hashlib
 from pathlib import Path
 import re
 
 
 root = Path(__file__).resolve().parents[2]
 spec = (root / "SPEC.md").read_text(encoding="utf-8")
+
+HISTORICAL_ROOT = (root / "docs/superpowers").resolve()
+HISTORICAL_BOUNDARY = (HISTORICAL_ROOT / "README.md").resolve()
+HISTORICAL_MARKERS = (
+    "Artifact class: HISTORICAL_DESIGN_RECORDS",
+    "Authority: NON_NORMATIVE",
+    "Use: PROVENANCE_ONLY",
+    "Validator/runtime input: FORBIDDEN",
+    "Current semantic authority: ../../SPEC.md",
+    "descendant wording never overrides current authority",
+)
+
+
+def contained_under(path, parent):
+    candidate = Path(path).resolve(strict=False)
+    boundary = Path(parent).resolve(strict=False)
+    try:
+        candidate.relative_to(boundary)
+        return True
+    except ValueError:
+        return False
+
+
+def historical_kind(path):
+    candidate = Path(path).resolve(strict=False)
+    if candidate == HISTORICAL_BOUNDARY:
+        return "BOUNDARY"
+    if contained_under(candidate, HISTORICAL_ROOT / "specs") or contained_under(
+        candidate, HISTORICAL_ROOT / "plans"
+    ):
+        return "HISTORICAL_RECORD"
+    return "ACTIVE_OR_OTHER"
+
+
+assert historical_kind(HISTORICAL_ROOT / "specs/x.md") == "HISTORICAL_RECORD"
+assert historical_kind(HISTORICAL_ROOT / "plans/x.md") == "HISTORICAL_RECORD"
+assert historical_kind(HISTORICAL_BOUNDARY) == "BOUNDARY"
+assert historical_kind(HISTORICAL_ROOT / "specs/../README.md") == "BOUNDARY"
+assert historical_kind(root / "docs/other.md") == "ACTIVE_OR_OTHER"
+assert historical_kind(root / "lc-coding/references/x.md") == "ACTIVE_OR_OTHER"
+
+assert HISTORICAL_BOUNDARY.is_file(), "missing historical design boundary"
+boundary_text = HISTORICAL_BOUNDARY.read_text(encoding="utf-8")
+for marker in HISTORICAL_MARKERS:
+    assert marker in boundary_text, marker
+assert "Source clauses:" not in boundary_text
+boundary_readmes = sorted(
+    path.resolve()
+    for path in HISTORICAL_ROOT.rglob("README.md")
+    if path.is_file()
+)
+assert boundary_readmes == [HISTORICAL_BOUNDARY]
+
+HISTORICAL_RECORD_HASHES = {
+    "docs/superpowers/plans/2026-08-06-lccoding-bi-github-windows-release.md": "30f23b334ad110d5263c2ac9e754a81bc2740010ea6244f56ccdd90c69b5063d",
+    "docs/superpowers/plans/2026-08-12-lccoding-2.7.0-structure-consolidation-implementation-plan.md": "7d6f5fa8f08f379c024d088ef2fb6f676f44f2ee5904a7da4b49daa78174cd27",
+    "docs/superpowers/specs/2026-08-05-lccoding-bi-one-click-react-design.md": "d945eab23b20a977b906f8e38396b2ba0283284924df8ba77469ec3728af9db2",
+    "docs/superpowers/specs/2026-08-06-lccoding-bi-github-windows-release-design.md": "2f1281949b527c2efbef99bf9a32b5b098aa2c04a8a9760bbfa7a865056e7f51",
+    "docs/superpowers/specs/2026-08-10-cross-phase-execution-methods-design.md": "14c7460ee661c94df34d0ff8985e50b225799db57591649e3deb79ae82d92e51",
+    "docs/superpowers/specs/2026-08-12-lccoding-2.7.0-structure-consolidation-design.md": "c48b659333f1b6252029faebe50476016f561ba9c6818de1a138e86fe4b5604e",
+}
+actual_historical_records = {
+    path.relative_to(root).as_posix()
+    for directory in (HISTORICAL_ROOT / "specs", HISTORICAL_ROOT / "plans")
+    for path in directory.rglob("*.md")
+    if path.is_file()
+}
+assert actual_historical_records == set(HISTORICAL_RECORD_HASHES)
+for relative, expected_hash in HISTORICAL_RECORD_HASHES.items():
+    assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash
 
 EXPECTED_TITLES = {
     "LC-AUTH-001": "Owner authority and method boundary",
@@ -443,6 +514,16 @@ PROJECTIONS = (
     root / "README.zh-CN.md",
     root / "lc-coding/SKILL.md",
 )
+assert HISTORICAL_BOUNDARY not in PROJECTIONS
+for historical in [HISTORICAL_BOUNDARY, *(root / path for path in HISTORICAL_RECORD_HASHES)]:
+    assert historical not in PROJECTIONS
+    assert not contained_under(historical, root / "lc-coding/references")
+
+validator_source = (root / "lc-coding/scripts/validate_repository.py").read_text(
+    encoding="utf-8"
+)
+for historical in [HISTORICAL_BOUNDARY, *(root / path for path in HISTORICAL_RECORD_HASHES)]:
+    assert historical.relative_to(root).as_posix() not in validator_source
 MODAL_RE = re.compile(
     r"(?i)\b(?:must|shall|required|never|forbidden|prohibited|may not|cannot)\b"
     r"|(?:必须|不得|禁止|不可|只能)"
