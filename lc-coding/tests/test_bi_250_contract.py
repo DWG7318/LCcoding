@@ -5,6 +5,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -151,6 +153,13 @@ def controlled_asset_and_gh_state() -> tuple[dict, dict]:
     return asset, state
 
 
+POWERSHELL_HOSTS = tuple(
+    host for host in ("pwsh", "powershell") if shutil.which(host) is not None
+)
+assert POWERSHELL_HOSTS, "at least one PowerShell host is required"
+assert all(shutil.which(host) is not None for host in POWERSHELL_HOSTS)
+
+
 def run_release_verifier(
     asset: dict | str, host: str, change_state=None
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
@@ -218,6 +227,22 @@ raise SystemExit(1)
         (fake_bin / "gh.cmd").write_text(
             f'@"{sys.executable}" "%~dp0fake_gh.py" %*\r\n', encoding="utf-8"
         )
+        posix_gh = fake_bin / "gh"
+        posix_gh.write_text(
+            f"#!{sys.executable}\n"
+            "import runpy\n"
+            "from pathlib import Path\n"
+            'runpy.run_path(str(Path(__file__).with_name("fake_gh.py")), '
+            'run_name="__main__")\n',
+            encoding="utf-8",
+            newline="\n",
+        )
+        posix_gh.chmod(
+            posix_gh.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        )
+        assert posix_gh.is_file(), "the fake gh must expose a POSIX executable shim"
+        assert os.access(posix_gh, os.X_OK), "the POSIX fake gh shim must be executable"
+        assert b"\r\n" not in posix_gh.read_bytes(), "the POSIX fake gh shim must use LF"
         environment = os.environ.copy()
         environment["PATH"] = f"{fake_bin}{os.pathsep}{environment['PATH']}"
         environment["FAKE_GH_STATE"] = str(state_path)
@@ -244,7 +269,7 @@ raise SystemExit(1)
 
 
 valid_asset, _ = controlled_asset_and_gh_state()
-for host in ["pwsh", "powershell"]:
+for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
     assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
@@ -269,7 +294,7 @@ def advance_all_mains(state: dict) -> None:
         record["main_commit"] = f"{index}" * 40
 
 
-for host in ["pwsh", "powershell"]:
+for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_asset, host, advance_all_mains)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
     assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
@@ -281,7 +306,7 @@ def change_slk_tag_commit(state: dict) -> None:
     state["repositories"][LOOP_FILES["slk"]["repository"]]["tag_commit"] = "9" * 40
 
 
-for host in ["pwsh", "powershell"]:
+for host in POWERSHELL_HOSTS:
     blocked, calls = run_release_verifier(valid_asset, host, change_slk_tag_commit)
     assert blocked.returncode != 0
     assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_RELEASE_IDENTITY" in (
@@ -312,7 +337,7 @@ for mutation, reason in [
     (prerelease_slk_release, "SLK_RELEASE_IDENTITY"),
     (change_slk_release_tag, "SLK_RELEASE_IDENTITY"),
 ]:
-    for host in ["pwsh", "powershell"]:
+    for host in POWERSHELL_HOSTS:
         blocked, calls = run_release_verifier(valid_asset, host, mutation)
         assert blocked.returncode != 0
         assert f"BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:{reason}" in (
@@ -322,7 +347,7 @@ for mutation, reason in [
 
 hash_drift = copy.deepcopy(valid_asset)
 hash_drift["execution_methods"]["slk"]["manifest_sha256"] = "0" * 64
-for host in ["pwsh", "powershell"]:
+for host in POWERSHELL_HOSTS:
     blocked, calls = run_release_verifier(hash_drift, host)
     assert blocked.returncode != 0
     assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_MANIFEST_SHA256" in (
@@ -401,7 +426,7 @@ escaped_duplicate_json = json.dumps(valid_asset, indent=2).replace(
 )
 early_rejections.append(escaped_duplicate_json)
 for malformed in early_rejections:
-    for host in ["pwsh", "powershell"]:
+    for host in POWERSHELL_HOSTS:
         blocked, calls = run_release_verifier(malformed, host)
         assert blocked.returncode != 0
         assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:IDENTITY_RECORD" in (
@@ -414,7 +439,7 @@ def lowercase_release_tag(state: dict) -> None:
     state["repositories"][LOOP_FILES["slk"]["repository"]]["release_tag"] = "V2.5.0"
 
 
-for host in ["pwsh", "powershell"]:
+for host in POWERSHELL_HOSTS:
     blocked, calls = run_release_verifier(valid_asset, host, lowercase_release_tag)
     assert blocked.returncode != 0
     assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_RELEASE_IDENTITY" in (

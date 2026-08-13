@@ -196,7 +196,7 @@
   "lc-coding/tests/test_acceptance_boundary.py": "108dbc8bf130ed982b0e6a7c89db55847fd116eff88ccff5365e038347fde33e",
   "lc-coding/tests/test_acceptance_migration.py": "7485eccdb0eec676b9434b811bfcfd21ceb78e950a45e3ed92c7348329955ba6",
   "lc-coding/tests/test_authority_graph_270.py": "c63985e9fe08bdb6f231838284496d9ac35b4c2b99af5d412e188bf02d7e3734",
-  "lc-coding/tests/test_bi_250_contract.py": "50387462b7e2d14404f86af7b075034f247cc854e2dc857241e595626c456566",
+  "lc-coding/tests/test_bi_250_contract.py": "847e5d47cb584b218c3dd41e4e3cd0abd8f6fe269eefefeb1ea5c77719094d9b",
   "lc-coding/tests/test_bi_compatibility_asset_270.py": "2c15c633cfbb3f387941abd82a664a902ac031b4108ad72557fd2805b304379e",
   "lc-coding/tests/test_bi_desktop_boundary.py": "387f3e68d164e24f271121d60bcc87d51854e6cefcc150b51372f1ae066a56a7",
   "lc-coding/tests/test_bi_release_asset_name_251.py": "fae6c46568bc5eae0150e35ceb035a7f755bead3604af86552e4861b8c6294b7",
