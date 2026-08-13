@@ -68,8 +68,16 @@ assert "LCCoding-BI_2.6.0_x64-setup.exe" in workflow
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
 )
-assert loop_identities["slk"]["version"] == "2.5.0"
-assert loop_identities["clk"]["version"] == "2.5.0"
-assert loop_identities["glk"]["version"] == "3.1.0"
+assert loop_identities["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V1"
+assert set(loop_identities) == {"asset_schema", "status_adapters", "execution_methods"}
+assert set(loop_identities["status_adapters"]) == {"2.6.0", "2.7.0"}
+assert loop_identities["status_adapters"]["2.6.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
+assert loop_identities["status_adapters"]["2.7.0"]["compatibility_status"] == "CURRENT"
+methods = loop_identities["execution_methods"]
+assert set(methods) == {"slk", "clk", "glk"}
+assert methods["slk"]["version"] == "2.5.0"
+assert methods["clk"]["version"] == "2.5.0"
+assert methods["glk"]["version"] == "3.1.0"
+assert not {"slk", "clk", "glk"}.intersection(loop_identities)
 
 print("PASS: LCCoding 2.6.0 version is consistent across release artifacts")

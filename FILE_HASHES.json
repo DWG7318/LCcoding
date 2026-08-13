@@ -38,7 +38,7 @@
   "lc-coding/bi/package-lock.json": "61e11e203d90b91e5bb0cff3808a622b5e5282cdfef015a5e2d7d10bedd28c4c",
   "lc-coding/bi/package.json": "65c90a0886279fc19bc1e682de1f7539d05f78e6a7a8f633ccf2f6b2a92f9347",
   "lc-coding/bi/playwright.config.ts": "f75f400829c9346c0ad11b4277d434ac188184096a16dc79410b9921a835b06a",
-  "lc-coding/bi/release/loop-contract-identities.json": "ed7cf3b74da9e1e6a38999b164d727a7744e00a5e21f8f0d5e9617498977a889",
+  "lc-coding/bi/release/loop-contract-identities.json": "719a76227aa73f5fca43c57e9322fad7f7fb2d037af5b405024f3a27dfd54851",
   "lc-coding/bi/scripts/package-release.ps1": "75fa439aaffc15e6447d910598716723a4df25a430968589f71604d5af63bd2a",
   "lc-coding/bi/scripts/verify-loop-releases.ps1": "8b4ae16af135e097ad1b5df691346d7e696a44f0685a66d81b201f814c370f62",
   "lc-coding/bi/src-tauri/.gitignore": "8fcbc0d5cf13fd66a489e103d2c8312262573bc826a7213920496730c94a5f50",
@@ -193,6 +193,7 @@
   "lc-coding/tests/test_acceptance_migration.py": "7485eccdb0eec676b9434b811bfcfd21ceb78e950a45e3ed92c7348329955ba6",
   "lc-coding/tests/test_authority_graph_270.py": "da715889b26d9f530ae8eeabb3f86b971695be903727fa2715f9323b664a8980",
   "lc-coding/tests/test_bi_250_contract.py": "0b7fdd18eff04d3d69eb54743bba198e964acceeb748e4d8b298a165c22facb4",
+  "lc-coding/tests/test_bi_compatibility_asset_270.py": "ae21f8d055e137823998ae38b1aa52ba7e0cc69264e5ffb83a9eaf532971f76f",
   "lc-coding/tests/test_bi_desktop_boundary.py": "26e94f91288de7bdf4f68fd20bf19e771e891071718927d24645faa564d18527",
   "lc-coding/tests/test_bi_release_asset_name_251.py": "7af49369832210c3b05af501eeefd062779036231a88b748193140ed0dc9bb47",
   "lc-coding/tests/test_bi_release_workflow_251.py": "f629329bc639bfb47abac65f77c84458a20862edf4ff4e54dd6d963b59f4dc5b",
@@ -230,7 +231,7 @@
   "lc-coding/tests/test_takeover_and_status_authority.py": "ed7ad796fa99e719b16e04f28a8f1bc0bfec7c93bcfc44a2ce266ce1307d05ae",
   "lc-coding/tests/test_ui_subtree_baseline_240.py": "a63ceaadf87cac6e090ffe550fac7506caf75f03fdaf00db14578ae20d43b0ee",
   "lc-coding/tests/test_verification_reuse.py": "056ef52a988c223ec4b5e6a3419d562a91045b4ac589ac54f8d99c03ce931e98",
-  "lc-coding/tests/test_version_consistency_251.py": "4d1e376442e6a1d7e8f7f7a7014e7310d7eef4da5c3310046df74297a305c63c",
+  "lc-coding/tests/test_version_consistency_251.py": "a0f0600cb0772e90fcb011350cb29007f646c08c9faac305483fe86cf42a51f6",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "d87a577767750a3397b81762784be739b74f20141ca10a654d98b3468cf33033"
 }

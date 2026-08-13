@@ -1,23 +1,136 @@
 {
-  "slk": {
-    "version": "2.5.0",
-    "candidate_commit": "0153776c84b57fd6217259fd02832a6fdcea4ccb",
-    "manifest_sha256": "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
-    "schema_sha256": "d8247f384bbedb716c8a6c731d804d7640a97e11a75e91f239335dff64a9ffac",
-    "template_sha256": "aa23b9b78eb6297bacd0abc00a92ad77108824d9ba20359fa5fdddf37eeb4b38"
+  "asset_schema": "LCCODING_BI_COMPATIBILITY_V1",
+  "status_adapters": {
+    "2.6.0": {
+      "status_schema_version": "2.6.0",
+      "compatibility_status": "SUPPORTED_LEGACY",
+      "minimum_bi_version": "2.6.0",
+      "phase_steps": {
+        "INITIAL": [
+          "PROPOSAL_READINESS",
+          "PROJECT_INITIALIZATION",
+          "INITIAL_READY"
+        ],
+        "PRODUCT_FORMATION": [
+          "CALABASH_DRAFT",
+          "SIMULATION_WORLD_FOUNDATION",
+          "WORKFLOW_CAPABILITY_END",
+          "UI_PRODUCT_SURFACE_END",
+          "CALABASH_UPGRADE_READY"
+        ],
+        "ENGINEERING_RUNS": [
+          "MANDATORY_CALABASH_UPGRADE",
+          "PRODUCT_BASELINE",
+          "FEATURE_SLICE_EXECUTION_COVERAGE",
+          "UI_LOCKED_INTEGRATION_BASELINE",
+          "LOOP_RUN_D0_D3",
+          "LOOP_OWNER_ACCEPTANCE",
+          "ALL_REQUIRED_RUNS_ACCEPTED"
+        ],
+        "DELIVERY_PREPARATION": [
+          "CENTRALIZED_VULNERABILITY_AUDIT",
+          "SECURITY_REMEDIATION",
+          "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+          "POST_SECURITY_OWNER_ACCEPTANCE",
+          "DELIVERY_METHOD_QA",
+          "DELIVERY_PACKAGE_GUARD_READY"
+        ]
+      }
+    },
+    "2.7.0": {
+      "status_schema_version": "2.7.0",
+      "compatibility_status": "CURRENT",
+      "minimum_bi_version": "2.7.0",
+      "phase_steps": {
+        "INITIAL": [
+          "PROPOSAL_READINESS",
+          "PROJECT_INITIALIZATION",
+          "INITIAL_READY"
+        ],
+        "PRODUCT_FORMATION": [
+          "CALABASH_DRAFT",
+          "SIMULATION_WORLD_FOUNDATION",
+          "WORKFLOW_CAPABILITY_END",
+          "UI_PRODUCT_SURFACE_END",
+          "CALABASH_UPGRADE_READY",
+          "MANDATORY_CALABASH_UPGRADE",
+          "PRODUCT_BASELINE"
+        ],
+        "ENGINEERING_RUNS": [
+          "FEATURE_SLICE_EXECUTION_COVERAGE",
+          "UI_LOCKED_INTEGRATION_BASELINE",
+          "LOOP_RUN_D0_D3",
+          "LOOP_OWNER_ACCEPTANCE",
+          "ALL_REQUIRED_RUNS_ACCEPTED"
+        ],
+        "DELIVERY_PREPARATION": [
+          "CENTRALIZED_VULNERABILITY_AUDIT",
+          "SECURITY_REMEDIATION",
+          "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+          "POST_SECURITY_OWNER_ACCEPTANCE",
+          "DELIVERY_METHOD_QA",
+          "DELIVERY_PACKAGE_GUARD_READY"
+        ]
+      }
+    }
   },
-  "clk": {
-    "version": "2.5.0",
-    "candidate_commit": "6043ce6011b7bb162f8ff6a169b144f4a24fe342",
-    "manifest_sha256": "64bbaa4964a56fcafb26eeaed3a912707a20b2ece989cb1a33bdc4240b720b9d",
-    "schema_sha256": "c292658717e383dd4c95b54403a0fd2b51a590311cf94f4ef28dc6ddef227867",
-    "template_sha256": "b582d667b46eda1b468033c399a38f380a4a291f1aaf5301af749246ebfea5eb"
-  },
-  "glk": {
-    "version": "3.1.0",
-    "candidate_commit": "2cbbd20167376e4ce57cd0e3a201e5fdb323c43f",
-    "manifest_sha256": "c8d7789f0aa6792379873dc62edb2f6142842cbf2600c079002f44d7755551d7",
-    "schema_sha256": "21f33235666394e3c50df3311795cd73093f0b25954e4c40a3d67d1c58a3057b",
-    "template_sha256": "0b24cec677f7e008d0959201c9c3117a278378e4c1bf05f0aec6ca7a2dcb46ab"
+  "execution_methods": {
+    "slk": {
+      "version": "2.5.0",
+      "compatibility_status": "CURRENT",
+      "minimum_bi_version": "2.6.0",
+      "adapter_schema_kind": "SLK_RUN_RUNTIME_INDEX",
+      "normalization_mapping": [
+        "worker_checker_wake",
+        "supervisor_wait",
+        "heartbeat",
+        "no_subagents",
+        "progress",
+        "cell_capacity",
+        "pin_policy"
+      ],
+      "candidate_commit": "0153776c84b57fd6217259fd02832a6fdcea4ccb",
+      "manifest_sha256": "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
+      "schema_sha256": "d8247f384bbedb716c8a6c731d804d7640a97e11a75e91f239335dff64a9ffac",
+      "template_sha256": "aa23b9b78eb6297bacd0abc00a92ad77108824d9ba20359fa5fdddf37eeb4b38"
+    },
+    "clk": {
+      "version": "2.5.0",
+      "compatibility_status": "CURRENT",
+      "minimum_bi_version": "2.6.0",
+      "adapter_schema_kind": "CLK_RUN_CONTROL_TRACE",
+      "normalization_mapping": [
+        "worker_checker_wake",
+        "supervisor_wait",
+        "heartbeat",
+        "no_subagents",
+        "progress",
+        "cell_capacity",
+        "pin_policy"
+      ],
+      "candidate_commit": "6043ce6011b7bb162f8ff6a169b144f4a24fe342",
+      "manifest_sha256": "64bbaa4964a56fcafb26eeaed3a912707a20b2ece989cb1a33bdc4240b720b9d",
+      "schema_sha256": "c292658717e383dd4c95b54403a0fd2b51a590311cf94f4ef28dc6ddef227867",
+      "template_sha256": "b582d667b46eda1b468033c399a38f380a4a291f1aaf5301af749246ebfea5eb"
+    },
+    "glk": {
+      "version": "3.1.0",
+      "compatibility_status": "CURRENT",
+      "minimum_bi_version": "2.6.0",
+      "adapter_schema_kind": "GLK_RUN_PACKAGE_INDEX",
+      "normalization_mapping": [
+        "worker_checker_wake",
+        "supervisor_wait",
+        "heartbeat",
+        "no_subagents",
+        "progress",
+        "cell_capacity",
+        "pin_policy"
+      ],
+      "candidate_commit": "2cbbd20167376e4ce57cd0e3a201e5fdb323c43f",
+      "manifest_sha256": "c8d7789f0aa6792379873dc62edb2f6142842cbf2600c079002f44d7755551d7",
+      "schema_sha256": "21f33235666394e3c50df3311795cd73093f0b25954e4c40a3d67d1c58a3057b",
+      "template_sha256": "0b24cec677f7e008d0959201c9c3117a278378e4c1bf05f0aec6ca7a2dcb46ab"
+    }
   }
 }
