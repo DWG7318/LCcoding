@@ -3,19 +3,10 @@ use serde_yaml_ng::{Mapping, Value};
 use sha2::Digest;
 
 use super::RecordError;
+use super::compatibility::embedded_compatibility_asset;
 
 const METRIC_COUNT: usize = 7;
 const ALLOWED_INTERVALS: [u8; 3] = [10, 15, 30];
-
-pub const SLK_VERSION: &str = "2.5.0";
-pub const SLK_MANIFEST_SHA256: &str =
-    "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8";
-pub const CLK_VERSION: &str = "2.5.0";
-pub const CLK_MANIFEST_SHA256: &str =
-    "64bbaa498d42b9510e96164dab23ac1b195f75210797244ea1616b3d3fef96ee";
-pub const GLK_VERSION: &str = "3.1.0";
-pub const GLK_MANIFEST_SHA256: &str =
-    "c8d7789f016a950fe1c583859fd25a302ef82242315fe7086035190a0f4fbd66";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -247,8 +238,12 @@ fn yaml<T: for<'de> Deserialize<'de>>(body: &str) -> Result<T, RecordError> {
 }
 
 pub fn glk_artifact_refs(index_body: &str) -> Result<Vec<GlkArtifactRef>, RecordError> {
+    let compatibility = embedded_compatibility_asset()?;
+    let identity = compatibility
+        .execution_method("glk")
+        .ok_or(RecordError::Invalid)?;
     let index: GlkIndex = yaml(index_body)?;
-    if index.schema_version != GLK_VERSION || index.artifact_type != "RUN_PACKAGE_INDEX" {
+    if index.schema_version != identity.version || index.artifact_type != "RUN_PACKAGE_INDEX" {
         return Err(RecordError::UnsupportedVersion);
     }
     if index.formal_artifacts.is_empty() || index.formal_artifacts.len() > 128 {
@@ -275,8 +270,12 @@ pub fn glk_artifact_refs(index_body: &str) -> Result<Vec<GlkArtifactRef>, Record
 }
 
 pub fn parse_slk_governance(body: &str) -> Result<GovernanceSummary, RecordError> {
+    let compatibility = embedded_compatibility_asset()?;
+    let identity = compatibility
+        .execution_method("slk")
+        .ok_or(RecordError::Invalid)?;
     let record: SlkIndex = yaml(body)?;
-    if record.schema_version != SLK_VERSION
+    if record.schema_version != identity.version
         || record.record_type != "RUN_RUNTIME_INDEX"
         || record.status != "COMPLETE"
         || record.run_id.is_empty()
@@ -375,8 +374,12 @@ pub fn parse_slk_governance(body: &str) -> Result<GovernanceSummary, RecordError
 }
 
 pub fn parse_clk_governance(body: &str) -> Result<GovernanceSummary, RecordError> {
+    let compatibility = embedded_compatibility_asset()?;
+    let identity = compatibility
+        .execution_method("clk")
+        .ok_or(RecordError::Invalid)?;
     let trace: ClkTrace = yaml(body)?;
-    if trace.version != CLK_VERSION
+    if trace.version != identity.version
         || trace.trace_type != "CLK_RUN_CONTROL_TRACE"
         || trace.clock_mode != "INJECTED_MINUTES"
         || !trace.run.is_mapping()
@@ -495,8 +498,12 @@ pub fn parse_glk_governance(
     index_body: &str,
     artifacts: &[GlkArtifact<'_>],
 ) -> Result<GovernanceSummary, RecordError> {
+    let compatibility = embedded_compatibility_asset()?;
+    let identity = compatibility
+        .execution_method("glk")
+        .ok_or(RecordError::Invalid)?;
     let index: GlkIndex = yaml(index_body)?;
-    if index.schema_version != GLK_VERSION || index.artifact_type != "RUN_PACKAGE_INDEX" {
+    if index.schema_version != identity.version || index.artifact_type != "RUN_PACKAGE_INDEX" {
         return Err(RecordError::UnsupportedVersion);
     }
     let _identity_fields = (
@@ -543,7 +550,7 @@ pub fn parse_glk_governance(
                     return Err(RecordError::Invalid);
                 }
                 let value: Value = yaml(artifact.body)?;
-                if text(&value, "schema_version")? != "3.1.0"
+                if text(&value, "schema_version")? != identity.version
                     || text(&value, "artifact_type")? != kind
                 {
                     return Err(RecordError::UnsupportedVersion);

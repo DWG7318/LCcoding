@@ -1,4 +1,5 @@
 use lccoding::projection::load_loop_governance;
+use lccoding::records::compatibility::{embedded_compatibility_asset, parse_compatibility_asset};
 use lccoding::records::loops::{
     GlkArtifact, GovernanceStatus, parse_clk_governance, parse_glk_governance, parse_slk_governance,
 };
@@ -146,35 +147,214 @@ fn statuses(summary: &lccoding::records::loops::GovernanceSummary) -> Vec<Govern
     summary.metrics.iter().map(|metric| metric.status).collect()
 }
 
+fn raw_compatibility_asset() -> Value {
+    serde_json::from_str(include_str!("../../release/loop-contract-identities.json")).unwrap()
+}
+
+fn rejects_mutation(change: impl FnOnce(&mut Value)) {
+    let mut asset = raw_compatibility_asset();
+    change(&mut asset);
+    assert!(parse_compatibility_asset(&serde_json::to_string(&asset).unwrap()).is_err());
+}
+
+fn rust_sources(root: &std::path::Path) -> Vec<String> {
+    fs::read_dir(root)
+        .unwrap()
+        .flat_map(|entry| {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                rust_sources(&path)
+            } else if path.extension().and_then(|value| value.to_str()) == Some("rs") {
+                vec![fs::read_to_string(path).unwrap()]
+            } else {
+                Vec::new()
+            }
+        })
+        .collect()
+}
+
 #[test]
-fn candidate_contract_identities_are_exact_and_non_release() {
-    let identities: Value = serde_json::from_str(include_str!(
-        "../../release/loop-contract-identities.json"
-    ))
-    .unwrap();
-    assert_eq!(identities["slk"]["version"], "2.5.0");
-    assert_eq!(identities["clk"]["version"], "2.5.0");
-    assert_eq!(identities["glk"]["version"], "3.1.0");
-    for method in ["slk", "clk", "glk"] {
+fn embedded_execution_method_identities_match_the_single_asset() {
+    let raw = raw_compatibility_asset();
+    let parsed = embedded_compatibility_asset().unwrap();
+    let mapping = [
+        "worker_checker_wake",
+        "supervisor_wait",
+        "heartbeat",
+        "no_subagents",
+        "progress",
+        "cell_capacity",
+        "pin_policy",
+    ];
+
+    assert_eq!(raw["asset_schema"], "LCCODING_BI_COMPATIBILITY_V1");
+    for method_id in ["slk", "clk", "glk"] {
+        let expected = &raw["execution_methods"][method_id];
+        let actual = parsed.execution_method(method_id).unwrap();
+        assert_eq!(actual.version, expected["version"].as_str().unwrap());
         assert_eq!(
-            identities[method]["candidate_commit"]
-                .as_str()
-                .unwrap()
-                .len(),
-            40
+            actual.compatibility_status,
+            expected["compatibility_status"].as_str().unwrap()
         );
         assert_eq!(
-            identities[method]["schema_sha256"].as_str().unwrap().len(),
-            64
+            actual.minimum_bi_version,
+            expected["minimum_bi_version"].as_str().unwrap()
         );
         assert_eq!(
-            identities[method]["template_sha256"]
-                .as_str()
-                .unwrap()
-                .len(),
-            64
+            actual.adapter_schema_kind,
+            expected["adapter_schema_kind"].as_str().unwrap()
         );
-        assert!(identities[method].get("released").is_none());
+        assert_eq!(actual.normalization_mapping, mapping);
+        assert_eq!(
+            actual.candidate_commit,
+            expected["candidate_commit"].as_str().unwrap()
+        );
+        assert_eq!(
+            actual.manifest_sha256,
+            expected["manifest_sha256"].as_str().unwrap()
+        );
+        assert_eq!(
+            actual.schema_sha256,
+            expected["schema_sha256"].as_str().unwrap()
+        );
+        assert_eq!(
+            actual.template_sha256,
+            expected["template_sha256"].as_str().unwrap()
+        );
+    }
+    assert!(parsed.execution_method("calabash").is_none());
+}
+
+#[test]
+fn compatibility_asset_parser_rejects_shadow_or_malformed_identity_shapes() {
+    rejects_mutation(|asset| asset["asset_schema"] = Value::String("LEGACY".into()));
+    rejects_mutation(|asset| {
+        asset["shadow"] = Value::Bool(true);
+    });
+    rejects_mutation(|asset| {
+        asset.as_object_mut().unwrap().remove("status_adapters");
+    });
+    rejects_mutation(|asset| {
+        asset.as_object_mut().unwrap().remove("execution_methods");
+    });
+    rejects_mutation(|asset| {
+        asset["status_adapters"]["2.6.0"]["shadow"] = Value::Bool(true);
+    });
+    rejects_mutation(|asset| {
+        asset["status_adapters"]
+            .as_object_mut()
+            .unwrap()
+            .remove("2.7.0");
+    });
+    rejects_mutation(|asset| {
+        asset["status_adapters"]["2.7.0"]["phase_steps"]
+            .as_object_mut()
+            .unwrap()
+            .remove("ENGINEERING_RUNS");
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]
+            .as_object_mut()
+            .unwrap()
+            .remove("clk");
+    });
+    rejects_mutation(|asset| {
+        let extra = asset["execution_methods"]["slk"].clone();
+        asset["execution_methods"]["other"] = extra;
+    });
+    rejects_mutation(|asset| {
+        let calabash = asset["execution_methods"]["slk"].clone();
+        asset["execution_methods"]["calabash"] = calabash;
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]
+            .as_object_mut()
+            .unwrap()
+            .remove("schema_sha256");
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["released"] = Value::Bool(true);
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["candidate_commit"] = Value::String("A".repeat(40));
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["version"] = Value::String("latest".into());
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["compatibility_status"] = Value::String("BLOCKED".into());
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["minimum_bi_version"] = Value::String("2.5.0".into());
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["clk"]["manifest_sha256"] = Value::String("A".repeat(64));
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["glk"]["adapter_schema_kind"] =
+            Value::String("SLK_RUN_RUNTIME_INDEX".into());
+    });
+    for field in ["schema_sha256", "template_sha256"] {
+        rejects_mutation(|asset| {
+            asset["execution_methods"]["glk"][field] = Value::String("0".repeat(63));
+        });
+    }
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["normalization_mapping"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+    });
+    rejects_mutation(|asset| {
+        asset["execution_methods"]["slk"]["normalization_mapping"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+    });
+
+    let old_shape = serde_json::json!({
+        "slk": raw_compatibility_asset()["execution_methods"]["slk"].clone(),
+        "clk": raw_compatibility_asset()["execution_methods"]["clk"].clone(),
+        "glk": raw_compatibility_asset()["execution_methods"]["glk"].clone()
+    });
+    assert!(parse_compatibility_asset(&old_shape.to_string()).is_err());
+    let duplicate = include_str!("../../release/loop-contract-identities.json").replacen(
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",",
+        1,
+    );
+    assert!(parse_compatibility_asset(&duplicate).is_err());
+}
+
+#[test]
+fn production_rust_contains_no_shadow_loop_identity_table() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let production = rust_sources(&root).join("\n");
+    assert_eq!(production.matches("loop-contract-identities.json").count(), 1);
+    for retired in [
+        "SLK_VERSION",
+        "CLK_VERSION",
+        "GLK_VERSION",
+        "SLK_MANIFEST_SHA256",
+        "CLK_MANIFEST_SHA256",
+        "GLK_MANIFEST_SHA256",
+    ] {
+        assert!(
+            !production.contains(retired),
+            "retired Rust identity: {retired}"
+        );
+    }
+    let raw = raw_compatibility_asset();
+    for method_id in ["slk", "clk", "glk"] {
+        let method = &raw["execution_methods"][method_id];
+        for field in [
+            "candidate_commit",
+            "manifest_sha256",
+            "schema_sha256",
+            "template_sha256",
+        ] {
+            assert!(!production.contains(method[field].as_str().unwrap()));
+        }
     }
 }
 
@@ -258,16 +438,30 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
             "\"initialization_mode\": \"NEW\"",
         )
         .replace("\"active_runs\": []", "\"active_runs\": [\"runs/RUN-001\"]");
-    let status = parse_status(&status).unwrap();
-    let manifest = include_str!("../../../templates/CANONICAL-MANIFEST.json").replace(
-        "\"slk\": {\n    \"version\": \"\",\n    \"hash\": \"\"",
-        concat!(
-            "\"slk\": {\n    \"version\": \"2.5.0\",\n    \"hash\": \"sha256:",
-            "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
-            "\""
-        ),
-    );
-    let manifest = parse_manifest(&manifest).unwrap();
+    let mut status: Value = serde_json::from_str(&status).unwrap();
+    status["canonical_candidate"]
+        .as_object_mut()
+        .unwrap()
+        .remove("candidate_id");
+    status["canonical_candidate"]
+        .as_object_mut()
+        .unwrap()
+        .remove("candidate_hash");
+    status["vulnerability_closure"] = Value::String("PENDING".into());
+    status["post_security_owner_acceptance"] = Value::String("PENDING".into());
+    let status = parse_status(&serde_json::to_string(&status).unwrap()).unwrap();
+
+    let compatibility = embedded_compatibility_asset().unwrap();
+    let slk = compatibility.execution_method("slk").unwrap();
+    let mut manifest: Value =
+        serde_json::from_str(include_str!("../../../templates/CANONICAL-MANIFEST.json")).unwrap();
+    manifest
+        .as_object_mut()
+        .unwrap()
+        .remove("execution_methods");
+    manifest["slk"]["version"] = Value::String(slk.version.clone());
+    manifest["slk"]["hash"] = Value::String(format!("sha256:{}", slk.manifest_sha256));
+    let manifest = parse_manifest(&serde_json::to_string(&manifest).unwrap()).unwrap();
     let summary = load_loop_governance(&root, &status, Some(&manifest))
         .unwrap()
         .unwrap();

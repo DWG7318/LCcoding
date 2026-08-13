@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 
 use crate::git_reader::GitProject;
 use crate::input::{ProjectRecord, read_optional_scoped_record, read_project_record};
+use crate::records::compatibility::embedded_compatibility_asset;
 use crate::records::loops::{
-    CLK_MANIFEST_SHA256, CLK_VERSION, GLK_MANIFEST_SHA256, GLK_VERSION, GlkArtifact,
-    GovernanceStatus, GovernanceSummary, SLK_MANIFEST_SHA256, SLK_VERSION, glk_artifact_refs,
-    parse_clk_governance, parse_glk_governance, parse_slk_governance,
+    GlkArtifact, GovernanceStatus, GovernanceSummary, glk_artifact_refs, parse_clk_governance,
+    parse_glk_governance, parse_slk_governance,
 };
 use crate::records::manifest::CanonicalManifest;
 use crate::records::manifest::parse_manifest;
@@ -140,6 +140,8 @@ pub fn load_loop_governance(
     let manifest = manifest.ok_or(ProjectLoadError {
         code: "BI_METHOD_VERSION_UNSUPPORTED",
     })?;
+    let compatibility =
+        embedded_compatibility_asset().map_err(|error| ProjectLoadError { code: error.code() })?;
     let mut summaries = Vec::with_capacity(status.active_runs.len());
     for run_ref in &status.active_runs {
         let scope = Path::new(run_ref);
@@ -156,28 +158,43 @@ pub fn load_loop_governance(
             });
         }
         let summary = if let Some(body) = slk {
+            let identity = compatibility
+                .execution_method("slk")
+                .ok_or(ProjectLoadError {
+                    code: "BI_RECORD_INVALID",
+                })?;
             require_method_identity(
                 &manifest.slk.version,
                 &manifest.slk.hash,
-                SLK_VERSION,
-                SLK_MANIFEST_SHA256,
+                &identity.version,
+                &identity.manifest_sha256,
             )?;
             parse_slk_governance(&body).map_err(|error| ProjectLoadError { code: error.code() })?
         } else if let Some(body) = clk {
+            let identity = compatibility
+                .execution_method("clk")
+                .ok_or(ProjectLoadError {
+                    code: "BI_RECORD_INVALID",
+                })?;
             require_method_identity(
                 &manifest.clk.version,
                 &manifest.clk.hash,
-                CLK_VERSION,
-                CLK_MANIFEST_SHA256,
+                &identity.version,
+                &identity.manifest_sha256,
             )?;
             parse_clk_governance(&body).map_err(|error| ProjectLoadError { code: error.code() })?
         } else {
             let body = glk.expect("exactly one loop index");
+            let identity = compatibility
+                .execution_method("glk")
+                .ok_or(ProjectLoadError {
+                    code: "BI_RECORD_INVALID",
+                })?;
             require_method_identity(
                 &manifest.glk.version,
                 &manifest.glk.hash,
-                GLK_VERSION,
-                GLK_MANIFEST_SHA256,
+                &identity.version,
+                &identity.manifest_sha256,
             )?;
             let references = glk_artifact_refs(&body)
                 .map_err(|error| ProjectLoadError { code: error.code() })?;
