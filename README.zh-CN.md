@@ -46,7 +46,7 @@ Source clauses: [LC-AUTH-002](SPEC.md#lc-auth-002)
 - 起步导航：[固定生命周期与比例深度](SPEC.md#lc-auth-002)、[Proposal Readiness](lc-coding/references/proposal-readiness.md)、[Project Initialization](lc-coding/references/project-initialization.md)。
 - 产品施工：[Feature Slice 与集成](lc-coding/references/feature-slice-and-integration.md)、[执行方法选择](lc-coding/references/loop-method-selection.md)。
 - 证据与交付：[Loop Owner Acceptance](lc-coding/references/loop-acceptance-boundary.md)、[漏洞闭环](lc-coding/references/vulnerability-closure.md)、[交付治理](lc-coding/references/delivery-governance.md)。
-- 工具投影：[内置 BI](lc-coding/references/built-in-bi.md)。
+- 内置 BI：[方法/产品合同](lc-coding/references/built-in-bi.md)；[实现、构建与测试导航](lc-coding/bi/README.md)。
 - 语言：[English overview](README.md)。
 
 ## 验证

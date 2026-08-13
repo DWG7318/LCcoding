@@ -6,9 +6,73 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 bi_root = root / "lc-coding" / "bi"
+implementation_readme = bi_root / "README.md"
 tauri_root = bi_root / "src-tauri"
 config_path = tauri_root / "tauri.conf.json"
 capability_dir = tauri_root / "capabilities"
+
+assert implementation_readme.is_file(), "missing sole BI implementation entry"
+implementation = implementation_readme.read_text(encoding="utf-8")
+for marker in [
+    "Implementation class: BI_SUBTREE_GUIDANCE",
+    "Authority: NON_NORMATIVE_IMPLEMENTATION_NAVIGATION",
+    "Product contract: ../references/built-in-bi.md",
+    "`src/`",
+    "`src-tauri/`",
+    "`tests/dom/`",
+    "`tests/visual/`",
+    "`tests/packaging/`",
+    "`scripts/package-release.ps1`",
+    "`scripts/verify-loop-releases.ps1`",
+    "`.github/workflows/release-bi.yml",
+    "npm ci --ignore-scripts",
+    "npm run typecheck",
+    "npm run test:dom",
+    "npm run visual:candidates",
+    "cargo test",
+    "LCCODING_BI_DIST",
+    "BI_OWNER_REVIEW_DIR",
+    "$runnerBi = '<external-runner>\\lc-coding\\bi'",
+    "Set-Location $runnerBi",
+    "$runnerTauri = Join-Path $runnerBi 'src-tauri'",
+    "$env:CARGO_TARGET_DIR = '<external-cargo-target>'",
+    "$env:TAURI_CONFIG",
+    "[IO.Path]::GetRelativePath($runnerTauri, $externalDist)",
+    "Set-Location $runnerTauri",
+    "allowed tracked/Cell inputs",
+    "node_modules`, `dist`, `target`, `test-results`, and `playwright-report`",
+]:
+    assert marker in implementation, marker
+assert "Source clauses:" not in implementation
+
+local_verification = implementation.split("## Local verification", 1)[1].split(
+    "## Package and release navigation", 1
+)[0]
+assert local_verification.index("$runnerBi =") < local_verification.index(
+    "Set-Location $runnerBi"
+) < local_verification.index("npm ci --ignore-scripts")
+assert local_verification.index("$env:CARGO_TARGET_DIR") < local_verification.index(
+    "Set-Location $runnerTauri"
+) < local_verification.index("cargo test")
+assert "source worktree" in local_verification
+assert "must not be created" in local_verification
+assert "must not enter the release manifest" in local_verification
+
+product_contract = (root / "lc-coding/references/built-in-bi.md").read_text(
+    encoding="utf-8"
+)
+assert "Source clauses: [LC-BI-001]" in product_contract
+assert "[LC-BI-002]" in product_contract
+for operational_marker in [
+    "## 3. File boundaries",
+    "## 10. Required implementation sequence",
+    "### LCCoding 2.6.0 one-click sequence",
+    "npm ci --ignore-scripts",
+    "cargo test",
+    "package-release.ps1",
+    "verify-loop-releases.ps1",
+]:
+    assert operational_marker not in product_contract, operational_marker
 
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))

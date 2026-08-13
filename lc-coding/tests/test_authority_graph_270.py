@@ -514,6 +514,26 @@ PROJECTIONS = (
     root / "README.zh-CN.md",
     root / "lc-coding/SKILL.md",
 )
+BI_PRODUCT_CONTRACT = root / "lc-coding/references/built-in-bi.md"
+BI_IMPLEMENTATION_NAVIGATION = root / "lc-coding/bi/README.md"
+assert BI_PRODUCT_CONTRACT.is_file()
+assert BI_IMPLEMENTATION_NAVIGATION.is_file()
+bi_product = BI_PRODUCT_CONTRACT.read_text(encoding="utf-8")
+bi_implementation = BI_IMPLEMENTATION_NAVIGATION.read_text(encoding="utf-8")
+bi_source_ids = set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", "\n".join(
+    line for line in bi_product.splitlines() if line.startswith("Source clauses:")
+)))
+assert bi_source_ids == {"LC-BI-001", "LC-BI-002"}
+assert "Source clauses:" not in bi_implementation
+assert BI_PRODUCT_CONTRACT not in PROJECTIONS
+assert BI_IMPLEMENTATION_NAVIGATION not in PROJECTIONS
+assert "Authority: NON_NORMATIVE_IMPLEMENTATION_NAVIGATION" in bi_implementation
+assert "../references/built-in-bi.md" in bi_implementation
+
+for readme in (root / "README.md", root / "README.zh-CN.md"):
+    text = readme.read_text(encoding="utf-8")
+    assert "lc-coding/references/built-in-bi.md" in text
+    assert "lc-coding/bi/README.md" in text
 assert HISTORICAL_BOUNDARY not in PROJECTIONS
 for historical in [HISTORICAL_BOUNDARY, *(root / path for path in HISTORICAL_RECORD_HASHES)]:
     assert historical not in PROJECTIONS

@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 import json
 import re
 
@@ -130,23 +131,36 @@ for forbidden in [
     assert forbidden not in authority
 
 reference = (root / "lc-coding/references/built-in-bi.md").read_text(encoding="utf-8")
-sequence = reference[reference.index("## 10."):reference.index("## 11.")]
+implementation = (root / "lc-coding/bi/README.md").read_text(encoding="utf-8")
 for marker in [
-    "### LCCoding 2.6.0 one-click sequence",
-    "typed Rust reader",
-    "no-argument single-flight `get_snapshot`",
-    "current-user NSIS package",
+    "src/model/snapshot.ts",
+    "src-tauri/src/projection.rs",
+    "npm run test:dom",
+    "npm run visual:candidates",
+    "cargo test",
+    "scripts/package-release.ps1",
+    "scripts/verify-loop-releases.ps1",
+    ".github/workflows/release-bi.yml",
 ]:
-    assert marker in sequence, marker
-plain_sequence = sequence.replace("`", "")
-assert plain_sequence.index("typed Rust reader") < plain_sequence.index("get_snapshot")
-assert plain_sequence.index("get_snapshot") < plain_sequence.index("current-user NSIS package")
-for contradiction in [
-    "C. Implement the typed Rust reader",
-    "D. Add the narrow Tauri bridge",
-    "E. Atomically update every existing root release carrier",
+    assert marker in implementation, marker
+for product_marker in [
+    "read-only projection",
+    "four phases",
+    "21-step",
+    "eight report joins",
+    "status.json",
+    "Non-goals",
 ]:
-    assert contradiction not in sequence, contradiction
+    assert product_marker in reference, product_marker
+
+release_paths = {
+    ".github/workflows/release-bi.yml": "12dcd2b7cc9ff2949c8757dac4d7e40c8d583c0416337c180641fd9c6d4c4223",
+    "lc-coding/bi/scripts/package-release.ps1": "75fa439aaffc15e6447d910598716723a4df25a430968589f71604d5af63bd2a",
+    "lc-coding/bi/scripts/verify-loop-releases.ps1": "dbfb8446e2a7ff83b4417d98e8435903d6467d67b59ee0f458dca4fb10b1fdf6",
+    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "fce87c931a118fd65cb6f884a0dcfafaf2ac204572fc184c54c82c656a90a92f",
+}
+for relative, expected_hash in release_paths.items():
+    assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.6.0"
 print("PASS: BI keeps protected subtree and Execution Method Governance reports")

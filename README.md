@@ -46,7 +46,7 @@ Source clauses: [LC-AUTH-002](SPEC.md#lc-auth-002)
 - Orientation: [fixed lifecycle and proportional depth](SPEC.md#lc-auth-002), [proposal readiness](lc-coding/references/proposal-readiness.md), [project initialization](lc-coding/references/project-initialization.md).
 - Product work: [Feature Slice and integration](lc-coding/references/feature-slice-and-integration.md), [execution-method selection](lc-coding/references/loop-method-selection.md).
 - Evidence and delivery: [Loop Owner Acceptance](lc-coding/references/loop-acceptance-boundary.md), [vulnerability closure](lc-coding/references/vulnerability-closure.md), [delivery governance](lc-coding/references/delivery-governance.md).
-- Tool projection: [built-in BI](lc-coding/references/built-in-bi.md).
+- Built-in BI: [method/product contract](lc-coding/references/built-in-bi.md); [implementation, build, and test navigation](lc-coding/bi/README.md).
 - Language: [完整中文导航](README.zh-CN.md).
 
 ## Validate
