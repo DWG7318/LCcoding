@@ -239,6 +239,7 @@ Execution methods are a cross-phase axis, not a lifecycle node and not confined 
 
 Higher layers reuse valid lower receipts rather than rerunning identical work. If one Run D3 covers the exact Slice claim, candidate, UI baseline, and scenarios, LCCoding promotes it after identity/coverage checks. A multi-Run Slice verifies only seams, uncovered claims, and the integrated actor journey. Verification independence and evidence identity are mandatory at every depth.
 
+Focused explanation: [Verification evidence guidance](lc-coding/references/verification-de-duplication.md#layered-independent-verification).
 <a id="lc-accept-001"></a>
 ### LC-ACCEPT-001 — Per-Run Loop Owner Acceptance
 
@@ -246,6 +247,7 @@ Every normal Run in any phase ends with D3 PASS, `LOOP_OWNER_ACCEPTANCE_READY`, 
 
 Several normal Runs produce several receipts; they are not replaced by one late aggregate review. Only required Real Product Integration Runs contribute to `ALL_REQUIRED_RUNS_ACCEPTED`; each contributing Run must be `LOOP_OWNER_ACCEPTED` and current for the accepted candidate.
 
+Focused explanation: [Owner terminal decision guidance](lc-coding/references/loop-acceptance-boundary.md#per-run-terminal-decision).
 <a id="lc-accept-002"></a>
 ### LC-ACCEPT-002 — Owner gap closure lineage
 
@@ -253,6 +255,7 @@ Rework, definition change, or defer creates one stable Owner gap ID linked from 
 
 A gap closes only when the new candidate and affected evidence are accepted. `status.json` indexes only open gap IDs and evidence pointers; full lineage remains in existing acceptance, impact, Run, and receipt artifacts. A blocking open gap prevents the Phase-3 aggregate.
 
+Focused explanation: [Owner terminal decision guidance](lc-coding/references/loop-acceptance-boundary.md#owner-gap-lineage).
 <a id="lc-accept-003"></a>
 ### LC-ACCEPT-003 — Post-Security Owner Acceptance
 
@@ -260,6 +263,7 @@ After `VULNERABILITY_CLOSED`, the Owner accepts the security-remediated final ca
 
 Results are `POST_SECURITY_OWNER_ACCEPTED`, `POST_SECURITY_PRODUCT_REWORK`, or `POST_SECURITY_OWNER_DEFERRED`. Delivery remains blocked until the current candidate is `POST_SECURITY_OWNER_ACCEPTED`.
 
+Focused explanation: [Owner terminal decision guidance](lc-coding/references/loop-acceptance-boundary.md#post-security-terminal-decision).
 ## Security and delivery
 
 <a id="lc-sec-001"></a>

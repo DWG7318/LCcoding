@@ -1,6 +1,27 @@
 from pathlib import Path
 import importlib.util, json, subprocess, sys, tempfile
 root=Path(__file__).resolve().parents[2]
+guidance=(root/'lc-coding/references/verification-de-duplication.md').read_text(encoding='utf-8')
+for marker in [
+    'Source clauses: [LC-VERIFY-001]',
+    'D0', 'D1', 'D2', 'D3',
+    'independent',
+    'candidate identity',
+    'contract version',
+    'relevant environment',
+    'authority',
+    'currency/completeness',
+    'no contradiction',
+    'changed candidate',
+    'stale',
+    'composition',
+    'affected regression',
+    'named risk',
+    'D3 receipt is engineering evidence',
+    'cannot author Owner result',
+    'does not replace the centralized security verdict',
+]:
+    assert marker in guidance, marker
 validator_path=root/'lc-coding/scripts/validate_project.py'
 spec=importlib.util.spec_from_file_location('validate_project',validator_path)
 validator=importlib.util.module_from_spec(spec); spec.loader.exec_module(validator)

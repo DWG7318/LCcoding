@@ -1,46 +1,28 @@
-# Loop Owner Acceptance Boundary
+# Owner Terminal Decision Boundaries
 
-## Incremental acceptance belongs inside the Loop
+`SPEC.md` alone defines Owner terminal-decision semantics.
 
-Every normal SLK, CLK, or GLK Run completes through:
+<a id="per-run-terminal-decision"></a>
+## Per-Run terminal decision
 
-```text
-D3 PASS
-  ↓
-LOOP_OWNER_ACCEPTANCE_READY
-  ↓
-Supervisor-guided Loop Owner Acceptance
-  ↓
-LOOP_OWNER_ACCEPTED or routed rework/change
-```
+Source clauses: [LC-ACCEPT-001](../../SPEC.md#lc-accept-001)
 
-This acceptance must not be replaced by one large LCCoding acceptance at the end of several Runs.
+Each normal Run follows `D3 PASS` → `LOOP_OWNER_ACCEPTANCE_READY` → its own receipt. Several Runs produce several small decisions; accepted Required Integration Runs may contribute to `ALL_REQUIRED_RUNS_ACCEPTED`.
 
-A Feature Slice with multiple Runs therefore produces multiple small Owner Acceptance receipts. This keeps Owner workload bounded and product direction visible throughout construction.
+The Supervisor prepares candidate, scenario, route, D3 evidence, risks, and limits. The Owner judges; the decision does not repeat valid technical checks. A Verifier or Supervisor never substitutes its verdict for `LOOP_OWNER_ACCEPTED`, rework, definition change, or defer. `RUN-HANDOFF.md` is start input; `LOOP-OWNER-ACCEPTANCE.md` is terminal and never advances the calling-phase gate.
 
-## Supervisor duty
+<a id="owner-gap-lineage"></a>
+## Owner gap lineage
 
-The Loop Supervisor prepares:
+Source clauses: [LC-ACCEPT-002](../../SPEC.md#lc-accept-002)
 
-- exact candidate identity;
-- entry, account, role, and scenario;
-- concise acceptance steps;
-- visible product questions;
-- D3 receipt and invisible risks already verified;
-- known limitations and product-learning route.
+Rework, definition change, or defer gets one stable Owner gap ID. Definition change returns through Calabash; other correction follows the Impact/Run route. Keep candidate, scenario, correction, re-verification, and re-acceptance lineage in existing artifacts. `status.json` only indexes open gaps and evidence pointers. Close only after affected evidence and the new Owner decision are current.
 
-The Owner judges the product result. The Owner is not asked to repeat technical checks already covered by valid receipts.
+<a id="post-security-terminal-decision"></a>
+## Post-Security terminal decision
 
-## Accepted aggregate
+Source clauses: [LC-ACCEPT-003](../../SPEC.md#lc-accept-003)
 
-Only after every required normal Run has `LOOP_OWNER_ACCEPTED` may LCCoding issue:
+After `VULNERABILITY_CLOSED`, Post-Security Owner Acceptance judges the current remediated candidate. It reuses current Loop Owner Acceptance receipts and reviews affected product surfaces, final identity, closure, and critical smoke; it does not repeat unchanged acceptance.
 
-```text
-ALL_REQUIRED_RUNS_ACCEPTED
-```
-
-This aggregate accepted candidate then enters the centralized vulnerability audit.
-
-## Security remediation exception
-
-Security remediation Runs are technical correction Runs created after the centralized audit. Their human acceptance is intentionally consolidated into the one `POST_SECURITY_OWNER_ACCEPTANCE`, because the Security Auditor independently re-verifies the fixes and the Owner should review the combined product delta once, not every vulnerability fix separately.
+This differs from each Per-Run decision. Delivery stays blocked until the current candidate is `POST_SECURITY_OWNER_ACCEPTED`; its terminal record is `POST-SECURITY-OWNER-ACCEPTANCE.md`.

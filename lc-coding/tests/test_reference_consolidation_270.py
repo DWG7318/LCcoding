@@ -27,6 +27,10 @@ CONSOLIDATIONS = {
         ),
         "replacement": "lc-coding/references/feature-slice-and-integration.md",
     },
+    "acceptance_duplicate": {
+        "retired": ("lc-coding/references/owner-acceptance.md",),
+        "replacement": None,
+    },
 }
 RETIRED_REFERENCES = tuple(
     retired
@@ -42,6 +46,8 @@ REAL_PRODUCT_INTEGRATION_CLAUSES = {
     "LC-INTEG-002",
     "LC-INTEG-003",
 }
+ACCEPTANCE_CLAUSES = {"LC-ACCEPT-001", "LC-ACCEPT-002", "LC-ACCEPT-003"}
+VERIFICATION_CLAUSES = {"LC-VERIFY-001"}
 HISTORICAL_PREFIXES = (
     "docs/superpowers/specs/",
     "docs/superpowers/plans/",
@@ -264,6 +270,48 @@ integration_adversarial_sources = {
 for case, (relative, source, expected) in integration_adversarial_sources.items():
     assert source_references_retired(relative, source) is expected, case
 
+owner_path = CONSOLIDATIONS["acceptance_duplicate"]["retired"][0]
+owner_name = Path(owner_path).name
+owner_adversarial_sources = {
+    "owner acceptance exact Markdown link": (
+        "notes.md",
+        f"[legacy]({owner_path})",
+        True,
+    ),
+    "owner acceptance backslash JSON path": (
+        "config.json",
+        json.dumps({"legacy": owner_path.replace("/", "\\")}),
+        True,
+    ),
+    "owner acceptance two-piece Python concatenation": (
+        "caller.py",
+        f'p = "lc-coding/references/" + "{owner_name}"',
+        True,
+    ),
+    "owner acceptance three-piece Python concatenation": (
+        "caller.py",
+        'p = "lc-coding/references/" + "owner-" + "acceptance.md"',
+        True,
+    ),
+    "owner acceptance Python list concatenation": (
+        "caller.py",
+        'REQUIRED = ["lc-coding/references/" + "owner-" + "acceptance.md"]',
+        True,
+    ),
+    "owner acceptance Python dict concatenation": (
+        "caller.py",
+        'MAP = {"legacy": "lc-coding/references/" + "owner-" + "acceptance.md"}',
+        True,
+    ),
+    "ordinary Owner acceptance wording": (
+        "notes.md",
+        "Owner acceptance remains a terminal product decision.",
+        False,
+    ),
+}
+for case, (relative, source, expected) in owner_adversarial_sources.items():
+    assert source_references_retired(relative, source) is expected, case
+
 self_declaration = f"CONSOLIDATIONS = {CONSOLIDATIONS!r}\n"
 stripped_self_declaration = without_own_retired_declaration(self_declaration)
 assert not source_references_retired(SELF.as_posix(), stripped_self_declaration)
@@ -378,6 +426,74 @@ for clause_id, anchor in integration_links.items():
     )
     assert links == [anchor], f"{clause_id} needs one exact focused explanation link"
     assert anchor in reference_anchors, f"{clause_id} focused anchor is missing"
+
+
+def focused_owner(clause_ids):
+    owners = []
+    for reference in sorted((ROOT / "lc-coding/references").glob("*.md")):
+        source_lines = "\n".join(
+            line
+            for line in reference.read_text(encoding="utf-8").splitlines()
+            if line.startswith("Source clauses:")
+        )
+        if set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", source_lines)).intersection(
+            clause_ids
+        ):
+            owners.append(reference.relative_to(ROOT).as_posix())
+    return owners
+
+
+acceptance_reference_path = "lc-coding/references/loop-acceptance-boundary.md"
+verification_reference_path = "lc-coding/references/verification-de-duplication.md"
+assert focused_owner(ACCEPTANCE_CLAUSES) == [acceptance_reference_path]
+assert focused_owner(VERIFICATION_CLAUSES) == [verification_reference_path]
+
+
+def focused_reference(relative, expected_clauses, expected_sections):
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    sections = re.findall(
+        r'(?ms)^<a id="([a-z0-9-]+)"></a>\n## ([^\n]+)\n\n(.*?)(?=^<a id="|\Z)',
+        text,
+    )
+    assert len(sections) == expected_sections, f"{relative}: unexpected focused section count"
+    source_lines = []
+    anchors = set()
+    for anchor, _, section in sections:
+        anchors.add(anchor)
+        lines = [line for line in section.splitlines() if line.startswith("Source clauses:")]
+        assert len(lines) == 1, f"{relative}#{anchor}: needs one Source clauses line"
+        source_lines.extend(lines)
+    actual = set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", "\n".join(source_lines)))
+    assert actual == expected_clauses, f"{relative}: unrelated source clauses {actual}"
+    return anchors
+
+
+acceptance_anchors = focused_reference(
+    acceptance_reference_path, ACCEPTANCE_CLAUSES, 3
+)
+verification_anchors = focused_reference(
+    verification_reference_path, VERIFICATION_CLAUSES, 3
+)
+acceptance_links = {
+    "LC-ACCEPT-001": "per-run-terminal-decision",
+    "LC-ACCEPT-002": "owner-gap-lineage",
+    "LC-ACCEPT-003": "post-security-terminal-decision",
+}
+for clause_id, anchor in acceptance_links.items():
+    links = re.findall(
+        r"\[Owner terminal decision guidance\]"
+        r"\(lc-coding/references/loop-acceptance-boundary\.md#([a-z0-9-]+)\)",
+        clause_body(clause_id),
+    )
+    assert links == [anchor], f"{clause_id} needs one exact focused link"
+    assert anchor in acceptance_anchors
+verification_links = re.findall(
+    r"\[Verification evidence guidance\]"
+    r"\(lc-coding/references/verification-de-duplication\.md#([a-z0-9-]+)\)",
+    clause_body("LC-VERIFY-001"),
+)
+assert verification_links == ["layered-independent-verification"]
+assert "layered-independent-verification" in verification_anchors
 
 callers = active_callers()
 if callers:

@@ -1,33 +1,24 @@
-# Verification De-duplication
+# Verification Evidence and Reuse
 
-## Distinct engineering questions
+`SPEC.md` alone defines layered verification semantics.
 
-| Layer | Question | New evidence |
-|---|---|---|
-| D0 | Did the implementation behave as intended locally? | focused implementation evidence |
-| D1 | Does this CELL satisfy its local frozen contract? | independent boundary and local acceptance |
-| D2 | Do accepted CELLs compose into the GO outcome? | GO composition, outcome, affected regression |
-| D3 | Do verified results compose into the Run/Stage/Final claim? | seams, end-to-end, locked UI, invisible system behavior |
+<a id="layered-independent-verification"></a>
+## Layered independent verification
 
-## Independence
+Source clauses: [LC-VERIFY-001](../../SPEC.md#lc-verify-001)
 
-- D1 is independent from Worker production context.
-- D2 is independent from Worker and CELL Checker.
-- D3 uses the fresh independent topology required by the selected Loop.
-- The Run Supervisor provisions and consumes Verification but cannot author its verdict.
+D0 is Worker self-check; D1 independently checks the frozen CELL; D2 composes accepted CELL evidence into the GO outcome; fresh D3 verifies Stage/Run/Final seams, end-to-end behavior, locked UI, invisible behavior, and final candidate. Each depth asks a new engineering question. Worker, Checker, and Run Supervisor cannot author assigned higher verdicts.
 
+<a id="receipt-reuse"></a>
 ## Receipt reuse
 
-A higher layer cites lower receipts and does not rerun their commands when candidate identity, contract, environment, authority, and evidence remain valid.
+Source clauses: [LC-VERIFY-001](../../SPEC.md#lc-verify-001)
 
-Repeat only for changed candidate, stale/contradictory evidence, material environment difference, composition-sensitive result, expanded affected regression, or a named risk.
+Reuse only when candidate identity, contract version, relevant environment, authority, currency/completeness, and no contradiction still match. Repeat for a changed candidate, stale/missing/contradictory evidence, material environment change, composition risk, affected regression, or named risk. Record source, reason, scope difference, risk, and result; rerun affected proof, not unchanged work.
 
-## Owner acceptance reuse
+<a id="acceptance-handoff-boundary"></a>
+## Acceptance handoff boundary
 
-- Every normal Run has its own Loop Owner Acceptance after D3.
-- A later Run must not ask the Owner to reaccept unchanged prior Runs.
-- Post-Security Owner Acceptance reuses all Loop Owner Acceptance receipts and checks only remediation-affected product surfaces plus critical smoke paths.
+Source clauses: [LC-VERIFY-001](../../SPEC.md#lc-verify-001)
 
-## Centralized security
-
-Formal vulnerability audit is not distributed across D0–D3. Local security checks may be reused, but only the independent centralized Security Auditor may issue the final vulnerability closure verdict.
+A D3 receipt is engineering evidence for the Owner decision. A Verifier or Supervisor cannot author Owner result, and an Owner terminal receipt is not a D0–D3 technical verdict. Run-start input, verification evidence, and terminal acceptance remain distinct. Local security evidence may be reused, but it does not replace the centralized security verdict.
