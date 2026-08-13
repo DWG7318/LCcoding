@@ -60,6 +60,8 @@ describe("React BI product contract", () => {
     ]);
     expect(document.querySelectorAll("[data-step-id]")).toHaveLength(21);
     expect(document.querySelectorAll(".open-report")).toHaveLength(8);
+    expect(screen.getByText("REAL_PRODUCT_INTEGRATION")).toBeTruthy();
+    expect(screen.queryByText("PRODUCT_INTEGRATION")).toBeNull();
 
     const workflow = document.querySelector<HTMLElement>(
       '[data-step-id="WORKFLOW_CAPABILITY_END"]',

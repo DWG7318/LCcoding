@@ -1,5 +1,6 @@
 export type Health = "ok" | "error";
 export type ViewState = "done" | "active" | "pending" | "error";
+export type SnapshotSchema = "LCCoding 2.6.0 derived BI" | "LCCoding 2.7.0 derived BI";
 
 export type PhaseId =
   | "INITIAL"
@@ -113,7 +114,7 @@ export type PhaseView = Readonly<{
 }>;
 
 export type Snapshot = Readonly<{
-  schema: "LCCoding 2.6.0 derived BI";
+  schema: SnapshotSchema;
   authoritative: false;
   read_only: true;
   health: Health;
@@ -157,7 +158,7 @@ const REPORT_IDS = [
 type StepLayout = readonly [id: StepId, report: ReportId | null];
 type PhaseLayout = Readonly<{ id: PhaseId; steps: readonly StepLayout[] }>;
 
-const PHASE_LAYOUT: readonly PhaseLayout[] = [
+const PHASE_LAYOUT_260: readonly PhaseLayout[] = [
   {
     id: "INITIAL",
     steps: [
@@ -200,6 +201,32 @@ const PHASE_LAYOUT: readonly PhaseLayout[] = [
     ],
   },
 ] as const;
+
+const PHASE_LAYOUT_270: readonly PhaseLayout[] = [
+  PHASE_LAYOUT_260[0]!,
+  {
+    id: "PRODUCT_FORMATION",
+    steps: [
+      ...PHASE_LAYOUT_260[1]!.steps,
+      ...PHASE_LAYOUT_260[2]!.steps.slice(0, 2),
+    ],
+  },
+  {
+    id: "ENGINEERING_RUNS",
+    steps: PHASE_LAYOUT_260[2]!.steps.slice(2),
+  },
+  PHASE_LAYOUT_260[3]!,
+] as const;
+
+const SNAPSHOT_SCHEMAS = [
+  "LCCoding 2.6.0 derived BI",
+  "LCCoding 2.7.0 derived BI",
+] as const;
+
+const PHASE_LAYOUTS: Readonly<Record<SnapshotSchema, readonly PhaseLayout[]>> = {
+  "LCCoding 2.6.0 derived BI": PHASE_LAYOUT_260,
+  "LCCoding 2.7.0 derived BI": PHASE_LAYOUT_270,
+};
 
 type RowKind = RowValue["kind"];
 type RowLayout = readonly [key: RowKey, kind: RowKind];
@@ -446,10 +473,12 @@ function deepFreeze<T>(value: T): T {
 
 export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   const value = exactObject(input, SNAPSHOT_KEYS);
-  const phasesInput = exactArray(value.phases, PHASE_LAYOUT.length);
+  const schema = exactEnum(value.schema, SNAPSHOT_SCHEMAS);
+  const phaseLayout = PHASE_LAYOUTS[schema];
+  const phasesInput = exactArray(value.phases, phaseLayout.length);
   const phases: PhaseView[] = [];
-  for (let index = 0; index < PHASE_LAYOUT.length; index += 1) {
-    phases[index] = parsePhase(phasesInput[index], PHASE_LAYOUT[index]!);
+  for (let index = 0; index < phaseLayout.length; index += 1) {
+    phases[index] = parsePhase(phasesInput[index], phaseLayout[index]!);
   }
 
   const reportsInput = exactObject(value.reports, REPORT_IDS);
@@ -472,7 +501,7 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   }
 
   const snapshot = {
-    schema: exactLiteral(value.schema, "LCCoding 2.6.0 derived BI"),
+    schema,
     authoritative: exactLiteral(value.authoritative, false),
     read_only: exactLiteral(value.read_only, true),
     health: exactEnum(value.health, ["ok", "error"] as const),

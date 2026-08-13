@@ -31,8 +31,8 @@ const REPORT_STATE_BINDINGS = [
   ["simulation", 1, 1, "pending"],
   ["workflow", 1, 2, "done"],
   ["ui", 1, 3, "pending"],
-  ["baseline", 2, 1, "done"],
-  ["loop_governance", 2, 4, "done"],
+  ["baseline", 1, 6, "done"],
+  ["loop_governance", 2, 2, "done"],
 ] as const;
 
 const NOT_RECORDED_METRIC = {
@@ -52,7 +52,7 @@ const UNKNOWN_METRIC = {
 } as const;
 
 const EXPECTED_SUCCESS = {
-  schema: "LCCoding 2.6.0 derived BI",
+  schema: "LCCoding 2.7.0 derived BI",
   authoritative: false,
   read_only: true,
   health: "ok",
@@ -77,14 +77,14 @@ const EXPECTED_SUCCESS = {
         { id: "WORKFLOW_CAPABILITY_END", state: "active", report: "workflow" },
         { id: "UI_PRODUCT_SURFACE_END", state: "error", report: "ui" },
         { id: "CALABASH_UPGRADE_READY", state: "pending", report: null },
+        { id: "MANDATORY_CALABASH_UPGRADE", state: "pending", report: null },
+        { id: "PRODUCT_BASELINE", state: "pending", report: "baseline" },
       ],
     },
     {
       id: "ENGINEERING_RUNS",
       state: "pending",
       steps: [
-        { id: "MANDATORY_CALABASH_UPGRADE", state: "pending", report: null },
-        { id: "PRODUCT_BASELINE", state: "pending", report: "baseline" },
         { id: "FEATURE_SLICE_EXECUTION_COVERAGE", state: "pending", report: null },
         { id: "UI_LOCKED_INTEGRATION_BASELINE", state: "pending", report: null },
         { id: "LOOP_RUN_D0_D3", state: "pending", report: "loop_governance" },
@@ -446,6 +446,33 @@ describe("parseSnapshot", () => {
     }
   });
 
+  it("binds each accepted schema to exactly one phase and step tuple", () => {
+    expect(parseSnapshot(structuredClone(successFixture)).schema).toBe(
+      "LCCoding 2.7.0 derived BI",
+    );
+    expect(parseSnapshot(structuredClone(errorFixture)).schema).toBe(
+      "LCCoding 2.6.0 derived BI",
+    );
+
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        draft.schema = "LCCoding 2.6.0 derived BI";
+      })),
+    ).toThrow(TypeError);
+
+    const legacyAsCurrent = structuredClone(errorFixture) as JsonObject;
+    legacyAsCurrent.schema = "LCCoding 2.7.0 derived BI";
+    expect(() => parseSnapshot(legacyAsCurrent)).toThrow(TypeError);
+
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        const formation = array(phase(draft, 1).steps);
+        const engineering = array(phase(draft, 2).steps);
+        engineering.unshift(formation.pop()!);
+      })),
+    ).toThrow(TypeError);
+  });
+
   it.each(REPORT_STATE_BINDINGS)(
     "rejects %s report state when it differs from its bound StepView",
     (reportId, phaseIndex, stepIndex, mismatchState) => {
@@ -469,6 +496,7 @@ describe("parseSnapshot", () => {
     ["missing phase tuple item", (draft: JsonObject) => void array(draft.phases).pop()],
     ["reordered phase tuple", (draft: JsonObject) => void array(draft.phases).reverse()],
     ["wrong step tuple", (draft: JsonObject) => void (step(draft).id = "INITIAL_READY")],
+    ["duplicate step tuple", (draft: JsonObject) => void (step(draft, 1, 6).id = "MANDATORY_CALABASH_UPGRADE")],
     ["missing step tuple item", (draft: JsonObject) => void array(phase(draft).steps).pop()],
     ["missing step tuple slot", (draft: JsonObject) => void delete array(phase(draft).steps)[0]],
     [

@@ -12,6 +12,9 @@ if (configuredReviewDir === undefined || configuredReviewDir.trim() === "") {
 }
 const OWNER_REVIEW_DIR = configuredReviewDir.replace(/[\\/]+$/, "");
 const CANDIDATE_DIR = `${OWNER_REVIEW_DIR}/candidates`;
+if (VISUAL_CASES.length + 1 !== 33) {
+  throw new Error("visual target contract must remain exactly 33 targets");
+}
 
 function snapshotFor(candidate: VisualCase): unknown {
   if (candidate.preview === "error") return errorSnapshot;
@@ -326,11 +329,11 @@ for (const candidate of VISUAL_CASES) {
   });
 }
 
-test("2.6.0 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
+test("2.7.0 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
   await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
   await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);
-  await page.locator('[data-phase-id="ENGINEERING_RUNS"] .phase-summary').click();
+  await page.locator('[data-phase-id="PRODUCT_FORMATION"] .phase-summary').click();
 
   await page.locator('[data-step-id="PRODUCT_BASELINE"] .open-report').click();
   await expect(page.locator(".report-heading")).toHaveText("Product Baseline");
@@ -340,6 +343,7 @@ test("2.6.0 protected reports stay inside the fixed scrollable client area", asy
   await page.locator(".back-button").click();
 
   await page.locator(".language-button").click();
+  await page.locator('[data-phase-id="ENGINEERING_RUNS"] .phase-summary').click();
   await page.locator('[data-step-id="LOOP_RUN_D0_D3"] .open-report').click();
   await expect(page.locator(".report-heading")).toHaveText("工程方法治理");
   await expect(page.locator(".report-row")).toHaveCount(7);

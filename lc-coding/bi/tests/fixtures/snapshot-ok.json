@@ -1,5 +1,5 @@
 {
-  "schema": "LCCoding 2.6.0 derived BI",
+  "schema": "LCCoding 2.7.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": "ok",
@@ -23,15 +23,15 @@
         { "id": "SIMULATION_WORLD_FOUNDATION", "state": "done", "report": "simulation" },
         { "id": "WORKFLOW_CAPABILITY_END", "state": "active", "report": "workflow" },
         { "id": "UI_PRODUCT_SURFACE_END", "state": "error", "report": "ui" },
-        { "id": "CALABASH_UPGRADE_READY", "state": "pending", "report": null }
+        { "id": "CALABASH_UPGRADE_READY", "state": "pending", "report": null },
+        { "id": "MANDATORY_CALABASH_UPGRADE", "state": "pending", "report": null },
+        { "id": "PRODUCT_BASELINE", "state": "pending", "report": "baseline" }
       ]
     },
     {
       "id": "ENGINEERING_RUNS",
       "state": "pending",
       "steps": [
-        { "id": "MANDATORY_CALABASH_UPGRADE", "state": "pending", "report": null },
-        { "id": "PRODUCT_BASELINE", "state": "pending", "report": "baseline" },
         { "id": "FEATURE_SLICE_EXECUTION_COVERAGE", "state": "pending", "report": null },
         { "id": "UI_LOCKED_INTEGRATION_BASELINE", "state": "pending", "report": null },
         { "id": "LOOP_RUN_D0_D3", "state": "pending", "report": "loop_governance" },

@@ -98,7 +98,7 @@ export const CATALOG = {
   "metric.not_recorded": { en: "Not recorded", zh_CN: "未记录" },
   "phase.INITIAL": { en: "INITIAL", zh_CN: "初始" },
   "phase.PRODUCT_FORMATION": { en: "PRODUCT_FORMATION", zh_CN: "产品形成" },
-  "phase.ENGINEERING_RUNS": { en: "PRODUCT_INTEGRATION", zh_CN: "真实产品集成" },
+  "phase.ENGINEERING_RUNS": { en: "REAL_PRODUCT_INTEGRATION", zh_CN: "真实产品集成" },
   "phase.DELIVERY_PREPARATION": { en: "DELIVERY_PREPARATION", zh_CN: "交付准备" },
   "step.PROPOSAL_READINESS": { en: "Proposal Readiness", zh_CN: "提案就绪" },
   "step.PROJECT_INITIALIZATION": { en: "Project Initialization", zh_CN: "工程初始化" },
