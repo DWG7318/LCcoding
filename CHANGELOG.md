@@ -2,7 +2,7 @@
 
 ## Unreleased - 2.7.0 candidate
 
-- Defines a copy-on-write 2.6.0 to 2.7.0 candidate migration contract; this is not a release and does not change VERSION, BI, or the global Skill.
+- The copy-on-write migration is defined, and the current repository and BI release carriers are prepared for 2.7.0; this is not a release, no formal tag or GitHub Release exists yet, and global installed Skill deployment remains post-release.
 
 ## 2.6.0
 

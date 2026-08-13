@@ -101,6 +101,12 @@ candidate_section = changelog[len("# Changelog\n\n") :]
 candidate_section = candidate_section[: candidate_section.find("\n## 2.6.0")]
 assert "not a release" in candidate_section.lower()
 assert "copy-on-write" in candidate_section.lower()
-assert "does not change VERSION, BI, or the global Skill" in candidate_section
+for marker in (
+    "current repository and BI release carriers are prepared for 2.7.0",
+    "no formal tag or GitHub Release exists yet",
+    "global installed Skill deployment remains post-release",
+):
+    assert marker in candidate_section
+assert "does not change VERSION, BI" not in candidate_section
 
 print("PASS: 2.6.0 to 2.7.0 migration contract is closed and candidate-only")

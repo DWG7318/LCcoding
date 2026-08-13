@@ -3,7 +3,7 @@ name: lc-coding
 description: Use when an Owner wants AI to develop or admit an enterprise product through four lifecycle phases and bounded cross-phase execution methods.
 ---
 
-# LCCoding 2.6.0
+# LCCoding 2.7.0
 
 ## Canonical mainline
 

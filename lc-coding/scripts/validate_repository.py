@@ -19,7 +19,7 @@ def main():
     root=Path(sys.argv[1] if len(sys.argv)>1 else '.').resolve(); errors=[]
     for x in REQUIRED:
         if not (root/x).is_file(): errors.append('missing '+x)
-    if (root/'VERSION').is_file() and (root/'VERSION').read_text().strip()!='2.6.0': errors.append('bad VERSION')
+    if (root/'VERSION').is_file() and (root/'VERSION').read_text().strip()!='2.7.0': errors.append('bad VERSION')
     con=(root/'CONSTITUTION.md').read_text(encoding='utf-8') if (root/'CONSTITUTION.md').is_file() else ''
     alltext=con+'\n'+((root/'README.zh-CN.md').read_text(encoding='utf-8') if (root/'README.zh-CN.md').is_file() else '')
     for m in MARKERS:

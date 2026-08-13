@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-current = "2.6.0"
+current = "2.7.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
 assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
@@ -45,7 +45,6 @@ for relative in [
     "CONSTITUTION.md",
     "SPEC.md",
     "lc-coding/SKILL.md",
-    "lc-coding/references/built-in-bi.md",
     "VALIDATION-REPORT.md",
     "PUBLISH-TO-GITHUB.md",
     "lc-coding/scripts/validate_repository.py",
@@ -53,17 +52,31 @@ for relative in [
     assert current in (root / relative).read_text(encoding="utf-8"), relative
 
 snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
+assert '"LCCoding 2.7.0 derived BI"' in snapshot_model
 assert '"LCCoding 2.6.0 derived BI"' in snapshot_model
+projection = (bi_root / "src-tauri/src/projection.rs").read_text(encoding="utf-8")
+assert 'schema: "LCCoding 2.7.0 derived BI"' in projection
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## 2.6.0") < changelog.index("## 2.5.2")
+assert changelog.index("## Unreleased - 2.7.0 candidate") < changelog.index("## 2.6.0")
+candidate_section = changelog.split("## Unreleased - 2.7.0 candidate", 1)[1].split(
+    "## 2.6.0", 1
+)[0]
+for marker in [
+    "current repository and BI release carriers are prepared for 2.7.0",
+    "not a release",
+    "no formal tag or GitHub Release exists yet",
+    "global installed Skill deployment remains post-release",
+]:
+    assert marker in candidate_section
+assert "does not change VERSION, BI" not in candidate_section
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
-assert 'schema = "LCCoding 2.6.0 installer provenance"' in package_driver
-assert '$releaseInstallerName = "LCCoding-BI_2.6.0_x64-setup.exe"' in package_driver
+assert 'schema = "LCCoding 2.7.0 installer provenance"' in package_driver
+assert '$releaseInstallerName = "LCCoding-BI_2.7.0_x64-setup.exe"' in package_driver
 workflow = (root / ".github/workflows/release-bi.yml").read_text(encoding="utf-8")
-assert 'VERSION -Raw).Trim() -ne "2.6.0"' in workflow
-assert "LCCoding-BI_2.6.0_x64-setup.exe" in workflow
+assert 'VERSION -Raw).Trim() -ne "2.7.0"' in workflow
+assert "LCCoding-BI_2.7.0_x64-setup.exe" in workflow
 
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
@@ -96,4 +109,4 @@ assert "calabash" not in release_verifier.lower()
 for powershell7_only in ["Text.Json", "HashData", "ToHexString"]:
     assert powershell7_only not in release_verifier
 
-print("PASS: LCCoding 2.6.0 version is consistent across release artifacts")
+print("PASS: LCCoding 2.7.0 version is consistent across release artifacts")

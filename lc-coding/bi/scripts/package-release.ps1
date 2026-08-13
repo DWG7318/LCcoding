@@ -60,9 +60,9 @@ if (-not $AllowDirty) {
 }
 
 $version = [IO.File]::ReadAllText((Join-Path $repo "VERSION")).Trim()
-$releaseInstallerName = "LCCoding-BI_2.6.0_x64-setup.exe"
+$releaseInstallerName = "LCCoding-BI_2.7.0_x64-setup.exe"
 $safeAssetPattern = '^[A-Za-z0-9][A-Za-z0-9._-]*$'
-if ($version -ne "2.6.0" -or $releaseInstallerName -notmatch $safeAssetPattern) {
+if ($version -ne "2.7.0" -or $releaseInstallerName -notmatch $safeAssetPattern) {
   throw "BI_RELEASE_ASSET_NAME_UNSAFE"
 }
 $commit = (& git -C $repo rev-parse HEAD).Trim()
@@ -192,7 +192,7 @@ $installerHash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.T
 )
 
 $provenance = [ordered]@{
-  schema = "LCCoding 2.6.0 installer provenance"
+  schema = "LCCoding 2.7.0 installer provenance"
   overall_version = $version
   commit = $commit
   asset = [IO.Path]::GetFileName($installer)

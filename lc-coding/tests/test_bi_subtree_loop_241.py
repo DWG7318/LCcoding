@@ -154,13 +154,13 @@ for product_marker in [
     assert product_marker in reference, product_marker
 
 release_paths = {
-    ".github/workflows/release-bi.yml": "12dcd2b7cc9ff2949c8757dac4d7e40c8d583c0416337c180641fd9c6d4c4223",
-    "lc-coding/bi/scripts/package-release.ps1": "4ea923e8a3f8277b1f90988336335acf10504cffc1e4952f5a626e59f2bda07a",
+    ".github/workflows/release-bi.yml": "540f77590b345cffe05663605be0c74a00fe26349b39a3df92c58cd97f920e35",
+    "lc-coding/bi/scripts/package-release.ps1": "6171ba9c3ddf8888029e40dbe089053087ca52eb9c5784526bd39b83e85a05c8",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "67125a1c628a78144cfa11ef0f7ab8b9fc35686e56b3390a289b583df05cbb7d",
-    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "4c177eed8891c5a43a744b0fd3655851961b08f49b560307cebb9a50ae184409",
+    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "d03e35dd4b9850dd7a284501ad4d248c35434d373e33d1fcb3917251c73b2efc",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.6.0"
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.7.0"
 print("PASS: BI keeps protected subtree and Execution Method Governance reports")

@@ -280,6 +280,7 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     assert!(parse_status(&explicit_empty).is_ok());
 
     let mut legacy: Value = serde_json::from_str(&status_text).unwrap();
+    legacy["status_schema_version"] = Value::String("2.6.0".into());
     legacy["canonical_candidate"]
         .as_object_mut()
         .unwrap()
@@ -318,6 +319,7 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     }
 
     let mut legacy_manifest: Value = serde_json::from_str(manifest_text).unwrap();
+    legacy_manifest["lccoding"]["version"] = Value::String("2.6.0".into());
     legacy_manifest
         .as_object_mut()
         .unwrap()
@@ -418,7 +420,7 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
         1,
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
-    let unsupported = valid.replace("\"2.6.0\"", "\"2.3.0\"");
+    let unsupported = valid.replace("\"2.7.0\"", "\"2.3.0\"");
 
     for malformed in [duplicate, unknown, unsafe_name] {
         let error = parse_status(&malformed).unwrap_err();
@@ -497,7 +499,7 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replace("\"2.6.0\"", "\"2.4.1\"");
+    let mismatched = manifest_text.replace("\"2.7.0\"", "\"2.4.1\"");
     let manifest = parse_manifest(&mismatched).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))

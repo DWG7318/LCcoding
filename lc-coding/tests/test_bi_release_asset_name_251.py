@@ -12,7 +12,7 @@ workflow_text = (root / ".github/workflows/release-bi.yml").read_text(
     encoding="utf-8"
 )
 
-safe_basename = "LCCoding-BI_2.6.0_x64-setup.exe"
+safe_basename = "LCCoding-BI_2.7.0_x64-setup.exe"
 safe_pattern = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -42,10 +42,10 @@ assert historical_download != historical_source
 
 for unsafe in [
     historical_source,
-    "LCCoding/BI_2.6.0_x64-setup.exe",
-    "LCCoding\\BI_2.6.0_x64-setup.exe",
+    "LCCoding/BI_2.7.0_x64-setup.exe",
+    "LCCoding\\BI_2.7.0_x64-setup.exe",
     "https://example.invalid/installer.exe",
-    "LCCoding+BI_2.6.0_x64-setup.exe",
+    "LCCoding+BI_2.7.0_x64-setup.exe",
 ]:
     assert not safe_pattern.fullmatch(unsafe), unsafe
 assert safe_pattern.fullmatch(safe_basename)

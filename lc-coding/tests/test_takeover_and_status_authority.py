@@ -24,7 +24,7 @@ assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
 assert health.get("record_role") == "ASSESSMENT_EVIDENCE"
-assert status.get("status_schema_version") == "2.6.0"
+assert status.get("status_schema_version") == "2.7.0"
 assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
 assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
 assert status.get("product_baseline") == "PENDING"

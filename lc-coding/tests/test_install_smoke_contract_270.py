@@ -22,8 +22,9 @@ for marker in (
     assert marker in parameters, f"missing closed smoke parameter: {marker}"
 
 for marker in (
-    '"LCCoding-BI_2.6.0_x64-setup.exe"',
-    '"2.6.0"',
+    '"LCCoding-BI_2.7.0_x64-setup.exe"',
+    '"2.7.0"',
+    '"LCCoding 2.7.0 installer provenance"',
     'D:\\LCcoding\\.codex\\.tmp\\lccoding-260-install-smoke',
     "Assert-ContainedPath",
     "Assert-ExternalToSource",

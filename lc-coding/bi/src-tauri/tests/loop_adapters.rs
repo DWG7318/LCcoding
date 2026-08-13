@@ -439,6 +439,7 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
         )
         .replace("\"active_runs\": []", "\"active_runs\": [\"runs/RUN-001\"]");
     let mut status: Value = serde_json::from_str(&status).unwrap();
+    status["status_schema_version"] = Value::String("2.6.0".into());
     status["canonical_candidate"]
         .as_object_mut()
         .unwrap()
@@ -455,6 +456,7 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
     let slk = compatibility.execution_method("slk").unwrap();
     let mut manifest: Value =
         serde_json::from_str(include_str!("../../../templates/CANONICAL-MANIFEST.json")).unwrap();
+    manifest["lccoding"]["version"] = Value::String("2.6.0".into());
     manifest
         .as_object_mut()
         .unwrap()

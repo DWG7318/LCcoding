@@ -77,7 +77,7 @@ for operational_marker in [
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))
 assert config["productName"] == "LCCoding BI"
-assert config["version"] == "2.6.0"
+assert config["version"] == "2.7.0"
 assert config["identifier"] == "com.lccoding.desktop"
 assert config["build"] == {"frontendDist": "../dist"}
 assert config["plugins"] == {}
@@ -206,7 +206,7 @@ cargo = tomllib.loads((tauri_root / "Cargo.toml").read_text(encoding="utf-8"))
 assert cargo["bin"] == [{"name": "lccoding-bi", "path": "src/main.rs"}]
 assert cargo["package"] == {
     "name": "lccoding",
-    "version": "2.6.0",
+    "version": "2.7.0",
     "edition": "2024",
     "rust-version": "1.96",
     "publish": False,
