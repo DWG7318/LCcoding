@@ -84,11 +84,12 @@ if ($releaseGateText.Contains("tests/fixtures")) {
 }
 foreach ($marker in @(
     "release/loop-contract-identities.json",
+    ".execution_methods",
+    'asset_schema -cne "LCCODING_BI_COMPATIBILITY_V1"',
+    '$tag = "v$($identity.version)"',
     "DWG7318/small-loop-skill",
     "DWG7318/chain-loop-skill",
     "DWG7318/large-loop-skill",
-    "v2.5.0",
-    "v3.1.0",
     "git/ref/heads/main",
     "git/ref/tags",
     "gh release view",
@@ -97,6 +98,20 @@ foreach ($marker in @(
     "template_sha256"
 )) {
     if (-not $releaseGateText.Contains($marker)) { throw "missing release gate marker: $marker" }
+}
+foreach ($retired in @(
+    'version = "2.5.0"',
+    'version = "3.1.0"',
+    'tag = "v2.5.0"',
+    'tag = "v3.1.0"'
+)) {
+    if ($releaseGateText.Contains($retired)) { throw "retired release identity: $retired" }
+}
+if ($releaseGateText -match '(?i)calabash') { throw "Calabash is not a Loop release identity" }
+foreach ($powerShell7Only in @("Text.Json", "HashData", "ToHexString")) {
+    if ($releaseGateText.Contains($powerShell7Only)) {
+        throw "release verifier must support Windows PowerShell 5.1: $powerShell7Only"
+    }
 }
 
 Write-Output "PASS: NSIS current-user packaging contract"

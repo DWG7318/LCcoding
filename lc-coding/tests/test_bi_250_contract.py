@@ -1,6 +1,13 @@
 from pathlib import Path
+import base64
+import copy
+import hashlib
 import json
+import os
 import re
+import subprocess
+import sys
+import tempfile
 
 
 root = Path(__file__).resolve().parents[2]
@@ -95,6 +102,262 @@ release_gate = (bi / "scripts/verify-loop-releases.ps1").read_text(encoding="utf
 assert "tests/fixtures" not in release_gate
 assert "release/loop-contract-identities.json" in release_gate
 assert (bi / "release/loop-contract-identities.json").is_file()
+
+
+LOOP_FILES = {
+    "slk": {
+        "repository": "DWG7318/small-loop-skill",
+        "manifest_path": "MANIFEST.json",
+        "schema_path": "small-loop-skill/contracts/slk-runtime-control.schema.json",
+        "template_path": "small-loop-skill/templates/run-runtime-index.yaml",
+    },
+    "clk": {
+        "repository": "DWG7318/chain-loop-skill",
+        "manifest_path": "MANIFEST.json",
+        "schema_path": "chain-loop-skill/schemas/run-control-trace.schema.json",
+        "template_path": "chain-loop-skill/templates/run-control-trace.yaml",
+    },
+    "glk": {
+        "repository": "DWG7318/large-loop-skill",
+        "manifest_path": "MANIFEST.json",
+        "schema_path": "glk/schemas/glk.schema.json",
+        "template_path": "glk/templates/RUN_PACKAGE_INDEX.yaml",
+    },
+}
+
+
+def controlled_asset_and_gh_state() -> tuple[dict, dict]:
+    asset = json.loads(
+        (bi / "release/loop-contract-identities.json").read_text(encoding="utf-8")
+    )
+    state = {"repositories": {}}
+    for method, contract in LOOP_FILES.items():
+        identity = asset["execution_methods"][method]
+        files = {}
+        for field in ["manifest", "schema", "template"]:
+            path = contract[f"{field}_path"]
+            body = f"{method}:{field}:formal-release-bytes\n".encode()
+            files[path] = base64.b64encode(body).decode()
+            identity[f"{field}_sha256"] = hashlib.sha256(body).hexdigest()
+        state["repositories"][contract["repository"]] = {
+            "commit": identity["candidate_commit"],
+            "tag": f"v{identity['version']}",
+            "files": files,
+        }
+    return asset, state
+
+
+def run_release_verifier(
+    asset: dict | str, host: str, change_state=None
+) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    _, state = controlled_asset_and_gh_state()
+    if change_state is not None:
+        change_state(state)
+    with tempfile.TemporaryDirectory(prefix="lccoding-loop-release-") as temporary:
+        temp = Path(temporary)
+        scripts = temp / "bi/scripts"
+        release = temp / "bi/release"
+        fake_bin = temp / "bin"
+        scripts.mkdir(parents=True)
+        release.mkdir(parents=True)
+        fake_bin.mkdir()
+        (scripts / "verify-loop-releases.ps1").write_text(
+            release_gate, encoding="utf-8", newline="\n"
+        )
+        (release / "loop-contract-identities.json").write_text(
+            (json.dumps(asset, indent=2) + "\n") if isinstance(asset, dict) else asset,
+            encoding="utf-8",
+            newline="\n",
+        )
+        state_path = temp / "state.json"
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        log_path = temp / "gh-calls.jsonl"
+        fake_python = fake_bin / "fake_gh.py"
+        fake_python.write_text(
+            """import base64, json, os, sys
+from pathlib import Path
+args = sys.argv[1:]
+with Path(os.environ['FAKE_GH_LOG']).open('a', encoding='utf-8') as stream:
+    stream.write(json.dumps(args) + '\\n')
+state = json.loads(Path(os.environ['FAKE_GH_STATE']).read_text(encoding='utf-8'))
+repositories = state['repositories']
+if args[:1] == ['api'] and len(args) == 2:
+    endpoint = args[1]
+    for repository, record in repositories.items():
+        prefix = f'repos/{repository}/'
+        if not endpoint.startswith(prefix):
+            continue
+        suffix = endpoint[len(prefix):]
+        if suffix == 'git/ref/heads/main' or suffix == f'git/ref/tags/{record["tag"]}':
+            print(json.dumps({'object': {'type': 'commit', 'sha': record['commit']}}))
+            raise SystemExit(0)
+        if suffix.startswith('contents/') and '?ref=' in suffix:
+            path, commit = suffix[len('contents/'):].split('?ref=', 1)
+            if commit == record['commit'] and path in record['files']:
+                print(json.dumps({'type': 'file', 'encoding': 'base64', 'content': record['files'][path]}))
+                raise SystemExit(0)
+elif args[:2] == ['release', 'view'] and '-R' in args:
+    tag = args[2]
+    repository = args[args.index('-R') + 1]
+    record = repositories.get(repository)
+    if record and tag == record['tag']:
+        print(json.dumps({'tagName': record.get('release_tag', tag), 'isDraft': False, 'isPrerelease': False, 'publishedAt': '2026-01-01T00:00:00Z', 'url': f'https://example.invalid/{repository}/{tag}'}))
+        raise SystemExit(0)
+raise SystemExit(1)
+""",
+            encoding="utf-8",
+            newline="\n",
+        )
+        (fake_bin / "gh.cmd").write_text(
+            f'@"{sys.executable}" "%~dp0fake_gh.py" %*\r\n', encoding="utf-8"
+        )
+        environment = os.environ.copy()
+        environment["PATH"] = f"{fake_bin}{os.pathsep}{environment['PATH']}"
+        environment["FAKE_GH_STATE"] = str(state_path)
+        environment["FAKE_GH_LOG"] = str(log_path)
+        completed = subprocess.run(
+            [
+                host,
+                "-NoProfile",
+                "-NonInteractive",
+                "-File",
+                str(scripts / "verify-loop-releases.ps1"),
+            ],
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            capture_output=True,
+            env=environment,
+            timeout=30,
+        )
+        calls = (
+            log_path.read_text(encoding="utf-8").splitlines() if log_path.exists() else []
+        )
+        return completed, calls
+
+
+valid_asset, _ = controlled_asset_and_gh_state()
+for host in ["pwsh", "powershell"]:
+    verified, calls = run_release_verifier(valid_asset, host)
+    assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
+    assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
+    assert len(calls) == 18
+    for contract in LOOP_FILES.values():
+        repository = contract["repository"]
+        assert json.dumps(["api", f"repos/{repository}/git/ref/heads/main"]) in calls
+        assert any(
+            json.loads(call)[:2] == ["release", "view"]
+            and json.loads(call)[json.loads(call).index("-R") + 1] == repository
+            for call in calls
+        )
+        for field in ["manifest", "schema", "template"]:
+            assert any(
+                json.loads(call)[0] == "api"
+                and f"contents/{contract[f'{field}_path']}?ref=" in json.loads(call)[1]
+                for call in calls
+            )
+
+hash_drift = copy.deepcopy(valid_asset)
+hash_drift["execution_methods"]["slk"]["manifest_sha256"] = "0" * 64
+for host in ["pwsh", "powershell"]:
+    blocked, calls = run_release_verifier(hash_drift, host)
+    assert blocked.returncode != 0
+    assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_MANIFEST_SHA256" in (
+        blocked.stdout + blocked.stderr
+    )
+    assert len(calls) == 6
+    assert (
+        sum(
+            "contents/" in json.loads(call)[1]
+            for call in calls
+            if json.loads(call)[0] == "api"
+        )
+        == 3
+    )
+
+early_rejections = []
+bad_schema = copy.deepcopy(valid_asset)
+bad_schema["asset_schema"] = "LEGACY"
+early_rejections.append(bad_schema)
+lowercase_schema = copy.deepcopy(valid_asset)
+lowercase_schema["asset_schema"] = "lccoding_bi_compatibility_v1"
+early_rejections.append(lowercase_schema)
+legacy = {method: valid_asset["execution_methods"][method] for method in LOOP_FILES}
+early_rejections.append(legacy)
+missing = copy.deepcopy(valid_asset)
+del missing["execution_methods"]["clk"]
+early_rejections.append(missing)
+extra = copy.deepcopy(valid_asset)
+extra["execution_methods"]["calabash"] = copy.deepcopy(
+    extra["execution_methods"]["slk"]
+)
+early_rejections.append(extra)
+extra_field = copy.deepcopy(valid_asset)
+extra_field["execution_methods"]["slk"]["tag"] = "v2.5.0"
+early_rejections.append(extra_field)
+missing_field = copy.deepcopy(valid_asset)
+del missing_field["execution_methods"]["glk"]["schema_sha256"]
+early_rejections.append(missing_field)
+bad_version = copy.deepcopy(valid_asset)
+bad_version["execution_methods"]["slk"]["version"] = "02.5.0"
+early_rejections.append(bad_version)
+bad_commit = copy.deepcopy(valid_asset)
+bad_commit["execution_methods"]["clk"]["candidate_commit"] = "A" * 40
+early_rejections.append(bad_commit)
+bad_hash = copy.deepcopy(valid_asset)
+bad_hash["execution_methods"]["glk"]["template_sha256"] = "A" * 64
+early_rejections.append(bad_hash)
+bad_kind = copy.deepcopy(valid_asset)
+bad_kind["execution_methods"]["glk"]["adapter_schema_kind"] = (
+    "SLK_RUN_RUNTIME_INDEX"
+)
+early_rejections.append(bad_kind)
+bad_mapping = copy.deepcopy(valid_asset)
+bad_mapping["execution_methods"]["slk"]["normalization_mapping"].reverse()
+early_rejections.append(bad_mapping)
+bad_status_shape = copy.deepcopy(valid_asset)
+bad_status_shape["status_adapters"]["2.7.0"]["phase_steps"]["EXTRA"] = []
+early_rejections.append(bad_status_shape)
+lowercase_step = copy.deepcopy(valid_asset)
+lowercase_step["status_adapters"]["2.7.0"]["phase_steps"]["INITIAL"][0] = (
+    "proposal_readiness"
+)
+early_rejections.append(lowercase_step)
+duplicate_json = json.dumps(valid_asset, indent=2).replace(
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",\n'
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
+    1,
+)
+early_rejections.append(duplicate_json)
+escaped_duplicate_json = json.dumps(valid_asset, indent=2).replace(
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",\n'
+    '  "asset\\u005fschema": "LCCODING_BI_COMPATIBILITY_V1",',
+    1,
+)
+early_rejections.append(escaped_duplicate_json)
+for malformed in early_rejections:
+    for host in ["pwsh", "powershell"]:
+        blocked, calls = run_release_verifier(malformed, host)
+        assert blocked.returncode != 0
+        assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:IDENTITY_RECORD" in (
+            blocked.stdout + blocked.stderr
+        )
+        assert calls == []
+
+
+def lowercase_release_tag(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["release_tag"] = "V2.5.0"
+
+
+for host in ["pwsh", "powershell"]:
+    blocked, calls = run_release_verifier(valid_asset, host, lowercase_release_tag)
+    assert blocked.returncode != 0
+    assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_RELEASE_IDENTITY" in (
+        blocked.stdout + blocked.stderr
+    )
+    assert len(calls) == 3
 
 validation = (root / "VALIDATION-REPORT.md").read_text(encoding="utf-8")
 for marker in [

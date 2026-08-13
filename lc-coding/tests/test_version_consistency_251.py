@@ -80,4 +80,20 @@ assert methods["clk"]["version"] == "2.5.0"
 assert methods["glk"]["version"] == "3.1.0"
 assert not {"slk", "clk", "glk"}.intersection(loop_identities)
 
+release_verifier = (bi_root / "scripts/verify-loop-releases.ps1").read_text(
+    encoding="utf-8"
+)
+assert ".execution_methods" in release_verifier
+assert '$tag = "v$($identity.version)"' in release_verifier
+contracts = release_verifier.split("$contracts =", 1)[1].split("$verified =", 1)[0]
+assert "version =" not in contracts
+assert "tag =" not in contracts
+for identity in methods.values():
+    assert identity["candidate_commit"] not in release_verifier
+    for field in ["manifest_sha256", "schema_sha256", "template_sha256"]:
+        assert identity[field] not in release_verifier
+assert "calabash" not in release_verifier.lower()
+for powershell7_only in ["Text.Json", "HashData", "ToHexString"]:
+    assert powershell7_only not in release_verifier
+
 print("PASS: LCCoding 2.6.0 version is consistent across release artifacts")
