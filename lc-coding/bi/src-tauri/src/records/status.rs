@@ -1,10 +1,8 @@
 use std::collections::HashSet;
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
-use super::{RecordError, safe_version, strict_json};
-
-const SUPPORTED_VERSIONS: [&str; 6] = ["2.4.0", "2.4.1", "2.5.0", "2.5.1", "2.5.2", "2.6.0"];
+use super::{RecordError, compatibility::embedded_compatibility_asset, safe_version, strict_json};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NormalizedState {
@@ -48,12 +46,105 @@ pub fn normalize_state(value: &str) -> Option<NormalizedState> {
     }
 }
 
+#[derive(Debug)]
+enum Present<T> {
+    Missing,
+    Value(T),
+}
+
+impl<T> Default for Present<T> {
+    fn default() -> Self {
+        Self::Missing
+    }
+}
+
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Present<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        T::deserialize(deserializer).map(Self::Value)
+    }
+}
+
+impl<T> Present<T> {
+    fn value(&self) -> Option<&T> {
+        match self {
+            Self::Missing => None,
+            Self::Value(value) => Some(value),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Candidate {
     pub repository: String,
     pub version: String,
     pub commit: String,
+    #[serde(default)]
+    candidate_id: Present<String>,
+    #[serde(default)]
+    candidate_hash: Present<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VulnerabilityClosureState {
+    pub state: String,
+    pub candidate_id: String,
+    pub candidate_hash: String,
+    pub current_receipt_id: String,
+    pub current_receipt_reference: String,
+    pub superseded_receipt_id: String,
+    pub superseded_receipt_reference: String,
+    pub superseded_candidate_id: String,
+    pub superseded_candidate_hash: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PostSecurityOwnerAcceptanceState {
+    pub state: String,
+    pub candidate_id: String,
+    pub candidate_hash: String,
+    pub current_acceptance_id: String,
+    pub current_acceptance_reference: String,
+    pub vulnerability_closure_receipt_id: String,
+    pub vulnerability_closure_receipt_reference: String,
+    pub superseded_acceptance_id: String,
+    pub superseded_acceptance_reference: String,
+    pub superseded_candidate_id: String,
+    pub superseded_candidate_hash: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum VulnerabilityClosure {
+    Legacy(String),
+    Current(VulnerabilityClosureState),
+}
+
+impl VulnerabilityClosure {
+    pub fn state(&self) -> &str {
+        match self {
+            Self::Legacy(state) => state,
+            Self::Current(record) => &record.state,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum PostSecurityOwnerAcceptance {
+    Legacy(String),
+    Current(PostSecurityOwnerAcceptanceState),
+}
+
+impl PostSecurityOwnerAcceptance {
+    pub fn state(&self) -> &str {
+        match self {
+            Self::Legacy(state) => state,
+            Self::Current(record) => &record.state,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -123,8 +214,8 @@ pub struct StatusRecord {
     pub all_required_runs_accepted: String,
     pub centralized_security_audit: String,
     pub security_remediation: String,
-    pub vulnerability_closure: String,
-    pub post_security_owner_acceptance: String,
+    pub vulnerability_closure: VulnerabilityClosure,
+    pub post_security_owner_acceptance: PostSecurityOwnerAcceptance,
     pub delivery_method_qa: String,
     pub delivery: String,
     pub last_material_change: String,
@@ -140,7 +231,11 @@ pub fn parse_status(text: &str) -> Result<StatusRecord, RecordError> {
 }
 
 fn validate(status: &StatusRecord) -> Result<(), RecordError> {
-    if !SUPPORTED_VERSIONS.contains(&status.status_schema_version.as_str()) {
+    let compatibility = embedded_compatibility_asset()?;
+    if compatibility
+        .status_phase_steps(&status.status_schema_version)
+        .is_none()
+    {
         return Err(RecordError::UnsupportedVersion);
     }
     if status.record_role != "AUTHORITATIVE_PROJECT_STATUS"
@@ -181,7 +276,17 @@ fn validate(status: &StatusRecord) -> Result<(), RecordError> {
             return Err(RecordError::Invalid);
         }
     }
-    validate_candidate(&status.canonical_candidate)?;
+    validate_candidate(&status.canonical_candidate, &status.status_schema_version)?;
+    match &status.vulnerability_closure {
+        VulnerabilityClosure::Legacy(_) if status.status_schema_version == "2.6.0" => {}
+        VulnerabilityClosure::Current(value) => validate_security_identity(value)?,
+        _ => return Err(RecordError::Invalid),
+    }
+    match &status.post_security_owner_acceptance {
+        PostSecurityOwnerAcceptance::Legacy(_) if status.status_schema_version == "2.6.0" => {}
+        PostSecurityOwnerAcceptance::Current(value) => validate_post_security_identity(value)?,
+        _ => return Err(RecordError::Invalid),
+    }
     for reference in status
         .active_runs
         .iter()
@@ -237,8 +342,8 @@ pub(crate) fn direct_states(status: &StatusRecord) -> [&str; 19] {
         &status.all_required_runs_accepted,
         &status.centralized_security_audit,
         &status.security_remediation,
-        &status.vulnerability_closure,
-        &status.post_security_owner_acceptance,
+        status.vulnerability_closure.state(),
+        status.post_security_owner_acceptance.state(),
         &status.delivery_method_qa,
         &status.delivery,
     ]
@@ -293,13 +398,25 @@ fn safe_text(value: &str, maximum: usize) -> bool {
         })
 }
 
-fn validate_candidate(candidate: &Candidate) -> Result<(), RecordError> {
+fn validate_candidate(candidate: &Candidate, schema: &str) -> Result<(), RecordError> {
+    let candidate_id = candidate.candidate_id.value().map(String::as_str);
+    let candidate_hash = candidate.candidate_hash.value().map(String::as_str);
+    if (schema == "2.7.0" && (candidate_id.is_none() || candidate_hash.is_none()))
+        || (candidate_id.is_none() != candidate_hash.is_none())
+    {
+        return Err(RecordError::Invalid);
+    }
     let empty = candidate.repository.is_empty()
         && candidate.version.is_empty()
-        && candidate.commit.is_empty();
+        && candidate.commit.is_empty()
+        && candidate_id.is_none_or(str::is_empty)
+        && candidate_hash.is_none_or(str::is_empty);
     if empty {
         return Ok(());
     }
+    let legacy_without_identity = schema == "2.6.0" && candidate_id.is_none();
+    let candidate_id = candidate_id.unwrap_or("");
+    let candidate_hash = candidate_hash.unwrap_or("");
     if candidate.repository.is_empty()
         || candidate.repository.len() > 256
         || !candidate
@@ -311,11 +428,70 @@ fn validate_candidate(candidate: &Candidate) -> Result<(), RecordError> {
         || !candidate
             .commit
             .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        || (!legacy_without_identity
+            && (candidate_id.is_empty()
+                || !safe_ref(candidate_id)
+                || candidate_hash.is_empty()
+                || !safe_sha256(candidate_hash)))
     {
         return Err(RecordError::Invalid);
     }
     Ok(())
+}
+
+fn validate_security_identity(value: &VulnerabilityClosureState) -> Result<(), RecordError> {
+    validate_identity_value(&value.candidate_id, false)?;
+    validate_hash_value(&value.candidate_hash)?;
+    validate_identity_value(&value.current_receipt_id, false)?;
+    validate_identity_value(&value.current_receipt_reference, true)?;
+    validate_identity_value(&value.superseded_receipt_id, false)?;
+    validate_identity_value(&value.superseded_receipt_reference, true)?;
+    validate_identity_value(&value.superseded_candidate_id, false)?;
+    validate_hash_value(&value.superseded_candidate_hash)
+}
+
+fn validate_post_security_identity(
+    value: &PostSecurityOwnerAcceptanceState,
+) -> Result<(), RecordError> {
+    validate_identity_value(&value.candidate_id, false)?;
+    validate_hash_value(&value.candidate_hash)?;
+    validate_identity_value(&value.current_acceptance_id, false)?;
+    validate_identity_value(&value.current_acceptance_reference, true)?;
+    validate_identity_value(&value.vulnerability_closure_receipt_id, false)?;
+    validate_identity_value(&value.vulnerability_closure_receipt_reference, true)?;
+    validate_identity_value(&value.superseded_acceptance_id, false)?;
+    validate_identity_value(&value.superseded_acceptance_reference, true)?;
+    validate_identity_value(&value.superseded_candidate_id, false)?;
+    validate_hash_value(&value.superseded_candidate_hash)
+}
+
+fn validate_identity_value(value: &str, reference: bool) -> Result<(), RecordError> {
+    if value == "NOT_APPLICABLE"
+        || (!reference && safe_ref(value))
+        || (reference && safe_ref(value))
+    {
+        Ok(())
+    } else {
+        Err(RecordError::Invalid)
+    }
+}
+
+fn validate_hash_value(value: &str) -> Result<(), RecordError> {
+    if value == "NOT_APPLICABLE" || safe_sha256(value) {
+        Ok(())
+    } else {
+        Err(RecordError::Invalid)
+    }
+}
+
+fn safe_sha256(value: &str) -> bool {
+    value.strip_prefix("sha256:").is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    })
 }
 
 fn validate_scoped_ref(reference: &ScopedRef) -> Result<(), RecordError> {

@@ -919,109 +919,31 @@ pub fn snapshot_from_status(
         ViewState::Pending
     };
 
-    let mut phases = vec![
-        phase(
-            "INITIAL",
-            vec![
-                step(
-                    "PROPOSAL_READINESS",
-                    state(&status.proposal)?,
-                    Some("proposal"),
-                ),
-                step(
-                    "PROJECT_INITIALIZATION",
-                    state(&status.initialization)?,
-                    Some("candidate"),
-                ),
-                step(
-                    "INITIAL_READY",
-                    state(&status.phase_gates.initial_ready)?,
-                    None,
-                ),
-            ],
-        ),
-        phase(
-            "PRODUCT_FORMATION",
-            vec![
-                step(
-                    "CALABASH_DRAFT",
-                    state(&status.calabash_draft)?,
-                    Some("calabash"),
-                ),
-                step(
-                    "SIMULATION_WORLD_FOUNDATION",
-                    state(&status.simulation)?,
-                    Some("simulation"),
-                ),
-                step(
-                    "WORKFLOW_CAPABILITY_END",
-                    state(&status.workflow)?,
-                    Some("workflow"),
-                ),
-                step("UI_PRODUCT_SURFACE_END", state(&status.ui)?, Some("ui")),
-                step(
-                    "CALABASH_UPGRADE_READY",
-                    state(&status.phase_gates.calabash_upgrade_ready)?,
-                    None,
-                ),
-            ],
-        ),
-        phase(
-            "ENGINEERING_RUNS",
-            vec![
-                step(
-                    "MANDATORY_CALABASH_UPGRADE",
-                    state(&status.mandatory_calabash_upgrade)?,
-                    None,
-                ),
-                step(
-                    "PRODUCT_BASELINE",
-                    state(&status.product_baseline)?,
-                    Some("baseline"),
-                ),
-                step("FEATURE_SLICE_EXECUTION_COVERAGE", feature_slice, None),
-                step("UI_LOCKED_INTEGRATION_BASELINE", integration, None),
-                step("LOOP_RUN_D0_D3", run, Some("loop_governance")),
-                step("LOOP_OWNER_ACCEPTANCE", acceptance, None),
-                step("ALL_REQUIRED_RUNS_ACCEPTED", aggregate, None),
-            ],
-        ),
-        phase(
-            "DELIVERY_PREPARATION",
-            vec![
-                step(
-                    "CENTRALIZED_VULNERABILITY_AUDIT",
-                    state(&status.centralized_security_audit)?,
-                    None,
-                ),
-                step(
-                    "SECURITY_REMEDIATION",
-                    state(&status.security_remediation)?,
-                    None,
-                ),
-                step(
-                    "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
-                    state(&status.vulnerability_closure)?,
-                    None,
-                ),
-                step(
-                    "POST_SECURITY_OWNER_ACCEPTANCE",
-                    state(&status.post_security_owner_acceptance)?,
-                    None,
-                ),
-                step(
-                    "DELIVERY_METHOD_QA",
-                    state(&status.delivery_method_qa)?,
-                    None,
-                ),
-                step(
-                    "DELIVERY_PACKAGE_GUARD_READY",
-                    state(&status.phase_gates.delivery_ready)?,
-                    None,
-                ),
-            ],
-        ),
-    ];
+    let layouts = embedded_compatibility_asset()
+        .map_err(|_| ProjectionError::Inconsistent)?
+        .status_phase_steps(&status.status_schema_version)
+        .ok_or(ProjectionError::Inconsistent)?;
+    let mut phases = layouts
+        .iter()
+        .map(|layout| {
+            let steps = layout
+                .step_ids
+                .iter()
+                .map(|id| {
+                    projected_step(
+                        status,
+                        id,
+                        feature_slice,
+                        integration,
+                        run,
+                        acceptance,
+                        aggregate,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(phase(layout.phase_id, steps))
+        })
+        .collect::<Result<Vec<_>, ProjectionError>>()?;
     apply_phase_truth(status, &mut phases)?;
 
     let candidate_locked = !status.canonical_candidate.repository.is_empty();
@@ -1031,16 +953,16 @@ pub fn snapshot_from_status(
     let reports = Reports {
         proposal: report(
             "proposal",
-            phases[0].steps[0].state,
+            step_state(&phases, "PROPOSAL_READINESS")?,
             None,
             vec![
-                view_row("row.conclusion", phases[0].steps[0].state),
-                view_row("row.initial_gate", phases[0].steps[2].state),
+                view_row("row.conclusion", step_state(&phases, "PROPOSAL_READINESS")?),
+                view_row("row.initial_gate", step_state(&phases, "INITIAL_READY")?),
             ],
         ),
         candidate: report(
             "candidate",
-            phases[0].steps[1].state,
+            step_state(&phases, "PROJECT_INITIALIZATION")?,
             candidate_locked.then(|| status.canonical_candidate.version.clone()),
             vec![
                 ReportRow {
@@ -1056,7 +978,9 @@ pub fn snapshot_from_status(
                 ReportRow {
                     key: "row.integrity",
                     value: RowValue::Record {
-                        value: if candidate_locked && phases[0].steps[1].state == ViewState::Done {
+                        value: if candidate_locked
+                            && step_state(&phases, "PROJECT_INITIALIZATION")? == ViewState::Done
+                        {
                             "RECORDED"
                         } else {
                             "PENDING"
@@ -1067,10 +991,10 @@ pub fn snapshot_from_status(
         ),
         calabash: report(
             "calabash",
-            phases[1].steps[0].state,
+            step_state(&phases, "CALABASH_DRAFT")?,
             calabash_version.clone(),
             vec![
-                view_row("row.status", phases[1].steps[0].state),
+                view_row("row.status", step_state(&phases, "CALABASH_DRAFT")?),
                 ReportRow {
                     key: "row.version_record",
                     value: RowValue::Record {
@@ -1085,7 +1009,7 @@ pub fn snapshot_from_status(
         ),
         simulation: metric_report(
             "simulation",
-            phases[1].steps[1].state,
+            step_state(&phases, "SIMULATION_WORLD_FOUNDATION")?,
             &[
                 "row.realized_peer_subtrees",
                 "row.component_version_coverage",
@@ -1094,7 +1018,7 @@ pub fn snapshot_from_status(
         ),
         workflow: metric_report(
             "workflow",
-            phases[1].steps[2].state,
+            step_state(&phases, "WORKFLOW_CAPABILITY_END")?,
             &[
                 "row.core_implementation",
                 "row.extra_implemented",
@@ -1107,7 +1031,7 @@ pub fn snapshot_from_status(
         ),
         ui: metric_report(
             "ui",
-            phases[1].steps[3].state,
+            step_state(&phases, "UI_PRODUCT_SURFACE_END")?,
             &[
                 "row.realized_subtrees",
                 "row.component_version_coverage",
@@ -1117,7 +1041,7 @@ pub fn snapshot_from_status(
         ),
         baseline: metric_report(
             "baseline",
-            phases[2].steps[1].state,
+            step_state(&phases, "PRODUCT_BASELINE")?,
             &[
                 "row.git_identity",
                 "row.locked_subtree_coverage",
@@ -1127,7 +1051,7 @@ pub fn snapshot_from_status(
         ),
         loop_governance: metric_report(
             "loop_governance",
-            phases[2].steps[4].state,
+            step_state(&phases, "LOOP_RUN_D0_D3")?,
             &[
                 "row.worker_checker_wake",
                 "row.supervisor_wait",
@@ -1150,6 +1074,114 @@ pub fn snapshot_from_status(
         phases,
         reports,
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn projected_step(
+    status: &StatusRecord,
+    id: &str,
+    feature_slice: ViewState,
+    integration: ViewState,
+    run: ViewState,
+    acceptance: ViewState,
+    aggregate: ViewState,
+) -> Result<StepView, ProjectionError> {
+    let (id, state, report) = match id {
+        "PROPOSAL_READINESS" => (
+            "PROPOSAL_READINESS",
+            state(&status.proposal)?,
+            Some("proposal"),
+        ),
+        "PROJECT_INITIALIZATION" => (
+            "PROJECT_INITIALIZATION",
+            state(&status.initialization)?,
+            Some("candidate"),
+        ),
+        "INITIAL_READY" => (
+            "INITIAL_READY",
+            state(&status.phase_gates.initial_ready)?,
+            None,
+        ),
+        "CALABASH_DRAFT" => (
+            "CALABASH_DRAFT",
+            state(&status.calabash_draft)?,
+            Some("calabash"),
+        ),
+        "SIMULATION_WORLD_FOUNDATION" => (
+            "SIMULATION_WORLD_FOUNDATION",
+            state(&status.simulation)?,
+            Some("simulation"),
+        ),
+        "WORKFLOW_CAPABILITY_END" => (
+            "WORKFLOW_CAPABILITY_END",
+            state(&status.workflow)?,
+            Some("workflow"),
+        ),
+        "UI_PRODUCT_SURFACE_END" => ("UI_PRODUCT_SURFACE_END", state(&status.ui)?, Some("ui")),
+        "CALABASH_UPGRADE_READY" => (
+            "CALABASH_UPGRADE_READY",
+            state(&status.phase_gates.calabash_upgrade_ready)?,
+            None,
+        ),
+        "MANDATORY_CALABASH_UPGRADE" => (
+            "MANDATORY_CALABASH_UPGRADE",
+            state(&status.mandatory_calabash_upgrade)?,
+            None,
+        ),
+        "PRODUCT_BASELINE" => (
+            "PRODUCT_BASELINE",
+            state(&status.product_baseline)?,
+            Some("baseline"),
+        ),
+        "FEATURE_SLICE_EXECUTION_COVERAGE" => {
+            ("FEATURE_SLICE_EXECUTION_COVERAGE", feature_slice, None)
+        }
+        "UI_LOCKED_INTEGRATION_BASELINE" => ("UI_LOCKED_INTEGRATION_BASELINE", integration, None),
+        "LOOP_RUN_D0_D3" => ("LOOP_RUN_D0_D3", run, Some("loop_governance")),
+        "LOOP_OWNER_ACCEPTANCE" => ("LOOP_OWNER_ACCEPTANCE", acceptance, None),
+        "ALL_REQUIRED_RUNS_ACCEPTED" => ("ALL_REQUIRED_RUNS_ACCEPTED", aggregate, None),
+        "CENTRALIZED_VULNERABILITY_AUDIT" => (
+            "CENTRALIZED_VULNERABILITY_AUDIT",
+            state(&status.centralized_security_audit)?,
+            None,
+        ),
+        "SECURITY_REMEDIATION" => (
+            "SECURITY_REMEDIATION",
+            state(&status.security_remediation)?,
+            None,
+        ),
+        "SECURITY_REAUDIT_VULNERABILITY_CLOSURE" => (
+            "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+            state(status.vulnerability_closure.state())?,
+            None,
+        ),
+        "POST_SECURITY_OWNER_ACCEPTANCE" => (
+            "POST_SECURITY_OWNER_ACCEPTANCE",
+            state(status.post_security_owner_acceptance.state())?,
+            None,
+        ),
+        "DELIVERY_METHOD_QA" => (
+            "DELIVERY_METHOD_QA",
+            state(&status.delivery_method_qa)?,
+            None,
+        ),
+        "DELIVERY_PACKAGE_GUARD_READY" => (
+            "DELIVERY_PACKAGE_GUARD_READY",
+            state(&status.phase_gates.delivery_ready)?,
+            None,
+        ),
+        _ => return Err(ProjectionError::Inconsistent),
+    };
+    Ok(step(id, state, report))
+}
+
+fn step_state(phases: &[PhaseView], id: &str) -> Result<ViewState, ProjectionError> {
+    phases
+        .iter()
+        .flat_map(|phase| &phase.steps)
+        .find(|step| step.id == id)
+        .map(|step| step.state)
+        .ok_or(ProjectionError::Inconsistent)
 }
 
 fn apply_phase_truth(
@@ -1205,7 +1237,7 @@ fn apply_phase_truth(
             };
         }
     }
-    let delivery_ready = phases[3].steps[5].state;
+    let delivery_ready = step_state(phases, "DELIVERY_PACKAGE_GUARD_READY")?;
     if delivery_ready != ViewState::Done && state(&status.delivery)? != ViewState::Pending {
         return Err(ProjectionError::Inconsistent);
     }

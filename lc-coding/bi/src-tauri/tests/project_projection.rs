@@ -3,8 +3,10 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use lccoding::projection::{load_project_snapshot, snapshot_from_status};
+use lccoding::records::compatibility::{embedded_compatibility_asset, parse_compatibility_asset};
 use lccoding::records::manifest::parse_manifest;
 use lccoding::records::status::parse_status;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 fn initial_status() -> String {
@@ -67,6 +69,31 @@ fn baseline_complete_status() -> String {
         )
 }
 
+fn status_version(body: &str, version: &str) -> String {
+    let mut value: Value = serde_json::from_str(body).unwrap();
+    value["status_schema_version"] = Value::String(version.to_owned());
+    serde_json::to_string_pretty(&value).unwrap()
+}
+
+fn phase_steps(snapshot: &Value) -> Vec<(String, Vec<String>)> {
+    snapshot["phases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|phase| {
+            (
+                phase["id"].as_str().unwrap().to_owned(),
+                phase["steps"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|step| step["id"].as_str().unwrap().to_owned())
+                    .collect(),
+            )
+        })
+        .collect()
+}
+
 fn canonical_single_blob_hash(path: &str, bytes: &[u8]) -> String {
     let blob_digest = format!("{:x}", Sha256::digest(bytes));
     let manifest = format!("{path}\0{}\0{blob_digest}\n", "100644");
@@ -119,6 +146,262 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
             }
         }
     }
+}
+
+#[test]
+fn status_adapters_drive_exact_260_and_270_phase_layouts() {
+    let compatibility = embedded_compatibility_asset().unwrap();
+    let expected_counts = [("2.6.0", vec![3, 5, 7, 6]), ("2.7.0", vec![3, 7, 5, 6])];
+    for (version, counts) in expected_counts {
+        let status = parse_status(&status_version(&initial_status(), version)).unwrap();
+        let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+        let projected = phase_steps(&snapshot);
+        let adapter = compatibility.status_phase_steps(version).unwrap();
+        assert_eq!(
+            projected
+                .iter()
+                .map(|(_, steps)| steps.len())
+                .collect::<Vec<_>>(),
+            counts
+        );
+        assert_eq!(
+            projected,
+            adapter
+                .iter()
+                .map(|phase| {
+                    (
+                        phase.phase_id.to_owned(),
+                        phase
+                            .step_ids
+                            .iter()
+                            .map(|step| (*step).to_owned())
+                            .collect(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(snapshot["reports"].as_object().unwrap().len(), 8);
+        assert!(!snapshot.to_string().contains("PRODUCT_INTEGRATION"));
+    }
+
+    let legacy = compatibility.status_phase_steps("2.6.0").unwrap();
+    assert_eq!(legacy[2].step_ids[0], "MANDATORY_CALABASH_UPGRADE");
+    assert_eq!(legacy[2].step_ids[1], "PRODUCT_BASELINE");
+    let current = compatibility.status_phase_steps("2.7.0").unwrap();
+    assert_eq!(current[1].step_ids[5], "MANDATORY_CALABASH_UPGRADE");
+    assert_eq!(current[1].step_ids[6], "PRODUCT_BASELINE");
+    assert_eq!(current[2].step_ids[0], "FEATURE_SLICE_EXECUTION_COVERAGE");
+}
+
+#[test]
+fn current_status_and_manifest_shapes_are_strict_and_identity_bound() {
+    let status_text = initial_status();
+    assert!(parse_status(&status_text).is_ok());
+    let manifest_text = include_str!("../../../templates/CANONICAL-MANIFEST.json");
+    assert!(parse_manifest(manifest_text).is_ok());
+
+    let mut status: Value = serde_json::from_str(&status_text).unwrap();
+    status["canonical_candidate"]["shadow"] = Value::Bool(true);
+    assert!(parse_status(&status.to_string()).is_err());
+    let mut status: Value = serde_json::from_str(&status_text).unwrap();
+    status["vulnerability_closure"]
+        .as_object_mut()
+        .unwrap()
+        .remove("candidate_hash");
+    assert!(parse_status(&status.to_string()).is_err());
+    let mut status: Value = serde_json::from_str(&status_text).unwrap();
+    status["post_security_owner_acceptance"]["current_acceptance_id"] =
+        Value::String("../unsafe".into());
+    assert!(parse_status(&status.to_string()).is_err());
+
+    let method = serde_json::json!({
+        "method_id": "METHOD-ONE",
+        "version": "1.0.0",
+        "exact_hash": format!("sha256:{}", "a".repeat(64)),
+        "canonical_contract_reference": "contracts/method-one.json",
+        "run_evidence_mapping": "RUN_START_CONTRACT -> D0-D3",
+        "owner_acceptance_mapping": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
+        "required_control_binding": "LCCODING_LOOP_CONTROL",
+        "compatibility_result": "PASS"
+    });
+    let mut manifest: Value = serde_json::from_str(manifest_text).unwrap();
+    manifest["execution_methods"] = Value::Array(vec![method.clone()]);
+    assert!(parse_manifest(&manifest.to_string()).is_ok());
+    manifest["execution_methods"] = Value::Array(vec![method.clone(), method.clone()]);
+    assert!(parse_manifest(&manifest.to_string()).is_err());
+    let mut bad = method;
+    bad["exact_hash"] = Value::String("A".repeat(64));
+    manifest["execution_methods"] = Value::Array(vec![bad]);
+    assert!(parse_manifest(&manifest.to_string()).is_err());
+}
+
+#[test]
+fn status_and_manifest_field_presence_is_schema_version_sensitive() {
+    let status_text = initial_status();
+    let mut current: Value = serde_json::from_str(&status_version(&status_text, "2.7.0")).unwrap();
+    assert!(parse_status(&current.to_string()).is_ok());
+
+    current["canonical_candidate"] = serde_json::json!({
+        "repository": "https://example.invalid/repo",
+        "version": "1.0.0",
+        "commit": "a".repeat(40),
+        "candidate_id": "CANDIDATE-1",
+        "candidate_hash": format!("sha256:{}", "b".repeat(64))
+    });
+    assert!(parse_status(&current.to_string()).is_ok());
+
+    for fields in [vec!["candidate_id", "candidate_hash"], vec!["candidate_id"], vec!["candidate_hash"]] {
+        let mut mutation = current.clone();
+        for field in fields {
+            mutation["canonical_candidate"]
+                .as_object_mut()
+                .unwrap()
+                .remove(field);
+        }
+        assert!(parse_status(&mutation.to_string()).is_err());
+    }
+    for field in ["candidate_id", "candidate_hash"] {
+        let mut mutation = current.clone();
+        mutation["canonical_candidate"][field] = Value::Null;
+        assert!(parse_status(&mutation.to_string()).is_err());
+    }
+    for (field, value) in [
+        ("candidate_id", String::new()),
+        ("candidate_hash", String::new()),
+        ("candidate_hash", format!("sha256:{}", "B".repeat(64))),
+        ("commit", "A".repeat(40)),
+    ] {
+        let mut mutation = current.clone();
+        mutation["canonical_candidate"][field] = Value::String(value);
+        assert!(parse_status(&mutation.to_string()).is_err());
+    }
+
+    let explicit_empty = status_version(&status_text, "2.7.0");
+    assert!(parse_status(&explicit_empty).is_ok());
+
+    let mut legacy: Value = serde_json::from_str(&status_text).unwrap();
+    legacy["canonical_candidate"]
+        .as_object_mut()
+        .unwrap()
+        .remove("candidate_id");
+    legacy["canonical_candidate"]
+        .as_object_mut()
+        .unwrap()
+        .remove("candidate_hash");
+    assert!(parse_status(&legacy.to_string()).is_ok());
+    legacy["canonical_candidate"]["candidate_id"] = Value::String("CANDIDATE-1".into());
+    assert!(parse_status(&legacy.to_string()).is_err());
+    legacy["canonical_candidate"]["candidate_hash"] =
+        Value::String(format!("sha256:{}", "b".repeat(64)));
+    legacy["canonical_candidate"]["repository"] =
+        Value::String("https://example.invalid/repo".into());
+    legacy["canonical_candidate"]["version"] = Value::String("1.0.0".into());
+    legacy["canonical_candidate"]["commit"] = Value::String("a".repeat(40));
+    assert!(parse_status(&legacy.to_string()).is_ok());
+    legacy["canonical_candidate"]["candidate_hash"] =
+        Value::String(format!("sha256:{}", "B".repeat(64)));
+    assert!(parse_status(&legacy.to_string()).is_err());
+
+    let manifest_text = include_str!("../../../templates/CANONICAL-MANIFEST.json");
+    let mut current_manifest: Value = serde_json::from_str(manifest_text).unwrap();
+    current_manifest["lccoding"]["version"] = Value::String("2.7.0".into());
+    assert!(parse_manifest(&current_manifest.to_string()).is_ok());
+    for replacement in [None, Some(Value::Null), Some(serde_json::json!({}))] {
+        let mut mutation = current_manifest.clone();
+        match replacement {
+            None => {
+                mutation.as_object_mut().unwrap().remove("execution_methods");
+            }
+            Some(value) => mutation["execution_methods"] = value,
+        }
+        assert!(parse_manifest(&mutation.to_string()).is_err());
+    }
+
+    let mut legacy_manifest: Value = serde_json::from_str(manifest_text).unwrap();
+    legacy_manifest
+        .as_object_mut()
+        .unwrap()
+        .remove("execution_methods");
+    assert!(parse_manifest(&legacy_manifest.to_string()).is_ok());
+    legacy_manifest["execution_methods"] = serde_json::json!([{"method_id": "INCOMPLETE"}]);
+    assert!(parse_manifest(&legacy_manifest.to_string()).is_err());
+}
+
+#[test]
+fn unsupported_status_adapters_and_layout_mutations_fail_closed() {
+    for version in ["2.5.2", "2.3.0", "9.9.9"] {
+        assert_eq!(
+            parse_status(&status_version(&initial_status(), version))
+                .unwrap_err()
+                .code(),
+            "BI_PROJECT_VERSION_UNSUPPORTED"
+        );
+    }
+    let raw = include_str!("../../release/loop-contract-identities.json");
+    let mut asset: Value = serde_json::from_str(raw).unwrap();
+    asset["status_adapters"]["2.7.0"]["phase_steps"]["ENGINEERING_RUNS"][0] =
+        Value::String("UNKNOWN_STEP".into());
+    assert!(parse_compatibility_asset(&asset.to_string()).is_err());
+    let mut asset: Value = serde_json::from_str(raw).unwrap();
+    asset["status_adapters"]["2.7.0"]["phase_steps"]["PRODUCT_FORMATION"]
+        .as_array_mut()
+        .unwrap()
+        .push(Value::String("PRODUCT_BASELINE".into()));
+    assert!(parse_compatibility_asset(&asset.to_string()).is_err());
+}
+
+#[test]
+fn phase_truth_and_report_links_follow_the_selected_270_layout() {
+    let engineering = status_version(&baseline_complete_status(), "2.7.0");
+    let status = parse_status(&engineering).unwrap();
+    let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+    assert_eq!(snapshot["phases"][1]["state"], "done");
+    assert_eq!(
+        snapshot["phases"][2]["steps"][0]["id"],
+        "FEATURE_SLICE_EXECUTION_COVERAGE"
+    );
+    for phase in snapshot["phases"].as_array().unwrap() {
+        for step in phase["steps"].as_array().unwrap() {
+            if let Some(report) = step["report"].as_str() {
+                assert_eq!(snapshot["reports"][report]["state"], step["state"]);
+            }
+        }
+    }
+
+    let upgrade_pending = engineering.replace(
+        "\"mandatory_calabash_upgrade\": \"COMPLETE\"",
+        "\"mandatory_calabash_upgrade\": \"PENDING\"",
+    );
+    let status = parse_status(&upgrade_pending).unwrap();
+    assert!(snapshot_from_status(&status, None).is_err());
+
+    let baseline_exit_while_formation = status_version(
+        &baseline_complete_status().replace(
+            "\"current_phase\": \"ENGINEERING_RUNS\"",
+            "\"current_phase\": \"PRODUCT_FORMATION\"",
+        ),
+        "2.7.0",
+    );
+    let status = parse_status(&baseline_exit_while_formation).unwrap();
+    assert!(snapshot_from_status(&status, None).is_err());
+}
+
+#[test]
+fn rust_status_and_projection_have_no_second_adapter_layout() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let status = fs::read_to_string(root.join("records/status.rs")).unwrap();
+    let projection = fs::read_to_string(root.join("projection.rs")).unwrap();
+    let compatibility = fs::read_to_string(root.join("records/compatibility.rs")).unwrap();
+    assert!(!status.contains("SUPPORTED_VERSIONS"));
+    assert!(!projection.contains("vec![\n        phase("));
+    assert!(!projection.contains("PRODUCT_INTEGRATION"));
+    assert_eq!(
+        [status, projection, compatibility]
+            .join("\n")
+            .matches("loop-contract-identities.json")
+            .count(),
+        1
+    );
 }
 
 #[test]
