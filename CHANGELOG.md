@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased - 2.7.0 candidate
+## 2.7.0
 
-- The copy-on-write migration is defined, and the current repository and BI release carriers are prepared for 2.7.0; this is not a release, no formal tag or GitHub Release exists yet, and global installed Skill deployment remains post-release.
+- The copy-on-write migration is defined, and the current repository and BI release carriers are finalized for 2.7.0; global installed Skill deployment remains a separate post-release action, performed only after the formal release is independently accepted.
 
 ## 2.6.0
 

@@ -95,18 +95,24 @@ for overclaim in (
     assert overclaim not in migration, f"migration overclaim: {overclaim}"
 
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-candidate_heading = "## Unreleased - 2.7.0 candidate"
-assert changelog.startswith("# Changelog\n\n" + candidate_heading + "\n")
-candidate_section = changelog[len("# Changelog\n\n") :]
-candidate_section = candidate_section[: candidate_section.find("\n## 2.6.0")]
-assert "not a release" in candidate_section.lower()
-assert "copy-on-write" in candidate_section.lower()
+release_heading = "## 2.7.0"
+assert changelog.startswith("# Changelog\n\n" + release_heading + "\n")
+release_section = changelog[len("# Changelog\n\n") :]
+release_section = release_section[: release_section.find("\n## 2.6.0")]
 for marker in (
-    "current repository and BI release carriers are prepared for 2.7.0",
-    "no formal tag or GitHub Release exists yet",
-    "global installed Skill deployment remains post-release",
+    "copy-on-write",
+    "current repository and BI release carriers are finalized for 2.7.0",
+    "global installed Skill deployment remains a separate post-release action",
+    "only after the formal release is independently accepted",
 ):
-    assert marker in candidate_section
-assert "does not change VERSION, BI" not in candidate_section
+    assert marker in release_section
+for stale_claim in (
+    "Unreleased - 2.7.0 candidate",
+    "not a release",
+    "no formal tag or GitHub Release exists yet",
+    "prepared for 2.7.0",
+    "does not change VERSION, BI",
+):
+    assert stale_claim not in release_section
 
-print("PASS: 2.6.0 to 2.7.0 migration contract is closed and candidate-only")
+print("PASS: 2.6.0 to 2.7.0 migration and final release-entry contracts are closed")

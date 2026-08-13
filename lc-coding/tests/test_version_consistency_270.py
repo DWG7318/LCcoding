@@ -58,18 +58,24 @@ projection = (bi_root / "src-tauri/src/projection.rs").read_text(encoding="utf-8
 assert 'schema: "LCCoding 2.7.0 derived BI"' in projection
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.index("## Unreleased - 2.7.0 candidate") < changelog.index("## 2.6.0")
-candidate_section = changelog.split("## Unreleased - 2.7.0 candidate", 1)[1].split(
-    "## 2.6.0", 1
-)[0]
+release_heading = "## 2.7.0"
+assert changelog.startswith("# Changelog\n\n" + release_heading + "\n")
+release_section = changelog.split(release_heading, 1)[1].split("## 2.6.0", 1)[0]
 for marker in [
-    "current repository and BI release carriers are prepared for 2.7.0",
+    "copy-on-write",
+    "current repository and BI release carriers are finalized for 2.7.0",
+    "global installed Skill deployment remains a separate post-release action",
+    "only after the formal release is independently accepted",
+]:
+    assert marker in release_section
+for stale_claim in [
+    "Unreleased - 2.7.0 candidate",
     "not a release",
     "no formal tag or GitHub Release exists yet",
-    "global installed Skill deployment remains post-release",
+    "prepared for 2.7.0",
+    "does not change VERSION, BI",
 ]:
-    assert marker in candidate_section
-assert "does not change VERSION, BI" not in candidate_section
+    assert stale_claim not in release_section
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
 assert 'schema = "LCCoding 2.7.0 installer provenance"' in package_driver
