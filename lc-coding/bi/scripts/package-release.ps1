@@ -10,6 +10,40 @@ $ErrorActionPreference = "Stop"
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "../../.."))
 $bi = Join-Path $repo "lc-coding/bi"
 $sourceTauriRoot = Join-Path $bi "src-tauri"
+
+function Get-RelativeForwardPath {
+  param(
+    [Parameter(Mandatory = $true)][string]$BaseDirectory,
+    [Parameter(Mandatory = $true)][string]$TargetPath
+  )
+  try {
+    $base = [IO.Path]::GetFullPath($BaseDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $target = [IO.Path]::GetFullPath($TargetPath)
+    if (-not (Test-Path -LiteralPath $base -PathType Container) -or
+        -not (Test-Path -LiteralPath $target -PathType Container)) {
+      throw "missing path"
+    }
+    $baseUri = [Uri]::new($base + [IO.Path]::DirectorySeparatorChar)
+    $targetUri = [Uri]::new($target)
+    if ($baseUri.Scheme -cne "file" -or $targetUri.Scheme -cne "file" -or
+        $baseUri.Host -cne $targetUri.Host) {
+      throw "non-file path"
+    }
+    $relative = [Uri]::UnescapeDataString($baseUri.MakeRelativeUri($targetUri).ToString()).Replace("\", "/")
+    if ([string]::IsNullOrWhiteSpace($relative) -or
+        [Uri]::IsWellFormedUriString($relative, [UriKind]::Absolute) -or
+        $relative -match '^[A-Za-z]:[\\/]' -or
+        $relative -match '^[A-Za-z][A-Za-z0-9+.-]*:' -or
+        $relative.StartsWith("//", [StringComparison]::Ordinal) -or
+        $relative.StartsWith("\\", [StringComparison]::Ordinal)) {
+      throw "absolute result"
+    }
+    return $relative
+  } catch {
+    throw "BI_RELATIVE_FRONTEND_DIST_INVALID"
+  }
+}
+
 $output = [IO.Path]::GetFullPath($OutputRoot)
 $repoPrefix = $repo.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
 if ($output.StartsWith($repoPrefix, [StringComparison]::OrdinalIgnoreCase)) {
@@ -112,6 +146,9 @@ foreach ($directory in @("src", "tests")) {
 }
 $stagedTauriRoot = Join-Path $frontend "src-tauri"
 Copy-Item -LiteralPath $sourceTauriRoot -Destination $stagedTauriRoot -Recurse -Force
+$stagedRelease = Join-Path $frontend "release"
+[IO.Directory]::CreateDirectory($stagedRelease) | Out-Null
+Copy-Item -LiteralPath (Join-Path $bi "release/loop-contract-identities.json") -Destination (Join-Path $stagedRelease "loop-contract-identities.json") -Force
 
 Push-Location $frontend
 try {
@@ -125,15 +162,17 @@ try {
 }
 
 $dist = Join-Path $output "dist"
-$relativeDist = [IO.Path]::GetRelativePath($stagedTauriRoot, $dist).Replace("\", "/")
+$relativeDist = Get-RelativeForwardPath $stagedTauriRoot $dist
 $env:CARGO_TARGET_DIR = $cargoTarget.Replace("\", "/")
 $env:TAURI_CONFIG = @{ build = @{ frontendDist = $relativeDist } } | ConvertTo-Json -Compress
+$tauriConfigPath = Join-Path $output "tauri-build-config.json"
+[IO.File]::WriteAllText($tauriConfigPath, $env:TAURI_CONFIG, [Text.UTF8Encoding]::new($false))
 $tauriCli = Join-Path $frontend "node_modules/@tauri-apps/cli/tauri.js"
 
 Push-Location $frontend
 try {
   # tauri build uses the pinned CLI from the external runner.
-  & node $tauriCli build --bundles nsis --ci --config $env:TAURI_CONFIG
+  & node $tauriCli build --bundles nsis --ci --config $tauriConfigPath
   if ($LASTEXITCODE -ne 0) { throw "BI_TAURI_BUILD_FAILED" }
 } finally {
   Pop-Location

@@ -155,7 +155,7 @@ for product_marker in [
 
 release_paths = {
     ".github/workflows/release-bi.yml": "12dcd2b7cc9ff2949c8757dac4d7e40c8d583c0416337c180641fd9c6d4c4223",
-    "lc-coding/bi/scripts/package-release.ps1": "75fa439aaffc15e6447d910598716723a4df25a430968589f71604d5af63bd2a",
+    "lc-coding/bi/scripts/package-release.ps1": "4ea923e8a3f8277b1f90988336335acf10504cffc1e4952f5a626e59f2bda07a",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "dbfb8446e2a7ff83b4417d98e8435903d6467d67b59ee0f458dca4fb10b1fdf6",
     "lc-coding/bi/tests/packaging/nsis-contract.ps1": "fce87c931a118fd65cb6f884a0dcfafaf2ac204572fc184c54c82c656a90a92f",
 }
