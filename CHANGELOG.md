@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased - 2.7.0 candidate
+
+- Defines a copy-on-write 2.6.0 to 2.7.0 candidate migration contract; this is not a release and does not change VERSION, BI, or the global Skill.
+
 ## 2.6.0
 
 ### Cross-phase execution methods and real Product Integration
