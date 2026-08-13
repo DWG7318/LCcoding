@@ -142,20 +142,38 @@ for marker in (
 ):
     assert marker in package_release, f"missing external compatibility-asset staging: {marker}"
 
-powershell = shutil.which("powershell")
-assert powershell, "Windows PowerShell is required for the current-user install smoke"
-parse = subprocess.run(
-    [
-        powershell,
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        "$errors = @(); [void][System.Management.Automation.Language.Parser]::ParseFile($env:INSTALL_SMOKE_SCRIPT, [ref]$null, [ref]$errors); if ($errors.Count) { $errors | ForEach-Object { $_.Message }; exit 1 }",
-    ],
-    capture_output=True,
-    text=True,
-    env={**os.environ, "INSTALL_SMOKE_SCRIPT": str(script)},
+available_hosts = tuple(
+    (name, path)
+    for name in ("pwsh", "powershell")
+    if (path := shutil.which(name)) is not None
 )
-assert parse.returncode == 0, parse.stdout + parse.stderr
+assert available_hosts, "at least one PowerShell host is required for parser validation"
+assert tuple(name for name, _ in available_hosts) == tuple(
+    name for name in ("pwsh", "powershell") if shutil.which(name) is not None
+)
+if os.name == "nt":
+    assert any(name == "powershell" for name, _ in available_hosts), (
+        "Windows PowerShell 5.1 is required on Windows"
+    )
+else:
+    assert any(name == "pwsh" for name, _ in available_hosts), (
+        "pwsh is required for parser validation outside Windows"
+    )
 
+for host_name, host_path in available_hosts:
+    parse = subprocess.run(
+        [
+            host_path,
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "$errors = @(); [void][System.Management.Automation.Language.Parser]::ParseFile($env:INSTALL_SMOKE_SCRIPT, [ref]$null, [ref]$errors); if ($errors.Count) { $errors | ForEach-Object { $_.Message }; exit 1 }",
+        ],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "INSTALL_SMOKE_SCRIPT": str(script)},
+    )
+    assert parse.returncode == 0, host_name + "\n" + parse.stdout + parse.stderr
+
+print("PASS: install smoke parser hosts=" + ",".join(name for name, _ in available_hosts))
 print("PASS: BI current-user install smoke contract is closed and externally bounded")
