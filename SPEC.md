@@ -168,6 +168,7 @@ Simulation covers the same capability, state, scenarios, exceptions, and recover
 
 Execution Coverage Preflight runs after the Slice exists and before a bounded integration Run. It covers actor outcome, Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. `HIGH`/`UNKNOWN` requires deeper evidence or smaller independently verifiable Runs. If cross-layer proof is missing, the first Required Run is the thinnest production-quality end-to-end proving path; failure blocks expansion. Sufficient existing proof may be cited instead.
 
+Focused explanation: [Real Product Integration guidance](lc-coding/references/feature-slice-and-integration.md#slice-and-proving-path).
 <a id="lc-integ-002"></a>
 ### LC-INTEG-002 — One-way UI lock
 
@@ -186,6 +187,7 @@ Before a Slice/Run and before acceptance, compare current UI to the locked commi
 
 A legal UI change uses the existing Baseline Change Request, states necessity and alternatives, records Owner initiation/approval, creates a distinct project commit and updated UI version/hash, synchronizes Product and Integration Baselines, and re-verifies affected evidence. Declared data binding, responsive behavior, accessibility metadata, and exact restoration do not themselves unlock UI.
 
+Focused explanation: [Real Product Integration guidance](lc-coding/references/feature-slice-and-integration.md#one-way-ui-lock-and-recoverable-identity).
 <a id="lc-integ-003"></a>
 ### LC-INTEG-003 — Impact, mutability, and evidence reuse
 
@@ -197,6 +199,7 @@ Evidence reuse requires identical candidate/artifact identity, contract version,
 
 Product learning may be blank. Return it only when it changes a future decision, constraint, check, template, or reuse rule, and update one existing canonical artifact. LCCoding creates no retrospective phase or learning repository.
 
+Focused explanation: [Real Product Integration guidance](lc-coding/references/feature-slice-and-integration.md#impact-mutability-evidence-and-learning).
 ## Runs, verification, and acceptance
 
 <a id="lc-run-001"></a>

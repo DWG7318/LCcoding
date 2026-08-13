@@ -128,7 +128,7 @@ require(
     "never use a branch, tag, `HEAD`, worktree, or `latest` as the lock",
 )
 require(
-    "lc-coding/references/integration-baseline-lock.md",
+    "lc-coding/references/feature-slice-and-integration.md",
     "applicable UI logical subtree",
     "total-project repository/exact commit",
     "logical subtree means a product path",
@@ -211,7 +211,7 @@ require(
     "Static UI, mock, stub, or manually staged state",
 )
 require(
-    "lc-coding/references/integration-baseline-lock.md",
+    "lc-coding/references/feature-slice-and-integration.md",
     "Owner-initiated or Owner-approved",
     "real API/MCP-backed Workflow capability",
     "cannot prove third-phase integration",
@@ -231,7 +231,7 @@ current_authority = "\n".join(
     for relative in [
         "SPEC.md",
         "lc-coding/SKILL.md",
-        "lc-coding/references/integration-baseline-lock.md",
+        "lc-coding/references/feature-slice-and-integration.md",
         "lc-coding/templates/PRODUCT-BASELINE-HANDOFF.md",
         "lc-coding/templates/INTEGRATION-BASELINE.md",
         "lc-coding/templates/FEATURE-SLICE.md",

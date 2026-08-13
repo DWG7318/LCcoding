@@ -187,7 +187,6 @@ current_authority = "\n".join(
         "lc-coding/references/project-initialization.md",
         "lc-coding/references/product-formation.md",
         "lc-coding/references/feature-slice-and-integration.md",
-        "lc-coding/references/integration-baseline-lock.md",
         "lc-coding/templates/PRODUCT-BASELINE-HANDOFF.md",
         "lc-coding/templates/FEATURE-SLICE.md",
         "lc-coding/templates/INTEGRATION-BASELINE.md",

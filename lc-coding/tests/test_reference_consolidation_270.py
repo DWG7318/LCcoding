@@ -20,6 +20,13 @@ CONSOLIDATIONS = {
         ),
         "replacement": "lc-coding/references/product-formation.md",
     },
+    "real_product_integration": {
+        "retired": (
+            "lc-coding/references/integration-baseline-lock.md",
+            "lc-coding/references/impact-and-synchronization.md",
+        ),
+        "replacement": "lc-coding/references/feature-slice-and-integration.md",
+    },
 }
 RETIRED_REFERENCES = tuple(
     retired
@@ -30,6 +37,11 @@ RETIRED_BASENAMES = tuple(Path(retired).name for retired in RETIRED_REFERENCES)
 RETIRED_REFERENCE = CONSOLIDATIONS["mainline"]["retired"][0]
 RETIRED_BASENAME = Path(RETIRED_REFERENCE).name
 PRODUCT_FORMATION_CLAUSES = {"LC-FORM-001", "LC-FORM-002", "LC-FORM-003"}
+REAL_PRODUCT_INTEGRATION_CLAUSES = {
+    "LC-INTEG-001",
+    "LC-INTEG-002",
+    "LC-INTEG-003",
+}
 HISTORICAL_PREFIXES = (
     "docs/superpowers/specs/",
     "docs/superpowers/plans/",
@@ -206,6 +218,52 @@ adversarial_sources = {
 for case, (relative, source, expected) in adversarial_sources.items():
     assert source_references_retired(relative, source) is expected, case
 
+integration_retired = CONSOLIDATIONS["real_product_integration"]["retired"]
+baseline_path, impact_path = integration_retired
+baseline_name = Path(baseline_path).name
+impact_name = Path(impact_path).name
+baseline_parts = ("integration-", "baseline-", "lock.md")
+impact_parts = ("impact-", "and-", "synchronization.md")
+integration_adversarial_sources = {
+    "integration exact Markdown link": (
+        "notes.md",
+        f"[legacy]({baseline_path})",
+        True,
+    ),
+    "integration backslash JSON path": (
+        "config.json",
+        json.dumps({"legacy": impact_path.replace("/", "\\")}),
+        True,
+    ),
+    "integration two-piece Python concatenation": (
+        "caller.py",
+        f'p = "lc-coding/references/{baseline_parts[0]}" + "{baseline_parts[1]}{baseline_parts[2]}"',
+        True,
+    ),
+    "integration three-piece Python concatenation": (
+        "caller.py",
+        f'p = "lc-coding/references/" + "{impact_parts[0]}" + "{impact_parts[1]}{impact_parts[2]}"',
+        True,
+    ),
+    "integration Python list concatenation": (
+        "caller.py",
+        f'REQUIRED = ["lc-coding/references/" + "{baseline_parts[0]}" + "{baseline_parts[1]}" + "{baseline_parts[2]}"]',
+        True,
+    ),
+    "integration Python dict concatenation": (
+        "caller.py",
+        f'MAP = {{"legacy": "lc-coding/references/" + "{impact_parts[0]}" + "{impact_parts[1]}" + "{impact_parts[2]}"}}',
+        True,
+    ),
+    "ordinary integration wording": (
+        "notes.md",
+        "Real Product Integration keeps one governed proving route.",
+        False,
+    ),
+}
+for case, (relative, source, expected) in integration_adversarial_sources.items():
+    assert source_references_retired(relative, source) is expected, case
+
 self_declaration = f"CONSOLIDATIONS = {CONSOLIDATIONS!r}\n"
 stripped_self_declaration = without_own_retired_declaration(self_declaration)
 assert not source_references_retired(SELF.as_posix(), stripped_self_declaration)
@@ -253,6 +311,73 @@ for reference in sorted((ROOT / "lc-coding/references").glob("*.md")):
 assert focused_owners == [CONSOLIDATIONS["product_formation"]["replacement"]], (
     f"Product Formation must have one focused owner: {focused_owners}"
 )
+
+integration_focused_owners = []
+for reference in sorted((ROOT / "lc-coding/references").glob("*.md")):
+    source_ids = set(
+        re.findall(
+            r"\bLC-INTEG-\d{3}\b",
+            "\n".join(
+                line
+                for line in reference.read_text(encoding="utf-8").splitlines()
+                if line.startswith("Source clauses:")
+            ),
+        )
+    )
+    if source_ids.intersection(REAL_PRODUCT_INTEGRATION_CLAUSES):
+        integration_focused_owners.append(reference.relative_to(ROOT).as_posix())
+assert integration_focused_owners == [
+    CONSOLIDATIONS["real_product_integration"]["replacement"]
+], f"Real Product Integration must have one focused owner: {integration_focused_owners}"
+
+integration_reference_path = ROOT / CONSOLIDATIONS["real_product_integration"][
+    "replacement"
+]
+integration_reference = integration_reference_path.read_text(encoding="utf-8")
+integration_sections = re.findall(
+    r'(?ms)^<a id="([a-z0-9-]+)"></a>\n## ([^\n]+)\n\n(.*?)(?=^<a id="|\Z)',
+    integration_reference,
+)
+assert len(integration_sections) == 3, "integration guidance needs exactly three focused sections"
+source_lines = []
+reference_anchors = set()
+for anchor, _, section in integration_sections:
+    reference_anchors.add(anchor)
+    section_source_lines = [
+        line for line in section.splitlines() if line.startswith("Source clauses:")
+    ]
+    assert len(section_source_lines) == 1, f"{anchor} needs one Source clauses line"
+    source_lines.extend(section_source_lines)
+assert set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", "\n".join(source_lines))) == (
+    REAL_PRODUCT_INTEGRATION_CLAUSES
+), "integration guidance may cite only LC-INTEG-001/002/003"
+
+spec = (ROOT / "SPEC.md").read_text(encoding="utf-8")
+
+
+def clause_body(clause_id):
+    start = re.search(
+        rf'(?m)^<a id="{clause_id.lower()}"></a>\s*\n### [^\n]+\n', spec
+    )
+    assert start, f"SPEC is missing {clause_id}"
+    tail = spec[start.end() :]
+    end = re.search(r'(?m)^<a id="lc-|^## ', tail)
+    return tail[: end.start()] if end else tail
+
+
+integration_links = {
+    "LC-INTEG-001": "slice-and-proving-path",
+    "LC-INTEG-002": "one-way-ui-lock-and-recoverable-identity",
+    "LC-INTEG-003": "impact-mutability-evidence-and-learning",
+}
+for clause_id, anchor in integration_links.items():
+    links = re.findall(
+        r"\[Real Product Integration guidance\]"
+        r"\(lc-coding/references/feature-slice-and-integration\.md#([a-z0-9-]+)\)",
+        clause_body(clause_id),
+    )
+    assert links == [anchor], f"{clause_id} needs one exact focused explanation link"
+    assert anchor in reference_anchors, f"{clause_id} focused anchor is missing"
 
 callers = active_callers()
 if callers:
