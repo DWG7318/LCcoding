@@ -273,6 +273,7 @@ Immediately after the required Phase-3 Run aggregate, freeze the accepted candid
 
 The centralized audit builds complete attack-surface coverage, reuses valid identical local security evidence, executes missing checks, issues the report/finding ledger, routes remediation to separate engineering roles, and independently re-audits affected surfaces. D0–D3 security assertions do not replace this centralized verdict. `VULNERABILITY_CLOSED` requires complete coverage and no open Critical/High issue, secret exposure, authentication bypass, privilege escalation, cross-customer leakage, or independence violation.
 
+Focused explanation: [Security closure guidance](lc-coding/references/vulnerability-closure.md#centralized-audit-and-closure).
 <a id="lc-sec-002"></a>
 ### LC-SEC-002 — Security evidence invalidation
 
@@ -282,6 +283,7 @@ Affected engineering verification is rerun, a fresh independent security re-audi
 
 Meaning-neutral and security-surface-neutral work preserves evidence only when Impact Analysis proves unchanged candidate/security identity or an evidence-equivalent packaging transformation. Silence never preserves closure. This rule uses existing status and receipts; it creates no new state source or security runtime.
 
+Focused explanation: [Security closure guidance](lc-coding/references/vulnerability-closure.md#candidate-and-surface-binding).
 <a id="lc-delivery-001"></a>
 ### LC-DELIVERY-001 — Protected delivery
 
@@ -293,6 +295,7 @@ When Owner Policy or an Owner decision confirms them, no-resale, redistribution,
 
 Required evidence includes Delivery Profile, Dependency Classification, Delivery Manifest, Runtime Certification, Delivery License Policy, and Delivery Receipt. Verification checks integrity, exclusions, runtime, license, configuration, startup, and any packaging-induced behavior without repeating unchanged product Verification.
 
+Focused explanation: [Protected delivery guidance](lc-coding/references/delivery-governance.md#decision-before-delivery).
 ## BI and compatibility
 
 <a id="lc-bi-001"></a>

@@ -48,6 +48,8 @@ REAL_PRODUCT_INTEGRATION_CLAUSES = {
 }
 ACCEPTANCE_CLAUSES = {"LC-ACCEPT-001", "LC-ACCEPT-002", "LC-ACCEPT-003"}
 VERIFICATION_CLAUSES = {"LC-VERIFY-001"}
+SECURITY_CLAUSES = {"LC-SEC-001", "LC-SEC-002"}
+DELIVERY_CLAUSES = {"LC-DELIVERY-001"}
 HISTORICAL_PREFIXES = (
     "docs/superpowers/specs/",
     "docs/superpowers/plans/",
@@ -494,6 +496,32 @@ verification_links = re.findall(
 )
 assert verification_links == ["layered-independent-verification"]
 assert "layered-independent-verification" in verification_anchors
+
+security_reference_path = "lc-coding/references/vulnerability-closure.md"
+delivery_reference_path = "lc-coding/references/delivery-governance.md"
+assert focused_owner(SECURITY_CLAUSES) == [security_reference_path]
+assert focused_owner(DELIVERY_CLAUSES) == [delivery_reference_path]
+security_anchors = focused_reference(security_reference_path, SECURITY_CLAUSES, 3)
+delivery_anchors = focused_reference(delivery_reference_path, DELIVERY_CLAUSES, 2)
+security_links = {
+    "LC-SEC-001": "centralized-audit-and-closure",
+    "LC-SEC-002": "candidate-and-surface-binding",
+}
+for clause_id, anchor in security_links.items():
+    links = re.findall(
+        r"\[Security closure guidance\]"
+        r"\(lc-coding/references/vulnerability-closure\.md#([a-z0-9-]+)\)",
+        clause_body(clause_id),
+    )
+    assert links == [anchor], f"{clause_id} needs one exact focused link"
+    assert anchor in security_anchors
+delivery_links = re.findall(
+    r"\[Protected delivery guidance\]"
+    r"\(lc-coding/references/delivery-governance\.md#([a-z0-9-]+)\)",
+    clause_body("LC-DELIVERY-001"),
+)
+assert delivery_links == ["decision-before-delivery"]
+assert "decision-before-delivery" in delivery_anchors
 
 callers = active_callers()
 if callers:

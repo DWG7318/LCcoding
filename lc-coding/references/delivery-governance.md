@@ -1,12 +1,19 @@
-# Delivery Governance
+# Protected Delivery Guidance
 
-Deliver the accepted product and explicitly approved customer assets. Do not deliver the LC development system.
+`SPEC.md` defines Delivery; Delivery evidence is not a security verdict.
 
-Classify every dependency as public third-party, customer-owned, deliverable product, internal dependency, or LC core.
+<a id="decision-before-delivery"></a>
+## Decision before delivery
 
-Default internal exclusions: LCagent, LCapi, LCCoding, Calabash, SLK, CLK, GLK, code-intelligence tooling, canonical assets, internal knowledge/workflow/recommendation logic, and development evidence.
+Source clauses: [LC-DELIVERY-001](../../SPEC.md#lc-delivery-001)
 
-Ubuntu is the preferred runtime recommendation, not a silent customer-specific decision. License and technical controls prohibit resale, redistribution, sublicensing, repackaging, unauthorized modification, reverse engineering, transfer, and removal of controls, subject to Owner-approved legal review.
+After current Post-Security acceptance, complete Delivery Method Q&A and persist decisions. Actual Delivery starts only after `DELIVERY_READY`; Q&A is not actual Delivery. See [Delivery Method Q&A](delivery-method-qa.md).
 
+<a id="protected-package"></a>
+## Protected package
 
-Before every delivery, complete Delivery Method Q&A and obtain `DELIVERY_METHOD_CONFIRMED`. Reuse Owner Policy and contract facts; ask only unresolved customer-specific decisions. Owner-locked internal exclusions remain mandatory and are not ordinary choices.
+Source clauses: [LC-DELIVERY-001](../../SPEC.md#lc-delivery-001)
+
+Deliver approved product and customer assets with default internal exclusions. Source code requires explicit Owner authorization; Owner Policy hard constraints are not customer options. Ubuntu and no-source are recommendations. Legal limits must not be invented from silence.
+
+package evidence and guard bind the current candidate and asset integrity. Re-check packaging effects; it does not repeat unchanged product verification. Fields stay in the Decision, Manifest, and guard.

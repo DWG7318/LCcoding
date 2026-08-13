@@ -11,6 +11,26 @@ import tempfile
 
 
 root = Path(__file__).resolve().parents[2]
+guidance = (root / "lc-coding/references/delivery-governance.md").read_text(
+    encoding="utf-8"
+)
+for marker in [
+    "Source clauses: [LC-DELIVERY-001]",
+    "current Post-Security acceptance",
+    "Delivery Method Q&A",
+    "DELIVERY_READY",
+    "Q&A is not actual Delivery",
+    "approved product and customer assets",
+    "default internal exclusions",
+    "Source code requires explicit Owner authorization",
+    "Owner Policy hard constraints",
+    "Ubuntu and no-source are recommendations",
+    "must not be invented from silence",
+    "package evidence and guard",
+    "current candidate",
+    "does not repeat unchanged product verification",
+]:
+    assert marker in guidance, marker
 guard = root / "lc-coding/scripts/delivery_guard.py"
 qa_test = root / "lc-coding/tests/test_delivery_qa.py"
 spec = importlib.util.spec_from_file_location("delivery_qa_fixture", qa_test)
