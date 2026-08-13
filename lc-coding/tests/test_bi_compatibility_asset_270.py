@@ -88,11 +88,11 @@ NORMALIZATION = [
 ]
 METHOD_IDENTITIES = {
     "slk": {
-        "version": "2.5.0",
-        "candidate_commit": "0153776c84b57fd6217259fd02832a6fdcea4ccb",
-        "manifest_sha256": "0ce57ffc71ec45f89c44f089e72ea2c02913545fdf765d68776ecaa05c879ea8",
-        "schema_sha256": "d8247f384bbedb716c8a6c731d804d7640a97e11a75e91f239335dff64a9ffac",
-        "template_sha256": "aa23b9b78eb6297bacd0abc00a92ad77108824d9ba20359fa5fdddf37eeb4b38",
+        "version": "2.6.0",
+        "candidate_commit": "fa75bcf1c0819c8499d3b6c4ee9ec251dae62ae5",
+        "manifest_sha256": "b1191453bbedc5b1b8af8327176776602a392913507583bb60bd8ff643a1c339",
+        "schema_sha256": "ee3978e0b408e67d69d7f78d94bd31c43d68af2a6d0c7a56966dd9ef93f412c5",
+        "template_sha256": "3d9e7f640b6bb0ad2ea168267d7c38fb41e47e098bca4aaae113603352038e73",
         "adapter_schema_kind": "SLK_RUN_RUNTIME_INDEX",
     },
     "clk": {

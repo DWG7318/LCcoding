@@ -342,8 +342,6 @@ foreach ($method in $contracts.Keys) {
   $identity = $identities.execution_methods.$method
   $tag = "v$($identity.version)"
 
-  $main = Invoke-GhApi "repos/$($contract.repository)/git/ref/heads/main"
-  $mainCommit = [string]$main.object.sha
   $tagCommit = Resolve-TagCommit $contract.repository $tag
 
   # gh release view is required in addition to refs: a tag alone is not a formal Release.
@@ -358,7 +356,6 @@ foreach ($method in $contracts.Keys) {
   }
 
   if (
-    $mainCommit -cne $identity.candidate_commit -or
     $tagCommit -cne $identity.candidate_commit -or
     $release.tagName -cne $tag -or
     $release.isDraft -ne $false -or

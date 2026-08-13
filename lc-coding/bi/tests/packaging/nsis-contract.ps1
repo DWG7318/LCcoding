@@ -90,7 +90,6 @@ foreach ($marker in @(
     "DWG7318/small-loop-skill",
     "DWG7318/chain-loop-skill",
     "DWG7318/large-loop-skill",
-    "git/ref/heads/main",
     "git/ref/tags",
     "gh release view",
     "manifest_sha256",
@@ -98,6 +97,9 @@ foreach ($marker in @(
     "template_sha256"
 )) {
     if (-not $releaseGateText.Contains($marker)) { throw "missing release gate marker: $marker" }
+}
+if ($releaseGateText.Contains("git/ref/heads/main")) {
+    throw "formal release identity must not depend on mutable repository main"
 }
 foreach ($retired in @(
     'version = "2.5.0"',

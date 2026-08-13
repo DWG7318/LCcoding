@@ -140,8 +140,12 @@ def controlled_asset_and_gh_state() -> tuple[dict, dict]:
             files[path] = base64.b64encode(body).decode()
             identity[f"{field}_sha256"] = hashlib.sha256(body).hexdigest()
         state["repositories"][contract["repository"]] = {
-            "commit": identity["candidate_commit"],
+            "main_commit": identity["candidate_commit"],
+            "tag_commit": identity["candidate_commit"],
             "tag": f"v{identity['version']}",
+            "release_present": True,
+            "release_is_draft": False,
+            "release_is_prerelease": False,
             "files": files,
         }
     return asset, state
@@ -188,20 +192,23 @@ if args[:1] == ['api'] and len(args) == 2:
         if not endpoint.startswith(prefix):
             continue
         suffix = endpoint[len(prefix):]
-        if suffix == 'git/ref/heads/main' or suffix == f'git/ref/tags/{record["tag"]}':
-            print(json.dumps({'object': {'type': 'commit', 'sha': record['commit']}}))
+        if suffix == 'git/ref/heads/main':
+            print(json.dumps({'object': {'type': 'commit', 'sha': record['main_commit']}}))
+            raise SystemExit(0)
+        if suffix == f'git/ref/tags/{record["tag"]}':
+            print(json.dumps({'object': {'type': 'commit', 'sha': record['tag_commit']}}))
             raise SystemExit(0)
         if suffix.startswith('contents/') and '?ref=' in suffix:
             path, commit = suffix[len('contents/'):].split('?ref=', 1)
-            if commit == record['commit'] and path in record['files']:
+            if commit == record['tag_commit'] and path in record['files']:
                 print(json.dumps({'type': 'file', 'encoding': 'base64', 'content': record['files'][path]}))
                 raise SystemExit(0)
 elif args[:2] == ['release', 'view'] and '-R' in args:
     tag = args[2]
     repository = args[args.index('-R') + 1]
     record = repositories.get(repository)
-    if record and tag == record['tag']:
-        print(json.dumps({'tagName': record.get('release_tag', tag), 'isDraft': False, 'isPrerelease': False, 'publishedAt': '2026-01-01T00:00:00Z', 'url': f'https://example.invalid/{repository}/{tag}'}))
+    if record and tag == record['tag'] and record.get('release_present', True):
+        print(json.dumps({'tagName': record.get('release_tag', tag), 'isDraft': record.get('release_is_draft', False), 'isPrerelease': record.get('release_is_prerelease', False), 'publishedAt': '2026-01-01T00:00:00Z', 'url': f'https://example.invalid/{repository}/{tag}'}))
         raise SystemExit(0)
 raise SystemExit(1)
 """,
@@ -241,10 +248,9 @@ for host in ["pwsh", "powershell"]:
     verified, calls = run_release_verifier(valid_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
     assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
-    assert len(calls) == 18
+    assert len(calls) in {15, 18}
     for contract in LOOP_FILES.values():
         repository = contract["repository"]
-        assert json.dumps(["api", f"repos/{repository}/git/ref/heads/main"]) in calls
         assert any(
             json.loads(call)[:2] == ["release", "view"]
             and json.loads(call)[json.loads(call).index("-R") + 1] == repository
@@ -257,6 +263,63 @@ for host in ["pwsh", "powershell"]:
                 for call in calls
             )
 
+
+def advance_all_mains(state: dict) -> None:
+    for index, record in enumerate(state["repositories"].values(), start=1):
+        record["main_commit"] = f"{index}" * 40
+
+
+for host in ["pwsh", "powershell"]:
+    verified, calls = run_release_verifier(valid_asset, host, advance_all_mains)
+    assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
+    assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
+    assert len(calls) == 15
+    assert all("git/ref/heads/main" not in call for call in calls)
+
+
+def change_slk_tag_commit(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["tag_commit"] = "9" * 40
+
+
+for host in ["pwsh", "powershell"]:
+    blocked, calls = run_release_verifier(valid_asset, host, change_slk_tag_commit)
+    assert blocked.returncode != 0
+    assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_RELEASE_IDENTITY" in (
+        blocked.stdout + blocked.stderr
+    )
+    assert len(calls) == 2
+
+
+def remove_slk_release(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["release_present"] = False
+
+
+def draft_slk_release(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["release_is_draft"] = True
+
+
+def prerelease_slk_release(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["release_is_prerelease"] = True
+
+
+def change_slk_release_tag(state: dict) -> None:
+    state["repositories"][LOOP_FILES["slk"]["repository"]]["release_tag"] = "v9.9.9"
+
+
+for mutation, reason in [
+    (remove_slk_release, "SLK_RELEASE"),
+    (draft_slk_release, "SLK_RELEASE_IDENTITY"),
+    (prerelease_slk_release, "SLK_RELEASE_IDENTITY"),
+    (change_slk_release_tag, "SLK_RELEASE_IDENTITY"),
+]:
+    for host in ["pwsh", "powershell"]:
+        blocked, calls = run_release_verifier(valid_asset, host, mutation)
+        assert blocked.returncode != 0
+        assert f"BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:{reason}" in (
+            blocked.stdout + blocked.stderr
+        )
+        assert len(calls) == 2
+
 hash_drift = copy.deepcopy(valid_asset)
 hash_drift["execution_methods"]["slk"]["manifest_sha256"] = "0" * 64
 for host in ["pwsh", "powershell"]:
@@ -265,7 +328,7 @@ for host in ["pwsh", "powershell"]:
     assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_MANIFEST_SHA256" in (
         blocked.stdout + blocked.stderr
     )
-    assert len(calls) == 6
+    assert len(calls) == 5
     assert (
         sum(
             "contents/" in json.loads(call)[1]
@@ -357,7 +420,9 @@ for host in ["pwsh", "powershell"]:
     assert "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:SLK_RELEASE_IDENTITY" in (
         blocked.stdout + blocked.stderr
     )
-    assert len(calls) == 3
+    assert len(calls) == 2
+
+assert "git/ref/heads/main" not in release_gate
 
 validation = (root / "VALIDATION-REPORT.md").read_text(encoding="utf-8")
 for marker in [

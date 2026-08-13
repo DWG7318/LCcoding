@@ -400,7 +400,7 @@ fn glk_indexed_artifacts_normalize_without_exposing_paths() {
 
 #[test]
 fn adapters_fail_closed_on_wrong_identity_or_invalid_governance() {
-    assert!(parse_slk_governance(&SLK.replace("2.5.0", "2.4.0")).is_err());
+    assert!(parse_slk_governance(&SLK.replace("2.6.0", "2.5.0")).is_err());
     assert!(
         parse_clk_governance(&CLK.replace("interval_minutes: 15", "interval_minutes: 12")).is_err()
     );

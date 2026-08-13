@@ -75,7 +75,7 @@ assert loop_identities["status_adapters"]["2.6.0"]["compatibility_status"] == "S
 assert loop_identities["status_adapters"]["2.7.0"]["compatibility_status"] == "CURRENT"
 methods = loop_identities["execution_methods"]
 assert set(methods) == {"slk", "clk", "glk"}
-assert methods["slk"]["version"] == "2.5.0"
+assert methods["slk"]["version"] == "2.6.0"
 assert methods["clk"]["version"] == "2.5.0"
 assert methods["glk"]["version"] == "3.1.0"
 assert not {"slk", "clk", "glk"}.intersection(loop_identities)
