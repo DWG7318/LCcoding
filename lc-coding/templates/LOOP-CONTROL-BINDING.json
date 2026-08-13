@@ -1,5 +1,6 @@
 {
   "artifact_type": "LOOP_CONTROL_BINDING",
+  "binding_version": "1.0.0",
   "contract": {
     "contract_id": "LCCODING_LOOP_CONTROL",
     "contract_version": "1.0.0",
@@ -9,12 +10,65 @@
     "runtime_owner": "LCagent_or_trusted_runtime",
     "runtime_adapter_id": "<trusted runtime adapter identity>",
     "attestation_root": "<current runtime control attestation root>",
+    "evidence_digest": "<sha256 of current attestation evidence>",
+    "observed_at": "<UTC timestamp>",
     "validated_at": "<UTC timestamp>",
+    "expires_at": "<UTC timestamp>",
+    "currentness": "CURRENT",
     "result": "PASS|FAIL"
   },
   "method_mapping": {
     "method": "<SLK|CLK|GLK>",
-    "method_specific_progress": "<method-owned dimensions only>",
-    "method_specific_capacity": "<method-owned reservations only>"
+    "topology_owned_progress_fields": ["<method-owned progress field>"],
+    "topology_owned_capacity_fields": ["<method-owned capacity field>"],
+    "topology_owned_model_fields": ["<method-owned model field>"],
+    "topology_owned_evidence_fields": ["<method-owned evidence field>"]
+  },
+  "model_binding": {
+    "role_kind": "<PATROL|TECHNICAL|HIGH_DIFFICULTY_CORRECTION>",
+    "actual_model": "<actual model identity>",
+    "reference_model": "<contract reference model>",
+    "capability_class": "<contract capability class>",
+    "reasoning_effort": "<xhigh|ultra>",
+    "selection_reason": "<PATROL_NONTECHNICAL|NORMAL_TECHNICAL|HIGH_DIFFICULTY_CORRECTION>",
+    "equivalence": {
+      "status": "<EXACT_REFERENCE|TRUSTED_EQUIVALENT>",
+      "evidence_id": "<NOT_APPLICABLE or trusted equivalence evidence ID>",
+      "evidence_digest": "<NOT_APPLICABLE or sha256 of trusted equivalence evidence>"
+    },
+    "owner_ultra_authorization": {
+      "item_id": "<item-specific Run or correction item ID>",
+      "owner_authorization_id": "<item-specific Owner authorization ID>",
+      "authorization_evidence_digest": "<sha256 of Owner authorization evidence>",
+      "result": "OWNER_APPROVED_ULTRA"
+    }
+  },
+  "local_control": {
+    "state": "ACTIVE|RETAINED|RETIRED",
+    "retirement_evidence": {
+      "runtime_conformance": {
+        "positive": {
+          "evidence_id": "<positive current conformance evidence ID>",
+          "evidence_digest": "<sha256 of positive conformance evidence>",
+          "result": "PASS"
+        },
+        "negative": {
+          "evidence_id": "<negative current conformance evidence ID>",
+          "evidence_digest": "<sha256 of negative conformance evidence>",
+          "result": "PASS"
+        }
+      },
+      "historical_receipts": {
+        "status": "READABLE",
+        "evidence_id": "<historical receipt readability evidence ID>",
+        "evidence_digest": "<sha256 of historical receipt readability evidence>"
+      },
+      "owner_approved_release": {
+        "release_id": "<method-specific Owner-approved release ID>",
+        "approval_evidence_id": "<Owner retirement approval evidence ID>",
+        "approval_evidence_digest": "<sha256 of Owner retirement approval evidence>",
+        "result": "LOCAL_CONTROL_RETIRED"
+      }
+    }
   }
 }

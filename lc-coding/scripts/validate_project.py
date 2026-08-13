@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
 import argparse, hashlib, importlib.util, json, re, subprocess
 
 _PHASE_VALIDATOR_PATH=Path(__file__).with_name('validate_phase_status.py')
@@ -40,6 +41,9 @@ strict_vulnerability_json=_VULNERABILITY_VALIDATOR.strict_json
 VULNERABILITY_CONTRACT=json.loads(
     _VULNERABILITY_VALIDATOR.CONTRACT_PATH.read_text(encoding='utf-8')
 )
+LOOP_CONTROL_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/loop-control-contract.json'
+LOOP_CONTROL_BINDING_NAME='LOOP-CONTROL-BINDING.json'
+LOOP_CONTROL_METHODS={'SLK','CLK','GLK'}
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -1781,6 +1785,230 @@ def comma_values(value):
 def non_generic_evidence(value):
     return _VULNERABILITY_VALIDATOR.safe_id(value)
 
+LOOP_CONTROL_CONTRACT_KEYS={
+    'contract_id','contract_version','owner','is_loop_method',
+    'runtime_execution_owner','method_consumers','worker_wake','run_patrol',
+    'heartbeat_separation','runtime_attestation_policy','supervisor_wait',
+    'prohibitions','progress','capacity','model_policy',
+}
+LOOP_CONTROL_BINDING_KEYS={
+    'artifact_type','binding_version','contract','runtime_attestation',
+    'method_mapping','model_binding','local_control',
+}
+LOOP_CONTROL_MAPPING_KEYS={
+    'method','topology_owned_progress_fields','topology_owned_capacity_fields',
+    'topology_owned_model_fields','topology_owned_evidence_fields',
+}
+LOOP_CONTROL_ATTESTATION_KEYS={
+    'runtime_owner','runtime_adapter_id','attestation_root','evidence_digest',
+    'observed_at','validated_at','expires_at','currentness','result',
+}
+LOOP_CONTROL_MODEL_KEYS={
+    'role_kind','actual_model','reference_model','capability_class','reasoning_effort',
+    'selection_reason','equivalence','owner_ultra_authorization',
+}
+
+def loop_closed_object(value,keys,label,errors):
+    if not isinstance(value,dict):
+        errors.append('LOOP_CONTROL_BINDING_'+label+'_INVALID'); return {}
+    if set(value)!=set(keys): errors.append('LOOP_CONTROL_BINDING_'+label+'_INVALID')
+    return value
+
+def loop_exact_hash(value):
+    return bool(EXACT_HASH_RE.fullmatch(str(value or '').strip()))
+
+def loop_timestamp(value):
+    text=str(value or '').strip()
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z',text): return None
+    try: return datetime.strptime(text,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+    except ValueError: return None
+
+def validate_loop_control_contract(contract):
+    errors=[]
+    value=loop_closed_object(contract,LOOP_CONTROL_CONTRACT_KEYS,'CONTRACT',errors)
+    if value.get('contract_id')!='LCCODING_LOOP_CONTROL' or value.get('contract_version')!='1.0.0':
+        errors.append('LOOP_CONTROL_CONTRACT_IDENTITY_INVALID')
+    if value.get('owner')!='LCCoding' or value.get('is_loop_method') is not False:
+        errors.append('LOOP_CONTROL_CONTRACT_BOUNDARY_INVALID')
+    if value.get('runtime_execution_owner')!='LCagent_or_trusted_runtime' or value.get('method_consumers')!=['SLK','CLK','GLK']:
+        errors.append('LOOP_CONTROL_CONTRACT_RUNTIME_OR_METHODS_INVALID')
+    if value.get('worker_wake')!={
+        'initiator':'WORKER','receiver':'CHECKER','retry_interval_seconds':120,
+        'levels':['DIRECT_SEND','SAME_TASK_READ_LIST_UNARCHIVE','CHECKER_WAKE_HEARTBEAT','PENDING_WAKE_PATROL_FALLBACK'],
+        'ack':'RUN_GO_CELL_ROUND_BOUND_WAKE_ACK','heartbeat_kind':'CHECKER_WAKE_HEARTBEAT',
+        'maximum_temporary_heartbeats_per_delivery_wake_incident':1,
+        'terminal_action':'REMOVE_ON_WAKE_ACK_OR_TERMINAL_FALLBACK',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_WORKER_WAKE_INVALID')
+    if value.get('run_patrol')!={
+        'role':'RUN_PATROL','maximum_conversations_per_run':1,
+        'heartbeat_kind':'RUN_PATROL_HEARTBEAT','maximum_run_patrol_heartbeats_per_run':1,
+        'interval_minutes':{'LOW':10,'MEDIUM':15,'HIGH':30},
+        'may_create_conversations':False,'may_report_engineering_progress':False,
+        'terminal_action':'ARCHIVE_AND_DELETE_HEARTBEAT',
+        'checks':['UNEXPLAINED_LOOP_STOPPAGE','PENDING_WAKE','ACTUAL_SUBAGENT_USE','SUPERVISOR_FORBIDDEN_WAIT','DUPLICATE_PATROL_OR_HEARTBEAT','PIN_PROVENANCE','TERMINAL_CLOSURE'],
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_RUN_PATROL_INVALID')
+    if value.get('heartbeat_separation')!={
+        'shared_id':'FORBIDDEN','shared_lifecycle':'FORBIDDEN',
+        'shared_counting':'FORBIDDEN','shared_evidence_claim':'FORBIDDEN',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_HEARTBEAT_SEPARATION_INVALID')
+    if value.get('runtime_attestation_policy')!={
+        'required_owner':'LCagent_or_trusted_runtime','required_result':'PASS',
+        'required_currentness':'CURRENT','max_validated_age_minutes':30,
+        'max_validity_minutes':60,
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_ATTESTATION_POLICY_INVALID')
+    if value.get('supervisor_wait')!={
+        'positive_duration_wait_threads':'FORBIDDEN','looping_wait_threads':'FORBIDDEN',
+        'wait_all':'FORBIDDEN','zero_timeout_snapshot':'ALLOWED',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_SUPERVISOR_WAIT_INVALID')
+    if value.get('prohibitions')!={
+        'actual_subagent_operations':['spawn_agent','delegate_task','hidden_agent','background_agent'],
+        'agent_pin':'FORBIDDEN','owner_pin':'EXPLICIT_OWNER_UI_OR_ITEM_AUTHORIZATION_ONLY',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_PROHIBITIONS_INVALID')
+    if value.get('progress')!={
+        'worker':'DELIVERED_CELL_N_OVER_N_TO_CHECKER',
+        'checker':'ACCEPTED_CELL_N_OVER_N_TO_SUPERVISOR',
+        'supervisor':'GO_LEVEL_RUN_AND_MATERIAL_STATE',
+        'patrol':'NO_ENGINEERING_PROGRESS',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_PROGRESS_INVALID')
+    if value.get('capacity')!={
+        'gate_before_dispatch':True,
+        'outcomes':['PASS','SPLIT_REQUIRED','CAPACITY_BLOCKED'],
+        'worker_may_self_split':False,
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_CAPACITY_INVALID')
+    if value.get('model_policy')!={
+        'patrol':{'reference_model':'gpt-5.6-luna','capability_class':'FASTEST_NONTECHNICAL','reasoning_effort':'xhigh'},
+        'technical':{'reference_model':'gpt-5.6-terra','capability_class':'NORMAL_TECHNICAL','reasoning_effort':'xhigh'},
+        'high_difficulty_correction':{'reference_model':'gpt-5.6-sol','capability_class':'DIFFICULT_CORRECTION','reasoning_effort':'xhigh'},
+        'ultra':{
+            'requires':'ITEM_SPECIFIC_OWNER_AUTHORIZATION',
+            'allowed_role_kind':'HIGH_DIFFICULTY_CORRECTION',
+            'authorization_fields':['item_id','owner_authorization_id','authorization_evidence_digest','result'],
+            'authorization_result':'OWNER_APPROVED_ULTRA',
+        },
+        'forbidden_model_maximum':'gpt-5.5',
+    }:
+        errors.append('LOOP_CONTROL_CONTRACT_MODEL_POLICY_INVALID')
+    return errors
+
+def validate_loop_control_mapping(mapping,method,model_binding,errors):
+    value=loop_closed_object(mapping,LOOP_CONTROL_MAPPING_KEYS,'METHOD_MAPPING',errors)
+    if value.get('method') not in LOOP_CONTROL_METHODS:
+        errors.append('LOOP_CONTROL_BINDING_METHOD_INVALID'); return
+    method=value.get('method')
+    all_values=[]
+    for key in sorted(LOOP_CONTROL_MAPPING_KEYS-{'method'}):
+        fields=value.get(key)
+        if not isinstance(fields,list) or not fields:
+            errors.append('LOOP_CONTROL_BINDING_METHOD_MAPPING_INVALID'); continue
+        for field in fields:
+            if not non_generic_evidence(field) or not str(field).startswith(method+'_'):
+                errors.append('LOOP_CONTROL_BINDING_METHOD_MAPPING_INVALID')
+            if any(token in str(field) for token in ('HEARTBEAT','PENDING_WAKE','PATROL','SUPERVISOR_WAIT','CHECKER_WAKE')):
+                errors.append('LOOP_CONTROL_BINDING_COMMON_RULE_SUBSTITUTION')
+            all_values.append(field)
+    if len(all_values)!=len(set(all_values)):
+        errors.append('LOOP_CONTROL_BINDING_METHOD_MAPPING_INVALID')
+    if model_binding.get('role_kind')=='PATROL' and any('ENGINEERING_PROGRESS' in str(field) for field in value.get('topology_owned_progress_fields',[])):
+        errors.append('LOOP_CONTROL_BINDING_PATROL_PROGRESS_INVALID')
+
+def validate_loop_control_model(value,errors):
+    model=loop_closed_object(value,LOOP_CONTROL_MODEL_KEYS,'MODEL_BINDING',errors)
+    role=model.get('role_kind')
+    expected={
+        'PATROL':('gpt-5.6-luna','FASTEST_NONTECHNICAL','PATROL_NONTECHNICAL'),
+        'TECHNICAL':('gpt-5.6-terra','NORMAL_TECHNICAL','NORMAL_TECHNICAL'),
+        'HIGH_DIFFICULTY_CORRECTION':('gpt-5.6-sol','DIFFICULT_CORRECTION','HIGH_DIFFICULTY_CORRECTION'),
+    }.get(role)
+    if not expected:
+        errors.append('LOOP_CONTROL_BINDING_MODEL_ROLE_INVALID'); return model
+    reference,capability,reason=expected
+    if model.get('reference_model')!=reference or model.get('capability_class')!=capability or model.get('selection_reason')!=reason:
+        errors.append('LOOP_CONTROL_BINDING_MODEL_PURPOSE_INVALID')
+    actual=str(model.get('actual_model') or '')
+    if not non_generic_evidence(actual) or re.match(r'^gpt-(?:[0-4](?:\.\d+)?|5(?:\.[0-5](?:\.\d+)?)?)(?:$|[_-])',actual,re.IGNORECASE):
+        errors.append('LOOP_CONTROL_BINDING_MODEL_MINIMUM_INVALID')
+    effort=model.get('reasoning_effort')
+    if effort not in {'xhigh','ultra'}: errors.append('LOOP_CONTROL_BINDING_MODEL_EFFORT_INVALID')
+    equivalence=loop_closed_object(model.get('equivalence'),{'status','evidence_id','evidence_digest'},'MODEL_EQUIVALENCE',errors)
+    if actual==reference:
+        if equivalence.get('status')!='EXACT_REFERENCE' or equivalence.get('evidence_id')!='NOT_APPLICABLE' or equivalence.get('evidence_digest')!='NOT_APPLICABLE':
+            errors.append('LOOP_CONTROL_BINDING_MODEL_EQUIVALENCE_INVALID')
+    elif equivalence.get('status')!='TRUSTED_EQUIVALENT' or not non_generic_evidence(equivalence.get('evidence_id')) or not loop_exact_hash(equivalence.get('evidence_digest')):
+        errors.append('LOOP_CONTROL_BINDING_MODEL_EQUIVALENCE_INVALID')
+    ultra_authorization=model.get('owner_ultra_authorization')
+    if effort=='ultra':
+        authorization=loop_closed_object(
+            ultra_authorization,
+            {'item_id','owner_authorization_id','authorization_evidence_digest','result'},
+            'ULTRA_AUTHORIZATION',errors,
+        )
+        if role!='HIGH_DIFFICULTY_CORRECTION' or not non_generic_evidence(authorization.get('item_id')) or not non_generic_evidence(authorization.get('owner_authorization_id')) or not loop_exact_hash(authorization.get('authorization_evidence_digest')) or authorization.get('result')!='OWNER_APPROVED_ULTRA':
+            errors.append('LOOP_CONTROL_BINDING_ULTRA_UNAUTHORIZED')
+    elif ultra_authorization!='NOT_APPLICABLE': errors.append('LOOP_CONTROL_BINDING_ULTRA_UNAUTHORIZED')
+    return model
+
+def validate_loop_control_retirement(local_control,method,errors):
+    state=local_control.get('state') if isinstance(local_control,dict) else None
+    if state in {'ACTIVE','RETAINED'}:
+        loop_closed_object(local_control,{'state'},'LOCAL_CONTROL',errors); return
+    if state!='RETIRED':
+        errors.append('LOOP_CONTROL_BINDING_LOCAL_CONTROL_INVALID'); return
+    value=loop_closed_object(local_control,{'state','retirement_evidence'},'LOCAL_CONTROL',errors)
+    retirement=loop_closed_object(value.get('retirement_evidence'),{'runtime_conformance','historical_receipts','owner_approved_release'},'RETIREMENT_EVIDENCE',errors)
+    conformance=loop_closed_object(retirement.get('runtime_conformance'),{'positive','negative'},'RETIREMENT_CONFORMANCE',errors)
+    evidence_ids=[]
+    for key in ('positive','negative'):
+        item=loop_closed_object(conformance.get(key),{'evidence_id','evidence_digest','result'},'RETIREMENT_'+key.upper(),errors)
+        if not non_generic_evidence(item.get('evidence_id')) or not loop_exact_hash(item.get('evidence_digest')) or item.get('result')!='PASS':
+            errors.append('LOOP_CONTROL_BINDING_RETIREMENT_CONFORMANCE_INVALID')
+        evidence_ids.append(item.get('evidence_id'))
+    if len(evidence_ids)!=len(set(evidence_ids)): errors.append('LOOP_CONTROL_BINDING_RETIREMENT_CONFORMANCE_INVALID')
+    history=loop_closed_object(retirement.get('historical_receipts'),{'status','evidence_id','evidence_digest'},'HISTORICAL_RECEIPTS',errors)
+    if history.get('status')!='READABLE' or not non_generic_evidence(history.get('evidence_id')) or not loop_exact_hash(history.get('evidence_digest')):
+        errors.append('LOOP_CONTROL_BINDING_HISTORICAL_RECEIPTS_INVALID')
+    release=loop_closed_object(retirement.get('owner_approved_release'),{'release_id','approval_evidence_id','approval_evidence_digest','result'},'OWNER_RELEASE',errors)
+    if method not in LOOP_CONTROL_METHODS or not non_generic_evidence(release.get('release_id')) or not str(release.get('release_id')).startswith(method+'-') or not non_generic_evidence(release.get('approval_evidence_id')) or not loop_exact_hash(release.get('approval_evidence_digest')) or release.get('result')!='LOCAL_CONTROL_RETIRED':
+        errors.append('LOOP_CONTROL_BINDING_OWNER_RELEASE_INVALID')
+
+def validate_loop_control_binding(lc,contract_path=LOOP_CONTROL_CONTRACT_PATH,as_of=None):
+    binding_path=Path(lc)/LOOP_CONTROL_BINDING_NAME
+    if not binding_path.exists(): return []
+    errors=[]
+    try: contract=strict_vulnerability_json(contract_path)
+    except (OSError,UnicodeError,ValueError): return ['LOOP_CONTROL_CONTRACT_INVALID']
+    errors.extend(validate_loop_control_contract(contract))
+    try: binding=strict_vulnerability_json(binding_path)
+    except (OSError,UnicodeError,ValueError): return errors+['LOOP_CONTROL_BINDING_INVALID_JSON']
+    value=loop_closed_object(binding,LOOP_CONTROL_BINDING_KEYS,'ROOT',errors)
+    if value.get('artifact_type')!='LOOP_CONTROL_BINDING' or value.get('binding_version')!='1.0.0':
+        errors.append('LOOP_CONTROL_BINDING_IDENTITY_INVALID')
+    contract_binding=loop_closed_object(value.get('contract'),{'contract_id','contract_version','contract_sha256'},'CONTRACT',errors)
+    if contract_binding.get('contract_id')!=contract.get('contract_id') or contract_binding.get('contract_version')!=contract.get('contract_version') or contract_binding.get('contract_sha256')!=exact_manifest_hash(contract_path):
+        errors.append('LOOP_CONTROL_BINDING_CONTRACT_MISMATCH')
+    attestation=loop_closed_object(value.get('runtime_attestation'),LOOP_CONTROL_ATTESTATION_KEYS,'RUNTIME_ATTESTATION',errors)
+    policy=contract.get('runtime_attestation_policy',{}) if isinstance(contract,dict) else {}
+    if attestation.get('runtime_owner')!=policy.get('required_owner') or not non_generic_evidence(attestation.get('runtime_adapter_id')) or not non_generic_evidence(attestation.get('attestation_root')) or not loop_exact_hash(attestation.get('evidence_digest')):
+        errors.append('LOOP_CONTROL_BINDING_ATTESTATION_IDENTITY_INVALID')
+    observed=loop_timestamp(attestation.get('observed_at')); validated=loop_timestamp(attestation.get('validated_at')); expires=loop_timestamp(attestation.get('expires_at'))
+    now=as_of or datetime.now(timezone.utc)
+    if any(item is None for item in (observed,validated,expires)) or observed>validated or validated>now or expires<=now or expires>validated+timedelta(minutes=policy.get('max_validity_minutes',0)) or now-validated>timedelta(minutes=policy.get('max_validated_age_minutes',-1)):
+        errors.append('LOOP_CONTROL_BINDING_ATTESTATION_CURRENTNESS_INVALID')
+    if attestation.get('currentness')!=policy.get('required_currentness') or attestation.get('result')!=policy.get('required_result'):
+        errors.append('LOOP_CONTROL_BINDING_ATTESTATION_RESULT_INVALID')
+    model=validate_loop_control_model(value.get('model_binding'),errors)
+    method=value.get('method_mapping',{}).get('method') if isinstance(value.get('method_mapping'),dict) else None
+    validate_loop_control_mapping(value.get('method_mapping'),method,model,errors)
+    validate_loop_control_retirement(value.get('local_control'),method,errors)
+    return errors
+
 def exact_security_id_hash(value):
     identity=exact_id_hash(value)
     return identity if identity and non_generic_evidence(identity[0]) else None
@@ -3025,6 +3253,7 @@ def main():
         try: status=strict_vulnerability_json(lc/'status.json')
         except (OSError,UnicodeError,ValueError) as error:
             errors.append('status.json is not strict JSON: '+str(error)); status={}
+    errors.extend(validate_loop_control_binding(lc))
     if (lc/'PHASE-STATUS.json').exists(): phase_status=json.loads((lc/'PHASE-STATUS.json').read_text(encoding='utf-8'))
     if (lc/'PROJECT-HEALTH.json').exists(): health=json.loads((lc/'PROJECT-HEALTH.json').read_text(encoding='utf-8'))
     if status and phase_status and health:

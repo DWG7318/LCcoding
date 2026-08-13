@@ -18,6 +18,19 @@ assert contract["owner"] == "LCCoding"
 assert contract["is_loop_method"] is False
 assert contract["runtime_execution_owner"] == "LCagent_or_trusted_runtime"
 assert contract["method_consumers"] == ["SLK", "CLK", "GLK"]
+assert contract["heartbeat_separation"] == {
+    "shared_id": "FORBIDDEN",
+    "shared_lifecycle": "FORBIDDEN",
+    "shared_counting": "FORBIDDEN",
+    "shared_evidence_claim": "FORBIDDEN",
+}
+assert contract["runtime_attestation_policy"] == {
+    "required_owner": "LCagent_or_trusted_runtime",
+    "required_result": "PASS",
+    "required_currentness": "CURRENT",
+    "max_validated_age_minutes": 30,
+    "max_validity_minutes": 60,
+}
 
 wake = contract["worker_wake"]
 assert wake["initiator"] == "WORKER"
@@ -26,17 +39,22 @@ assert wake["retry_interval_seconds"] == 120
 assert wake["levels"] == [
     "DIRECT_SEND",
     "SAME_TASK_READ_LIST_UNARCHIVE",
-    "TEMPORARY_HEARTBEAT",
+    "CHECKER_WAKE_HEARTBEAT",
     "PENDING_WAKE_PATROL_FALLBACK",
 ]
 assert wake["ack"] == "RUN_GO_CELL_ROUND_BOUND_WAKE_ACK"
+assert wake["heartbeat_kind"] == "CHECKER_WAKE_HEARTBEAT"
+assert wake["maximum_temporary_heartbeats_per_delivery_wake_incident"] == 1
+assert wake["terminal_action"] == "REMOVE_ON_WAKE_ACK_OR_TERMINAL_FALLBACK"
 
 patrol = contract["run_patrol"]
 assert patrol["role"] == "RUN_PATROL"
 assert patrol["maximum_conversations_per_run"] == 1
-assert patrol["maximum_heartbeats_per_run"] == 1
+assert patrol["heartbeat_kind"] == "RUN_PATROL_HEARTBEAT"
+assert patrol["maximum_run_patrol_heartbeats_per_run"] == 1
 assert patrol["interval_minutes"] == {"LOW": 10, "MEDIUM": 15, "HIGH": 30}
 assert patrol["may_create_conversations"] is False
+assert patrol["may_report_engineering_progress"] is False
 assert patrol["terminal_action"] == "ARCHIVE_AND_DELETE_HEARTBEAT"
 assert patrol["checks"] == [
     "UNEXPLAINED_LOOP_STOPPAGE",
@@ -61,9 +79,9 @@ assert contract["prohibitions"] == {
 }
 
 assert contract["progress"] == {
-    "worker": "DELIVERED_GO_CELL_N_OVER_N_TO_CHECKER",
-    "checker": "CURRENT_VALID_D1_ACCEPTED_CELL_AND_GO_BOUNDARY",
-    "supervisor": "MATERIAL_GLOBAL_D1_D2_ACTIVE_WAITING_HOLD_VERSION",
+    "worker": "DELIVERED_CELL_N_OVER_N_TO_CHECKER",
+    "checker": "ACCEPTED_CELL_N_OVER_N_TO_SUPERVISOR",
+    "supervisor": "GO_LEVEL_RUN_AND_MATERIAL_STATE",
     "patrol": "NO_ENGINEERING_PROGRESS",
 }
 assert contract["capacity"] == {
@@ -72,14 +90,37 @@ assert contract["capacity"] == {
     "worker_may_self_split": False,
 }
 assert contract["model_policy"] == {
-    "ultra": "FORBIDDEN_WITHOUT_SEPARATE_OWNER_AUTHORIZATION",
-    "role_default": {"model": "gpt-5.6-terra", "reasoning_effort": "xhigh"},
-    "fine_grained_cell": {"model": "gpt-5.6-luna", "reasoning_effort": "xhigh"},
-    "high_difficulty_correction": {"model": "gpt-5.6-sol", "reasoning_effort": "xhigh"},
-    "minimum": {"model": "gpt-5.6-luna", "reasoning_effort": "xhigh"},
+    "patrol": {
+        "reference_model": "gpt-5.6-luna",
+        "capability_class": "FASTEST_NONTECHNICAL",
+        "reasoning_effort": "xhigh",
+    },
+    "technical": {
+        "reference_model": "gpt-5.6-terra",
+        "capability_class": "NORMAL_TECHNICAL",
+        "reasoning_effort": "xhigh",
+    },
+    "high_difficulty_correction": {
+        "reference_model": "gpt-5.6-sol",
+        "capability_class": "DIFFICULT_CORRECTION",
+        "reasoning_effort": "xhigh",
+    },
+    "ultra": {
+        "requires": "ITEM_SPECIFIC_OWNER_AUTHORIZATION",
+        "allowed_role_kind": "HIGH_DIFFICULTY_CORRECTION",
+        "authorization_fields": [
+            "item_id",
+            "owner_authorization_id",
+            "authorization_evidence_digest",
+            "result",
+        ],
+        "authorization_result": "OWNER_APPROVED_ULTRA",
+    },
+    "forbidden_model_maximum": "gpt-5.5",
 }
 
 assert template["artifact_type"] == "LOOP_CONTROL_BINDING"
+assert template["binding_version"] == "1.0.0"
 assert template["contract"] == {
     "contract_id": "LCCODING_LOOP_CONTROL",
     "contract_version": "1.0.0",
@@ -88,8 +129,42 @@ assert template["contract"] == {
 assert template["runtime_attestation"]["runtime_owner"] == "LCagent_or_trusted_runtime"
 assert template["method_mapping"] == {
     "method": "<SLK|CLK|GLK>",
-    "method_specific_progress": "<method-owned dimensions only>",
-    "method_specific_capacity": "<method-owned reservations only>",
+    "topology_owned_progress_fields": ["<method-owned progress field>"],
+    "topology_owned_capacity_fields": ["<method-owned capacity field>"],
+    "topology_owned_model_fields": ["<method-owned model field>"],
+    "topology_owned_evidence_fields": ["<method-owned evidence field>"],
+}
+assert template["model_binding"]["owner_ultra_authorization"] == {
+    "item_id": "<item-specific Run or correction item ID>",
+    "owner_authorization_id": "<item-specific Owner authorization ID>",
+    "authorization_evidence_digest": "<sha256 of Owner authorization evidence>",
+    "result": "OWNER_APPROVED_ULTRA",
+}
+assert template["local_control"]["state"] == "ACTIVE|RETAINED|RETIRED"
+assert template["local_control"]["retirement_evidence"] == {
+    "runtime_conformance": {
+        "positive": {
+            "evidence_id": "<positive current conformance evidence ID>",
+            "evidence_digest": "<sha256 of positive conformance evidence>",
+            "result": "PASS",
+        },
+        "negative": {
+            "evidence_id": "<negative current conformance evidence ID>",
+            "evidence_digest": "<sha256 of negative conformance evidence>",
+            "result": "PASS",
+        },
+    },
+    "historical_receipts": {
+        "status": "READABLE",
+        "evidence_id": "<historical receipt readability evidence ID>",
+        "evidence_digest": "<sha256 of historical receipt readability evidence>",
+    },
+    "owner_approved_release": {
+        "release_id": "<method-specific Owner-approved release ID>",
+        "approval_evidence_id": "<Owner retirement approval evidence ID>",
+        "approval_evidence_digest": "<sha256 of Owner retirement approval evidence>",
+        "result": "LOCAL_CONTROL_RETIRED",
+    },
 }
 
 for marker in (

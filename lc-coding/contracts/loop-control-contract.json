@@ -12,17 +12,22 @@
     "levels": [
       "DIRECT_SEND",
       "SAME_TASK_READ_LIST_UNARCHIVE",
-      "TEMPORARY_HEARTBEAT",
+      "CHECKER_WAKE_HEARTBEAT",
       "PENDING_WAKE_PATROL_FALLBACK"
     ],
-    "ack": "RUN_GO_CELL_ROUND_BOUND_WAKE_ACK"
+    "ack": "RUN_GO_CELL_ROUND_BOUND_WAKE_ACK",
+    "heartbeat_kind": "CHECKER_WAKE_HEARTBEAT",
+    "maximum_temporary_heartbeats_per_delivery_wake_incident": 1,
+    "terminal_action": "REMOVE_ON_WAKE_ACK_OR_TERMINAL_FALLBACK"
   },
   "run_patrol": {
     "role": "RUN_PATROL",
     "maximum_conversations_per_run": 1,
-    "maximum_heartbeats_per_run": 1,
+    "heartbeat_kind": "RUN_PATROL_HEARTBEAT",
+    "maximum_run_patrol_heartbeats_per_run": 1,
     "interval_minutes": {"LOW": 10, "MEDIUM": 15, "HIGH": 30},
     "may_create_conversations": false,
+    "may_report_engineering_progress": false,
     "terminal_action": "ARCHIVE_AND_DELETE_HEARTBEAT",
     "checks": [
       "UNEXPLAINED_LOOP_STOPPAGE",
@@ -33,6 +38,19 @@
       "PIN_PROVENANCE",
       "TERMINAL_CLOSURE"
     ]
+  },
+  "heartbeat_separation": {
+    "shared_id": "FORBIDDEN",
+    "shared_lifecycle": "FORBIDDEN",
+    "shared_counting": "FORBIDDEN",
+    "shared_evidence_claim": "FORBIDDEN"
+  },
+  "runtime_attestation_policy": {
+    "required_owner": "LCagent_or_trusted_runtime",
+    "required_result": "PASS",
+    "required_currentness": "CURRENT",
+    "max_validated_age_minutes": 30,
+    "max_validity_minutes": 60
   },
   "supervisor_wait": {
     "positive_duration_wait_threads": "FORBIDDEN",
@@ -46,9 +64,9 @@
     "owner_pin": "EXPLICIT_OWNER_UI_OR_ITEM_AUTHORIZATION_ONLY"
   },
   "progress": {
-    "worker": "DELIVERED_GO_CELL_N_OVER_N_TO_CHECKER",
-    "checker": "CURRENT_VALID_D1_ACCEPTED_CELL_AND_GO_BOUNDARY",
-    "supervisor": "MATERIAL_GLOBAL_D1_D2_ACTIVE_WAITING_HOLD_VERSION",
+    "worker": "DELIVERED_CELL_N_OVER_N_TO_CHECKER",
+    "checker": "ACCEPTED_CELL_N_OVER_N_TO_SUPERVISOR",
+    "supervisor": "GO_LEVEL_RUN_AND_MATERIAL_STATE",
     "patrol": "NO_ENGINEERING_PROGRESS"
   },
   "capacity": {
@@ -57,10 +75,32 @@
     "worker_may_self_split": false
   },
   "model_policy": {
-    "ultra": "FORBIDDEN_WITHOUT_SEPARATE_OWNER_AUTHORIZATION",
-    "role_default": {"model": "gpt-5.6-terra", "reasoning_effort": "xhigh"},
-    "fine_grained_cell": {"model": "gpt-5.6-luna", "reasoning_effort": "xhigh"},
-    "high_difficulty_correction": {"model": "gpt-5.6-sol", "reasoning_effort": "xhigh"},
-    "minimum": {"model": "gpt-5.6-luna", "reasoning_effort": "xhigh"}
+    "patrol": {
+      "reference_model": "gpt-5.6-luna",
+      "capability_class": "FASTEST_NONTECHNICAL",
+      "reasoning_effort": "xhigh"
+    },
+    "technical": {
+      "reference_model": "gpt-5.6-terra",
+      "capability_class": "NORMAL_TECHNICAL",
+      "reasoning_effort": "xhigh"
+    },
+    "high_difficulty_correction": {
+      "reference_model": "gpt-5.6-sol",
+      "capability_class": "DIFFICULT_CORRECTION",
+      "reasoning_effort": "xhigh"
+    },
+    "ultra": {
+      "requires": "ITEM_SPECIFIC_OWNER_AUTHORIZATION",
+      "allowed_role_kind": "HIGH_DIFFICULTY_CORRECTION",
+      "authorization_fields": [
+        "item_id",
+        "owner_authorization_id",
+        "authorization_evidence_digest",
+        "result"
+      ],
+      "authorization_result": "OWNER_APPROVED_ULTRA"
+    },
+    "forbidden_model_maximum": "gpt-5.5"
   }
 }
