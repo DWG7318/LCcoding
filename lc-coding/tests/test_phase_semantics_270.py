@@ -33,7 +33,7 @@ EXPECTED_MAINLINE_BYTES = (
 EXPECTED_PHASE_IDS = [
     "INITIAL",
     "PRODUCT_FORMATION",
-    "ENGINEERING_RUNS",
+    "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 ]
 EXPECTED_AGGREGATE_EXCLUDES = {
@@ -60,7 +60,7 @@ def phase_by_id(contract: dict, phase_id: str) -> dict:
 def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> set[str]:
     errors: set[str] = set()
 
-    if current_lifecycle.get("version") != "2.7.0" or current_phases.get("version") != "2.7.0":
+    if current_lifecycle.get("version") != "2.8.0" or current_phases.get("version") != "2.8.0":
         errors.add("VERSION_CARRIER_CHANGED_EARLY")
 
     mainline = current_lifecycle.get("mainline")
@@ -110,7 +110,7 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
         if phase.get("exit_gate") == "CALABASH_UPGRADE_READY":
             errors.add("CALABASH_READINESS_USED_AS_EXIT_GATE")
 
-    integration = phase_by_id(current_phases, "ENGINEERING_RUNS")
+    integration = phase_by_id(current_phases, "REAL_PRODUCT_INTEGRATION")
     if integration.get("display_meaning") != "REAL_PRODUCT_INTEGRATION":
         errors.add("PHASE_3_DISPLAY_WRONG")
     if integration.get("start") != "FEATURE_SLICE":
@@ -213,37 +213,37 @@ assert_mutation_rejected(
 )
 assert_mutation_rejected(
     "PHASE_3_START_WRONG",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS").update(
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION").update(
         {"start": "MANDATORY_CALABASH_UPGRADE"}
     ),
 )
 assert_mutation_rejected(
     "PHASE_3_DISPLAY_WRONG",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS").update(
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION").update(
         {"display_meaning": "Engineering Runs"}
     ),
 )
 assert_mutation_rejected(
     "PHASE_3_HAS_ENTRY_GATE",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS").update(
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION").update(
         {"entry_gate": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS"}
     ),
 )
 assert_mutation_rejected(
     "SLICE_RUN_ADMISSION_BECAME_PHASE_GATE",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS")[
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION")[
         "slice_run_admission"
     ].update({"phase_entry": True}),
 )
 assert_mutation_rejected(
     "PHASE_3_AGGREGATE_SCOPE_WRONG",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS").update(
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION").update(
         {"aggregate_exit_scope": "ALL_RUNS_ALL_PHASES"}
     ),
 )
 assert_mutation_rejected(
     "PHASE_3_AGGREGATE_EXCLUSIONS_WRONG",
-    lambda _, phases: phase_by_id(phases, "ENGINEERING_RUNS").update(
+    lambda _, phases: phase_by_id(phases, "REAL_PRODUCT_INTEGRATION").update(
         {"aggregate_excludes": ["OPTIONAL_RUNS"]}
     ),
 )

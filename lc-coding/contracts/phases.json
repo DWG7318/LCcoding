@@ -1,5 +1,5 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.0",
   "mainline_unchanged": true,
   "phases": [
     {
@@ -26,7 +26,7 @@
       }
     },
     {
-      "id": "ENGINEERING_RUNS",
+      "id": "REAL_PRODUCT_INTEGRATION",
       "display_meaning": "REAL_PRODUCT_INTEGRATION",
       "start": "FEATURE_SLICE",
       "repeatable": true,
@@ -74,7 +74,7 @@
     "phase_ids": [
       "INITIAL",
       "PRODUCT_FORMATION",
-      "ENGINEERING_RUNS",
+      "REAL_PRODUCT_INTEGRATION",
       "DELIVERY_PREPARATION"
     ],
     "selection_scope": "PER_RUN",

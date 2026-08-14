@@ -1,5 +1,6 @@
 {
   "record_role": "DERIVED_VIEW",
+  "status_schema_version": "2.8.0",
   "derived_from": "status.json",
   "current_phase": "INITIAL",
   "phases": {
@@ -11,7 +12,7 @@
       "status": "PENDING",
       "exit_evidence": "PENDING"
     },
-    "ENGINEERING_RUNS": {
+    "REAL_PRODUCT_INTEGRATION": {
       "status": "PENDING",
       "per_run_acceptances": [],
       "aggregate_exit_gate": "PENDING"
