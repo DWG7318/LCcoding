@@ -168,6 +168,8 @@ def validate_source_shape(source):
         raise MigrationError("source status.json is not the sole authority")
     if status.get("status_schema_version") != SOURCE_SCHEMA:
         raise MigrationError("unsupported source status schema")
+    if phase_status.get("status_schema_version") != SOURCE_SCHEMA:
+        raise MigrationError("source PHASE-STATUS schema must be exact 2.6.0")
     if phase_status.get("record_role") != "DERIVED_VIEW" or phase_status.get("derived_from") != "status.json":
         raise MigrationError("source PHASE-STATUS is not a derived view")
     if health.get("record_role") != "ASSESSMENT_EVIDENCE":
@@ -267,6 +269,7 @@ def phase_status_for(status, source_phase_status, stage):
         records[phase] = record
     return {
         "record_role": "DERIVED_VIEW",
+        "status_schema_version": TARGET_SCHEMA,
         "derived_from": "status.json",
         "current_phase": current,
         "phases": records,

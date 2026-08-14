@@ -237,6 +237,14 @@ def phase_view_for(status):
     view = copy.deepcopy(
         json.loads((root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8"))
     )
+    view["status_schema_version"] = "2.6.0"
+    phase3 = view["phases"].pop("REAL_PRODUCT_INTEGRATION")
+    view["phases"] = {
+        "INITIAL": view["phases"]["INITIAL"],
+        "PRODUCT_FORMATION": view["phases"]["PRODUCT_FORMATION"],
+        "ENGINEERING_RUNS": phase3,
+        "DELIVERY_PREPARATION": view["phases"]["DELIVERY_PREPARATION"],
+    }
     view["current_phase"] = status["current_phase"]
     view["phases"]["INITIAL"]["exit_gate"] = status["phase_gates"]["INITIAL_READY"]
     view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = status["product_baseline"]
@@ -823,6 +831,27 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-270-") as temporary:
     assert_source_unchanged(malformed, malformed_before)
     stages = list(base.glob(".malformed-output.lccoding-migrate-*"))
     assert not stages, stages
+
+    for label, schema in (
+        ("missing-derived-schema", None),
+        ("wrong-derived-schema", "2.5.2"),
+        ("cross-derived-schema", "2.7.0"),
+    ):
+        source = base / (label + "-source")
+        make_project(source)
+        phase_path = source / ".lccoding/PHASE-STATUS.json"
+        phase_record = json.loads(phase_path.read_text(encoding="utf-8"))
+        if schema is None:
+            phase_record.pop("status_schema_version")
+        else:
+            phase_record["status_schema_version"] = schema
+        write(phase_path, json.dumps(phase_record, indent=2) + "\n")
+        before = snapshot(source)
+        output = base / (label + "-output")
+        result = migrate(source, output)
+        assert result.returncode != 0 and not output.exists()
+        assert "source PHASE-STATUS schema must be exact 2.6.0" in result.stdout
+        assert_source_unchanged(source, before)
 
     unsupported = base / "unsupported-source"
     make_project(unsupported)

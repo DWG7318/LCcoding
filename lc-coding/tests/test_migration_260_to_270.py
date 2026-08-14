@@ -96,9 +96,14 @@ for overclaim in (
 
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
 release_heading = "## 2.7.0"
-assert changelog.startswith("# Changelog\n\n" + release_heading + "\n")
-release_section = changelog[len("# Changelog\n\n") :]
-release_section = release_section[: release_section.find("\n## 2.6.0")]
+next_heading = "## 2.6.0"
+assert changelog.startswith("# Changelog\n\n")
+assert changelog.count("\n" + release_heading + "\n") == 1
+assert changelog.count("\n" + next_heading + "\n") == 1
+release_start = changelog.index("\n" + release_heading + "\n") + 1
+release_end = changelog.index("\n" + next_heading + "\n")
+assert release_start < release_end
+release_section = changelog[release_start:release_end]
 for marker in (
     "copy-on-write",
     "current repository and BI release carriers are finalized for 2.7.0",

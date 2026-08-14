@@ -12,14 +12,14 @@ for x in ['Workflow capability end','UI product-surface end','Simulation World',
 phases=json.loads((root/'lc-coding/contracts/phases.json').read_text())
 assert phases['mainline_unchanged'] is True
 phase_by_id={phase['id']:phase for phase in phases['phases']}
-assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','ENGINEERING_RUNS','DELIVERY_PREPARATION']
+assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION','DELIVERY_PREPARATION']
 formation=phase_by_id['PRODUCT_FORMATION']
 assert formation['start']=='CALABASH_DRAFT'
 assert formation['end_after']=='PRODUCT_BASELINE'
 assert formation['exit_evidence']['artifact']=='PRODUCT_BASELINE_HANDOFF'
 assert 'exit_gate' not in formation
 assert formation['internal_readiness']['phase_exit'] is False
-integration=phase_by_id['ENGINEERING_RUNS']
+integration=phase_by_id['REAL_PRODUCT_INTEGRATION']
 assert integration['display_meaning']=='REAL_PRODUCT_INTEGRATION'
 assert integration['start']=='FEATURE_SLICE'
 assert 'entry_gate' not in integration
