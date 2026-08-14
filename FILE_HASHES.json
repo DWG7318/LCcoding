@@ -153,7 +153,7 @@
   "lc-coding/scripts/validate_delivery_decision.py": "6528b8239a21b62a93414f19072e2e3e383d3d40b6205a1b44c259dfbca17be3",
   "lc-coding/scripts/validate_method_baseline.py": "19ba2744334c57ad6b1c22c222fb7c9971e3ccd42a37c0497ae2e893b12e4d4c",
   "lc-coding/scripts/validate_phase_status.py": "22be45321ad570297038c63372b3dafbe29a47a7a02057b86982a06a279f5ced",
-  "lc-coding/scripts/validate_project.py": "5e567be1f23303d419adff3fd9cabdd43ad14876e01af57801f150f72f4b2b54",
+  "lc-coding/scripts/validate_project.py": "7c84ebf902de2e0fd66343975f89a47573355b6697210df1eca556cf151cfee7",
   "lc-coding/scripts/validate_repository.py": "2c9d887f804819630dda3d2185932712f5527836d9fc97e7c0a1da0ec6629fd5",
   "lc-coding/scripts/validate_verification.py": "6eab2a7b818f8ce9a772f8d2f9bd457811c82530a2f0657f5ab6759c95ba35ba",
   "lc-coding/scripts/validate_vulnerability_closure.py": "cd536ceff04384066b3d682cf0edfedac4dc5ebc27534927771643d4ee978621",

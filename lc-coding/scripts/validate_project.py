@@ -3004,9 +3004,6 @@ def parse_closed_id_set(value,label):
 def validate_run_evidence(lc,status,manifest,lock,manifest_path):
     errors,eligible,has_collection=validate_execution_method_registry(manifest,lock,manifest_path)
     status_schema=status.get('status_schema_version')
-    phase_order=PHASE_IDS_BY_SCHEMA.get(status_schema)
-    if phase_order is None: errors.append('Run evidence requires a supported authoritative status_schema_version')
-    phase3=phase_order[2] if phase_order else None
     runs_root=lc/'runs'; starts={}; start_contract_ids={}; receipts={}; receipt_ids={}; receipt_id_counts={}
     if runs_root.is_dir():
         for path in runs_root.rglob('*.md'):
@@ -3044,13 +3041,16 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
     aggregate_gate=status.get('phase_gates',{}).get('ALL_REQUIRED_RUNS_ACCEPTED')
     aggregate_direct=status.get('all_required_runs_accepted')
     aggregate_claimed=completed_evidence(aggregate_gate) or completed_evidence(aggregate_direct)
-    generic_collection=manifest.get('execution_methods')
     generic_mode=(
-        bool(generic_collection)
+        has_collection
         or bool(starts)
         or bool(receipts)
-        or (has_collection and (aggregate_claimed or bool(raw_indexed)))
     )
+    schema_required=generic_mode or aggregate_claimed or bool(raw_indexed)
+    if not schema_required: return errors
+    phase_order=PHASE_IDS_BY_SCHEMA.get(status_schema)
+    if phase_order is None: errors.append('Run evidence requires a supported authoritative status_schema_version')
+    phase3=phase_order[2] if phase_order else None
     if not generic_mode: return errors
     if not has_collection and not any(str(fields.get('Selected execution method ID','')).upper() in LEGACY_METHOD_INTERFACES for _,fields in starts.values()):
         errors.append('Run evidence requires Canonical Manifest execution method registry')
