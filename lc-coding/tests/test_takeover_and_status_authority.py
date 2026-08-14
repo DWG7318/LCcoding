@@ -24,7 +24,8 @@ assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
 assert health.get("record_role") == "ASSESSMENT_EVIDENCE"
-assert status.get("status_schema_version") == "2.7.0"
+assert status.get("status_schema_version") == "2.8.0"
+assert phase_status.get("status_schema_version") == "2.8.0"
 assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
 assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
 assert status.get("product_baseline") == "PENDING"
@@ -38,6 +39,53 @@ assert "exit_gate" not in formation_view
 assert formation_view.get("exit_evidence") == "PENDING"
 assert hasattr(module, "validate_status_authority")
 assert module.validate_status_authority(status, phase_status, health) == []
+
+
+def legacy_phase_view(current_view):
+    view = copy.deepcopy(current_view)
+    records = view["phases"]
+    view["status_schema_version"] = "2.7.0"
+    view["phases"] = {
+        "INITIAL": records["INITIAL"],
+        "PRODUCT_FORMATION": records["PRODUCT_FORMATION"],
+        "ENGINEERING_RUNS": records["REAL_PRODUCT_INTEGRATION"],
+        "DELIVERY_PREPARATION": records["DELIVERY_PREPARATION"],
+    }
+    if view["current_phase"] == "REAL_PRODUCT_INTEGRATION":
+        view["current_phase"] = "ENGINEERING_RUNS"
+    return view
+
+
+# Exact 2.7 schema remains readable with its legacy phase identity.
+legacy_status_270 = copy.deepcopy(status)
+legacy_status_270["status_schema_version"] = "2.7.0"
+legacy_view_270 = legacy_phase_view(phase_status)
+assert module.validate_status_authority(legacy_status_270, legacy_view_270, health) == []
+
+# Schema and identity cannot be mixed, inferred, or crossed.
+mixed_schema_view = legacy_phase_view(phase_status)
+assert any(
+    "status schema disagrees" in error
+    for error in module.validate_status_authority(status, mixed_schema_view, health)
+)
+cross_identity_view = copy.deepcopy(mixed_schema_view)
+cross_identity_view["status_schema_version"] = "2.8.0"
+assert any(
+    "phase identity does not match schema" in error
+    for error in module.validate_status_authority(status, cross_identity_view, health)
+)
+inferred_view = copy.deepcopy(phase_status)
+del inferred_view["status_schema_version"]
+assert any(
+    "status_schema_version is required" in error
+    for error in module.validate_status_authority(status, inferred_view, health)
+)
+inferred_status = copy.deepcopy(status)
+del inferred_status["status_schema_version"]
+assert any(
+    "authoritative status_schema_version is required" in error
+    for error in module.validate_status_authority(inferred_status, phase_status, health)
+)
 
 # Explicit legacy/non-current scalar security status remains readable, but a
 # current record cannot mix scalar and structured truth or add a second ledger.
@@ -105,10 +153,10 @@ assert module.validate_status_authority(
 
 premature_engineering_status = copy.deepcopy(formation_status)
 premature_engineering_view = copy.deepcopy(formation_phase_status)
-premature_engineering_status["current_phase"] = "ENGINEERING_RUNS"
-premature_engineering_view["current_phase"] = "ENGINEERING_RUNS"
+premature_engineering_status["current_phase"] = "REAL_PRODUCT_INTEGRATION"
+premature_engineering_view["current_phase"] = "REAL_PRODUCT_INTEGRATION"
 assert any(
-    "ENGINEERING_RUNS requires accepted Product Baseline" in error
+    "REAL_PRODUCT_INTEGRATION requires accepted Product Baseline" in error
     for error in module.validate_status_authority(
         premature_engineering_status, premature_engineering_view, health
     )
@@ -128,13 +176,21 @@ assert any(
 # Real Product Integration when Initial is also complete.
 engineering_status = copy.deepcopy(formation_status)
 engineering_view = copy.deepcopy(formation_phase_status)
-engineering_status["current_phase"] = "ENGINEERING_RUNS"
+engineering_status["current_phase"] = "REAL_PRODUCT_INTEGRATION"
 engineering_status["product_baseline"] = "ACCEPTED"
-engineering_view["current_phase"] = "ENGINEERING_RUNS"
+engineering_view["current_phase"] = "REAL_PRODUCT_INTEGRATION"
 engineering_view["phases"]["PRODUCT_FORMATION"]["status"] = "COMPLETE"
 engineering_view["phases"]["PRODUCT_FORMATION"]["exit_evidence"] = "ACCEPTED"
-engineering_view["phases"]["ENGINEERING_RUNS"]["status"] = "ACTIVE"
+engineering_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "ACTIVE"
 assert module.validate_status_authority(engineering_status, engineering_view, health) == []
+
+legacy_engineering_status = copy.deepcopy(engineering_status)
+legacy_engineering_status["status_schema_version"] = "2.7.0"
+legacy_engineering_status["current_phase"] = "ENGINEERING_RUNS"
+legacy_engineering_view = legacy_phase_view(engineering_view)
+assert module.validate_status_authority(
+    legacy_engineering_status, legacy_engineering_view, health
+) == []
 
 # The aggregate boundary keeps its exact authoritative raw value and
 # normalizes to completed when Delivery Preparation begins.
@@ -145,8 +201,8 @@ delivery_status["phase_gates"][
     "ALL_REQUIRED_RUNS_ACCEPTED"
 ] = "ALL_REQUIRED_RUNS_ACCEPTED"
 delivery_view["current_phase"] = "DELIVERY_PREPARATION"
-delivery_view["phases"]["ENGINEERING_RUNS"]["status"] = "COMPLETE"
-delivery_view["phases"]["ENGINEERING_RUNS"][
+delivery_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "COMPLETE"
+delivery_view["phases"]["REAL_PRODUCT_INTEGRATION"][
     "aggregate_exit_gate"
 ] = "ALL_REQUIRED_RUNS_ACCEPTED"
 delivery_view["phases"]["DELIVERY_PREPARATION"]["status"] = "ACTIVE"
@@ -198,7 +254,7 @@ assert any(
 )
 
 drifted_view = copy.deepcopy(phase_status)
-drifted_view["current_phase"] = "ENGINEERING_RUNS"
+drifted_view["current_phase"] = "REAL_PRODUCT_INTEGRATION"
 assert any(
     "derived phase status disagrees" in error
     for error in module.validate_status_authority(status, drifted_view, health)
@@ -397,11 +453,11 @@ with tempfile.TemporaryDirectory() as temporary:
 with tempfile.TemporaryDirectory() as temporary:
     project = Path(temporary) / "malformed-future-phase"
     malformed_future_view = copy.deepcopy(formation_phase_status)
-    malformed_future_view["phases"]["ENGINEERING_RUNS"]["status"] = "ACTIVE"
+    malformed_future_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "ACTIVE"
     write_project_fixture(project, formation_status, malformed_future_view)
     result = run_project_validator(project)
     assert result.returncode != 0
-    assert "future phase status must be PENDING: ENGINEERING_RUNS" in result.stdout
+    assert "future phase status must be PENDING: REAL_PRODUCT_INTEGRATION" in result.stdout
 
 phases = json.loads(
     (root / "lc-coding/contracts/phases.json").read_text(encoding="utf-8")

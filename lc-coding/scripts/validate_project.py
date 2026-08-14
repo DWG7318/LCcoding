@@ -352,6 +352,16 @@ def validate_security_status_shape(status):
 
 def validate_status_authority(status,phase_status,health):
     errors=validate_phase_status_record(phase_status)
+    status_schema=status.get('status_schema_version')
+    phase_status_schema=phase_status.get('status_schema_version')
+    phase_order=_PHASE_VALIDATOR.SCHEMA_PHASE_ORDERS.get(status_schema)
+    if 'status_schema_version' not in status:
+        errors.append('authoritative status_schema_version is required')
+    elif phase_order is None:
+        errors.append('unsupported authoritative status_schema_version')
+    if phase_status_schema!=status_schema:
+        errors.append('derived phase status schema disagrees with authoritative status schema')
+    phase3=phase_order[2] if phase_order else None
     roles=[status.get('record_role'),phase_status.get('record_role'),health.get('record_role')]
     if roles.count('AUTHORITATIVE_PROJECT_STATUS')!=1:
         errors.append('single authoritative project status required')
@@ -372,9 +382,9 @@ def validate_status_authority(status,phase_status,health):
         errors.append('derived phase status disagrees with authoritative current_phase')
     gate_map={
         'INITIAL':('exit_gate','INITIAL_READY'),
-        'ENGINEERING_RUNS':('aggregate_exit_gate','ALL_REQUIRED_RUNS_ACCEPTED'),
         'DELIVERY_PREPARATION':('exit_gate','DELIVERY_READY'),
     }
+    if phase3: gate_map[phase3]=('aggregate_exit_gate','ALL_REQUIRED_RUNS_ACCEPTED')
     for phase,(field,gate) in gate_map.items():
         derived=phase_status.get('phases',{}).get(phase,{}).get(field)
         authoritative=status.get('phase_gates',{}).get(gate)
@@ -397,11 +407,11 @@ def validate_status_authority(status,phase_status,health):
         errors.append('derived Product Formation completion is pending despite accepted Product Baseline')
     if not authoritative_complete and formation.get('status') in COMPLETED_PHASE_STATES:
         errors.append('derived Product Formation completion lacks accepted Product Baseline')
-    if status.get('current_phase') in {'ENGINEERING_RUNS','DELIVERY_PREPARATION'}:
+    if phase3 and status.get('current_phase') in {phase3,'DELIVERY_PREPARATION'}:
         if not authoritative_complete:
-            errors.append('ENGINEERING_RUNS requires accepted Product Baseline')
+            errors.append(phase3+' requires accepted Product Baseline')
         if not derived_complete or formation.get('status') not in COMPLETED_PHASE_STATES:
-            errors.append('ENGINEERING_RUNS requires matching derived Product Formation completion')
+            errors.append(phase3+' requires matching derived Product Formation completion')
     errors.extend(validate_security_status_shape(status))
     return errors
 

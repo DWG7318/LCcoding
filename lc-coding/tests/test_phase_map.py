@@ -4,7 +4,7 @@ root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/phases.json').read_text())
 assert contract['mainline_unchanged'] is True
 phases=contract['phases']
-assert [p['id'] for p in phases]==['INITIAL','PRODUCT_FORMATION','ENGINEERING_RUNS','DELIVERY_PREPARATION']
+assert [p['id'] for p in phases]==['INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION','DELIVERY_PREPARATION']
 phase_by_id={phase['id']:phase for phase in phases}
 assert phase_by_id['INITIAL']['end_before']=='CALABASH_DRAFT'
 formation=phase_by_id['PRODUCT_FORMATION']
@@ -18,7 +18,7 @@ assert formation['internal_readiness']['meaning']=='READY_TO_BEGIN_MANDATORY_CAL
 assert formation['internal_readiness']['compatibility_readable'] is True
 assert formation['internal_readiness']['phase_exit'] is False
 assert 'exit_gate' not in formation
-integration=phase_by_id['ENGINEERING_RUNS']
+integration=phase_by_id['REAL_PRODUCT_INTEGRATION']
 assert integration['display_meaning']=='REAL_PRODUCT_INTEGRATION'
 assert integration['start']=='FEATURE_SLICE'
 assert 'entry_gate' not in integration
