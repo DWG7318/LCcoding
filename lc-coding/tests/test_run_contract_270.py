@@ -20,11 +20,25 @@ validator_spec = importlib.util.spec_from_file_location(
 validator_module = importlib.util.module_from_spec(validator_spec)
 validator_spec.loader.exec_module(validator_module)
 
-PHASES = {
-    "INITIAL",
-    "PRODUCT_FORMATION",
-    "ENGINEERING_RUNS",
-    "DELIVERY_PREPARATION",
+SCHEMA_PHASES = {
+    "2.6.0": (
+        "INITIAL",
+        "PRODUCT_FORMATION",
+        "ENGINEERING_RUNS",
+        "DELIVERY_PREPARATION",
+    ),
+    "2.7.0": (
+        "INITIAL",
+        "PRODUCT_FORMATION",
+        "ENGINEERING_RUNS",
+        "DELIVERY_PREPARATION",
+    ),
+    "2.8.0": (
+        "INITIAL",
+        "PRODUCT_FORMATION",
+        "REAL_PRODUCT_INTEGRATION",
+        "DELIVERY_PREPARATION",
+    ),
 }
 START_ROLE = "RUN_START_CONTRACT"
 RECEIPT_ROLE = "LOOP_OWNER_ACCEPTANCE_RECEIPT"
@@ -33,6 +47,7 @@ START_REQUIRED = {
     "Start Contract ID",
     "Start Contract SHA-256",
     "Run ID",
+    "Status schema version",
     "LCCoding phase scope",
     "Phase-owned objective",
     "Calling phase authority / contract reference(s)",
@@ -53,11 +68,17 @@ START_REQUIRED = {
     "Readiness result",
     "Blocker evidence",
 }
-PHASE3_INPUTS = {
+LEGACY_PHASE3_INPUTS = {
     "Product Baseline trace (ENGINEERING_RUNS only)",
     "Feature Slice ID / version (ENGINEERING_RUNS only)",
     "Applicable UI / Integration Baseline (ENGINEERING_RUNS only)",
 }
+CURRENT_PHASE3_INPUTS = {
+    "Product Baseline trace (REAL_PRODUCT_INTEGRATION only)",
+    "Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)",
+    "Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)",
+}
+ALL_PHASE3_INPUTS = LEGACY_PHASE3_INPUTS | CURRENT_PHASE3_INPUTS
 START_FORBIDDEN = {
     "D3 Receipt",
     "D3 receipt",
@@ -79,6 +100,7 @@ RECEIPT_REQUIRED = {
     "Run ID",
     "Run-start contract ID",
     "Run-start contract SHA-256",
+    "Status schema version",
     "LCCoding phase scope",
     "Phase-owned objective",
     "Candidate ID / hash",
@@ -124,9 +146,7 @@ RECEIPT_FORBIDDEN = {
     "Applicable Snake / Scorpion disposition evidence reference",
 }
 ADDITIONAL_RECEIPT_START_AUTHORITY = {
-    "Product Baseline trace (ENGINEERING_RUNS only)",
-    "Feature Slice ID / version (ENGINEERING_RUNS only)",
-    "Applicable UI / Integration Baseline (ENGINEERING_RUNS only)",
+    *ALL_PHASE3_INPUTS,
     "D0-D3 evidence / verification condition",
     "Loop Owner Acceptance condition / route",
     "Risk / depth decision",
@@ -165,7 +185,12 @@ def validate_start(fields):
     for field in START_REQUIRED - {"Artifact role", "Blocker evidence"}:
         if field in fields and not present(fields[field]):
             errors.append("empty start field: " + field)
-    if fields.get("LCCoding phase scope") not in PHASES:
+    schema = fields.get("Status schema version")
+    phases = SCHEMA_PHASES.get(schema)
+    if phases is None:
+        errors.append("invalid status schema version")
+        phases = ()
+    if fields.get("LCCoding phase scope") not in phases:
         errors.append("invalid calling phase")
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", fields.get("Selected execution method version", "")):
         errors.append("invalid method version")
@@ -180,12 +205,16 @@ def validate_start(fields):
         errors.append("READY requires Blocker evidence NONE")
     if readiness == "BLOCKED" and not present(fields.get("Blocker evidence")):
         errors.append("BLOCKED requires blocker evidence")
-    phase3_present = PHASE3_INPUTS.intersection(fields)
-    if fields.get("LCCoding phase scope") == "ENGINEERING_RUNS":
-        if phase3_present != PHASE3_INPUTS or any(
-            not present(fields.get(field)) for field in PHASE3_INPUTS
+    phase3_id = phases[2] if phases else None
+    expected_phase3 = (
+        CURRENT_PHASE3_INPUTS if schema == "2.8.0" else LEGACY_PHASE3_INPUTS
+    )
+    phase3_present = ALL_PHASE3_INPUTS.intersection(fields)
+    if fields.get("LCCoding phase scope") == phase3_id:
+        if phase3_present != expected_phase3 or any(
+            not present(fields.get(field)) for field in expected_phase3
         ):
-            errors.append("ENGINEERING_RUNS requires product integration inputs")
+            errors.append("schema-selected Phase 3 requires product integration inputs")
     elif phase3_present:
         errors.append("non-Phase-3 Run fabricates product integration inputs")
     return errors
@@ -226,6 +255,7 @@ def validate_receipt(fields, start):
         "Run ID": "Run ID",
         "Run-start contract ID": "Start Contract ID",
         "Run-start contract SHA-256": "Start Contract SHA-256",
+        "Status schema version": "Status schema version",
         "LCCoding phase scope": "LCCoding phase scope",
         "Phase-owned objective": "Phase-owned objective",
         "Evidence return target in the calling phase": "Evidence return target in calling phase",
@@ -233,6 +263,12 @@ def validate_receipt(fields, start):
     for receipt_field, start_field in exact_bindings.items():
         if fields.get(receipt_field) != start.get(start_field):
             errors.append("receipt/start mismatch: " + receipt_field)
+    schema = fields.get("Status schema version")
+    phases = SCHEMA_PHASES.get(schema, ())
+    if not phases:
+        errors.append("invalid receipt status schema version")
+    if fields.get("LCCoding phase scope") not in phases:
+        errors.append("receipt phase does not match status schema")
     if fields.get("Calling phase gate remains independently evaluated") != "YES":
         errors.append("Run acceptance cannot pass the calling phase gate")
     if fields.get("Owner result") not in {
@@ -245,12 +281,13 @@ def validate_receipt(fields, start):
     return errors
 
 
-def valid_start(phase):
+def valid_start(phase, schema="2.8.0"):
     fields = {
         "Artifact role": START_ROLE,
         "Start Contract ID": "SC-001",
         "Start Contract SHA-256": "sha256:" + "1" * 64,
         "Run ID": "RUN-001",
+        "Status schema version": schema,
         "LCCoding phase scope": phase,
         "Phase-owned objective": "return bounded evidence to the calling phase",
         "Calling phase authority / contract reference(s)": f"LC-PHASE / {phase}",
@@ -271,12 +308,14 @@ def valid_start(phase):
         "Readiness result": "READY",
         "Blocker evidence": "NONE",
     }
-    if phase == "ENGINEERING_RUNS":
+    phase3_id = SCHEMA_PHASES[schema][2]
+    if phase == phase3_id:
+        suffix = "REAL_PRODUCT_INTEGRATION" if schema == "2.8.0" else "ENGINEERING_RUNS"
         fields.update(
             {
-                "Product Baseline trace (ENGINEERING_RUNS only)": "PB-1",
-                "Feature Slice ID / version (ENGINEERING_RUNS only)": "FS-1 / 1.0.0",
-                "Applicable UI / Integration Baseline (ENGINEERING_RUNS only)": "UI-1 / IB-1",
+                f"Product Baseline trace ({suffix} only)": "PB-1",
+                f"Feature Slice ID / version ({suffix} only)": "FS-1 / 1.0.0",
+                f"Applicable UI / Integration Baseline ({suffix} only)": "UI-1 / IB-1",
             }
         )
     return fields
@@ -289,6 +328,7 @@ def valid_receipt(start):
         "Run ID": start["Run ID"],
         "Run-start contract ID": start["Start Contract ID"],
         "Run-start contract SHA-256": start["Start Contract SHA-256"],
+        "Status schema version": start["Status schema version"],
         "LCCoding phase scope": start["LCCoding phase scope"],
         "Phase-owned objective": start["Phase-owned objective"],
         "Candidate ID / hash": "CANDIDATE-1 / sha256:" + "3" * 64,
@@ -323,27 +363,49 @@ def valid_receipt(start):
 start_template = parse_fields(start_path.read_text(encoding="utf-8"))
 receipt_template = parse_fields(receipt_path.read_text(encoding="utf-8"))
 assert start_template.get("Artifact role") == START_ROLE
-assert START_REQUIRED.union(PHASE3_INPUTS).issubset(start_template)
+assert start_template.get("Status schema version") == "2.8.0"
+assert "REAL_PRODUCT_INTEGRATION" in start_template.get("LCCoding phase scope", "")
+assert "ENGINEERING_RUNS" not in start_template.get("LCCoding phase scope", "")
+assert START_REQUIRED.union(CURRENT_PHASE3_INPUTS).issubset(start_template)
 assert not START_FORBIDDEN.intersection(start_template)
 assert receipt_template.get("Artifact role") == RECEIPT_ROLE
+assert receipt_template.get("Status schema version") == "2.8.0"
+assert "REAL_PRODUCT_INTEGRATION" in receipt_template.get("LCCoding phase scope", "")
+assert "ENGINEERING_RUNS" not in receipt_template.get("LCCoding phase scope", "")
 assert RECEIPT_REQUIRED.issubset(receipt_template)
 assert not RECEIPT_FORBIDDEN.union(ADDITIONAL_RECEIPT_START_AUTHORITY).intersection(
     receipt_template
 )
 
-for phase in PHASES:
-    start = valid_start(phase)
-    assert validate_start(start) == [], (phase, validate_start(start))
-    receipt = valid_receipt(start)
-    assert validate_receipt(receipt, start) == [], (phase, validate_receipt(receipt, start))
+for schema, phases in SCHEMA_PHASES.items():
+    for phase in phases:
+        start = valid_start(phase, schema)
+        assert validate_start(start) == [], (schema, phase, validate_start(start))
+        receipt = valid_receipt(start)
+        assert validate_receipt(receipt, start) == [], (
+            schema,
+            phase,
+            validate_receipt(receipt, start),
+        )
 
-base_start = valid_start("ENGINEERING_RUNS")
+cross_280 = valid_start("REAL_PRODUCT_INTEGRATION", "2.8.0")
+cross_280["LCCoding phase scope"] = "ENGINEERING_RUNS"
+assert validate_start(cross_280)
+cross_270 = valid_start("ENGINEERING_RUNS", "2.7.0")
+cross_270["LCCoding phase scope"] = "REAL_PRODUCT_INTEGRATION"
+assert validate_start(cross_270)
+
+missing_schema = valid_start("REAL_PRODUCT_INTEGRATION", "2.8.0")
+missing_schema.pop("Status schema version")
+assert validate_start(missing_schema)
+
+base_start = valid_start("REAL_PRODUCT_INTEGRATION", "2.8.0")
 for forbidden in START_FORBIDDEN:
     mutation = copy.deepcopy(base_start)
     mutation[forbidden] = "terminal value"
     assert validate_start(mutation), forbidden
 
-for required in START_REQUIRED.union(PHASE3_INPUTS):
+for required in START_REQUIRED.union(CURRENT_PHASE3_INPUTS):
     mutation = copy.deepcopy(base_start)
     mutation.pop(required)
     assert validate_start(mutation), required
@@ -374,7 +436,15 @@ for invalid_blocker in ("", "NONE", "PENDING", "UNKNOWN", "NOT_APPLICABLE"):
     assert validate_start(mutation), ("BLOCKED", invalid_blocker)
 
 base_receipt = valid_receipt(base_start)
-for required in ("Run-start contract ID", "Run-start contract SHA-256"):
+cross_receipt = copy.deepcopy(base_receipt)
+cross_receipt["Status schema version"] = "2.7.0"
+cross_receipt["LCCoding phase scope"] = "REAL_PRODUCT_INTEGRATION"
+assert validate_receipt(cross_receipt, base_start)
+for required in (
+    "Run-start contract ID",
+    "Run-start contract SHA-256",
+    "Status schema version",
+):
     mutation = copy.deepcopy(base_receipt)
     mutation.pop(required)
     assert validate_receipt(mutation, base_start), required
@@ -681,7 +751,7 @@ def slice_text(commit, ui_hash, *, required="R1, R2", optional="", superseded=""
 """
 
 
-def build_cli_project(project, *, aggregate=True, run_phases=None):
+def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0"):
     project.mkdir()
     git(project, "init", "--quiet")
     git(project, "config", "user.email", "run-contract@example.invalid")
@@ -704,7 +774,7 @@ def build_cli_project(project, *, aggregate=True, run_phases=None):
     write_manifest_and_lock(project, manifest_record())
 
     status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
-    status["status_schema_version"] = "2.6.0"
+    status["status_schema_version"] = schema
     status["initialization_mode"] = "NEW"
     status["current_phase"] = "DELIVERY_PREPARATION" if aggregate else "INITIAL"
     status["phase_gates"]["INITIAL_READY"] = "PASS"
@@ -715,23 +785,33 @@ def build_cli_project(project, *, aggregate=True, run_phases=None):
         status["phase_gates"]["ALL_REQUIRED_RUNS_ACCEPTED"] = "ALL_REQUIRED_RUNS_ACCEPTED"
         status["all_required_runs_accepted"] = "ALL_REQUIRED_RUNS_ACCEPTED"
     phases = json.loads((root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8"))
+    phases["status_schema_version"] = schema
+    phase3_id = SCHEMA_PHASES[schema][2]
+    if schema in {"2.6.0", "2.7.0"}:
+        records = phases["phases"]
+        phases["phases"] = {
+            "INITIAL": records["INITIAL"],
+            "PRODUCT_FORMATION": records["PRODUCT_FORMATION"],
+            "ENGINEERING_RUNS": records["REAL_PRODUCT_INTEGRATION"],
+            "DELIVERY_PREPARATION": records["DELIVERY_PREPARATION"],
+        }
     phases["current_phase"] = status["current_phase"]
     phases["phases"]["INITIAL"] = {"status": "COMPLETE", "exit_gate": "PASS"}
     if aggregate:
         phases["phases"]["PRODUCT_FORMATION"] = {"status": "COMPLETE", "exit_evidence": "ACCEPTED"}
-        phases["phases"]["ENGINEERING_RUNS"] = {"status": "COMPLETE", "per_run_acceptances": ["OA-R1", "OA-R2"], "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED"}
+        phases["phases"][phase3_id] = {"status": "COMPLETE", "per_run_acceptances": ["OA-R1", "OA-R2"], "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED"}
         phases["phases"]["DELIVERY_PREPARATION"] = {"status": "ACTIVE", "exit_gate": "PENDING"}
     write(lc / "status.json", json.dumps(status, indent=2) + "\n")
     write(lc / "PHASE-STATUS.json", json.dumps(phases, indent=2) + "\n")
     write(lc / "slices/FS-1.md", slice_text(commit, hashes["UI"]))
 
     phases_by_run = (
-        {"R1": "ENGINEERING_RUNS", "R2": "ENGINEERING_RUNS"}
+        {"R1": phase3_id, "R2": phase3_id}
         if run_phases is None
         else run_phases
     )
     for run_id, phase in phases_by_run.items():
-        start = valid_start(phase)
+        start = valid_start(phase, schema)
         start["Start Contract ID"] = "SC-" + run_id
         start["Run ID"] = run_id
         start["Selected execution method ID"] = METHOD["method_id"]
@@ -739,10 +819,11 @@ def build_cli_project(project, *, aggregate=True, run_phases=None):
         start["Selected execution method exact hash"] = METHOD["exact_hash"]
         start["Selected execution method canonical interface / contract reference"] = METHOD["canonical_contract_reference"]
         start["Evidence return target in calling phase"] = "FS-1 / accepted integration evidence"
-        if phase == "ENGINEERING_RUNS":
-            start["Product Baseline trace (ENGINEERING_RUNS only)"] = "PB-1"
-            start["Feature Slice ID / version (ENGINEERING_RUNS only)"] = "FS-1 / 1.0.0"
-            start["Applicable UI / Integration Baseline (ENGINEERING_RUNS only)"] = "UI-1 / IB-1"
+        if phase == phase3_id:
+            suffix = "REAL_PRODUCT_INTEGRATION" if schema == "2.8.0" else "ENGINEERING_RUNS"
+            start[f"Product Baseline trace ({suffix} only)"] = "PB-1"
+            start[f"Feature Slice ID / version ({suffix} only)"] = "FS-1 / 1.0.0"
+            start[f"Applicable UI / Integration Baseline ({suffix} only)"] = "UI-1 / IB-1"
         text, frozen = freeze_start(start)
         write(lc / "runs" / run_id / "RUN-HANDOFF.md", text)
         write(
@@ -797,6 +878,44 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
     build_cli_project(seed)
     result = validate_cli(seed)
     assert result.returncode == 0, result.stdout + result.stderr
+
+    current_280 = base / "current-280"
+    build_cli_project(current_280, schema="2.8.0")
+    current_before = {
+        path.relative_to(current_280): (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in current_280.rglob("*")
+        if path.is_file()
+    }
+    result = validate_cli(current_280)
+    assert result.returncode == 0, result.stdout + result.stderr
+    for relative, (expected_bytes, expected_mtime) in current_before.items():
+        path = current_280 / relative
+        assert path.read_bytes() == expected_bytes
+        assert path.stat().st_mtime_ns == expected_mtime
+
+    stale_280 = base / "stale-phase-280"
+    shutil.copytree(current_280, stale_280)
+    rewrite_start_and_receipt(
+        stale_280, {"LCCoding phase scope": "ENGINEERING_RUNS"}
+    )
+    mutate_fields(
+        stale_280 / ".lccoding/reviews/OA-R1.md",
+        {"LCCoding phase scope": "ENGINEERING_RUNS"},
+    )
+    assert validate_cli(stale_280).returncode != 0
+
+    crossed_270 = base / "crossed-phase-270"
+    build_cli_project(crossed_270, schema="2.7.0")
+    result = validate_cli(crossed_270)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rewrite_start_and_receipt(
+        crossed_270, {"LCCoding phase scope": "REAL_PRODUCT_INTEGRATION"}
+    )
+    mutate_fields(
+        crossed_270 / ".lccoding/reviews/OA-R1.md",
+        {"LCCoding phase scope": "REAL_PRODUCT_INTEGRATION"},
+    )
+    assert validate_cli(crossed_270).returncode != 0
 
     def case(name):
         target = base / name
@@ -958,7 +1077,7 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
     definition_evidence(direct_project)
     direct_root = direct_project / ".lccoding/runs"
     for index, field in enumerate(mandatory_semantic_fields):
-        fields = valid_start("ENGINEERING_RUNS")
+        fields = valid_start("ENGINEERING_RUNS", "2.7.0")
         fields["Selected execution method ID"] = METHOD["method_id"]
         fields["Selected execution method version"] = METHOD["version"]
         fields["Selected execution method exact hash"] = METHOD["exact_hash"]
@@ -983,7 +1102,7 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
         (("Start Contract ID", "../SC-1"), ("Run ID", "RUN 1")),
         start=len(mandatory_semantic_fields),
     ):
-        fields = valid_start("ENGINEERING_RUNS")
+        fields = valid_start("ENGINEERING_RUNS", "2.7.0")
         fields["Selected execution method ID"] = METHOD["method_id"]
         fields["Selected execution method version"] = METHOD["version"]
         fields["Selected execution method exact hash"] = METHOD["exact_hash"]

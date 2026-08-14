@@ -5,7 +5,8 @@
 - Run ID:
 - Run-start contract ID:
 - Run-start contract SHA-256:
-- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / ENGINEERING_RUNS / DELIVERY_PREPARATION
+- Status schema version: 2.8.0
+- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / REAL_PRODUCT_INTEGRATION / DELIVERY_PREPARATION
 - Phase-owned objective:
 - Candidate ID / hash:
 - D3 Receipt:
@@ -32,4 +33,4 @@
 - Product learning / route (may be blank; only consequential learning that changes a future decision, constraint, check, template, or reuse rule; update one existing canonical artifact):
 - Accepted at:
 
-This terminal receipt binds the exact frozen Run-start contract instead of redefining its scope, exclusions, method selection, inputs, or readiness. Acceptance returns evidence to the calling phase. It does not pass or advance the calling phase gate.
+This terminal receipt binds the exact frozen Run-start contract, status schema, and schema-selected phase identity instead of redefining its scope, exclusions, method selection, inputs, or readiness. Acceptance returns evidence to the calling phase. It does not pass or advance the calling phase gate.

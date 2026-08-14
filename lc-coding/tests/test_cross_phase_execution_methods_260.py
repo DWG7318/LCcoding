@@ -25,6 +25,28 @@ assert "UI-locked Real Product Integration" in skill_mainline
 manifest = json.loads(text("MANIFEST.json"))
 assert "SLK / CLK / GLK" not in manifest["mainline"]
 assert "UI-locked Real Product Integration" in manifest["mainline"]
+legacy_phases = [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "ENGINEERING_RUNS",
+    "DELIVERY_PREPARATION",
+]
+assert manifest["version"] == "2.7.0"
+assert manifest["phase_overlay"] == legacy_phases
+assert manifest["execution_method_overlay"]["available_in_phases"] == legacy_phases
+
+phase_contract = json.loads(text("lc-coding/contracts/phases.json"))
+current_phases = [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "REAL_PRODUCT_INTEGRATION",
+    "DELIVERY_PREPARATION",
+]
+assert phase_contract["version"] == "2.8.0"
+assert [phase["id"] for phase in phase_contract["phases"]] == current_phases
+assert phase_contract["execution_methods"]["phase_ids"] == current_phases
+assert phase_contract["execution_methods"]["available_in_all_phases"] is True
+assert phase_contract["execution_methods"]["method_completion_advances_phase"] is False
 
 canonical_manifest = json.loads(text("lc-coding/templates/CANONICAL-MANIFEST.json"))
 assert "Selected Loop" not in canonical_manifest["load_order"]
@@ -86,6 +108,7 @@ require(
 require(
     "lc-coding/templates/RUN-HANDOFF.md",
     "Artifact role: RUN_START_CONTRACT",
+    "Status schema version: 2.8.0",
     "Start Contract ID",
     "Start Contract SHA-256",
     "LCCoding phase scope",
@@ -102,6 +125,7 @@ require(
 require(
     "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
     "Artifact role: LOOP_OWNER_ACCEPTANCE_RECEIPT",
+    "Status schema version: 2.8.0",
     "Run-start contract ID",
     "Run-start contract SHA-256",
     "LCCoding phase scope",

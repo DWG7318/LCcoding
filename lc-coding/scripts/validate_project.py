@@ -65,7 +65,7 @@ EXECUTION_METHOD_KEYS={
 }
 START_REQUIRED_FIELDS={
     'Artifact role','Start Contract ID','Start Contract SHA-256','Run ID',
-    'LCCoding phase scope','Phase-owned objective',
+    'Status schema version','LCCoding phase scope','Phase-owned objective',
     'Calling phase authority / contract reference(s)','Frozen Run scope',
     'Explicit exclusions','Selected execution method ID',
     'Selected execution method version','Selected execution method exact hash',
@@ -75,10 +75,15 @@ START_REQUIRED_FIELDS={
     'D0-D3 evidence / verification condition','Loop Owner Acceptance condition / route',
     'Risk / depth decision','Readiness result','Blocker evidence',
 }
-PHASE3_START_FIELDS={
+LEGACY_PHASE3_START_FIELDS={
     'Product Baseline trace (ENGINEERING_RUNS only)',
     'Feature Slice ID / version (ENGINEERING_RUNS only)',
     'Applicable UI / Integration Baseline (ENGINEERING_RUNS only)',
+}
+PHASE3_START_FIELDS={
+    'Product Baseline trace (REAL_PRODUCT_INTEGRATION only)',
+    'Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)',
+    'Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)',
 }
 DEFINITION_START_FIELDS={
     'Meaning impact classification',
@@ -86,10 +91,10 @@ DEFINITION_START_FIELDS={
     'Applicable Snake / Scorpion disposition evidence reference',
 }
 START_REQUIRED_FIELDS=START_REQUIRED_FIELDS|DEFINITION_START_FIELDS
-START_ALLOWED_FIELDS=START_REQUIRED_FIELDS|PHASE3_START_FIELDS
+START_ALLOWED_FIELDS=START_REQUIRED_FIELDS|PHASE3_START_FIELDS|LEGACY_PHASE3_START_FIELDS
 RECEIPT_REQUIRED_FIELDS={
     'Artifact role','Acceptance ID','Run ID','Run-start contract ID',
-    'Run-start contract SHA-256','LCCoding phase scope','Phase-owned objective',
+    'Run-start contract SHA-256','Status schema version','LCCoding phase scope','Phase-owned objective',
     'Candidate ID / hash','D3 Receipt','Entry / role / account','Scenario IDs',
     'Acceptance steps','Product questions','Prior accepted dependencies reused',
     'Invisible risks already verified','Known limits',
@@ -102,7 +107,8 @@ RECEIPT_REQUIRED_FIELDS={
     'Product learning / route (may be blank; only consequential learning that changes a future decision, constraint, check, template, or reuse rule; update one existing canonical artifact)',
     'Accepted at',
 }
-PHASE_IDS={'INITIAL','PRODUCT_FORMATION','ENGINEERING_RUNS','DELIVERY_PREPARATION'}
+PHASE_IDS_BY_SCHEMA=_PHASE_VALIDATOR.SCHEMA_PHASE_ORDERS
+PHASE_IDS=set(PHASE_IDS_BY_SCHEMA['2.8.0'])
 LEGACY_METHOD_INTERFACES={
     'SLK':'LEGACY_SLK_RUN_CONTRACT',
     'CLK':'LEGACY_CLK_RUN_CONTRACT',
@@ -2908,7 +2914,7 @@ def canonical_run_start_hash(text):
     if matches!=1: return None
     return 'sha256:'+hashlib.sha256(''.join(canonical).encode('utf-8')).hexdigest()
 
-def validate_run_start_record(path,fields,eligible_methods,manifest,lock):
+def validate_run_start_record(path,fields,eligible_methods,manifest,lock,expected_status_schema=None):
     errors=[]; prefix='Run start '+str(path)
     missing=START_REQUIRED_FIELDS-set(fields); unknown=set(fields)-START_ALLOWED_FIELDS
     if missing: errors.append(prefix+' missing fields '+', '.join(sorted(missing)))
@@ -2920,12 +2926,21 @@ def validate_run_start_record(path,fields,eligible_methods,manifest,lock):
     for field in ['Start Contract ID','Run ID']:
         if field in fields and not stable_id(fields.get(field)):
             errors.append(prefix+' '+field+' must be a safe stable ID')
+    schema=fields.get('Status schema version')
+    phase_order=PHASE_IDS_BY_SCHEMA.get(schema)
+    if phase_order is None: errors.append(prefix+' has unsupported Status schema version')
+    if expected_status_schema is not None and schema!=expected_status_schema:
+        errors.append(prefix+' Status schema version disagrees with authoritative status')
     phase=fields.get('LCCoding phase scope')
-    if phase not in PHASE_IDS: errors.append(prefix+' has invalid phase')
-    if phase=='ENGINEERING_RUNS':
-        if PHASE3_START_FIELDS-set(fields) or any(not present(fields.get(field)) for field in PHASE3_START_FIELDS):
+    if not phase_order or phase not in phase_order: errors.append(prefix+' has invalid phase for Status schema version')
+    phase3=phase_order[2] if phase_order else None
+    expected_phase3_fields=(PHASE3_START_FIELDS if schema=='2.8.0' else LEGACY_PHASE3_START_FIELDS)
+    all_phase3_fields=PHASE3_START_FIELDS|LEGACY_PHASE3_START_FIELDS
+    phase3_fields=all_phase3_fields&set(fields)
+    if phase==phase3:
+        if phase3_fields!=expected_phase3_fields or any(not present(fields.get(field)) for field in expected_phase3_fields):
             errors.append(prefix+' Phase-3 integration identities missing')
-    elif PHASE3_START_FIELDS.intersection(fields): errors.append(prefix+' fabricates Phase-3 identities outside ENGINEERING_RUNS')
+    elif phase3_fields: errors.append(prefix+' fabricates Phase-3 identities outside schema-selected Phase 3')
     readiness=fields.get('Readiness result')
     if readiness not in {'READY','BLOCKED'}: errors.append(prefix+' readiness must be READY or BLOCKED')
     if readiness=='READY' and fields.get('Blocker evidence')!='NONE': errors.append(prefix+' READY requires blocker NONE')
@@ -2956,14 +2971,21 @@ def validate_run_start_record(path,fields,eligible_methods,manifest,lock):
     errors.extend(validate_run_definition_basis(path,fields))
     return errors
 
-def validate_terminal_receipt(path,fields):
+def validate_terminal_receipt(path,fields,expected_status_schema=None):
     errors=[]; prefix='Loop Owner Acceptance '+str(path)
     missing=RECEIPT_REQUIRED_FIELDS-set(fields); unknown=set(fields)-RECEIPT_REQUIRED_FIELDS
     if missing: errors.append(prefix+' missing fields '+', '.join(sorted(missing)))
     if unknown: errors.append(prefix+' has unknown fields '+', '.join(sorted(unknown)))
     if fields.get('Artifact role')!='LOOP_OWNER_ACCEPTANCE_RECEIPT': errors.append(prefix+' role is invalid')
-    for field in ['Acceptance ID','Run ID','Run-start contract ID','Run-start contract SHA-256','LCCoding phase scope','Phase-owned objective','Candidate ID / hash','D3 Receipt','Entry / role / account','Scenario IDs','Acceptance steps','Invisible risks already verified','Evidence return target in the calling phase','Accepted at']:
+    for field in ['Acceptance ID','Run ID','Run-start contract ID','Run-start contract SHA-256','Status schema version','LCCoding phase scope','Phase-owned objective','Candidate ID / hash','D3 Receipt','Entry / role / account','Scenario IDs','Acceptance steps','Invisible risks already verified','Evidence return target in the calling phase','Accepted at']:
         if not present(fields.get(field)): errors.append(prefix+' missing terminal evidence '+field)
+    schema=fields.get('Status schema version')
+    phase_order=PHASE_IDS_BY_SCHEMA.get(schema)
+    if phase_order is None: errors.append(prefix+' has unsupported Status schema version')
+    if expected_status_schema is not None and schema!=expected_status_schema:
+        errors.append(prefix+' Status schema version disagrees with authoritative status')
+    if not phase_order or fields.get('LCCoding phase scope') not in phase_order:
+        errors.append(prefix+' has invalid phase for Status schema version')
     if fields.get('Candidate ID / hash') is not None and not exact_id_hash(fields.get('Candidate ID / hash')):
         errors.append(prefix+' Candidate ID / hash must be exact stable ID / lowercase SHA-256')
     if fields.get('Calling phase gate remains independently evaluated')!='YES': errors.append(prefix+' attempts to advance the calling phase')
@@ -2981,12 +3003,16 @@ def parse_closed_id_set(value,label):
 
 def validate_run_evidence(lc,status,manifest,lock,manifest_path):
     errors,eligible,has_collection=validate_execution_method_registry(manifest,lock,manifest_path)
+    status_schema=status.get('status_schema_version')
+    phase_order=PHASE_IDS_BY_SCHEMA.get(status_schema)
+    if phase_order is None: errors.append('Run evidence requires a supported authoritative status_schema_version')
+    phase3=phase_order[2] if phase_order else None
     runs_root=lc/'runs'; starts={}; start_contract_ids={}; receipts={}; receipt_ids={}; receipt_id_counts={}
     if runs_root.is_dir():
         for path in runs_root.rglob('*.md'):
             fields,field_errors=parse_markdown_fields_strict(path); errors.extend(field_errors)
             if path.name=='RUN-HANDOFF.md' or fields.get('Artifact role')=='RUN_START_CONTRACT':
-                errors.extend(validate_run_start_record(path,fields,eligible,manifest,lock))
+                errors.extend(validate_run_start_record(path,fields,eligible,manifest,lock,status_schema))
                 run_id=str(fields.get('Run ID','')).strip()
                 if run_id in starts: errors.append('duplicate Run start for '+run_id)
                 elif run_id: starts[run_id]=(path,fields)
@@ -2998,7 +3024,7 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
         for path in reviews.rglob('*.md'):
             fields,field_errors=parse_markdown_fields_strict(path)
             if fields.get('Artifact role')!='LOOP_OWNER_ACCEPTANCE_RECEIPT': continue
-            errors.extend(field_errors); errors.extend(validate_terminal_receipt(path,fields))
+            errors.extend(field_errors); errors.extend(validate_terminal_receipt(path,fields,status_schema))
             run_id=str(fields.get('Run ID','')).strip()
             receipts.setdefault(run_id,[]).append((path,fields))
             acceptance_id=str(fields.get('Acceptance ID','')).strip()
@@ -3048,6 +3074,7 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
             bindings={
                 'Run-start contract ID':'Start Contract ID',
                 'Run-start contract SHA-256':'Start Contract SHA-256',
+                'Status schema version':'Status schema version',
                 'LCCoding phase scope':'LCCoding phase scope',
                 'Phase-owned objective':'Phase-owned objective',
                 'Evidence return target in the calling phase':'Evidence return target in calling phase',
@@ -3072,7 +3099,7 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
             for right in names[index+1:]:
                 overlap=sets[left]&sets[right]
                 if overlap: errors.append('Run classification sets overlap: '+', '.join(sorted(overlap)))
-        phase3_runs={run_id for run_id,(_,fields) in starts.items() if fields.get('LCCoding phase scope')=='ENGINEERING_RUNS'}
+        phase3_runs={run_id for run_id,(_,fields) in starts.items() if phase3 and fields.get('LCCoding phase scope')==phase3}
         classified=set().union(*sets.values())
         if phase3_runs-classified: errors.append('unclassified Phase-3 Runs: '+', '.join(sorted(phase3_runs-classified)))
         if required-phase3_runs: errors.append('missing required Phase-3 Run starts: '+', '.join(sorted(required-phase3_runs)))
@@ -3092,8 +3119,9 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
             if len(receipt_items)!=1:
                 errors.append('required Run requires exactly one receipt: '+run_id); continue
             receipt=receipt_items[0][1]
-            start_ui_integration=exact_ui_integration_identity(start.get('Applicable UI / Integration Baseline (ENGINEERING_RUNS only)'))
-            if start.get('Feature Slice ID / version (ENGINEERING_RUNS only)')!=slice_identity or start.get('Product Baseline trace (ENGINEERING_RUNS only)')!=baseline or start_ui_integration!=(ui_reference,integration):
+            suffix='REAL_PRODUCT_INTEGRATION' if status_schema=='2.8.0' else 'ENGINEERING_RUNS'
+            start_ui_integration=exact_ui_integration_identity(start.get(f'Applicable UI / Integration Baseline ({suffix} only)'))
+            if start.get(f'Feature Slice ID / version ({suffix} only)')!=slice_identity or start.get(f'Product Baseline trace ({suffix} only)')!=baseline or start_ui_integration!=(ui_reference,integration):
                 errors.append('required Run start disagrees with active Slice: '+run_id)
             if start.get('Readiness result')!='READY' or start.get('Blocker evidence')!='NONE':
                 errors.append('required Run start is not READY: '+run_id)
