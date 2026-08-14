@@ -61,10 +61,12 @@ assert boundary_readmes == [HISTORICAL_BOUNDARY]
 HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/plans/2026-08-06-lccoding-bi-github-windows-release.md": "30f23b334ad110d5263c2ac9e754a81bc2740010ea6244f56ccdd90c69b5063d",
     "docs/superpowers/plans/2026-08-12-lccoding-2.7.0-structure-consolidation-implementation-plan.md": "7d6f5fa8f08f379c024d088ef2fb6f676f44f2ee5904a7da4b49daa78174cd27",
+    "docs/superpowers/plans/2026-08-15-lccoding-2.8.0-agent-native-integration-implementation-plan.md": "0880be98ca63c5ce937f4847b0cde36b74d19dc83c68ef52b3eac99d379d110b",
     "docs/superpowers/specs/2026-08-05-lccoding-bi-one-click-react-design.md": "d945eab23b20a977b906f8e38396b2ba0283284924df8ba77469ec3728af9db2",
     "docs/superpowers/specs/2026-08-06-lccoding-bi-github-windows-release-design.md": "2f1281949b527c2efbef99bf9a32b5b098aa2c04a8a9760bbfa7a865056e7f51",
     "docs/superpowers/specs/2026-08-10-cross-phase-execution-methods-design.md": "14c7460ee661c94df34d0ff8985e50b225799db57591649e3deb79ae82d92e51",
     "docs/superpowers/specs/2026-08-12-lccoding-2.7.0-structure-consolidation-design.md": "c48b659333f1b6252029faebe50476016f561ba9c6818de1a138e86fe4b5604e",
+    "docs/superpowers/specs/2026-08-15-lccoding-2.8.0-agent-native-integration-design.md": "c0799931ce2267a8aef64ecc71c30d9bc426741e4586c002db34e4385a0953d1",
 }
 actual_historical_records = {
     path.relative_to(root).as_posix()
