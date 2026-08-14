@@ -15,9 +15,13 @@ This document is the complete normative specification for LCCoding. Stable claus
 | [LC-FORM-001](#lc-form-001) | Calabash and Simulation-first formation |
 | [LC-FORM-002](#lc-form-002) | Workflow, UI, and Simulation product units |
 | [LC-FORM-003](#lc-form-003) | Product Baseline and primary product mainline |
+| [LC-AGENT-001](#lc-agent-001) | Agent classes, applicability, and required Operations Agent |
+| [LC-AGENT-002](#lc-agent-002) | Agent Configuration Baseline and Runtime neutrality |
+| [LC-AGENT-003](#lc-agent-003) | Dual-Agent isolation and controlled operations |
 | [LC-INTEG-001](#lc-integ-001) | Feature Slice and real integration proof |
 | [LC-INTEG-002](#lc-integ-002) | One-way UI lock |
 | [LC-INTEG-003](#lc-integ-003) | Impact, mutability, and evidence reuse |
+| [LC-INTEG-004](#lc-integ-004) | Agent-native topology and Slice proof |
 | [LC-RUN-001](#lc-run-001) | Cross-phase Run call contract |
 | [LC-RUN-002](#lc-run-002) | Run start and terminal receipt |
 | [LC-RUN-003](#lc-run-003) | Execution-method selection and aggregate scope |
@@ -27,6 +31,7 @@ This document is the complete normative specification for LCCoding. Stable claus
 | [LC-ACCEPT-003](#lc-accept-003) | Post-Security Owner Acceptance |
 | [LC-SEC-001](#lc-sec-001) | Centralized vulnerability closure |
 | [LC-SEC-002](#lc-sec-002) | Security evidence invalidation |
+| [LC-SEC-003](#lc-sec-003) | Agent security, degradation, and replacement |
 | [LC-DELIVERY-001](#lc-delivery-001) | Protected delivery |
 | [LC-BI-001](#lc-bi-001) | Built-in BI method boundary |
 | [LC-BI-002](#lc-bi-002) | BI responsibility and compatibility boundary |
@@ -68,6 +73,8 @@ EXISTING mode remains inside Project Initialization. Before engineering it freez
 
 Initialization capabilities are tool-neutral: exact/semantic/code-relationship search, syntax and structured-data handling, static quality, secret/dependency intelligence, and architecture/API/data/configuration/observability intelligence. Docker is not a default prerequisite. Later work revalidates only changed identities, capabilities, credentials, or repository state.
 
+For a 2.8 project, Initial also records Agent responsibilities, permissions, protected controls, and degradation expectations; Product Agent applicability or its exact Calabash decision route; the required Operations Agent purpose; root configuration and Kill Switch Owner authority; private-memory and credential boundaries; fallback requirements; and Runtime capability requirements. These facts are inputs to the existing `INITIAL_READY` decision and add no phase or gate.
+
 <a id="lc-phase-002"></a>
 ### LC-PHASE-002 — Product Formation
 
@@ -84,12 +91,16 @@ Product Formation ends only when the existing Product Baseline Handoff is mechan
 
 SLK, CLK, GLK, or another compatible execution method may perform bounded Product Formation work, but method completion merely returns evidence to this phase. It cannot bypass any product-formation condition or advance the phase by itself.
 
+For 2.8, Calabash determines Product Agent applicability, capability, authority, degradation, and CORE/EXTRA classification. An applicable CORE Product Agent is real, runnable, Simulation-covered Workflow capability before Product Baseline and exposes the same underlying capability through governed API and MCP contracts. Product Formation also prepares runtime-neutral Operations Agent configuration, Policy, deterministic Action Catalog, Adapter requirements, telemetry, audit, isolation, fallback, and Kill Switch boundaries without claiming Operations integration; that proof remains Real Product Integration work.
+
 <a id="lc-phase-003"></a>
 ### LC-PHASE-003 — Real Product Integration
 
-Real Product Integration uses the compatibility machine ID `ENGINEERING_RUNS`; that ID is not its human meaning. Feature Slice is the first lifecycle work in this phase. Admission is the mechanically valid and accepted Product Baseline Handoff, after which a Slice defines an actor-visible claim and its Execution Coverage Preflight admits bounded integration Runs.
+The exact 2.8 new-write machine ID is `REAL_PRODUCT_INTEGRATION`. Exact 2.6/2.7 schemas read only the compatibility machine ID `ENGINEERING_RUNS`; that old ID is not the human meaning and is never written by a 2.8 project. Schema selects one closed ID and a mixed or inferred identity is invalid. Feature Slice is the first lifecycle work in this phase. Admission is the mechanically valid and accepted Product Baseline Handoff, after which a Slice defines an actor-visible claim and its Execution Coverage Preflight admits bounded integration Runs.
 
 The phase organizes separately realized Workflow, UI, and Simulation into a true product path. It proves UI action through a real API/MCP-backed Workflow, real state/data/side effects, and a visible UI result, with the applicable Simulation covering the same capability and exception behavior. It includes UI-locked integration, first proving work when connections are unproved, layered integration evidence, and per-Run Owner receipts.
+
+For 2.8 it also freezes the final production execution topology, resolves every relevant Product Formation backend through `SELECT`, `COMPOSE`, `FEDERATE`, or `RETIRE`, integrates the required Operations Agent through an authorized Runtime Adapter, integrates any applicable Product Agent without merging the two logical Agents, and proves the required `PRODUCT` and `OPERATIONS` Slices. These conditions add no lifecycle gate and do not make an execution method or Runtime a phase.
 
 `ALL_REQUIRED_RUNS_ACCEPTED` is a compatibility aggregate only for required Real Product Integration Runs on the accepted integration candidate. It does not include Runs called by Initial, Product Formation, or Delivery Preparation and does not make an execution method a lifecycle node.
 
@@ -99,6 +110,8 @@ The phase organizes separately realized Workflow, UI, and Simulation into a true
 `DELIVERY_PREPARATION` begins only after `ALL_REQUIRED_RUNS_ACCEPTED` for the required Phase-3 integration set. It contains centralized vulnerability audit, remediation, independent re-audit, vulnerability closure, Post-Security Owner Acceptance, customer-specific Delivery Method Q&A, runtime/license/package checks, and protected packaging.
 
 The existing `DELIVERY_READY` gate is the only exit. It requires current candidate-bound security closure, current Post-Security Owner Acceptance, confirmed delivery decisions, and package protection. Any later product/security-surface change follows the invalidation rule in the security clauses before Delivery may proceed.
+
+For 2.8, the same centralized closure and existing `DELIVERY_READY` gate additionally require current Agent-specific isolation, prompt/tool/memory/privilege/model/Runtime/fallback/Kill-Switch/audit evidence and customer-specific Runtime/credential/recovery decisions. No Agent-specific phase or Delivery gate is introduced.
 
 ## Product Formation
 
@@ -144,6 +157,46 @@ When multiple subtrees exist, the Owner confirms one Primary product mainline li
 At the frozen commit, each subtree path must be a Git tree. Recursively enumerate tracked blobs and encode each manifest row as `path UTF-8 bytes + NUL + Git mode + NUL + lowercase blob SHA-256 hex + LF`; sort by path bytes, concatenate, and record `sha256:<lowercase SHA-256 of manifest bytes>`. Validators resolve commit and blobs from Git objects, never worktree content. Exact commit and content hash are authoritative; component version is the human label. Screenshots, builds, branches, tags, `HEAD`, `latest`, or worktree state cannot replace identity.
 
 Focused explanation: [Product Formation guidance](lc-coding/references/product-formation.md#peer-product-ends-interfaces-and-mainline).
+
+## Agent-native product and operations
+
+<a id="lc-agent-001"></a>
+### LC-AGENT-001 — Agent classes, applicability, and required Operations Agent
+
+A Construction Agent—such as a Supervisor, Worker, Checker, Verifier, Auditor, or acceptance preparer—builds or verifies the product. Its engineering role, session, prompt, memory, or tool use never makes it a delivered Product Agent or Operations Agent, and construction evidence never becomes delivered Agent state.
+
+A Product Agent participates in user business behavior. Calabash determines whether it is `APPLICABLE_CORE`, `APPLICABLE_EXTRA`, or `NOT_APPLICABLE`, plus its actors, authority, capability, failure, and degradation semantics. An applicable CORE Product Agent is real product capability before Product Baseline under the existing CORE, Simulation, Workflow, and same-capability API/MCP rules; absence or an implicit applicability decision is invalid.
+
+An Operations Agent is required for every 2.8 project. It observes and assists with product operation and maintenance and must be truly connected during Real Product Integration; a dashboard, chatbot, Construction Agent, or read-only status explanation cannot substitute for it. Product Agent and Operations Agent may both exist, but they are two independent logical Agents. A single Agent using role switching, prompt switching, namespaces, or two memory modes is not conformant.
+
+<a id="lc-agent-002"></a>
+### LC-AGENT-002 — Agent Configuration Baseline and Runtime neutrality
+
+Agent configuration follows one authority flow:
+
+```text
+Owner decides
+→ Calabash defines
+→ LCCoding construction implements
+→ independent Verification
+→ Owner accepts
+→ authorized Runtime Adapter mechanically loads
+```
+
+The versioned, hash-bound, Runtime-neutral Agent Configuration Baseline records exact Product/Operations Agent applicability and IDs; Policy, Action Catalog, prompt/config package, private-memory/retriever, credential/key-reference, audit, Kill Switch, fallback, interface, candidate, Verification, and Owner-acceptance identities. Secrets, tokens, raw prompts, raw sessions, private-memory contents, credentials, and encryption keys do not enter Git; only safe references and exact digests are recorded.
+
+LCCoding defines platform-neutral capabilities, Adapter/attestation shape, and acceptance evidence. It does not implement a Runtime, session/execution state, memory engine, vector database, model router, process manager, or action executor. LCagent is one Owner-selectable reference Runtime whose implementation remains in the LCagent project; OpenAI or any other SDK, model, provider, or store is not mandatory. A conforming Runtime Adapter cannot enlarge permission, merge Agents, weaken memory boundaries, change product meaning, or ignore Scorpion.
+
+Root identity, permission ceiling, memory boundary, Scorpion constraints, credentials, encryption keys, audit policy, and Kill Switch remain protected Owner configuration. A Product Agent may manage only authorized user preferences and its own bounded session memory. An Operations Agent may propose a configuration delta, but protected changes require exact Owner approval and affected re-verification. LCCoding creates no third configuration Agent.
+
+<a id="lc-agent-003"></a>
+### LC-AGENT-003 — Dual-Agent isolation and controlled operations
+
+When a Product Agent applies, Product and Operations Agents have distinct Agent ID, session/context, private memory store, vector index, retriever, write credentials, encryption key, system prompt, prompt cache, API/MCP/tool credentials, Policy, Action Catalog, audit stream, and Kill Switch. Aliasing any required private identity fails. A base model or Runtime implementation may be shared when these isolation outcomes remain mechanically verified. A shared authoritative product state is not Agent memory and is accessed only through each Agent's governed permission boundary.
+
+Cross-Agent communication uses only typed, minimal, policy-checked, redacted, provenance-bound, audited events, initially `MAINTENANCE_REQUEST` and `SERVICE_STATUS_UPDATE`. Natural-language messages cannot convey administrator authority, credentials, root approval, raw sessions, private memory, unmanaged summaries, prompts, or prompt caches. Private memory from either Agent cannot enter online training or shared-model weight updates.
+
+The Operations Agent minimum path is `observe → diagnose → propose → Owner authorization or exact bounded pre-authorization → deterministic action → verify → rollback when required → audit`. Every action is a closed Action Catalog record with bounded target/input, preconditions, authorization, deterministic Adapter operation, postconditions, verification, rollback, audit, timeout, and retry policy. Authorization is exactly `OWNER_APPROVAL_REQUIRED` or `CALABASH_PREAUTHORIZED_BOUNDED`. The latter is permitted only for individually identified low-risk actions with exact scope, expiry, verification, rollback, and audit; it cannot cover data deletion, permissions, release, upgrade, database migration, credentials, protected root configuration, Kill Switch, or irreversible work. No Agent may self-authorize or modify its protected controls.
 
 ## Real Product Integration
 
@@ -200,6 +253,18 @@ Evidence reuse requires identical candidate/artifact identity, contract version,
 Product learning may be blank. Return it only when it changes a future decision, constraint, check, template, or reuse rule, and update one existing canonical artifact. LCCoding creates no retrospective phase or learning repository.
 
 Focused explanation: [Real Product Integration guidance](lc-coding/references/feature-slice-and-integration.md#impact-mutability-evidence-and-learning).
+
+<a id="lc-integ-004"></a>
+### LC-INTEG-004 — Agent-native topology and Slice proof
+
+Exact 2.8 Real Product Integration writes `REAL_PRODUCT_INTEGRATION`; `ENGINEERING_RUNS` is read-only compatibility identity for exact 2.6/2.7 schemas. The phase freezes one final production execution topology for the accepted candidate. Every relevant backend/service candidate appears exactly once with disposition `SELECT`, `COMPOSE`, `FEDERATE`, or `RETIRE`. Active dispositions bind product behavior, state/data authority, identity, permission, consistency, failure/recovery, and calling boundaries; a retired candidate proves no active dependency or authority remains. The topology does not require physical consolidation, a monolith, or a Product Backend/Core layer, and Workflow `CORE`/`EXTRA` remains business necessity rather than technical topology.
+
+Feature Slice remains the sole product-progress unit. Slice class is exactly one of {`PRODUCT`, `OPERATIONS`}; a cross-domain change uses linked Slices rather than a mixed or third class. A PRODUCT Slice proves actor intent through a real UI or applicable Product Agent, a governed integration boundary, an API/MCP-backed Workflow capability, real state/data/side effect, visible result, and Simulation exception/recovery evidence. Model text, prompts, mocks, stubs, simulation-only output, or manually staged state cannot replace this route.
+
+Every 2.8 project has at least one accepted required OPERATIONS Slice proving real telemetry/log/event → Operations Agent observation/diagnosis/proposal → exact Policy and authorization → deterministic maintenance action → verification/rollback → audit and visible status. Read-only explanation alone is insufficient. Both Slice classes bind the same exact Product Baseline, Agent Configuration Baseline, production topology, Runtime Adapter attestation, candidate, Impact, Verification, and Owner acceptance where applicable.
+
+The existing UI one-way Owner lock, Workflow controlled mutability, Simulation versioned mutability, and Calabash impact trace remain. Simulation covers the same capability, authorization, abnormal condition, fallback, failure, recovery, and audit semantics but is neither production backend nor Agent self-verification. This clause adds no phase, gate, Feature-Slice alternative, Runtime, or execution method.
+
 ## Runs, verification, and acceptance
 
 <a id="lc-run-001"></a>
@@ -284,6 +349,16 @@ Affected engineering verification is rerun, a fresh independent security re-audi
 Meaning-neutral and security-surface-neutral work preserves evidence only when Impact Analysis proves unchanged candidate/security identity or an evidence-equivalent packaging transformation. Silence never preserves closure. This rule uses existing status and receipts; it creates no new state source or security runtime.
 
 Focused explanation: [Security closure guidance](lc-coding/references/vulnerability-closure.md#candidate-and-surface-binding).
+
+<a id="lc-sec-003"></a>
+### LC-SEC-003 — Agent security, degradation, and replacement
+
+Agent-native security coverage binds the exact candidate, Agent Configuration Baseline, Action Catalog, production topology, Runtime Adapter, applicable Product Agent, and required Operations Agent. Required surfaces include prompt injection and instruction-boundary bypass, privilege escalation and authorization confusion, cross-Agent memory leakage, private store/vector index/retriever/session/prompt-cache exposure, tool and secret protection, model drift and unavailability, Policy/Action-Catalog bypass, deterministic-action integrity, event redaction/provenance, Agent isolation, fallback, rollback, recovery, Kill Switch, audit integrity, and Runtime replacement. Centralized independent audit, remediation, re-audit, closure, and Post-Security Owner Acceptance remain unchanged.
+
+Operations Agent failure must be visible, alertable, degradable, and recoverable and does not by default stop unrelated core business behavior. Product Agent failure stops core behavior only when Calabash classifies that Agent capability as CORE and defines no accepted non-Agent fallback. No fallback may expand permission, merge Agents, bypass Scorpion, use stale credentials, disable audit, or convert a proposal into an action.
+
+A change to Agent applicability, Policy, Action Catalog, private-memory/credential boundary, Adapter, Runtime, model capability, topology, typed-event schema, fallback, or Agent attack surface follows Impact Analysis and invalidates affected engineering evidence, vulnerability closure, Post-Security Owner Acceptance, and `DELIVERY_READY` for the changed identity. Runtime replacement is material unless exact evidence-equivalence is proved under LC-SEC-002. This clause uses the existing status, security, acceptance, and Delivery relationships and adds no new security or Delivery gate.
+
 <a id="lc-delivery-001"></a>
 ### LC-DELIVERY-001 — Protected delivery
 
@@ -294,6 +369,8 @@ Deliver only approved product assets. Default exclusions are LCagent, LCapi, LCC
 When Owner Policy or an Owner decision confirms them, no-resale, redistribution, sublicense, repackaging, unauthorized modification, reverse engineering, transfer, and control removal boundaries are hard delivery constraints. These boundaries must not be invented as default legal facts, inferred from silence, or weakened after confirmation.
 
 Required evidence includes Delivery Profile, Dependency Classification, Delivery Manifest, Runtime Certification, Delivery License Policy, and Delivery Receipt. Verification checks integrity, exclusions, runtime, license, configuration, startup, and any packaging-induced behavior without repeating unchanged product Verification.
+
+For an Agent-native product, Delivery also proves current Runtime Adapter/configuration/topology/isolation/fallback/Kill-Switch/audit identities and records customer Runtime/model/provider responsibility, credential ownership, recovery, audit retention, and replacement decisions. Approved runtime-neutral product configuration may be delivered; secrets, private memory, raw prompts/sessions, construction-Agent evidence, unapproved Runtime internals, and internal method assets remain excluded.
 
 Focused explanation: [Protected delivery guidance](lc-coding/references/delivery-governance.md#decision-before-delivery).
 ## BI and compatibility
@@ -309,6 +386,8 @@ The protected Product Baseline report remains on `PRODUCT_BASELINE`; the protect
 
 The one-project binding, CLI `lccoding-bi.exe --project <root>`, and native picker share Rust-owned validation. The strict sanitized Snapshot excludes paths, repository/commit/hash/evidence bodies, raw errors, and thread IDs. No-argument `get_snapshot` is single-flight and fail-closed. The BI reads only canonical allowlisted artifacts and never treats a view as project truth.
 
+For exact 2.8 status, the existing Canonical Candidate protected report minimally shows Operations Agent integration status, Product Agent applicability and applicable integration status, Runtime Adapter identity/version, dual-Agent isolation status, and separate `PRODUCT` and `OPERATIONS` Slice progress. It cannot control an Agent, Runtime, session, memory, prompt, credential, tool, action, authorization, fallback, or Kill Switch and exposes no raw evidence. Existing compact-window, bilingual, Pin/Refresh/Open/Back, focus, scroll, protected-report, and read-only behavior remains.
+
 <a id="lc-bi-002"></a>
 ### LC-BI-002 — BI responsibility and compatibility boundary
 
@@ -321,7 +400,9 @@ LCCoding Method Baseline separately records adopted LCCoding, Calabash, and exec
 <a id="lc-compat-001"></a>
 ### LC-COMPAT-001 — Names, baselines, migration, and versioning
 
-The compatibility ID `ENGINEERING_RUNS` is dual-read while the canonical human display is `REAL_PRODUCT_INTEGRATION` / “Real Product Integration” / “真实产品集成”. The old ID may migrate only in a separately approved compatibility release after all contracts, projects, BI, and installed consumers can read the replacement. It never determines product meaning.
+Exact 2.8 new writes use `REAL_PRODUCT_INTEGRATION` as the third-phase machine ID and human meaning. Exact 2.6/2.7 schemas remain read-only through compatibility ID `ENGINEERING_RUNS`; schema selects one ID, readers never infer from the tuple, and a 2.8 writer never emits the old ID. The canonical human display remains `REAL_PRODUCT_INTEGRATION` / “Real Product Integration” / “真实产品集成”.
+
+Migration from 2.7 to 2.8 is copy-on-write: preserve the source project and receipt bytes, create and fully validate a distinct candidate, write only the 2.8 schema/phase ID, reuse only unchanged evidence, and leave new Agent-native conditions incomplete until proved. Migration does not promote historical evidence. A readable 2.7 project cannot claim 2.8 until required Operations Agent integration, applicable Product Agent evidence, Agent Configuration Baseline, final topology, Runtime Adapter attestation, dual-Agent isolation, affected Verification, security closure, and migration evidence are current. Rollback discards or isolates the unaccepted candidate and writes no 2.8 state back to 2.7.
 
 Canonical terms are distinct:
 
@@ -332,7 +413,7 @@ Canonical terms are distinct:
 - Product Simulation World is product evidence; Run Control Simulation is execution rehearsal.
 - Task Pin is Owner-authorized task control; BI Window Always-on-top is local window state.
 
-2.6.0 remains immutable. Project migration to the new phase interpretation is copy-on-write: preserve source artifacts, derive from existing evidence without fabricating completion, validate output fully, and leave failed output absent. Rollback never rewrites a frozen Product or Calabash baseline.
+2.6.0 remains immutable. Released 2.7.0 evidence also remains immutable. Project migration to a new phase interpretation is copy-on-write: preserve source artifacts, derive from existing evidence without fabricating completion, validate output fully, and leave failed output absent. Rollback never rewrites a frozen Product or Calabash baseline.
 
 Version policy remains: NEW starts `0.0.1`; EXISTING preserves its declared version or records `UNKNOWN`; small change is commit-only; medium is `0.0.x`; large is `0.x.1`; `1.0.1+` needs explicit Owner authorization. Release promotion never overwrites an earlier tag, release, evidence package, or installed baseline.
 

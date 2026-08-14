@@ -88,9 +88,13 @@ EXPECTED_TITLES = {
     "LC-FORM-001": "Calabash and Simulation-first formation",
     "LC-FORM-002": "Workflow, UI, and Simulation product units",
     "LC-FORM-003": "Product Baseline and primary product mainline",
+    "LC-AGENT-001": "Agent classes, applicability, and required Operations Agent",
+    "LC-AGENT-002": "Agent Configuration Baseline and Runtime neutrality",
+    "LC-AGENT-003": "Dual-Agent isolation and controlled operations",
     "LC-INTEG-001": "Feature Slice and real integration proof",
     "LC-INTEG-002": "One-way UI lock",
     "LC-INTEG-003": "Impact, mutability, and evidence reuse",
+    "LC-INTEG-004": "Agent-native topology and Slice proof",
     "LC-RUN-001": "Cross-phase Run call contract",
     "LC-RUN-002": "Run start and terminal receipt",
     "LC-RUN-003": "Execution-method selection and aggregate scope",
@@ -100,6 +104,7 @@ EXPECTED_TITLES = {
     "LC-ACCEPT-003": "Post-Security Owner Acceptance",
     "LC-SEC-001": "Centralized vulnerability closure",
     "LC-SEC-002": "Security evidence invalidation",
+    "LC-SEC-003": "Agent security, degradation, and replacement",
     "LC-DELIVERY-001": "Protected delivery",
     "LC-BI-001": "Built-in BI method boundary",
     "LC-BI-002": "BI responsibility and compatibility boundary",
@@ -109,7 +114,7 @@ EXPECTED_TITLES = {
 EXPECTED = set(EXPECTED_TITLES)
 
 heading_re = re.compile(
-    r"(?m)^### (LC-(?:AUTH|PHASE|FORM|INTEG|RUN|VERIFY|ACCEPT|SEC|DELIVERY|BI|COMPAT)-\d{3}) — (.+)$"
+    r"(?m)^### (LC-(?:AUTH|PHASE|FORM|AGENT|INTEG|RUN|VERIFY|ACCEPT|SEC|DELIVERY|BI|COMPAT)-\d{3}) — (.+)$"
 )
 headings = heading_re.findall(spec)
 found_ids = [clause_id for clause_id, _ in headings]
@@ -254,6 +259,22 @@ required_semantics = {
         "commit and content hash are authoritative",
         "component version",
     ),
+    "LC-AGENT-001": (
+        "Construction Agent",
+        "required for every 2.8 project",
+        "two independent logical Agents",
+    ),
+    "LC-AGENT-002": (
+        "Owner decides",
+        "Runtime-neutral Agent Configuration Baseline",
+        "third configuration Agent",
+    ),
+    "LC-AGENT-003": (
+        "distinct Agent ID",
+        "typed, minimal",
+        "`OWNER_APPROVAL_REQUIRED`",
+        "`CALABASH_PREAUTHORIZED_BOUNDED`",
+    ),
     "LC-INTEG-001": (
         "real UI operation",
         "API/MCP-backed Workflow",
@@ -272,6 +293,14 @@ required_semantics = {
         "`CONTROLLED_MUTABLE`",
         "`VERSIONED_MUTABLE`",
         "reuse",
+    ),
+    "LC-INTEG-004": (
+        "final production execution topology",
+        "`SELECT`",
+        "`COMPOSE`",
+        "`FEDERATE`",
+        "`RETIRE`",
+        "Slice class is exactly one of {`PRODUCT`, `OPERATIONS`}",
     ),
     "LC-RUN-001": (
         "calling phase",
@@ -324,6 +353,12 @@ required_semantics = {
         "invalidates",
         "Post-Security Owner Acceptance",
         "Delivery remains blocked",
+    ),
+    "LC-SEC-003": (
+        "prompt injection",
+        "Operations Agent failure",
+        "Runtime replacement",
+        "adds no new security or Delivery gate",
     ),
     "LC-DELIVERY-001": (
         "Delivery Method Q&A",
@@ -702,4 +737,4 @@ for projection in PROJECTIONS:
     assert "cross-phase execution axis" in text.casefold()
     assert "not a lifecycle node" in text.casefold()
 
-print("PASS: SPEC exposes one closed 26-clause semantic authority graph")
+print("PASS: SPEC exposes one closed 31-clause semantic authority graph")
