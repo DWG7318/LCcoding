@@ -12,6 +12,16 @@ if (configuredReviewDir === undefined || configuredReviewDir.trim() === "") {
 }
 const OWNER_REVIEW_DIR = configuredReviewDir.replace(/[\\/]+$/, "");
 const CANDIDATE_DIR = `${OWNER_REVIEW_DIR}/candidates`;
+const AGENT_CANDIDATE_ROWS = [
+  "row.identity",
+  "row.integrity",
+  "row.operations_agent_integration",
+  "row.product_agent_integration",
+  "row.runtime_adapter",
+  "row.dual_agent_isolation",
+  "row.product_slice_progress",
+  "row.operations_slice_progress",
+] as const;
 if (VISUAL_CASES.length + 1 !== 33) {
   throw new Error("visual target contract must remain exactly 33 targets");
 }
@@ -259,6 +269,29 @@ async function assertSanitizedSurface(page: Page): Promise<void> {
   expect(surface.html).not.toMatch(/\b(?:href|download)=/i);
 }
 
+async function assertAgentCandidateBoundary(page: Page): Promise<void> {
+  await expect(page.locator(".report-row")).toHaveCount(8);
+  expect(
+    await page.locator(".report-row").evaluateAll((rows) =>
+      rows.map((row) => row.getAttribute("data-row-key")),
+    ),
+  ).toEqual(AGENT_CANDIDATE_ROWS);
+  await expect(
+    page.locator(".report-surface a, .report-surface input, .report-surface textarea, .report-surface select"),
+  ).toHaveCount(0);
+  await expect(page.locator(".report-surface button")).toHaveCount(1);
+  const buttonClasses = await page.locator("button").evaluateAll((buttons) =>
+    buttons.map((button) => button.className),
+  );
+  expect(buttonClasses).toEqual([
+    "language-button",
+    "pin-button",
+    "back-button",
+    "refresh-button",
+  ]);
+  await assertSanitizedSurface(page);
+}
+
 test.describe.configure({ mode: "serial" });
 
 for (const candidate of VISUAL_CASES) {
@@ -300,6 +333,9 @@ for (const candidate of VISUAL_CASES) {
     if (candidate.view !== "main") {
       await openTargetReport(page, candidate.view);
     }
+    if (candidate.view === "candidate") {
+      await assertAgentCandidateBoundary(page);
+    }
     await focusCaptureControl(page, candidate);
     if (candidate.view !== "main") {
       await expect(page.locator(".back-button")).toBeFocused();
@@ -333,9 +369,16 @@ test("2.7.0 protected reports stay inside the fixed scrollable client area", asy
   await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
   await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);
-  await page.locator('[data-phase-id="PRODUCT_FORMATION"] .phase-summary').click();
-
-  await page.locator('[data-step-id="PRODUCT_BASELINE"] .open-report').click();
+  await page.locator('[data-phase-id="INITIAL"] .phase-summary').click();
+  await page.locator('[data-step-id="PROJECT_INITIALIZATION"] .open-report').click();
+  await expect(page.locator(".report-heading")).toHaveText("Canonical Candidate");
+  await assertAgentCandidateBoundary(page);
+  await page.locator(".back-button").click();
+  const baselineRow = page.locator('[data-step-id="PRODUCT_BASELINE"]');
+  if (!(await baselineRow.isVisible())) {
+    await page.locator('[data-phase-id="PRODUCT_FORMATION"] .phase-summary').click();
+  }
+  await baselineRow.locator(".open-report").click();
   await expect(page.locator(".report-heading")).toHaveText("Product Baseline");
   await expect(page.locator(".report-row")).toHaveCount(4);
   await assertFixedViewport(page);
@@ -343,7 +386,7 @@ test("2.7.0 protected reports stay inside the fixed scrollable client area", asy
   await page.locator(".back-button").click();
 
   await page.locator(".language-button").click();
-  await page.locator('[data-phase-id="ENGINEERING_RUNS"] .phase-summary').click();
+  await page.locator('[data-phase-id="REAL_PRODUCT_INTEGRATION"] .phase-summary').click();
   await page.locator('[data-step-id="LOOP_RUN_D0_D3"] .open-report').click();
   await expect(page.locator(".report-heading")).toHaveText("工程方法治理");
   await expect(page.locator(".report-row")).toHaveCount(7);

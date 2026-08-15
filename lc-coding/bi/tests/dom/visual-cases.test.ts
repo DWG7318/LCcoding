@@ -3,6 +3,7 @@ import "./setup";
 import { describe, expect, it } from "vitest";
 
 import { VISUAL_CASES } from "../visual/cases";
+import successSnapshot from "../fixtures/snapshot-ok.json";
 
 const EXPECTED_SLUGS = [
   "candidate--success--main--en--normal",
@@ -47,6 +48,60 @@ describe("fixed BI visual candidate matrix", () => {
     expect(slugs).toHaveLength(32);
     expect(new Set(slugs).size).toBe(32);
     expect(slugs.every((slug) => slug.startsWith("candidate--"))).toBe(true);
+  });
+
+  it("keeps the 2.8 candidate visual on the existing report with only six sanitized Agent rows", () => {
+    expect(successSnapshot.schema).toBe("LCCoding 2.8.0 derived BI");
+    expect(successSnapshot.phases.map(({ id }) => id)).toEqual([
+      "INITIAL",
+      "PRODUCT_FORMATION",
+      "REAL_PRODUCT_INTEGRATION",
+      "DELIVERY_PREPARATION",
+    ]);
+    expect(successSnapshot.reports.candidate.rows).toEqual([
+      { key: "row.identity", value: { kind: "lock", value: "LOCKED" } },
+      { key: "row.integrity", value: { kind: "record", value: "RECORDED" } },
+      {
+        key: "row.operations_agent_integration",
+        value: { kind: "record", value: "UNPROVED" },
+      },
+      {
+        key: "row.product_agent_integration",
+        value: { kind: "agent_status", applicability: "UNPROVED", integration: "UNPROVED" },
+      },
+      {
+        key: "row.runtime_adapter",
+        value: { kind: "safe_identity", id: "NOT_APPLICABLE", version: "NOT_APPLICABLE" },
+      },
+      {
+        key: "row.dual_agent_isolation",
+        value: { kind: "record", value: "UNPROVED" },
+      },
+      {
+        key: "row.product_slice_progress",
+        value: {
+          kind: "metric",
+          status: "UNPROVED",
+          completed: 0,
+          total: null,
+          interval_minutes: null,
+        },
+      },
+      {
+        key: "row.operations_slice_progress",
+        value: {
+          kind: "metric",
+          status: "UNPROVED",
+          completed: 0,
+          total: null,
+          interval_minutes: null,
+        },
+      },
+    ]);
+    const serialized = JSON.stringify(successSnapshot.reports.candidate.rows);
+    expect(serialized).not.toMatch(
+      /(?:candidate_id|configuration|topology|attestation|slice_id|sha256|evidence|path|prompt|memory|credential|event)/iu,
+    );
   });
 
   it("keeps the 28-case success core and four reduced-motion boundaries closed", () => {

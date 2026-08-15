@@ -63,6 +63,54 @@ product_contract = (root / "lc-coding/references/built-in-bi.md").read_text(
 )
 assert "Source clauses: [LC-BI-001]" in product_contract
 assert "[LC-BI-002]" in product_contract
+assert product_contract.count("### Agent-native candidate summary") == 1
+agent_summary = product_contract.split("### Agent-native candidate summary", 1)[1].split(
+    "\n## 3.", 1
+)[0]
+for marker in [
+    "Source clauses: [LC-BI-001]",
+    "[LC-BI-002]",
+    "LCCoding 2.6.0 and 2.7.0",
+    "`LCCoding 2.8.0 derived BI`",
+    "Operations Agent integration",
+    "Product Agent applicability / integration",
+    "safe Runtime Adapter ID/version",
+    "dual-Agent isolation",
+    "Product Slice count",
+    "Operations Slice count",
+    "exactly eight protected reports",
+    "not an Agent console",
+    "cannot open a project source file",
+]:
+    assert marker in agent_summary, marker
+for forbidden_projection in [
+    "candidate ID",
+    "configuration ID",
+    "topology ID",
+    "attestation ID",
+    "Slice ID",
+    "hash",
+    "evidence body",
+    "path",
+    "prompt",
+    "memory",
+    "credential",
+    "typed event body",
+]:
+    assert f"`{forbidden_projection}`" in agent_summary, forbidden_projection
+for forbidden_control in [
+    "Agent start/stop",
+    "session control",
+    "memory control",
+    "prompt control",
+    "tool control",
+    "API/MCP control",
+    "Runtime configuration",
+    "retry",
+    "approval",
+    "editing",
+]:
+    assert f"`{forbidden_control}`" in agent_summary, forbidden_control
 for operational_marker in [
     "## 3. File boundaries",
     "## 10. Required implementation sequence",
@@ -73,6 +121,21 @@ for operational_marker in [
     "verify-loop-releases.ps1",
 ]:
     assert operational_marker not in product_contract, operational_marker
+
+visual_cases_contract = (
+    bi_root / "tests" / "dom" / "visual-cases.test.ts"
+).read_text(encoding="utf-8")
+visual_spec = (bi_root / "tests" / "visual" / "candidates.spec.ts").read_text(
+    encoding="utf-8"
+)
+assert 'expect(slugs).toHaveLength(32)' in visual_cases_contract
+assert 'VISUAL_CASES.length + 1 !== 33' in visual_spec
+assert (
+    'test("2.7.0 protected reports stay inside the fixed scrollable client area"'
+    in visual_spec
+)
+assert 'expect(page.viewportSize()).toEqual({ width: 300, height: 480 })' in visual_spec
+assert 'expect(buttonClasses).toEqual([' in visual_spec
 
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))

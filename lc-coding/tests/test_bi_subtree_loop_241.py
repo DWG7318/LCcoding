@@ -71,6 +71,20 @@ assert re.findall(r'\| "([a-z_]+)"', report_type) == [
     "loop_governance",
 ]
 
+candidate_rows_280 = model[
+    model.index("const REPORT_ROWS_280"):model.index(
+        "const REPORT_ROWS: Readonly<Record<SnapshotSchema"
+    )
+]
+assert re.findall(r'\["(row\.[a-z_]+)", "([a-z_]+)"\]', candidate_rows_280) == [
+    ("row.operations_agent_integration", "record"),
+    ("row.product_agent_integration", "agent_status"),
+    ("row.runtime_adapter", "safe_identity"),
+    ("row.dual_agent_isolation", "record"),
+    ("row.product_slice_progress", "metric"),
+    ("row.operations_slice_progress", "metric"),
+]
+
 tokens = (root / "lc-coding/bi/src/styles/tokens.css").read_text(encoding="utf-8")
 app_css = (root / "lc-coding/bi/src/styles/app.css").read_text(encoding="utf-8")
 for marker in [
@@ -132,6 +146,9 @@ for forbidden in [
 
 reference = (root / "lc-coding/references/built-in-bi.md").read_text(encoding="utf-8")
 implementation = (root / "lc-coding/bi/README.md").read_text(encoding="utf-8")
+protected_report = (root / "lc-coding/bi/src/components/ProtectedReport.tsx").read_text(
+    encoding="utf-8"
+)
 for marker in [
     "src/model/snapshot.ts",
     "src-tauri/src/projection.rs",
@@ -152,6 +169,19 @@ for product_marker in [
     "Non-goals",
 ]:
     assert product_marker in reference, product_marker
+for agent_marker in [
+    "### Agent-native candidate summary",
+    "Operations Agent integration",
+    "Product Agent applicability / integration",
+    "safe Runtime Adapter ID/version",
+    "dual-Agent isolation",
+    "Product Slice count",
+    "Operations Slice count",
+    "not an Agent console",
+]:
+    assert agent_marker in reference, agent_marker
+for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]:
+    assert forbidden_element not in protected_report, forbidden_element
 
 release_paths = {
     ".github/workflows/release-bi.yml": "540f77590b345cffe05663605be0c74a00fe26349b39a3df92c58cd97f920e35",

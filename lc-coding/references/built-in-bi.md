@@ -180,7 +180,7 @@ Only the current phase starts expanded. Folding, scrolling, and language changes
 Exactly eight `Open` actions are available: the existing Proposal Readiness, Canonical Candidate, Calabash, Simulation World, Workflow, and UI Baseline actions, plus Product Baseline on the existing `PRODUCT_BASELINE` step and Execution Method Governance on the compatibility `LOOP_RUN_D0_D3` step ID. No phase or step is added. `Open` replaces the body inside the same window with a fixed, sanitized report; `Back` restores the prior phase view and scroll/fold state.
 
 - Report titles, row labels, and row order come from a compiled catalog, never from project input.
-- Candidate may show only `LOCKED/PENDING/UNKNOWN`, `RECORDED/PENDING/UNKNOWN`, and a validated version. Repository and commit values never reach the frontend.
+- Candidate may show only the schema-exact rows below and a validated version. Repository and commit values never reach the frontend.
 - Calabash may show its validated current version when a complete Canonical Manifest supplies it. Simulation, Workflow, UI, Product Baseline, and Execution Method Governance have no report-header version source; their header version stays Not recorded/未记录. Component-version completeness appears only as a sanitized metric and never exposes a component version, path, commit, hash, evidence, or raw artifact.
 - Subtree and Product Baseline metrics may eventually derive only from successful 2.4.0+ Maps/Handoff mechanical validation. Execution-method metrics may eventually derive only from normalized registered-method contracts and valid receipts. SLK/CLK/GLK are not treated as an exhaustive list. The BI never copies internal methods, writes `status.json`, judges execution, or performs wake/wait/Heartbeat/archive/pin operations.
 - The BI remains a lifecycle projection. Cross-phase method activity is phase-local evidence; it does not become a lifecycle node or automatically activate the third-phase integration step.
@@ -188,6 +188,16 @@ Exactly eight `Open` actions are available: the existing Proposal Readiness, Can
 - The protected-report notice states that the view cannot open project files, source, private repositories, evidence bodies, URLs, or local paths.
 
 No Open or Back action creates an anchor, navigation request, download, file read, or shell action.
+
+### Agent-native candidate summary
+
+Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#lc-bi-002)
+
+LCCoding 2.6.0 and 2.7.0 keep the Candidate report at exactly the original identity and integrity rows. The prepared `LCCoding 2.8.0 derived BI` schema appends exactly six sanitized rows inside that same report: Operations Agent integration; Product Agent applicability / integration; safe Runtime Adapter ID/version; dual-Agent isolation; Product Slice count; and Operations Slice count. The two Slice counts remain independent. This changes neither the report catalog nor its navigation: there are still exactly eight protected reports, with no Agent-specific report or visual target.
+
+The projection exposes only normalized status enums, bounded counts, and the allowlisted Adapter identity/version pair. It excludes every `candidate ID`, `configuration ID`, `topology ID`, `attestation ID`, `Slice ID`, `hash`, `evidence body`, `path`, `prompt`, `memory`, `credential`, and `typed event body`. It cannot open a project source file or any original evidence, and it never infers one Agent's status or Slice count from the other.
+
+The BI is not an Agent console, Runtime, or second authority. It provides none of `Agent start/stop`, `session control`, `memory control`, `prompt control`, `tool control`, `API/MCP control`, `Runtime configuration`, `retry`, `approval`, or `editing`. Pin, Refresh, Open, and Back retain their existing local-view meanings and cannot perform any Agent or Runtime action.
 
 The report tuples and row order are exact:
 
@@ -197,6 +207,12 @@ The report tuples and row order are exact:
 | `proposal` | `null` | `row.initial_gate` | `status.phase_gates.INITIAL_READY` | `view_state` |
 | `candidate` | validated `canonical_candidate.version` or `null` | `row.identity` | Candidate completeness | `lock` |
 | `candidate` | same | `row.integrity` | Candidate completeness + `status.initialization` | `record` |
+| `candidate` (2.8 only) | same | `row.operations_agent_integration` | normalized Operations integration state | `record` |
+| `candidate` (2.8 only) | same | `row.product_agent_integration` | normalized Product applicability + integration state | `agent_status` |
+| `candidate` (2.8 only) | same | `row.runtime_adapter` | safe Runtime Adapter ID/version | `safe_identity` |
+| `candidate` (2.8 only) | same | `row.dual_agent_isolation` | normalized isolation state | `record` |
+| `candidate` (2.8 only) | same | `row.product_slice_progress` | accepted Product Slice count | `metric` |
+| `candidate` (2.8 only) | same | `row.operations_slice_progress` | accepted Operations Slice count | `metric` |
 | `calabash` | validated `manifest.calabash.version` or `null` | `row.status` | `status.calabash_draft` | `view_state` |
 | `calabash` | same | `row.version_record` | complete Manifest + safe Calabash version | `record` |
 | `simulation` | `null` | `row.realized_peer_subtrees`; `row.component_version_coverage`; `row.primary_mainline` | validated peer Simulation subtree summary | `metric` |
@@ -205,7 +221,7 @@ The report tuples and row order are exact:
 | `baseline` | `null` | `row.git_identity`; `row.locked_subtree_coverage`; `row.map_handoff_consistency`; `row.owner_confirmed_mainline` | successful Product Baseline mechanical validation summary | `metric` |
 | `loop_governance` | `null` | `row.worker_checker_wake`; `row.supervisor_wait`; `row.heartbeat`; `row.no_subagents`; `row.progress`; `row.cell_capacity`; `row.pin_policy` | normalized, sanitized lower-method governance summary | `metric` |
 
-Each report's `state` equals its associated main-step state. `StepView.report` is non-null only for the eight approved steps and equals the corresponding report ID; all other steps use `null`. Candidate/Manifest invalidity is a whole-record error, never a report-only warning. A metric is `{kind:"metric", status, completed, total, interval_minutes}`: status is exactly `COMPLIANT|ACTIVE|VIOLATION|UNKNOWN|NOT_RECORDED`; counts are bounded non-negative integers with `completed <= total`; and Heartbeat interval is only `10|15|30|null`. Unknown/unrecorded metrics contain no numeric claim.
+Each report's `state` equals its associated main-step state. `StepView.report` is non-null only for the eight approved steps and equals the corresponding report ID; all other steps use `null`. Candidate/Manifest invalidity is a whole-record error, never a report-only warning. An ordinary metric is `{kind:"metric", status, completed, total, interval_minutes}` with status exactly `COMPLIANT|ACTIVE|VIOLATION|UNKNOWN|NOT_RECORDED`; counts are bounded non-negative integers with `completed <= total`; and Heartbeat interval is only `10|15|30|null`. Unknown/unrecorded metrics contain no numeric claim. The two 2.8 Slice-count metrics instead use exactly `UNPROVED|ACCEPTED`, a bounded count, and `null` total/interval. `agent_status` is the closed applicability/integration pair, while `safe_identity` is either the exact not-applicable pair or a validated Adapter ID plus semantic version.
 
 ## 3. Real-project data and trust flow
 
@@ -283,7 +299,7 @@ Snapshot = {
 
 Rust `serde` structs with `deny_unknown_fields` are the executable wire source. TypeScript uses one manually mirrored exact runtime guard; no schema generator or second model package is introduced. Implementation step A checks in `snapshot-ok.json` and `snapshot-error.json`; the TypeScript guard must accept and deep-freeze both. Implementation step C Rust tests must deserialize/serialize those same fixtures without shape or value drift, and each side must reject a one-field mutation of every object kind.
 
-The sanitized visual `snapshot-ok.json` is deterministic: project `Example Project`; current phase `PRODUCT_FORMATION`; Initial done; Calabash and Simulation done; Workflow active; UI error; Product Formation exit pending; all later steps pending; Candidate version `v1.11.6`; and Calabash version `v2.4.0`. It contains no repository, commit, path, evidence, URL, date, or raw text. Chinese mode keeps `Example Project` unchanged. The second fixture is exactly the error Snapshot defined below.
+The sanitized visual `snapshot-ok.json` is a deterministic 2.8 Snapshot: project `Example Project`; current phase `PRODUCT_FORMATION`; Initial done; Calabash and Simulation done; Workflow active; UI error; Product Formation exit pending; all later steps pending; Candidate version `v1.11.6`; Calabash version `v2.4.0`; and the six Agent-native Candidate rows in their exact unproved form. It contains no repository, commit, path, evidence, URL, date, or raw text. Chinese mode keeps `Example Project` unchanged. The second fixture remains the exact compatible error Snapshot defined below.
 
 For record/schema/truth errors, `get_snapshot()` returns the exact error Snapshot: `health="error"`, project `Unnamed project`, `current_phase="UNKNOWN"`, all four phases and every fixed step `error`, all eight reports `error`, versions `null`, legacy rows fail closed, and metric rows use `UNKNOWN` with no numeric claim. Startup argument failure emits only a fixed path-free code. No raw error is serialized or printed. Topmost failures use internal code `BI_PIN_UNAVAILABLE`; this diagnostic code is never rendered as user-facing text.
 
