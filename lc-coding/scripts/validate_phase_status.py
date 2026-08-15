@@ -2,25 +2,132 @@
 from pathlib import Path
 import argparse
 import json
+import re
 
 
-LEGACY_PHASE_ORDER = (
-    "INITIAL",
-    "PRODUCT_FORMATION",
-    "ENGINEERING_RUNS",
-    "DELIVERY_PREPARATION",
+COMPATIBILITY_ASSET_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "bi/release/loop-contract-identities.json"
 )
-CURRENT_PHASE_ORDER = (
-    "INITIAL",
-    "PRODUCT_FORMATION",
-    "REAL_PRODUCT_INTEGRATION",
-    "DELIVERY_PREPARATION",
+ASSET_TOP_KEYS = ("asset_schema", "status_adapters", "execution_methods")
+ADAPTER_FIELDS = (
+    "status_schema_version",
+    "compatibility_status",
+    "minimum_bi_version",
+    "phase_steps",
 )
-SCHEMA_PHASE_ORDERS = {
-    "2.6.0": LEGACY_PHASE_ORDER,
-    "2.7.0": LEGACY_PHASE_ORDER,
-    "2.8.0": CURRENT_PHASE_ORDER,
+METHOD_FIELDS = (
+    "version",
+    "compatibility_status",
+    "minimum_bi_version",
+    "adapter_schema_kind",
+    "normalization_mapping",
+    "candidate_commit",
+    "manifest_sha256",
+    "schema_sha256",
+    "template_sha256",
+)
+ADAPTER_SPECS = {
+    "2.6.0": ("SUPPORTED_LEGACY", "2.6.0", "ENGINEERING_RUNS", (3, 5, 7, 6)),
+    "2.7.0": ("CURRENT", "2.7.0", "ENGINEERING_RUNS", (3, 7, 5, 6)),
+    "2.8.0": ("PREPARED", "2.8.0", "REAL_PRODUCT_INTEGRATION", (3, 7, 5, 6)),
 }
+MACHINE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,95}$")
+
+
+def _strict_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key: " + key)
+        result[key] = value
+    return result
+
+
+def _load_compatibility_layout():
+    try:
+        raw = COMPATIBILITY_ASSET_PATH.read_bytes().decode("utf-8")
+        asset = json.loads(raw, object_pairs_hook=_strict_object)
+    except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
+        raise RuntimeError("invalid fixed BI compatibility asset") from error
+    if not isinstance(asset, dict) or tuple(asset) != ASSET_TOP_KEYS:
+        raise RuntimeError("invalid fixed BI compatibility asset shape")
+    if asset.get("asset_schema") != "LCCODING_BI_COMPATIBILITY_V2":
+        raise RuntimeError("unsupported fixed BI compatibility asset schema")
+    adapters = asset.get("status_adapters")
+    if not isinstance(adapters, dict) or tuple(adapters) != tuple(ADAPTER_SPECS):
+        raise RuntimeError("invalid fixed BI status adapter set")
+    methods = asset.get("execution_methods")
+    if not isinstance(methods, dict) or tuple(methods) != ("slk", "clk", "glk"):
+        raise RuntimeError("invalid fixed BI execution method set")
+    if any(
+        not isinstance(method, dict) or tuple(method) != METHOD_FIELDS
+        for method in methods.values()
+    ):
+        raise RuntimeError("invalid fixed BI execution method shape")
+
+    phase_orders = {}
+    step_orders = {}
+    phase_steps_by_schema = {}
+    for version, (status, minimum, phase3, counts) in ADAPTER_SPECS.items():
+        adapter = adapters[version]
+        if not isinstance(adapter, dict) or tuple(adapter) != ADAPTER_FIELDS:
+            raise RuntimeError("invalid fixed BI status adapter shape")
+        if (
+            adapter.get("status_schema_version") != version
+            or adapter.get("compatibility_status") != status
+            or adapter.get("minimum_bi_version") != minimum
+        ):
+            raise RuntimeError("invalid fixed BI status adapter identity")
+        phase_steps = adapter.get("phase_steps")
+        expected_phases = (
+            "INITIAL",
+            "PRODUCT_FORMATION",
+            phase3,
+            "DELIVERY_PREPARATION",
+        )
+        if not isinstance(phase_steps, dict) or tuple(phase_steps) != expected_phases:
+            raise RuntimeError("invalid fixed BI phase identity")
+        flattened = []
+        normalized = {}
+        for phase_id, expected_count in zip(expected_phases, counts):
+            steps = phase_steps[phase_id]
+            if (
+                not isinstance(steps, list)
+                or len(steps) != expected_count
+                or any(not isinstance(step, str) or not MACHINE_ID.fullmatch(step) for step in steps)
+            ):
+                raise RuntimeError("invalid fixed BI phase steps")
+            normalized[phase_id] = tuple(steps)
+            flattened.extend(steps)
+        if len(flattened) != 21 or len(set(flattened)) != 21:
+            raise RuntimeError("invalid fixed BI step identity set")
+        phase_orders[version] = expected_phases
+        step_orders[version] = tuple(flattened)
+        phase_steps_by_schema[version] = normalized
+
+    legacy = phase_steps_by_schema["2.6.0"]
+    current = phase_steps_by_schema["2.7.0"]
+    prepared = phase_steps_by_schema["2.8.0"]
+    if not (
+        step_orders["2.6.0"] == step_orders["2.7.0"] == step_orders["2.8.0"]
+        and legacy["INITIAL"] == current["INITIAL"] == prepared["INITIAL"]
+        and legacy["DELIVERY_PREPARATION"]
+        == current["DELIVERY_PREPARATION"]
+        == prepared["DELIVERY_PREPARATION"]
+        and current["PRODUCT_FORMATION"]
+        == legacy["PRODUCT_FORMATION"] + legacy["ENGINEERING_RUNS"][:2]
+        and current["ENGINEERING_RUNS"] == legacy["ENGINEERING_RUNS"][2:]
+        and prepared["PRODUCT_FORMATION"] == current["PRODUCT_FORMATION"]
+        and prepared["REAL_PRODUCT_INTEGRATION"] == current["ENGINEERING_RUNS"]
+    ):
+        raise RuntimeError("inconsistent fixed BI status adapter layouts")
+    return phase_orders, step_orders, phase_steps_by_schema
+
+
+SCHEMA_PHASE_ORDERS, SCHEMA_STEP_IDENTITIES, SCHEMA_PHASE_STEPS = (
+    _load_compatibility_layout()
+)
 TOP_LEVEL_FIELDS = {
     "record_role",
     "status_schema_version",
@@ -105,15 +212,6 @@ def _phase_fields(phase_id):
             "aggregate_exit_gate",
         }, "aggregate_exit_gate"
     return {"status", "exit_gate"}, "exit_gate"
-
-
-def _strict_object(pairs):
-    result = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("duplicate JSON key: " + key)
-        result[key] = value
-    return result
 
 
 def load_phase_status(path):

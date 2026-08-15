@@ -123,11 +123,14 @@ assert "LCCoding-BI_2.7.0_x64-setup.exe" in workflow
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
 )
-assert loop_identities["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V1"
+assert loop_identities["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V2"
 assert set(loop_identities) == {"asset_schema", "status_adapters", "execution_methods"}
-assert set(loop_identities["status_adapters"]) == {"2.6.0", "2.7.0"}
+assert set(loop_identities["status_adapters"]) == {"2.6.0", "2.7.0", "2.8.0"}
 assert loop_identities["status_adapters"]["2.6.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
 assert loop_identities["status_adapters"]["2.7.0"]["compatibility_status"] == "CURRENT"
+assert loop_identities["status_adapters"]["2.8.0"]["compatibility_status"] == "PREPARED"
+assert loop_identities["status_adapters"]["2.8.0"]["minimum_bi_version"] == prepared_schema
+assert list(loop_identities["status_adapters"]["2.8.0"]["phase_steps"]) == prepared_phase_ids
 methods = loop_identities["execution_methods"]
 assert set(methods) == {"slk", "clk", "glk"}
 assert methods["slk"]["version"] == "2.6.0"

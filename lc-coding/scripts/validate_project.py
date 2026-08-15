@@ -3387,7 +3387,7 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
             if len(receipt_items)!=1:
                 errors.append('required Run requires exactly one receipt: '+run_id); continue
             receipt=receipt_items[0][1]
-            suffix='REAL_PRODUCT_INTEGRATION' if status_schema=='2.8.0' else 'ENGINEERING_RUNS'
+            suffix=PHASE_IDS_BY_SCHEMA[status_schema][2]
             start_ui_integration=exact_ui_integration_identity(start.get(f'Applicable UI / Integration Baseline ({suffix} only)'))
             if start.get(f'Feature Slice ID / version ({suffix} only)')!=slice_identity or start.get(f'Product Baseline trace ({suffix} only)')!=baseline or start_ui_integration!=(ui_reference,integration):
                 errors.append('required Run start disagrees with active Slice: '+run_id)

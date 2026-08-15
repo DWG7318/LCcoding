@@ -155,6 +155,9 @@ def controlled_asset_and_gh_state() -> tuple[dict, dict]:
 
 def compatibility_v2_candidate(asset: dict) -> dict:
     candidate = copy.deepcopy(asset)
+    if candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V2":
+        assert set(candidate.get("status_adapters", {})) == {"2.6.0", "2.7.0", "2.8.0"}
+        return candidate
     candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V2"
     prepared = copy.deepcopy(candidate["status_adapters"]["2.7.0"])
     prepared["status_schema_version"] = "2.8.0"
@@ -164,6 +167,14 @@ def compatibility_v2_candidate(asset: dict) -> dict:
         "phase_steps"
     ].pop("ENGINEERING_RUNS")
     candidate["status_adapters"]["2.8.0"] = prepared
+    return candidate
+
+
+def compatibility_v1_candidate(asset: dict) -> dict:
+    candidate = copy.deepcopy(asset)
+    candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V1"
+    candidate["status_adapters"].pop("2.8.0", None)
+    assert set(candidate["status_adapters"]) == {"2.6.0", "2.7.0"}
     return candidate
 
 
@@ -283,6 +294,7 @@ raise SystemExit(1)
 
 
 valid_asset, _ = controlled_asset_and_gh_state()
+assert valid_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V2"
 for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
@@ -306,6 +318,14 @@ valid_v2_asset = compatibility_v2_candidate(valid_asset)
 assert valid_v2_asset["execution_methods"] == valid_asset["execution_methods"]
 for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_v2_asset, host)
+    assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
+    assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
+    assert len(calls) in {15, 18}
+
+valid_v1_asset = compatibility_v1_candidate(valid_asset)
+assert valid_v1_asset["execution_methods"] == valid_asset["execution_methods"]
+for host in POWERSHELL_HOSTS:
+    verified, calls = run_release_verifier(valid_v1_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
     assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
     assert len(calls) in {15, 18}
@@ -433,17 +453,18 @@ lowercase_step["status_adapters"]["2.7.0"]["phase_steps"]["INITIAL"][0] = (
     "proposal_readiness"
 )
 early_rejections.append(lowercase_step)
+checked_schema = valid_asset["asset_schema"]
 duplicate_json = json.dumps(valid_asset, indent=2).replace(
-    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
-    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",\n'
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
+    f'"asset_schema": "{checked_schema}",',
+    f'"asset_schema": "{checked_schema}",\n'
+    f'  "asset_schema": "{checked_schema}",',
     1,
 )
 early_rejections.append(duplicate_json)
 escaped_duplicate_json = json.dumps(valid_asset, indent=2).replace(
-    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",',
-    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V1",\n'
-    '  "asset\\u005fschema": "LCCODING_BI_COMPATIBILITY_V1",',
+    f'"asset_schema": "{checked_schema}",',
+    f'"asset_schema": "{checked_schema}",\n'
+    f'  "asset\\u005fschema": "{checked_schema}",',
     1,
 )
 early_rejections.append(escaped_duplicate_json)

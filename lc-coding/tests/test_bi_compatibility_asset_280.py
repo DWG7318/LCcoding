@@ -1,4 +1,6 @@
 import copy
+import hashlib
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -7,7 +9,10 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET = ROOT / "lc-coding/bi/release/loop-contract-identities.json"
-ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V1"
+ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V2"
+EXECUTION_METHODS_FRAGMENT_SHA256 = (
+    "904a0f8ce8eea72e5d1774b95acaa5239d9a4f1a5b39214eb1c5f91c3b7d054b"
+)
 TOP_KEYS = {"asset_schema", "status_adapters", "execution_methods"}
 STATUS_FIELDS = {
     "status_schema_version",
@@ -26,10 +31,16 @@ METHOD_FIELDS = {
     "schema_sha256",
     "template_sha256",
 }
-PHASES = (
+LEGACY_PHASES = (
     "INITIAL",
     "PRODUCT_FORMATION",
     "ENGINEERING_RUNS",
+    "DELIVERY_PREPARATION",
+)
+PREPARED_PHASES = (
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 )
 INITIAL = ["PROPOSAL_READINESS", "PROJECT_INITIALIZATION", "INITIAL_READY"]
@@ -65,7 +76,7 @@ EXPECTED_ADAPTERS = {
         "compatibility_status": "SUPPORTED_LEGACY",
         "minimum_bi_version": "2.6.0",
         "phase_steps": dict(
-            zip(PHASES, (INITIAL, FORMATION_260, INTEGRATION_260, DELIVERY))
+            zip(LEGACY_PHASES, (INITIAL, FORMATION_260, INTEGRATION_260, DELIVERY))
         ),
     },
     "2.7.0": {
@@ -73,7 +84,18 @@ EXPECTED_ADAPTERS = {
         "compatibility_status": "CURRENT",
         "minimum_bi_version": "2.7.0",
         "phase_steps": dict(
-            zip(PHASES, (INITIAL, FORMATION_270, INTEGRATION_270, DELIVERY))
+            zip(LEGACY_PHASES, (INITIAL, FORMATION_270, INTEGRATION_270, DELIVERY))
+        ),
+    },
+    "2.8.0": {
+        "status_schema_version": "2.8.0",
+        "compatibility_status": "PREPARED",
+        "minimum_bi_version": "2.8.0",
+        "phase_steps": dict(
+            zip(
+                PREPARED_PHASES,
+                (INITIAL, FORMATION_270, INTEGRATION_270, DELIVERY),
+            )
         ),
     },
 }
@@ -132,10 +154,11 @@ def validate_asset(asset):
             if record != expected:
                 errors.append(f"{version} content")
             phase_steps = record.get("phase_steps")
-            if not isinstance(phase_steps, dict) or list(phase_steps) != list(PHASES):
+            expected_phases = list(expected["phase_steps"])
+            if not isinstance(phase_steps, dict) or list(phase_steps) != expected_phases:
                 errors.append(f"{version} phases")
                 continue
-            steps = [step for phase in PHASES for step in phase_steps[phase]]
+            steps = [step for phase in expected_phases for step in phase_steps[phase]]
             if len(steps) != 21 or len(set(steps)) != 21:
                 errors.append(f"{version} steps")
     methods = asset["execution_methods"]
@@ -164,6 +187,25 @@ def validate_asset(asset):
     return errors
 
 
+def strict_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate JSON key: " + key)
+        value[key] = item
+    return value
+
+
+def strict_asset(text):
+    return json.loads(text, object_pairs_hook=strict_object)
+
+
+def execution_methods_fragment(raw):
+    start = raw.index(b'  "execution_methods": {')
+    end = raw.rfind(b"\n  }\n}") + len(b"\n  }")
+    return raw[start:end]
+
+
 def compatibility_candidates(root):
     candidates = []
     for path in root.rglob("*.json"):
@@ -183,8 +225,13 @@ def compatibility_candidates(root):
     return sorted(candidates)
 
 
-asset = json.loads(ASSET.read_text(encoding="utf-8"))
+asset_raw = ASSET.read_bytes()
+asset = strict_asset(asset_raw.decode("utf-8"))
 assert not validate_asset(asset), validate_asset(asset)
+assert (
+    hashlib.sha256(execution_methods_fragment(asset_raw)).hexdigest()
+    == EXECUTION_METHODS_FRAGMENT_SHA256
+)
 
 
 def mutation(mutator):
@@ -198,11 +245,24 @@ mutation(lambda x: x.pop("asset_schema"))
 mutation(lambda x: x.__setitem__("asset_schema", "WRONG"))
 mutation(lambda x: x["status_adapters"]["2.6.0"].update({"extra": 1}))
 mutation(lambda x: x["status_adapters"]["2.7.0"].pop("minimum_bi_version"))
+mutation(lambda x: x["status_adapters"].pop("2.8.0"))
+mutation(
+    lambda x: x["status_adapters"].update(
+        {"2.9.0": copy.deepcopy(x["status_adapters"]["2.8.0"])}
+    )
+)
 mutation(lambda x: x["status_adapters"]["2.6.0"].__setitem__("compatibility_status", "CURRENT"))
 mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("minimum_bi_version", "2.6.0"))
+mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("status_schema_version", "2.7.0"))
+mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "CURRENT"))
+mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("minimum_bi_version", "2.7.0"))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_FORMATION", FORMATION_260))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_INTEGRATION", x["status_adapters"]["2.7.0"]["phase_steps"].pop("ENGINEERING_RUNS")))
+mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__("ENGINEERING_RUNS", x["status_adapters"]["2.8.0"]["phase_steps"]["REAL_PRODUCT_INTEGRATION"]))
+mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__("PRODUCT_INTEGRATION", x["status_adapters"]["2.8.0"]["phase_steps"].pop("REAL_PRODUCT_INTEGRATION")))
 mutation(lambda x: x["status_adapters"]["2.6.0"]["phase_steps"]["INITIAL"].append("INITIAL_READY"))
+mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"]["INITIAL"].append("NEW_GATE"))
+mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_FORMATION"].reverse())
 mutation(lambda x: x["execution_methods"].update({"fourth": copy.deepcopy(x["execution_methods"]["slk"])}))
 mutation(lambda x: x["execution_methods"].update({"calabash": copy.deepcopy(x["execution_methods"]["slk"])}))
 mutation(lambda x: x["execution_methods"]["slk"].update({"extra": 1}))
@@ -214,8 +274,99 @@ mutation(lambda x: x["execution_methods"]["glk"].__setitem__("adapter_schema_kin
 mutation(lambda x: x["execution_methods"]["slk"].__setitem__("normalization_mapping", NORMALIZATION[:-1]))
 mutation(lambda x: x.update({"slk": copy.deepcopy(x["execution_methods"]["slk"])}))
 
+duplicate = asset_raw.decode("utf-8").replace(
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",\n'
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
+    1,
+)
+try:
+    strict_asset(duplicate)
+except ValueError as error:
+    assert "duplicate JSON key" in str(error)
+else:
+    raise AssertionError("duplicate JSON must fail closed")
+
 bi_root = ROOT / "lc-coding/bi"
 assert compatibility_candidates(bi_root) == ["release/loop-contract-identities.json"]
+phase_validator = (ROOT / "lc-coding/scripts/validate_phase_status.py").read_text(
+    encoding="utf-8"
+)
+project_validator = (ROOT / "lc-coding/scripts/validate_project.py").read_text(
+    encoding="utf-8"
+)
+assert phase_validator.count("loop-contract-identities.json") == 1
+assert "LEGACY_PHASE_ORDER" not in phase_validator
+assert "CURRENT_PHASE_ORDER" not in phase_validator
+assert "PROPOSAL_READINESS" not in phase_validator
+assert "suffix='REAL_PRODUCT_INTEGRATION' if" not in project_validator
+
+validator_path = ROOT / "lc-coding/scripts/validate_phase_status.py"
+validator_spec = importlib.util.spec_from_file_location(
+    "lccoding_validate_phase_status_280", validator_path
+)
+validator = importlib.util.module_from_spec(validator_spec)
+validator_spec.loader.exec_module(validator)
+assert validator.SCHEMA_PHASE_ORDERS == {
+    version: tuple(record["phase_steps"])
+    for version, record in EXPECTED_ADAPTERS.items()
+}
+assert validator.SCHEMA_STEP_IDENTITIES == {
+    version: tuple(
+        step
+        for phase_steps in record["phase_steps"].values()
+        for step in phase_steps
+    )
+    for version, record in EXPECTED_ADAPTERS.items()
+}
+
+
+def production_loader_rejects(body):
+    original = validator.COMPATIBILITY_ASSET_PATH
+    try:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "loop-contract-identities.json"
+            if body is not None:
+                path.write_text(body, encoding="utf-8", newline="\n")
+            validator.COMPATIBILITY_ASSET_PATH = path
+            try:
+                validator._load_compatibility_layout()
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("invalid fixed compatibility asset must fail closed")
+    finally:
+        validator.COMPATIBILITY_ASSET_PATH = original
+
+
+production_loader_rejects(None)
+production_loader_rejects("{")
+production_loader_rejects(duplicate)
+for mutator in [
+    lambda x: x["status_adapters"].pop("2.8.0"),
+    lambda x: x["status_adapters"].update(
+        {"2.9.0": copy.deepcopy(x["status_adapters"]["2.8.0"])}
+    ),
+    lambda x: x["status_adapters"]["2.8.0"].__setitem__(
+        "compatibility_status", "CURRENT"
+    ),
+    lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__(
+        "ENGINEERING_RUNS",
+        x["status_adapters"]["2.8.0"]["phase_steps"].pop(
+            "REAL_PRODUCT_INTEGRATION"
+        ),
+    ),
+    lambda x: x["status_adapters"]["2.8.0"]["phase_steps"][
+        "PRODUCT_FORMATION"
+    ].reverse(),
+    lambda x: x["execution_methods"].update(
+        {"calabash": copy.deepcopy(x["execution_methods"]["slk"])}
+    ),
+    lambda x: x["execution_methods"]["slk"].update({"extra": 1}),
+]:
+    changed = copy.deepcopy(asset)
+    mutator(changed)
+    production_loader_rejects(json.dumps(changed))
 with tempfile.TemporaryDirectory() as temporary:
     shadow_root = Path(temporary)
     first = shadow_root / "release/loop-contract-identities.json"

@@ -153,6 +153,11 @@ fn raw_compatibility_asset() -> Value {
 
 fn v2_compatibility_asset() -> Value {
     let mut asset = raw_compatibility_asset();
+    if asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V2" {
+        assert!(asset["status_adapters"].get("2.8.0").is_some());
+        return asset;
+    }
+    assert_eq!(asset["asset_schema"], "LCCODING_BI_COMPATIBILITY_V1");
     asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V2".into());
     let mut prepared = asset["status_adapters"]["2.7.0"].clone();
     prepared["status_schema_version"] = Value::String("2.8.0".into());
@@ -165,6 +170,16 @@ fn v2_compatibility_asset() -> Value {
         .unwrap();
     prepared["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = integration;
     asset["status_adapters"]["2.8.0"] = prepared;
+    asset
+}
+
+fn v1_compatibility_asset() -> Value {
+    let mut asset = raw_compatibility_asset();
+    asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V1".into());
+    asset["status_adapters"]
+        .as_object_mut()
+        .unwrap()
+        .remove("2.8.0");
     asset
 }
 
@@ -210,7 +225,7 @@ fn embedded_execution_method_identities_match_the_single_asset() {
         "pin_policy",
     ];
 
-    assert_eq!(raw["asset_schema"], "LCCODING_BI_COMPATIBILITY_V1");
+    assert_eq!(raw["asset_schema"], "LCCODING_BI_COMPATIBILITY_V2");
     for method_id in ["slk", "clk", "glk"] {
         let expected = &raw["execution_methods"][method_id];
         let actual = parsed.execution_method(method_id).unwrap();
@@ -250,8 +265,9 @@ fn embedded_execution_method_identities_match_the_single_asset() {
 
 #[test]
 fn compatibility_asset_v2_is_strictly_prepared_in_memory_without_identity_drift() {
-    let v1 = raw_compatibility_asset();
+    let v1 = v1_compatibility_asset();
     let v2 = v2_compatibility_asset();
+    assert!(parse_compatibility_asset(&serde_json::to_string(&v1).unwrap()).is_ok());
     let parsed = parse_compatibility_asset(&serde_json::to_string(&v2).unwrap()).unwrap();
     assert_eq!(v2["asset_schema"], "LCCODING_BI_COMPATIBILITY_V2");
     assert_eq!(v2["execution_methods"], v1["execution_methods"]);
@@ -468,8 +484,8 @@ fn compatibility_asset_parser_rejects_shadow_or_malformed_identity_shapes() {
     });
     assert!(parse_compatibility_asset(&old_shape.to_string()).is_err());
     let duplicate = include_str!("../../release/loop-contract-identities.json").replacen(
-        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",",
-        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V1\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
         1,
     );
     assert!(parse_compatibility_asset(&duplicate).is_err());
