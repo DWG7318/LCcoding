@@ -677,7 +677,7 @@ phase_status["phases"]["INITIAL"].update({"status": "COMPLETE", "exit_gate": "RE
 phase_status["phases"]["PRODUCT_FORMATION"].update(
     {"status": "COMPLETE", "exit_evidence": "ACCEPTED"}
 )
-phase_status["phases"]["ENGINEERING_RUNS"].update(
+phase_status["phases"]["REAL_PRODUCT_INTEGRATION"].update(
     {"status": "COMPLETE", "aggregate_exit_gate": "ALL_REQUIRED_RUNS_ACCEPTED"}
 )
 phase_status["phases"]["DELIVERY_PREPARATION"].update(
