@@ -60,6 +60,12 @@ assert contract["content_hash_scope"] == "EXACT_STRICT_UTF8_FILE_BYTES"
 
 HASH = "sha256:" + "a" * 64
 CANDIDATE_HASH = "sha256:" + "b" * 64
+SHAREABLE_KINDS = tuple(validator.SHAREABLE_KINDS)
+PRIVATE_KINDS = tuple(validator.PRIVATE_KINDS)
+
+
+def identity_hash(label):
+    return "sha256:" + hashlib.sha256(label.encode("utf-8")).hexdigest()
 
 
 def evidence(name):
@@ -152,13 +158,16 @@ def catalog(mode="OWNER_APPROVAL_REQUIRED", catalog_id="OPS-CATALOG-1"):
 
 def configured_agent(applicability, agent_id, catalog_id, catalog_hash):
     record = {"applicability": applicability, "agent_id": agent_id}
-    for kind in (
-        "policy", "action_catalog", "configuration", "private_memory_store",
-        "retriever", "write_credential_reference", "encryption_key_reference",
-        "audit_stream", "kill_switch", "fallback", "interface",
-    ):
+    for kind in SHAREABLE_KINDS:
+        record[kind + "_id"] = "SHARED-" + kind
+        record[kind + "_hash"] = identity_hash("shared:" + kind)
+    for kind in PRIVATE_KINDS:
         record[kind + "_id"] = catalog_id if kind == "action_catalog" else f"{agent_id}-{kind}"
-        record[kind + "_hash"] = catalog_hash if kind == "action_catalog" else HASH
+        record[kind + "_hash"] = (
+            catalog_hash
+            if kind == "action_catalog"
+            else identity_hash(agent_id + ":" + kind)
+        )
     return record
 
 

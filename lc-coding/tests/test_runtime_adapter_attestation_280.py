@@ -1,5 +1,6 @@
 from pathlib import Path
 import copy
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -122,10 +123,14 @@ HASH_C = "sha256:" + "c" * 64
 HASH_D = "sha256:" + "d" * 64
 CONFIG_HASH = "sha256:" + "e" * 64
 AS_OF = "2026-08-15T12:00:00Z"
-IDENTITY_KINDS = [
-    "policy", "action_catalog", "configuration", "private_memory_store",
-    "retriever", "write_credential_reference", "encryption_key_reference",
-    "audit_stream", "kill_switch", "fallback", "interface",
+SHAREABLE_KINDS = ["base_model", "runtime_provider"]
+PRIVATE_KINDS = [
+    "policy", "action_catalog", "configuration", "session",
+    "context_boundary", "private_memory_store", "vector_index", "retriever",
+    "write_credential_reference", "encryption_key_reference", "system_prompt",
+    "prompt_cache", "api_credential_reference", "mcp_credential_reference",
+    "tool_credential_reference", "audit_stream", "kill_switch", "fallback",
+    "interface",
 ]
 AUTHORITY_FLOW = (
     "OWNER_DECIDES_CALABASH_DEFINES_LCCODING_CONSTRUCTION_IMPLEMENTS_"
@@ -136,9 +141,16 @@ AUTHORITY_FLOW = (
 
 def agent(applicability, agent_id):
     record = {"applicability": applicability, "agent_id": agent_id}
-    for kind in IDENTITY_KINDS:
+    for kind in SHAREABLE_KINDS:
+        record[kind + "_id"] = "SHARED-" + kind
+        record[kind + "_hash"] = "sha256:" + hashlib.sha256(
+            ("shared:" + kind).encode("utf-8")
+        ).hexdigest()
+    for kind in PRIVATE_KINDS:
         record[kind + "_id"] = f"{agent_id}-{kind}"
-        record[kind + "_hash"] = HASH_A
+        record[kind + "_hash"] = "sha256:" + hashlib.sha256(
+            (agent_id + ":" + kind).encode("utf-8")
+        ).hexdigest()
     return record
 
 

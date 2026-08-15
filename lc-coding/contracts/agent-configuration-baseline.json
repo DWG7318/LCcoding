@@ -5,5 +5,6 @@
   "operations_applicability": ["REQUIRED"],
   "product_applicability": ["APPLICABLE_CORE", "APPLICABLE_EXTRA", "NOT_APPLICABLE"],
   "root_authority_flow": "OWNER_DECIDES_CALABASH_DEFINES_LCCODING_CONSTRUCTION_IMPLEMENTS_INDEPENDENT_VERIFICATION_OWNER_ACCEPTS_AUTHORIZED_RUNTIME_ADAPTER_MECHANICALLY_LOADS",
-  "agent_identity_kinds": ["policy", "action_catalog", "configuration", "private_memory_store", "retriever", "write_credential_reference", "encryption_key_reference", "audit_stream", "kill_switch", "fallback", "interface"]
+  "shareable_identity_kinds": ["base_model", "runtime_provider"],
+  "private_identity_kinds": ["policy", "action_catalog", "configuration", "session", "context_boundary", "private_memory_store", "vector_index", "retriever", "write_credential_reference", "encryption_key_reference", "system_prompt", "prompt_cache", "api_credential_reference", "mcp_credential_reference", "tool_credential_reference", "audit_stream", "kill_switch", "fallback", "interface"]
 }

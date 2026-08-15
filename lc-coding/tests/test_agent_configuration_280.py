@@ -1,5 +1,6 @@
 from pathlib import Path
 import copy
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -20,11 +21,16 @@ TOP_LEVEL_FIELDS = [
     "candidate_id", "candidate_hash", "root_authority", "operations_agent",
     "product_agent", "verification", "owner_acceptance",
 ]
-IDENTITY_KINDS = [
-    "policy", "action_catalog", "configuration", "private_memory_store",
-    "retriever", "write_credential_reference", "encryption_key_reference",
-    "audit_stream", "kill_switch", "fallback", "interface",
+SHAREABLE_KINDS = ["base_model", "runtime_provider"]
+PRIVATE_KINDS = [
+    "policy", "action_catalog", "configuration", "session",
+    "context_boundary", "private_memory_store", "vector_index", "retriever",
+    "write_credential_reference", "encryption_key_reference", "system_prompt",
+    "prompt_cache", "api_credential_reference", "mcp_credential_reference",
+    "tool_credential_reference", "audit_stream", "kill_switch", "fallback",
+    "interface",
 ]
+IDENTITY_KINDS = SHAREABLE_KINDS + PRIVATE_KINDS
 AUTHORITY_FLOW = (
     "OWNER_DECIDES_CALABASH_DEFINES_LCCODING_CONSTRUCTION_IMPLEMENTS_"
     "INDEPENDENT_VERIFICATION_OWNER_ACCEPTS_AUTHORIZED_RUNTIME_ADAPTER_"
@@ -34,7 +40,7 @@ contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
 assert set(contract) == {
     "schema_version", "artifact_role", "top_level_fields",
     "operations_applicability", "product_applicability",
-    "root_authority_flow", "agent_identity_kinds",
+    "root_authority_flow", "shareable_identity_kinds", "private_identity_kinds",
 }
 assert contract["schema_version"] == "2.8.0"
 assert contract["artifact_role"] == "AGENT_CONFIGURATION_BASELINE_CONTRACT"
@@ -43,7 +49,8 @@ assert contract["operations_applicability"] == ["REQUIRED"]
 assert contract["product_applicability"] == [
     "APPLICABLE_CORE", "APPLICABLE_EXTRA", "NOT_APPLICABLE",
 ]
-assert contract["agent_identity_kinds"] == IDENTITY_KINDS
+assert contract["shareable_identity_kinds"] == SHAREABLE_KINDS
+assert contract["private_identity_kinds"] == PRIVATE_KINDS
 assert contract["root_authority_flow"] == AUTHORITY_FLOW
 
 
@@ -60,11 +67,18 @@ HASH = "sha256:" + "a" * 64
 CANDIDATE_HASH = "sha256:" + "b" * 64
 
 
+def identity_hash(label):
+    return "sha256:" + hashlib.sha256(label.encode("utf-8")).hexdigest()
+
+
 def agent(applicability, agent_id):
     record = {"applicability": applicability, "agent_id": agent_id}
-    for name in IDENTITY_KINDS:
+    for name in SHAREABLE_KINDS:
+        record[name + "_id"] = "SHARED-" + name
+        record[name + "_hash"] = identity_hash("shared:" + name)
+    for name in PRIVATE_KINDS:
         record[name + "_id"] = f"{agent_id}-{name}"
-        record[name + "_hash"] = HASH
+        record[name + "_hash"] = identity_hash(agent_id + ":" + name)
     return record
 
 
@@ -135,6 +149,9 @@ changed = copy.deepcopy(base); changed["verification"]["candidate_id"] = "CANDID
 changed = copy.deepcopy(base); changed["owner_acceptance"]["candidate_hash"] = HASH; mutations.append(changed)
 changed = copy.deepcopy(base); changed["verification"]["configuration_baseline_id"] = "ACB-2"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["verification"]["independent_verifier_id"] = "OPS-1"; mutations.append(changed)
+for kind in PRIVATE_KINDS:
+    changed = copy.deepcopy(base); changed["product_agent"][kind + "_id"] = changed["operations_agent"][kind + "_id"]; mutations.append(changed)
+    changed = copy.deepcopy(base); changed["product_agent"][kind + "_hash"] = changed["operations_agent"][kind + "_hash"]; mutations.append(changed)
 for changed in mutations:
     assert validator.validate_configuration(changed, "CANDIDATE-1", CANDIDATE_HASH)
 

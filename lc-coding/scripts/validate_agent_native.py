@@ -10,7 +10,9 @@ ACTION_CONTRACT=json.loads(ACTION_CONTRACT_PATH.read_text(encoding='utf-8'))
 RUNTIME_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/runtime-adapter-attestation.json'
 RUNTIME_CONTRACT=json.loads(RUNTIME_CONTRACT_PATH.read_text(encoding='utf-8'))
 TOP=set(CONTRACT['top_level_fields'])
-KINDS=tuple(CONTRACT['agent_identity_kinds'])
+SHAREABLE_KINDS=tuple(CONTRACT['shareable_identity_kinds'])
+PRIVATE_KINDS=tuple(CONTRACT['private_identity_kinds'])
+KINDS=SHAREABLE_KINDS+PRIVATE_KINDS
 AGENT_FIELDS={'applicability','agent_id'}|{suffix for kind in KINDS for suffix in (kind+'_id',kind+'_hash')}
 ROOT_FIELDS={'authority_flow','root_authority_id','root_authority_hash','scorpion_policy_id','scorpion_policy_hash','secrets_storage','runtime_permission'}
 VERIFY_FIELDS={'verification_id','candidate_id','candidate_hash','configuration_baseline_id','independent_verifier_id','evidence_id','evidence_hash','result'}
@@ -131,6 +133,8 @@ def validate_agent(value,label,allowed,errors):
     for kind in KINDS:
         if not safe_id(record.get(kind+'_id')): errors.append(label+' '+kind+'_id is invalid')
         if not exact_hash(record.get(kind+'_hash')): errors.append(label+' '+kind+'_hash must be lowercase sha256')
+    private_ids=[str(record.get(kind+'_id','')).casefold() for kind in PRIVATE_KINDS]
+    if len(set(private_ids))!=len(PRIVATE_KINDS): errors.append(label+' private identity IDs must be unique')
     return record.get('agent_id')
 def validate_configuration(value,expected_candidate_id=None,expected_candidate_hash=None):
     errors=[]; record=closed(value,TOP,'configuration baseline',errors)
@@ -151,6 +155,15 @@ def validate_configuration(value,expected_candidate_id=None,expected_candidate_h
     operations_id=validate_agent(record.get('operations_agent'),'operations_agent',{'REQUIRED'},errors)
     product_id=validate_agent(record.get('product_agent'),'product_agent',set(CONTRACT['product_applicability']),errors)
     if operations_id and product_id and operations_id.casefold()==product_id.casefold(): errors.append('Product and Operations Agents must not alias')
+    if operations_id and product_id:
+        operations=record.get('operations_agent',{})
+        product=record.get('product_agent',{})
+        operations_private_ids={str(operations.get(kind+'_id','')).casefold() for kind in PRIVATE_KINDS}
+        product_private_ids={str(product.get(kind+'_id','')).casefold() for kind in PRIVATE_KINDS}
+        operations_private_hashes={operations.get(kind+'_hash') for kind in PRIVATE_KINDS}
+        product_private_hashes={product.get(kind+'_hash') for kind in PRIVATE_KINDS}
+        if operations_private_ids&product_private_ids: errors.append('Product and Operations private identity IDs must be disjoint')
+        if operations_private_hashes&product_private_hashes: errors.append('Product and Operations private identity hashes must be disjoint')
     verification=closed(record.get('verification'),VERIFY_FIELDS,'verification',errors)
     acceptance=closed(record.get('owner_acceptance'),ACCEPT_FIELDS,'owner_acceptance',errors)
     for label,item,id_field in (('verification',verification,'verification_id'),('owner_acceptance',acceptance,'acceptance_id')):

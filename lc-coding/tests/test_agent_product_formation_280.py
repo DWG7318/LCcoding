@@ -131,9 +131,16 @@ PRODUCT_BASELINE_HASH = "sha256:" + "d" * 64
 
 def configured_agent(applicability, agent_id):
     record = {"applicability": applicability, "agent_id": agent_id}
-    for kind in validator.KINDS:
+    for kind in validator.SHAREABLE_KINDS:
+        record[kind + "_id"] = "SHARED-" + kind
+        record[kind + "_hash"] = "sha256:" + hashlib.sha256(
+            ("shared:" + kind).encode("utf-8")
+        ).hexdigest()
+    for kind in validator.PRIVATE_KINDS:
         record[kind + "_id"] = f"{agent_id}-{kind}"
-        record[kind + "_hash"] = HASH
+        record[kind + "_hash"] = "sha256:" + hashlib.sha256(
+            (agent_id + ":" + kind).encode("utf-8")
+        ).hexdigest()
     return record
 
 
