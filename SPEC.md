@@ -169,6 +169,8 @@ A Product Agent participates in user business behavior. Calabash determines whet
 
 An Operations Agent is required for every 2.8 project. It observes and assists with product operation and maintenance and must be truly connected during Real Product Integration; a dashboard, chatbot, Construction Agent, or read-only status explanation cannot substitute for it. Product Agent and Operations Agent may both exist, but they are two independent logical Agents. A single Agent using role switching, prompt switching, namespaces, or two memory modes is not conformant.
 
+Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#agent-classes-and-applicability).
+
 <a id="lc-agent-002"></a>
 ### LC-AGENT-002 — Agent Configuration Baseline and Runtime neutrality
 
@@ -189,6 +191,8 @@ LCCoding defines platform-neutral capabilities, Adapter/attestation shape, and a
 
 Root identity, permission ceiling, memory boundary, Scorpion constraints, credentials, encryption keys, audit policy, and Kill Switch remain protected Owner configuration. A Product Agent may manage only authorized user preferences and its own bounded session memory. An Operations Agent may propose a configuration delta, but protected changes require exact Owner approval and affected re-verification. LCCoding creates no third configuration Agent.
 
+Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#configuration-authority-and-runtime-neutrality).
+
 <a id="lc-agent-003"></a>
 ### LC-AGENT-003 — Dual-Agent isolation and controlled operations
 
@@ -197,6 +201,8 @@ When a Product Agent applies, Product and Operations Agents have distinct Agent 
 Cross-Agent communication uses only typed, minimal, policy-checked, redacted, provenance-bound, audited events, initially `MAINTENANCE_REQUEST` and `SERVICE_STATUS_UPDATE`. Natural-language messages cannot convey administrator authority, credentials, root approval, raw sessions, private memory, unmanaged summaries, prompts, or prompt caches. Private memory from either Agent cannot enter online training or shared-model weight updates.
 
 The Operations Agent minimum path is `observe → diagnose → propose → Owner authorization or exact bounded pre-authorization → deterministic action → verify → rollback when required → audit`. Every action is a closed Action Catalog record with bounded target/input, preconditions, authorization, deterministic Adapter operation, postconditions, verification, rollback, audit, timeout, and retry policy. Authorization is exactly `OWNER_APPROVAL_REQUIRED` or `CALABASH_PREAUTHORIZED_BOUNDED`. The latter is permitted only for individually identified low-risk actions with exact scope, expiry, verification, rollback, and audit; it cannot cover data deletion, permissions, release, upgrade, database migration, credentials, protected root configuration, Kill Switch, or irreversible work. No Agent may self-authorize or modify its protected controls.
+
+Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#dual-agent-isolation-and-typed-events).
 
 ## Real Product Integration
 
@@ -264,6 +270,8 @@ Feature Slice remains the sole product-progress unit. Slice class is exactly one
 Every 2.8 project has at least one accepted required OPERATIONS Slice proving real telemetry/log/event → Operations Agent observation/diagnosis/proposal → exact Policy and authorization → deterministic maintenance action → verification/rollback → audit and visible status. Read-only explanation alone is insufficient. Both Slice classes bind the same exact Product Baseline, Agent Configuration Baseline, production topology, Runtime Adapter attestation, candidate, Impact, Verification, and Owner acceptance where applicable.
 
 The existing UI one-way Owner lock, Workflow controlled mutability, Simulation versioned mutability, and Calabash impact trace remain. Simulation covers the same capability, authorization, abnormal condition, fallback, failure, recovery, and audit semantics but is neither production backend nor Agent self-verification. This clause adds no phase, gate, Feature-Slice alternative, Runtime, or execution method.
+
+Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#topology-slices-and-shared-baseline).
 
 ## Runs, verification, and acceptance
 
@@ -358,6 +366,8 @@ Agent-native security coverage binds the exact candidate, Agent Configuration Ba
 Operations Agent failure must be visible, alertable, degradable, and recoverable and does not by default stop unrelated core business behavior. Product Agent failure stops core behavior only when Calabash classifies that Agent capability as CORE and defines no accepted non-Agent fallback. No fallback may expand permission, merge Agents, bypass Scorpion, use stale credentials, disable audit, or convert a proposal into an action.
 
 A change to Agent applicability, Policy, Action Catalog, private-memory/credential boundary, Adapter, Runtime, model capability, topology, typed-event schema, fallback, or Agent attack surface follows Impact Analysis and invalidates affected engineering evidence, vulnerability closure, Post-Security Owner Acceptance, and `DELIVERY_READY` for the changed identity. Runtime replacement is material unless exact evidence-equivalence is proved under LC-SEC-002. This clause uses the existing status, security, acceptance, and Delivery relationships and adds no new security or Delivery gate.
+
+Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#security-degradation-replacement-and-delivery).
 
 <a id="lc-delivery-001"></a>
 ### LC-DELIVERY-001 — Protected delivery

@@ -643,6 +643,77 @@ def projection_errors(path: Path, text: str):
     return errors
 
 
+AGENT_NATIVE_REFERENCE = root / "lc-coding/references/agent-native-integration.md"
+assert AGENT_NATIVE_REFERENCE.is_file(), "missing focused Agent-native explanation"
+assert historical_kind(AGENT_NATIVE_REFERENCE) == "ACTIVE_OR_OTHER"
+agent_native_reference = AGENT_NATIVE_REFERENCE.read_text(encoding="utf-8")
+assert agent_native_reference.startswith("# Agent-native integration\n")
+AGENT_GUIDANCE = {
+    "LC-AGENT-001": "agent-classes-and-applicability",
+    "LC-AGENT-002": "configuration-authority-and-runtime-neutrality",
+    "LC-AGENT-003": "dual-agent-isolation-and-typed-events",
+    "LC-INTEG-004": "topology-slices-and-shared-baseline",
+    "LC-SEC-003": "security-degradation-replacement-and-delivery",
+}
+agent_sections = re.findall(
+    r'(?ms)^<a id="([a-z0-9-]+)"></a>\n## ([^\n]+)\n\n(.*?)(?=^<a id="|\Z)',
+    agent_native_reference,
+)
+assert {anchor for anchor, _, _ in agent_sections} == set(AGENT_GUIDANCE.values())
+assert len(agent_sections) == len(AGENT_GUIDANCE)
+agent_source_union = set()
+for anchor, _, body in agent_sections:
+    source_lines = SOURCE_LINE_RE.findall(body)
+    assert len(source_lines) == 1, f"{anchor}: requires exactly one Source clauses line"
+    links = SOURCE_LINK_RE.findall(source_lines[0])
+    assert len(links) == 1, f"{anchor}: source line must bind one focused clause"
+    clause_id, relative, clause_anchor = links[0]
+    expected_id = next(
+        item for item, expected_anchor in AGENT_GUIDANCE.items()
+        if expected_anchor == anchor
+    )
+    assert clause_id == expected_id
+    assert clause_anchor == clause_id.lower()
+    assert (AGENT_NATIVE_REFERENCE.parent / relative).resolve() == (
+        root / "SPEC.md"
+    ).resolve()
+    assert clause_anchor in anchors
+    agent_source_union.add(clause_id)
+    outside_source = "\n".join(
+        line for line in body.splitlines() if not line.startswith("Source clauses:")
+    )
+    assert not re.search(r"\bLC-[A-Z]+-\d{3}\b", outside_source), (
+        f"{anchor}: clause IDs may appear only on the Source clauses line"
+    )
+assert agent_source_union == set(AGENT_GUIDANCE)
+assert set(re.findall(r"\bLC-[A-Z]+-\d{3}\b", agent_native_reference)) == set(
+    AGENT_GUIDANCE
+)
+for clause_id, focused_anchor in AGENT_GUIDANCE.items():
+    links = re.findall(
+        r"\[Agent-native integration guidance\]"
+        r"\(lc-coding/references/agent-native-integration\.md#([a-z0-9-]+)\)",
+        clause_body(clause_id),
+    )
+    assert links == [focused_anchor], f"{clause_id}: focused navigation drifted"
+for marker in (
+    "SPEC.md is the sole complete semantic authority",
+    "Construction Agent", "Product Agent", "Operations Agent",
+    "Owner", "Calabash", "Runtime Adapter",
+    "private memory", "typed events",
+    "SELECT", "COMPOSE", "FEDERATE", "RETIRE",
+    "PRODUCT", "OPERATIONS", "shared Integration Baseline",
+    "degradation", "fallback", "replacement", "Delivery",
+):
+    assert marker in agent_native_reference, marker
+for forbidden in (
+    "LCagent", "fifth phase", "new phase", "new gate",
+    "Runtime implementation guide", "fixed provider", "fixed model",
+):
+    assert forbidden.casefold() not in agent_native_reference.casefold(), forbidden
+assert not projection_errors(AGENT_NATIVE_REFERENCE, agent_native_reference)
+
+
 for projection in PROJECTIONS:
     projection_text = projection.read_text(encoding="utf-8")
     errors = projection_errors(projection, projection_text)

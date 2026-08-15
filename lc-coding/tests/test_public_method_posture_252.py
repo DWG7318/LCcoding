@@ -25,6 +25,21 @@ require(
     "讨论和贡献",
     "规范主线",
 )
+require(
+    "lc-coding/SKILL.md",
+    "Agent-native integration",
+    "references/agent-native-integration.md",
+)
+require(
+    "README.md",
+    "Agent-native integration",
+    "lc-coding/references/agent-native-integration.md",
+)
+require(
+    "README.zh-CN.md",
+    "Agent-native 集成",
+    "lc-coding/references/agent-native-integration.md",
+)
 
 
 def navigation_targets(relative):
@@ -59,6 +74,7 @@ assert {
     "lc-coding/references/vulnerability-closure.md",
     "lc-coding/references/delivery-governance.md",
     "lc-coding/references/built-in-bi.md",
+    "lc-coding/references/agent-native-integration.md",
 }.issubset(english_navigation)
 
 print("PASS: public method posture preserves adaptable use and canonical ownership")

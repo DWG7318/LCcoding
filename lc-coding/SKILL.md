@@ -64,6 +64,12 @@ Pin the applicable UI subtree to the one total project repository and total-proj
 
 Each Slice proves a real UI operation through a real API/MCP-backed Workflow to state/data/side effects and a visible result. Static UI, mock, stub, or manually staged state is demonstration evidence, not integration proof. Details: [Feature Slice and integration](references/feature-slice-and-integration.md).
 
+## Agent-native integration entry
+
+Source clauses: [LC-AGENT-001](../SPEC.md#lc-agent-001), [LC-AGENT-002](../SPEC.md#lc-agent-002), [LC-AGENT-003](../SPEC.md#lc-agent-003), [LC-INTEG-004](../SPEC.md#lc-integ-004), [LC-SEC-003](../SPEC.md#lc-sec-003)
+
+For 2.8 Agent-native work, use the focused [Agent-native integration guidance](references/agent-native-integration.md) to navigate class boundaries, configuration authority, private isolation and typed events, production topology and Slice proof, and security/degradation evidence. `SPEC.md` remains the complete semantic authority.
+
 ## Cross-phase execution axis
 
 Source clauses: [LC-RUN-001](../SPEC.md#lc-run-001), [LC-RUN-002](../SPEC.md#lc-run-002), [LC-RUN-003](../SPEC.md#lc-run-003), [LC-COMPAT-002](../SPEC.md#lc-compat-002)
