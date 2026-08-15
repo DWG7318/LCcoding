@@ -194,9 +194,19 @@ with tempfile.TemporaryDirectory(prefix="agent-config-280-") as temporary:
     path.write_text(json.dumps({**base, "candidate_hash": float("nan")}), encoding="utf-8")
     assert validator.validate_file(path)
 
-    status = {"status_schema_version": "2.8.0", "canonical_candidate": {
-        "candidate_id": "CANDIDATE-1", "candidate_hash": CANDIDATE_HASH,
-    }}
+    current_status = json.loads(
+        (ROOT / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
+    )
+    assert current_status["agent_slice_integration"]["state"] == "UNPROVED"
+    status = {
+        "status_schema_version": "2.8.0",
+        "canonical_candidate": {
+            "candidate_id": "CANDIDATE-1", "candidate_hash": CANDIDATE_HASH,
+        },
+        "agent_slice_integration": copy.deepcopy(
+            current_status["agent_slice_integration"]
+        ),
+    }
     path.write_text(json.dumps(base) + "\n", encoding="utf-8")
     assert project_validator.validate_agent_native_artifacts(lc, status) == []
     path.write_bytes(b"\xff")

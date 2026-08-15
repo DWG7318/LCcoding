@@ -22,6 +22,21 @@ UNPROVED_AGENT_PRODUCT_FORMATION = {
     "product_agent_capability_state": "UNPROVED",
     "operations_agent_state": "UNPROVED",
 }
+UNPROVED_AGENT_SLICE_INTEGRATION = {
+    "state": "UNPROVED", "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE", "product_baseline_id": "NOT_APPLICABLE",
+    "product_baseline_hash": "NOT_APPLICABLE", "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE", "production_topology_id": "NOT_APPLICABLE",
+    "production_topology_hash": "NOT_APPLICABLE", "runtime_adapter_attestation_id": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_hash": "NOT_APPLICABLE", "runtime_adapter_id": "NOT_APPLICABLE",
+    "runtime_adapter_version": "NOT_APPLICABLE", "dual_agent_isolation_state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED", "product_integration_state": "UNPROVED",
+    "product_agent_integration_state": "UNPROVED", "operations_agent_integration_state": "UNPROVED",
+    "accepted_product_slice_ids": [], "accepted_operations_slice_ids": [],
+    "required_operations_slice_id": "NOT_APPLICABLE", "current_product_slice_reference": "NOT_APPLICABLE",
+    "product_verification_reference": "NOT_APPLICABLE", "current_operations_slice_reference": "NOT_APPLICABLE",
+    "operations_verification_reference": "NOT_APPLICABLE", "integration_baseline_reference": "NOT_APPLICABLE",
+}
 
 
 def run(command, cwd=None, check=True):
@@ -352,6 +367,8 @@ def make_project(
     )
     assert status["agent_product_formation"] == UNPROVED_AGENT_PRODUCT_FORMATION
     status.pop("agent_product_formation")
+    assert status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
+    status.pop("agent_slice_integration")
     status["status_schema_version"] = "2.6.0"
     status["project_id"] = "migration-fixture"
     status["initialization_mode"] = "NEW"
@@ -858,6 +875,21 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-270-") as temporary:
     result = migrate(hybrid, hybrid_output)
     assert result.returncode != 0 and not hybrid_output.exists()
     assert "agent_product_formation" in result.stdout
+
+    hybrid_slice = base / "hybrid-agent-slice-status-source"
+    make_project(hybrid_slice)
+    hybrid_slice_status_path = hybrid_slice / ".lccoding/status.json"
+    hybrid_slice_status = json.loads(hybrid_slice_status_path.read_text(encoding="utf-8"))
+    hybrid_slice_status["agent_slice_integration"] = copy.deepcopy(
+        UNPROVED_AGENT_SLICE_INTEGRATION
+    )
+    write(hybrid_slice_status_path, json.dumps(hybrid_slice_status, indent=2) + "\n")
+    hybrid_slice_before = snapshot(hybrid_slice)
+    hybrid_slice_output = base / "hybrid-agent-slice-status-output"
+    result = migrate(hybrid_slice, hybrid_slice_output)
+    assert result.returncode != 0 and not hybrid_slice_output.exists()
+    assert "agent_slice_integration" in result.stdout
+    assert_source_unchanged(hybrid_slice, hybrid_slice_before)
     assert_source_unchanged(hybrid, hybrid_before)
 
     for label, schema in (

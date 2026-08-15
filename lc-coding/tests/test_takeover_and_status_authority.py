@@ -30,6 +30,21 @@ UNPROVED_AGENT_PRODUCT_FORMATION = {
     "product_agent_capability_state": "UNPROVED",
     "operations_agent_state": "UNPROVED",
 }
+UNPROVED_AGENT_SLICE_INTEGRATION = {
+    "state": "UNPROVED", "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE", "product_baseline_id": "NOT_APPLICABLE",
+    "product_baseline_hash": "NOT_APPLICABLE", "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE", "production_topology_id": "NOT_APPLICABLE",
+    "production_topology_hash": "NOT_APPLICABLE", "runtime_adapter_attestation_id": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_hash": "NOT_APPLICABLE", "runtime_adapter_id": "NOT_APPLICABLE",
+    "runtime_adapter_version": "NOT_APPLICABLE", "dual_agent_isolation_state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED", "product_integration_state": "UNPROVED",
+    "product_agent_integration_state": "UNPROVED", "operations_agent_integration_state": "UNPROVED",
+    "accepted_product_slice_ids": [], "accepted_operations_slice_ids": [],
+    "required_operations_slice_id": "NOT_APPLICABLE", "current_product_slice_reference": "NOT_APPLICABLE",
+    "product_verification_reference": "NOT_APPLICABLE", "current_operations_slice_reference": "NOT_APPLICABLE",
+    "operations_verification_reference": "NOT_APPLICABLE", "integration_baseline_reference": "NOT_APPLICABLE",
+}
 
 assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
@@ -69,6 +84,8 @@ def legacy_phase_view(current_view):
 
 # Exact 2.7 schema remains readable with its legacy phase identity.
 legacy_status_270 = copy.deepcopy(status)
+assert legacy_status_270["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
+legacy_status_270.pop("agent_slice_integration")
 assert (
     legacy_status_270["agent_product_formation"]
     == UNPROVED_AGENT_PRODUCT_FORMATION
@@ -88,6 +105,11 @@ assert any(
         hybrid_legacy, legacy_view_270, health
     )
 )
+hybrid_slice_legacy = copy.deepcopy(legacy_status_270)
+hybrid_slice_legacy["agent_slice_integration"] = copy.deepcopy(
+    UNPROVED_AGENT_SLICE_INTEGRATION
+)
+assert module.validate_status_authority(hybrid_slice_legacy, legacy_view_270, health)
 
 # Schema and identity cannot be mixed, inferred, or crossed.
 mixed_schema_view = legacy_phase_view(phase_status)
@@ -212,6 +234,8 @@ engineering_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "ACTIVE"
 assert module.validate_status_authority(engineering_status, engineering_view, health) == []
 
 legacy_engineering_status = copy.deepcopy(engineering_status)
+assert legacy_engineering_status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
+legacy_engineering_status.pop("agent_slice_integration")
 assert (
     legacy_engineering_status["agent_product_formation"]
     == UNPROVED_AGENT_PRODUCT_FORMATION

@@ -50,6 +50,21 @@ UNPROVED_AGENT_PRODUCT_FORMATION = {
     "product_agent_capability_state": "UNPROVED",
     "operations_agent_state": "UNPROVED",
 }
+UNPROVED_AGENT_SLICE_INTEGRATION = {
+    "state": "UNPROVED", "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE", "product_baseline_id": "NOT_APPLICABLE",
+    "product_baseline_hash": "NOT_APPLICABLE", "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE", "production_topology_id": "NOT_APPLICABLE",
+    "production_topology_hash": "NOT_APPLICABLE", "runtime_adapter_attestation_id": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_hash": "NOT_APPLICABLE", "runtime_adapter_id": "NOT_APPLICABLE",
+    "runtime_adapter_version": "NOT_APPLICABLE", "dual_agent_isolation_state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED", "product_integration_state": "UNPROVED",
+    "product_agent_integration_state": "UNPROVED", "operations_agent_integration_state": "UNPROVED",
+    "accepted_product_slice_ids": [], "accepted_operations_slice_ids": [],
+    "required_operations_slice_id": "NOT_APPLICABLE", "current_product_slice_reference": "NOT_APPLICABLE",
+    "product_verification_reference": "NOT_APPLICABLE", "current_operations_slice_reference": "NOT_APPLICABLE",
+    "operations_verification_reference": "NOT_APPLICABLE", "integration_baseline_reference": "NOT_APPLICABLE",
+}
 START_ROLE = "RUN_START_CONTRACT"
 RECEIPT_ROLE = "LOOP_OWNER_ACCEPTANCE_RECEIPT"
 START_REQUIRED = {
@@ -785,6 +800,8 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
 
     status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
     if schema in {"2.6.0", "2.7.0"}:
+        assert status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
+        status.pop("agent_slice_integration")
         assert (
             status["agent_product_formation"]
             == UNPROVED_AGENT_PRODUCT_FORMATION
@@ -909,6 +926,21 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
     result = validate_cli(seed)
     assert result.returncode != 0
     assert "agent_product_formation" in result.stdout
+
+    legacy_slice_hybrid_status = json.loads(
+        legacy_hybrid_status_path.read_text(encoding="utf-8")
+    )
+    legacy_slice_hybrid_status.pop("agent_product_formation")
+    legacy_slice_hybrid_status["agent_slice_integration"] = copy.deepcopy(
+        UNPROVED_AGENT_SLICE_INTEGRATION
+    )
+    write(
+        legacy_hybrid_status_path,
+        json.dumps(legacy_slice_hybrid_status, indent=2) + "\n",
+    )
+    result = validate_cli(seed)
+    assert result.returncode != 0
+    assert "agent_slice_integration" in result.stdout
 
     current_280 = base / "current-280"
     build_cli_project(current_280, schema="2.8.0")

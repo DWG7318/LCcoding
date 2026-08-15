@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +65,49 @@ UNPROVED_STATUS = {
     "product_agent_capability_state": "UNPROVED",
     "operations_agent_state": "UNPROVED",
 }
+AGENT_SLICE_INTEGRATION_FIELDS = {
+    "state", "candidate_id", "candidate_hash",
+    "product_baseline_id", "product_baseline_hash",
+    "configuration_baseline_id", "configuration_baseline_hash",
+    "production_topology_id", "production_topology_hash",
+    "runtime_adapter_attestation_id", "runtime_adapter_attestation_hash",
+    "runtime_adapter_id", "runtime_adapter_version",
+    "dual_agent_isolation_state", "product_agent_applicability",
+    "product_integration_state", "product_agent_integration_state",
+    "operations_agent_integration_state", "accepted_product_slice_ids",
+    "accepted_operations_slice_ids", "required_operations_slice_id",
+    "current_product_slice_reference", "product_verification_reference",
+    "current_operations_slice_reference", "operations_verification_reference",
+    "integration_baseline_reference",
+}
+UNPROVED_AGENT_SLICE_INTEGRATION = {
+    "state": "UNPROVED",
+    "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE",
+    "product_baseline_id": "NOT_APPLICABLE",
+    "product_baseline_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "production_topology_id": "NOT_APPLICABLE",
+    "production_topology_hash": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_id": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_hash": "NOT_APPLICABLE",
+    "runtime_adapter_id": "NOT_APPLICABLE",
+    "runtime_adapter_version": "NOT_APPLICABLE",
+    "dual_agent_isolation_state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "product_integration_state": "UNPROVED",
+    "product_agent_integration_state": "UNPROVED",
+    "operations_agent_integration_state": "UNPROVED",
+    "accepted_product_slice_ids": [],
+    "accepted_operations_slice_ids": [],
+    "required_operations_slice_id": "NOT_APPLICABLE",
+    "current_product_slice_reference": "NOT_APPLICABLE",
+    "product_verification_reference": "NOT_APPLICABLE",
+    "current_operations_slice_reference": "NOT_APPLICABLE",
+    "operations_verification_reference": "NOT_APPLICABLE",
+    "integration_baseline_reference": "NOT_APPLICABLE",
+}
 
 
 def fields(text):
@@ -91,6 +135,8 @@ assert HANDOFF_FIELDS <= set(fields(handoff_template))
 status_template = json.loads(STATUS_TEMPLATE.read_text(encoding="utf-8"))
 assert set(status_template["agent_product_formation"]) == STATUS_FIELDS
 assert status_template["agent_product_formation"] == UNPROVED_STATUS
+assert set(status_template["agent_slice_integration"]) == AGENT_SLICE_INTEGRATION_FIELDS
+assert status_template["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
 
 
 def load_module(name, path):
@@ -104,6 +150,7 @@ validator = load_module("agent_product_formation_validator", VALIDATOR)
 project_validator = load_module("agent_product_formation_project_validator", PROJECT_VALIDATOR)
 assert hasattr(validator, "validate_product_formation")
 assert hasattr(validator, "validate_product_formation_files")
+assert hasattr(project_validator, "validate_agent_slice_status")
 
 assert project_validator.validate_security_status_shape(status_template) == []
 missing_current = copy.deepcopy(status_template)
@@ -113,12 +160,19 @@ unknown_current = copy.deepcopy(status_template)
 unknown_current["unknown_status_authority"] = "PENDING"
 assert project_validator.validate_security_status_shape(unknown_current)
 legacy_status = copy.deepcopy(status_template)
+assert legacy_status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
+legacy_status.pop("agent_slice_integration")
 legacy_status["status_schema_version"] = "2.7.0"
 legacy_status.pop("agent_product_formation")
 assert project_validator.validate_security_status_shape(legacy_status) == []
 hybrid_legacy = copy.deepcopy(legacy_status)
 hybrid_legacy["agent_product_formation"] = copy.deepcopy(UNPROVED_STATUS)
 assert project_validator.validate_security_status_shape(hybrid_legacy)
+hybrid_slice_legacy = copy.deepcopy(legacy_status)
+hybrid_slice_legacy["agent_slice_integration"] = copy.deepcopy(
+    UNPROVED_AGENT_SLICE_INTEGRATION
+)
+assert project_validator.validate_security_status_shape(hybrid_slice_legacy)
 missing_legacy = copy.deepcopy(legacy_status)
 missing_legacy.pop("next_action")
 assert project_validator.validate_security_status_shape(missing_legacy)
@@ -359,5 +413,206 @@ with tempfile.TemporaryDirectory(prefix="agent-product-formation-280-") as tempo
     assert validator.validate_product_formation_files(
         rule_path, handoff_path, status_path, config_path,
     )
+
+assert project_validator.validate_agent_slice_status(Path("."), status_template) == []
+
+slice_fixtures = load_module(
+    "agent_slice_status_slice_fixtures",
+    ROOT / "lc-coding/tests/test_agent_slices_280.py",
+)
+topology_fixtures = load_module(
+    "agent_slice_status_topology_fixtures",
+    ROOT / "lc-coding/tests/test_production_topology_280.py",
+)
+runtime_fixtures = load_module(
+    "agent_slice_status_runtime_fixtures",
+    ROOT / "lc-coding/tests/test_runtime_adapter_attestation_280.py",
+)
+
+
+def json_bytes(value):
+    return (json.dumps(value, indent=2) + "\n").encode("utf-8")
+
+
+def exact_file_hash(raw):
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def build_agent_slice_status_project(root, applicability="APPLICABLE_CORE"):
+    lc = root / ".lccoding"
+    slices = lc / "slices"
+    slices.mkdir(parents=True)
+    config = configuration(applicability)
+    config_raw = json_bytes(config)
+    config_hash = exact_file_hash(config_raw)
+    (lc / "AGENT-CONFIGURATION-BASELINE.json").write_bytes(config_raw)
+
+    topology = topology_fixtures.valid_topology("MONOLITH")
+    topology["configuration_baseline"]["configuration_baseline_hash"] = config_hash
+    for route in topology["routes"]:
+        agent_slot = "product_agent" if route["route_kind"] == "PRODUCT" else "operations_agent"
+        agent_record = config[agent_slot]
+        for field in ("agent_id", "configuration_id", "configuration_hash"):
+            route[field] = agent_record[field]
+    topology_raw = json_bytes(topology)
+    topology_hash = exact_file_hash(topology_raw)
+    (lc / "PRODUCTION-EXECUTION-TOPOLOGY.json").write_bytes(topology_raw)
+
+    attestation = runtime_fixtures.valid_attestation(config)
+    attestation["configuration_baseline"]["configuration_baseline_hash"] = config_hash
+    attestation["production_topology"] = {
+        "production_topology_id": topology["topology_id"],
+        "production_topology_hash": topology_hash,
+    }
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    attestation["validity"] = {
+        "observed_at_utc": (now - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "validated_at_utc": (now - timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "expires_at_utc": (now + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    for index, event in enumerate(attestation["typed_event_attestations"], 1):
+        event["event_at_utc"] = (now - timedelta(minutes=25 - index)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+    attestation_raw = json_bytes(attestation)
+    attestation_hash = exact_file_hash(attestation_raw)
+    (lc / "RUNTIME-ADAPTER-ATTESTATION.json").write_bytes(attestation_raw)
+
+    actor_kind = "UI_ACTOR" if applicability == "NOT_APPLICABLE" else None
+    product = slice_fixtures.documents("PRODUCT", config, actor_kind)
+    operations = slice_fixtures.documents("OPERATIONS", config)
+    identities = {
+        "Agent Slice Configuration Baseline identity": slice_fixtures.evidence_ref(
+            "ACB-1", config_hash, "agent-configuration"
+        ),
+        "Agent Slice Production Topology identity": slice_fixtures.evidence_ref(
+            topology["topology_id"], topology_hash, "production-topology"
+        ),
+        "Agent Slice Runtime Adapter Attestation identity": slice_fixtures.evidence_ref(
+            attestation["attestation_id"], attestation_hash, "runtime-adapter"
+        ),
+    }
+    for records in (product, operations):
+        for record in records[:3]:
+            for field, value in identities.items():
+                record[field] = value
+    product_texts = slice_fixtures.texts(product)
+    operations_texts = slice_fixtures.texts(operations)
+    assert product_texts[2].encode("utf-8") == operations_texts[2].encode("utf-8")
+    paths = {
+        "current_product_slice_reference": "slices/PRODUCT-FEATURE.md",
+        "product_verification_reference": "slices/PRODUCT-FINAL.md",
+        "current_operations_slice_reference": "slices/OPERATIONS-FEATURE.md",
+        "operations_verification_reference": "slices/OPERATIONS-FINAL.md",
+        "integration_baseline_reference": "INTEGRATION-BASELINE.md",
+    }
+    for name, text in (
+        (paths["current_product_slice_reference"], product_texts[0]),
+        (paths["product_verification_reference"], product_texts[1]),
+        (paths["current_operations_slice_reference"], operations_texts[0]),
+        (paths["operations_verification_reference"], operations_texts[1]),
+        (paths["integration_baseline_reference"], product_texts[2]),
+    ):
+        target = lc / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8", newline="\n")
+
+    status = fixture(applicability)[2]
+    status["product_baseline"] = "ACCEPTED"
+    status["agent_slice_integration"] = {
+        "state": "AGENT_SLICES_ACCEPTED",
+        "candidate_id": "CANDIDATE-1",
+        "candidate_hash": CANDIDATE_HASH,
+        "product_baseline_id": "PRODUCT-BASELINE-1",
+        "product_baseline_hash": slice_fixtures.PRODUCT_BASELINE_HASH,
+        "configuration_baseline_id": "ACB-1",
+        "configuration_baseline_hash": config_hash,
+        "production_topology_id": topology["topology_id"],
+        "production_topology_hash": topology_hash,
+        "runtime_adapter_attestation_id": attestation["attestation_id"],
+        "runtime_adapter_attestation_hash": attestation_hash,
+        "runtime_adapter_id": attestation["runtime_adapter"]["adapter_id"],
+        "runtime_adapter_version": attestation["runtime_adapter"]["adapter_version"],
+        "dual_agent_isolation_state": "VERIFIED",
+        "product_agent_applicability": applicability,
+        "product_integration_state": "ACCEPTED",
+        "product_agent_integration_state": (
+            "NOT_APPLICABLE" if applicability == "NOT_APPLICABLE" else "ACCEPTED"
+        ),
+        "operations_agent_integration_state": "ACCEPTED",
+        "accepted_product_slice_ids": ["PRODUCT-SLICE-1"],
+        "accepted_operations_slice_ids": ["OPERATIONS-SLICE-1"],
+        "required_operations_slice_id": "OPERATIONS-SLICE-1",
+        **paths,
+    }
+    return lc, status
+
+
+with tempfile.TemporaryDirectory(prefix="agent-slice-status-280-") as temporary:
+    root = Path(temporary)
+    lc, accepted_status = build_agent_slice_status_project(root / "applicable")
+    assert project_validator.validate_agent_slice_status(lc, accepted_status) == []
+    lc_na, na_slice_status = build_agent_slice_status_project(
+        root / "not-applicable", "NOT_APPLICABLE"
+    )
+    assert project_validator.validate_agent_slice_status(lc_na, na_slice_status) == []
+
+    status_mutations = []
+    for field in AGENT_SLICE_INTEGRATION_FIELDS:
+        changed = copy.deepcopy(accepted_status)
+        changed["agent_slice_integration"].pop(field)
+        status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["unknown"] = "x"
+    status_mutations.append(changed)
+    changed = copy.deepcopy(status_template)
+    changed["agent_slice_integration"]["candidate_id"] = "CANDIDATE-1"
+    status_mutations.append(changed)
+    for field, value in (
+        ("candidate_hash", HASH),
+        ("configuration_baseline_hash", HASH),
+        ("production_topology_hash", HASH),
+        ("runtime_adapter_attestation_hash", HASH),
+        ("product_agent_applicability", "NOT_APPLICABLE"),
+        ("product_integration_state", "UNPROVED"),
+        ("operations_agent_integration_state", "UNPROVED"),
+    ):
+        changed = copy.deepcopy(accepted_status)
+        changed["agent_slice_integration"][field] = value
+        status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["accepted_product_slice_ids"] = []
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["accepted_operations_slice_ids"] = []
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["accepted_product_slice_ids"] = [
+        "PRODUCT-SLICE-1", "PRODUCT-SLICE-1"
+    ]
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["accepted_operations_slice_ids"] = [
+        "PRODUCT-SLICE-1"
+    ]
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["required_operations_slice_id"] = "OPS-UNKNOWN"
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["current_product_slice_reference"] = (
+        changed["agent_slice_integration"]["current_operations_slice_reference"]
+    )
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["operations_verification_reference"] = "../outside.md"
+    status_mutations.append(changed)
+    changed = copy.deepcopy(accepted_status)
+    changed["agent_slice_integration"]["operations_integration_baseline_reference"] = (
+        "OTHER-INTEGRATION-BASELINE.md"
+    )
+    status_mutations.append(changed)
+    for changed in status_mutations:
+        assert project_validator.validate_agent_slice_status(lc, changed)
 
 print("PASS: Product Formation binds exact Agent applicability without claiming Operations integration")

@@ -49,14 +49,17 @@ LOOP_CONTROL_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/loop-c
 LOOP_CONTROL_BINDING_NAME='LOOP-CONTROL-BINDING.json'
 LOOP_CONTROL_METHODS={'SLK','CLK','GLK'}
 AGENT_CONFIGURATION_BASELINE_NAME='AGENT-CONFIGURATION-BASELINE.json'
+PRODUCTION_EXECUTION_TOPOLOGY_NAME='PRODUCTION-EXECUTION-TOPOLOGY.json'
+RUNTIME_ADAPTER_ATTESTATION_NAME='RUNTIME-ADAPTER-ATTESTATION.json'
 
 def validate_agent_native_artifacts(lc,status):
     if status.get('status_schema_version')!='2.8.0': return []
+    errors=validate_agent_slice_status(lc,status)
     path=lc/AGENT_CONFIGURATION_BASELINE_NAME
-    if not path.exists() and not path.is_symlink(): return []
-    if path.is_symlink() or not path.is_file(): return ['Agent Configuration Baseline must be a regular project file']
+    if not path.exists() and not path.is_symlink(): return errors
+    if path.is_symlink() or not path.is_file(): return errors+['Agent Configuration Baseline must be a regular project file']
     candidate=status.get('canonical_candidate',{})
-    return _AGENT_NATIVE.validate_file(path,candidate.get('candidate_id'),candidate.get('candidate_hash'))
+    return errors+_AGENT_NATIVE.validate_file(path,candidate.get('candidate_id'),candidate.get('candidate_hash'))
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -239,7 +242,40 @@ STATUS_FIELDS_270={
     'post_security_owner_acceptance','delivery_method_qa','delivery',
     'last_material_change','next_action','evidence_pointers','blockers',
 }
-STATUS_FIELDS_280=STATUS_FIELDS_270|{'agent_product_formation'}
+STATUS_FIELDS_280=STATUS_FIELDS_270|{'agent_product_formation','agent_slice_integration'}
+AGENT_SLICE_INTEGRATION_FIELDS={
+    'state','candidate_id','candidate_hash','product_baseline_id','product_baseline_hash',
+    'configuration_baseline_id','configuration_baseline_hash',
+    'production_topology_id','production_topology_hash',
+    'runtime_adapter_attestation_id','runtime_adapter_attestation_hash',
+    'runtime_adapter_id','runtime_adapter_version','dual_agent_isolation_state',
+    'product_agent_applicability','product_integration_state',
+    'product_agent_integration_state','operations_agent_integration_state',
+    'accepted_product_slice_ids','accepted_operations_slice_ids',
+    'required_operations_slice_id','current_product_slice_reference',
+    'product_verification_reference','current_operations_slice_reference',
+    'operations_verification_reference','integration_baseline_reference',
+}
+UNPROVED_AGENT_SLICE_INTEGRATION={
+    'state':'UNPROVED','candidate_id':'NOT_APPLICABLE','candidate_hash':'NOT_APPLICABLE',
+    'product_baseline_id':'NOT_APPLICABLE','product_baseline_hash':'NOT_APPLICABLE',
+    'configuration_baseline_id':'NOT_APPLICABLE','configuration_baseline_hash':'NOT_APPLICABLE',
+    'production_topology_id':'NOT_APPLICABLE','production_topology_hash':'NOT_APPLICABLE',
+    'runtime_adapter_attestation_id':'NOT_APPLICABLE','runtime_adapter_attestation_hash':'NOT_APPLICABLE',
+    'runtime_adapter_id':'NOT_APPLICABLE','runtime_adapter_version':'NOT_APPLICABLE',
+    'dual_agent_isolation_state':'UNPROVED','product_agent_applicability':'UNPROVED',
+    'product_integration_state':'UNPROVED','product_agent_integration_state':'UNPROVED',
+    'operations_agent_integration_state':'UNPROVED','accepted_product_slice_ids':[],
+    'accepted_operations_slice_ids':[],'required_operations_slice_id':'NOT_APPLICABLE',
+    'current_product_slice_reference':'NOT_APPLICABLE','product_verification_reference':'NOT_APPLICABLE',
+    'current_operations_slice_reference':'NOT_APPLICABLE','operations_verification_reference':'NOT_APPLICABLE',
+    'integration_baseline_reference':'NOT_APPLICABLE',
+}
+AGENT_SLICE_REFERENCE_FIELDS=(
+    'current_product_slice_reference','product_verification_reference',
+    'current_operations_slice_reference','operations_verification_reference',
+    'integration_baseline_reference',
+)
 DEFINITION_CLAUSE_RE=re.compile(
     r'^baseline:/(?:grandpa|product_architecture|ontology)(?:/[^,\s]+)*$'
     r'|^baseline:/full_layers/(?:contract|policy|workflow|action_catalog|adapter|eval_and_audit)(?:/[^,\s]+)*$'
@@ -268,6 +304,158 @@ def exact_security_identity(candidate_id,candidate_hash):
 def _not_applicable_record(record,fields):
     return all(str(record.get(field,'')).strip()=='NOT_APPLICABLE' for field in fields)
 
+def _agent_slice_status_shape(status):
+    errors=[]; record=status.get('agent_slice_integration')
+    if not isinstance(record,dict): return ['agent_slice_integration must be a closed object']
+    missing=AGENT_SLICE_INTEGRATION_FIELDS-set(record); unknown=set(record)-AGENT_SLICE_INTEGRATION_FIELDS
+    if missing: errors.append('agent_slice_integration missing fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('agent_slice_integration unknown fields '+', '.join(sorted(unknown)))
+    if record.get('state')=='UNPROVED':
+        if record!=UNPROVED_AGENT_SLICE_INTEGRATION:
+            errors.append('UNPROVED agent_slice_integration must not claim completion evidence')
+        return errors
+    if record.get('state')!='AGENT_SLICES_ACCEPTED':
+        errors.append('agent_slice_integration state is invalid')
+    id_fields=(
+        'candidate_id','product_baseline_id','configuration_baseline_id',
+        'production_topology_id','runtime_adapter_attestation_id','runtime_adapter_id',
+        'required_operations_slice_id',
+    )
+    hash_fields=(
+        'candidate_hash','product_baseline_hash','configuration_baseline_hash',
+        'production_topology_hash','runtime_adapter_attestation_hash',
+    )
+    for field in id_fields:
+        if not _AGENT_NATIVE.safe_id(record.get(field)): errors.append('agent_slice_integration '+field+' is invalid')
+    for field in hash_fields:
+        if not _AGENT_NATIVE.exact_hash(record.get(field)): errors.append('agent_slice_integration '+field+' is invalid')
+    if not isinstance(record.get('runtime_adapter_version'),str) or not SEMVER_RE.fullmatch(record.get('runtime_adapter_version','')):
+        errors.append('agent_slice_integration runtime_adapter_version is invalid')
+    if record.get('dual_agent_isolation_state')!='VERIFIED': errors.append('Agent Slice integration requires verified dual-Agent isolation')
+    applicability=record.get('product_agent_applicability')
+    if applicability not in _AGENT_NATIVE.PRODUCT_APPLICABILITY: errors.append('Agent Slice Product Agent applicability is invalid')
+    if record.get('product_integration_state')!='ACCEPTED': errors.append('Agent Slice PRODUCT integration is not accepted')
+    if record.get('operations_agent_integration_state')!='ACCEPTED': errors.append('Agent Slice OPERATIONS integration is not accepted')
+    expected_product_agent_state='NOT_APPLICABLE' if applicability=='NOT_APPLICABLE' else 'ACCEPTED'
+    if record.get('product_agent_integration_state')!=expected_product_agent_state:
+        errors.append('Product Agent Slice integration disagrees with applicability')
+    return errors
+
+def _closed_agent_slice_ids(value,label):
+    if not isinstance(value,list) or not value: return None,[label+' must be a non-empty list']
+    if any(not _AGENT_NATIVE.safe_id(item) for item in value): return None,[label+' contains an invalid Slice ID']
+    if len(value)!=len(set(value)): return None,[label+' contains duplicate Slice IDs']
+    return value,[]
+
+def _resolve_agent_slice_reference(lc,reference):
+    text=str(reference or '').strip()
+    if not text or text=='NOT_APPLICABLE' or '\\' in text or '://' in text or Path(text).is_absolute(): return None
+    relative=Path(text)
+    if any(part in {'','.','..'} or ':' in part for part in relative.parts): return None
+    candidate=Path(lc)
+    for part in relative.parts:
+        candidate=candidate/part
+        if candidate.is_symlink(): return None
+    try:
+        resolved=candidate.resolve(strict=True); root=Path(lc).resolve(strict=True)
+        if not resolved.is_relative_to(root) or not resolved.is_file(): return None
+    except (OSError,RuntimeError,ValueError): return None
+    return resolved
+
+def _agent_file_hash(path):
+    return 'sha256:'+hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def validate_agent_slice_status(lc,status):
+    errors=_agent_slice_status_shape(status)
+    record=status.get('agent_slice_integration') if isinstance(status,dict) else None
+    if not isinstance(record,dict) or record.get('state')!='AGENT_SLICES_ACCEPTED': return errors
+    if errors: return errors
+    lc=Path(lc); candidate=status.get('canonical_candidate',{})
+    if not isinstance(candidate,dict) or (record.get('candidate_id'),record.get('candidate_hash'))!=(candidate.get('candidate_id'),candidate.get('candidate_hash')):
+        errors.append('Agent Slice integration candidate disagrees with authoritative candidate')
+    formation=status.get('agent_product_formation',{})
+    if not isinstance(formation,dict) or formation.get('state')!='PRODUCT_FORMATION_AGENT_BOUND' or formation.get('product_agent_applicability')!=record.get('product_agent_applicability'):
+        errors.append('Agent Slice integration applicability disagrees with Product Formation')
+    product_ids,id_errors=_closed_agent_slice_ids(record.get('accepted_product_slice_ids'),'accepted PRODUCT Slice IDs'); errors.extend(id_errors)
+    operations_ids,id_errors=_closed_agent_slice_ids(record.get('accepted_operations_slice_ids'),'accepted OPERATIONS Slice IDs'); errors.extend(id_errors)
+    if product_ids and operations_ids and set(product_ids)&set(operations_ids): errors.append('PRODUCT and OPERATIONS accepted Slice IDs must be disjoint')
+    if operations_ids and record.get('required_operations_slice_id') not in operations_ids: errors.append('required Operations Slice is absent from accepted Operations IDs')
+    references={field:_resolve_agent_slice_reference(lc,record.get(field)) for field in AGENT_SLICE_REFERENCE_FIELDS}
+    for field,path in references.items():
+        if path is None: errors.append('agent_slice_integration '+field+' is missing, outside project, or symlinked')
+    resolved=[str(path).casefold() for path in references.values() if path is not None]
+    if len(resolved)!=len(set(resolved)): errors.append('Agent Slice Feature, Final, and Baseline references must be distinct')
+
+    config_path=lc/AGENT_CONFIGURATION_BASELINE_NAME
+    topology_path=lc/PRODUCTION_EXECUTION_TOPOLOGY_NAME
+    adapter_path=lc/RUNTIME_ADAPTER_ATTESTATION_NAME
+    fixed_paths=(
+        ('Agent Configuration Baseline',config_path,record.get('configuration_baseline_hash')),
+        ('Production Execution Topology',topology_path,record.get('production_topology_hash')),
+        ('Runtime Adapter Attestation',adapter_path,record.get('runtime_adapter_attestation_hash')),
+    )
+    for label,path,expected_hash in fixed_paths:
+        if path.is_symlink() or not path.is_file(): errors.append(label+' must be a regular project file')
+        elif _agent_file_hash(path)!=expected_hash: errors.append(label+' file hash disagrees with agent_slice_integration')
+    if errors: return errors
+    try:
+        configuration=_AGENT_NATIVE.strict_json(config_path)
+        topology=_AGENT_NATIVE.strict_json(topology_path)
+        attestation=_AGENT_NATIVE.strict_json(adapter_path)
+    except (OSError,UnicodeError,ValueError) as error:
+        return errors+['Agent Slice integration JSON evidence is not strict UTF-8: '+str(error)]
+    configuration_hash=_agent_file_hash(config_path)
+    if record.get('configuration_baseline_id')!=configuration.get('configuration_baseline_id'):
+        errors.append('Agent Slice Configuration Baseline ID disagrees')
+    if record.get('product_agent_applicability')!=configuration.get('product_agent',{}).get('applicability'):
+        errors.append('Agent Slice applicability disagrees with Agent Configuration Baseline')
+    errors.extend(_AGENT_NATIVE.validate_file(config_path,record.get('candidate_id'),record.get('candidate_hash')))
+    if record.get('production_topology_id')!=topology.get('topology_id'):
+        errors.append('Agent Slice Production Topology ID disagrees')
+    errors.extend(_AGENT_NATIVE.validate_production_topology_file(
+        topology_path,configuration,configuration_hash,
+        record.get('product_baseline_id'),record.get('product_baseline_hash'),
+    ))
+    runtime=attestation.get('runtime_adapter',{}) if isinstance(attestation,dict) else {}
+    if record.get('runtime_adapter_attestation_id')!=attestation.get('attestation_id'):
+        errors.append('Agent Slice Runtime Adapter Attestation ID disagrees')
+    if (record.get('runtime_adapter_id'),record.get('runtime_adapter_version'))!=(runtime.get('adapter_id'),runtime.get('adapter_version')):
+        errors.append('Agent Slice Runtime Adapter identity/version disagrees')
+    as_of=datetime.now(timezone.utc).replace(microsecond=0).strftime('%Y-%m-%dT%H:%M:%SZ')
+    errors.extend(_AGENT_NATIVE.validate_runtime_adapter_attestation_file(
+        adapter_path,configuration,configuration_hash,
+        record.get('production_topology_id'),record.get('production_topology_hash'),as_of,
+    ))
+    if errors: return errors
+
+    product_feature=references['current_product_slice_reference']
+    product_final=references['product_verification_reference']
+    operations_feature=references['current_operations_slice_reference']
+    operations_final=references['operations_verification_reference']
+    baseline=references['integration_baseline_reference']
+    slice_args=(
+        configuration,configuration_hash,record.get('product_baseline_id'),record.get('product_baseline_hash'),
+        record.get('production_topology_id'),record.get('production_topology_hash'),
+        record.get('runtime_adapter_attestation_id'),record.get('runtime_adapter_attestation_hash'),
+    )
+    errors.extend(_AGENT_NATIVE.validate_agent_slice_files(product_feature,product_final,baseline,*slice_args))
+    errors.extend(_AGENT_NATIVE.validate_agent_slice_files(operations_feature,operations_final,baseline,*slice_args))
+    product_fields,_=_AGENT_NATIVE.markdown_fields(product_feature.read_text(encoding='utf-8'))
+    operations_fields,_=_AGENT_NATIVE.markdown_fields(operations_feature.read_text(encoding='utf-8'))
+    baseline_fields,_=_AGENT_NATIVE.markdown_fields(baseline.read_text(encoding='utf-8'))
+    product_id=product_fields.get('Agent Slice ID'); operations_id=operations_fields.get('Agent Slice ID')
+    if product_fields.get('Agent Slice class')!='PRODUCT' or not product_ids or product_id not in product_ids:
+        errors.append('current PRODUCT Feature Slice is absent or misclassified')
+    if operations_fields.get('Agent Slice class')!='OPERATIONS' or not operations_ids or operations_id not in operations_ids:
+        errors.append('current OPERATIONS Feature Slice is absent or misclassified')
+    baseline_product_ids=_AGENT_NATIVE.slice_id_list(baseline_fields.get('Agent Slice Baseline accepted PRODUCT Slice IDs'))
+    baseline_operations_ids=_AGENT_NATIVE.slice_id_list(baseline_fields.get('Agent Slice Baseline accepted OPERATIONS Slice IDs'))
+    if baseline_product_ids!=product_ids or baseline_operations_ids!=operations_ids:
+        errors.append('STATUS accepted Slice ID sets disagree with shared Integration Baseline')
+    if baseline_fields.get('Agent Slice Baseline required Operations Slice ID')!=record.get('required_operations_slice_id'):
+        errors.append('STATUS required Operations Slice disagrees with shared Integration Baseline')
+    return errors
+
 def validate_security_status_shape(status):
     errors=[]
     closure=status.get('vulnerability_closure')
@@ -291,6 +479,7 @@ def validate_security_status_shape(status):
         errors.append('current security status has unknown or second-authority fields '+', '.join(sorted(unknown)))
     if schema=='2.8.0':
         errors.extend(_AGENT_NATIVE.validate_product_formation_status(status.get('agent_product_formation')))
+        errors.extend(_agent_slice_status_shape(status))
     for record,required,label in [
         (closure,VULNERABILITY_STATUS_FIELDS,'vulnerability_closure'),
         (acceptance,POST_SECURITY_STATUS_FIELDS,'post_security_owner_acceptance'),

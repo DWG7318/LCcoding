@@ -45,6 +45,7 @@ BLOCKERS = [
 ]
 REPORT_REFERENCE = "MIGRATION-2.7.0-TO-2.8.0.json"
 AGENT_PRODUCT_FORMATION_FIELD = "agent_product_formation"
+AGENT_SLICE_INTEGRATION_FIELD = "agent_slice_integration"
 UNPROVED_AGENT_PRODUCT_FORMATION = {
     "state": "UNPROVED",
     "product_agent_applicability": "UNPROVED",
@@ -54,6 +55,34 @@ UNPROVED_AGENT_PRODUCT_FORMATION = {
     "configuration_baseline_hash": "NOT_APPLICABLE",
     "product_agent_capability_state": "UNPROVED",
     "operations_agent_state": "UNPROVED",
+}
+UNPROVED_AGENT_SLICE_INTEGRATION = {
+    "state": "UNPROVED",
+    "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE",
+    "product_baseline_id": "NOT_APPLICABLE",
+    "product_baseline_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "production_topology_id": "NOT_APPLICABLE",
+    "production_topology_hash": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_id": "NOT_APPLICABLE",
+    "runtime_adapter_attestation_hash": "NOT_APPLICABLE",
+    "runtime_adapter_id": "NOT_APPLICABLE",
+    "runtime_adapter_version": "NOT_APPLICABLE",
+    "dual_agent_isolation_state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "product_integration_state": "UNPROVED",
+    "product_agent_integration_state": "UNPROVED",
+    "operations_agent_integration_state": "UNPROVED",
+    "accepted_product_slice_ids": [],
+    "accepted_operations_slice_ids": [],
+    "required_operations_slice_id": "NOT_APPLICABLE",
+    "current_product_slice_reference": "NOT_APPLICABLE",
+    "product_verification_reference": "NOT_APPLICABLE",
+    "current_operations_slice_reference": "NOT_APPLICABLE",
+    "operations_verification_reference": "NOT_APPLICABLE",
+    "integration_baseline_reference": "NOT_APPLICABLE",
 }
 
 assert MIGRATION_CONTRACT.is_file(), "2.7.0 to 2.8.0 migration contract is absent"
@@ -157,6 +186,7 @@ def make_source(project):
     )
     status = strict_json(TEMPLATES / "STATUS.json")
     assert status.pop(AGENT_PRODUCT_FORMATION_FIELD) == UNPROVED_AGENT_PRODUCT_FORMATION
+    assert status.pop(AGENT_SLICE_INTEGRATION_FIELD) == UNPROVED_AGENT_SLICE_INTEGRATION
     status["status_schema_version"] = "2.7.0"
     status["project_id"] = "migration-270-fixture"
     status["initialization_mode"] = "NEW"
@@ -288,6 +318,7 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     assert status["evidence_pointers"] == [REPORT_REFERENCE]
     assert status["blockers"] == BLOCKERS
     assert status[AGENT_PRODUCT_FORMATION_FIELD] == UNPROVED_AGENT_PRODUCT_FORMATION
+    assert status[AGENT_SLICE_INTEGRATION_FIELD] == UNPROVED_AGENT_SLICE_INTEGRATION
 
     assert phase_status["status_schema_version"] == "2.8.0"
     assert tuple(phase_status["phases"]) == TARGET_PHASES
@@ -379,6 +410,19 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     hybrid_agent_before = snapshot(hybrid_agent)
     assert_failed_without_publish(
         hybrid_agent, base / "hybrid-agent-output", hybrid_agent_before
+    )
+
+    hybrid_slice = base / "hybrid-slice-source"
+    make_source(hybrid_slice)
+    hybrid_slice_status_path = hybrid_slice / ".lccoding/status.json"
+    hybrid_slice_status = strict_json(hybrid_slice_status_path)
+    hybrid_slice_status[AGENT_SLICE_INTEGRATION_FIELD] = copy.deepcopy(
+        UNPROVED_AGENT_SLICE_INTEGRATION
+    )
+    write(hybrid_slice_status_path, json.dumps(hybrid_slice_status, indent=2) + "\n")
+    hybrid_slice_before = snapshot(hybrid_slice)
+    assert_failed_without_publish(
+        hybrid_slice, base / "hybrid-slice-output", hybrid_slice_before
     )
 
     unknown_source = base / "unknown-status-source"

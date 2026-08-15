@@ -57,6 +57,7 @@ HISTORICAL_RECEIPTS = (
 HISTORY_ROOT = Path("history/2.7.0")
 REPORT_REFERENCE = "MIGRATION-2.7.0-TO-2.8.0.json"
 AGENT_PRODUCT_FORMATION_FIELD = "agent_product_formation"
+AGENT_SLICE_INTEGRATION_FIELD = "agent_slice_integration"
 BLOCKERS = [
     "AGENT_CONFIGURATION_BASELINE_UNPROVED",
     "AGENT_SECURITY_EVIDENCE_UNPROVED",
@@ -241,7 +242,13 @@ def validate_source(source):
     agent_default = target_template.get(AGENT_PRODUCT_FORMATION_FIELD)
     if not isinstance(agent_default, dict) or agent_default.get("state") != "UNPROVED":
         raise MigrationError("installed target status template lacks unproved Agent state")
-    source_fields = set(target_template) - {AGENT_PRODUCT_FORMATION_FIELD}
+    slice_default = target_template.get(AGENT_SLICE_INTEGRATION_FIELD)
+    if not isinstance(slice_default, dict) or slice_default.get("state") != "UNPROVED":
+        raise MigrationError("installed target status template lacks unproved Agent Slice state")
+    source_fields = set(target_template) - {
+        AGENT_PRODUCT_FORMATION_FIELD,
+        AGENT_SLICE_INTEGRATION_FIELD,
+    }
     if set(status) != source_fields:
         raise MigrationError("source status does not use the closed 2.7 status shape")
     if status.get("record_role") != "AUTHORITATIVE_PROJECT_STATUS":
@@ -291,6 +298,9 @@ def migrated_status(source, target_template):
     status["status_schema_version"] = TARGET_SCHEMA
     status[AGENT_PRODUCT_FORMATION_FIELD] = copy.deepcopy(
         target_template[AGENT_PRODUCT_FORMATION_FIELD]
+    )
+    status[AGENT_SLICE_INTEGRATION_FIELD] = copy.deepcopy(
+        target_template[AGENT_SLICE_INTEGRATION_FIELD]
     )
     initial_complete = PHASE_VALIDATOR.completed_evidence(
         source["phase_gates"]["INITIAL_READY"]
