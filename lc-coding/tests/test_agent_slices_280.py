@@ -70,6 +70,27 @@ BASELINE_FIELDS = [
     "Agent Slice Baseline class isolation",
     "Agent Slice Baseline result",
 ]
+BASELINE_CANDIDATE_FIELDS = [
+    "Agent Slice schema version",
+    "Agent Slice candidate ID / exact hash",
+    "Agent Slice Product Baseline identity",
+    "Agent Slice Configuration Baseline identity",
+    "Agent Slice Production Topology identity",
+    "Agent Slice Runtime Adapter Attestation identity",
+    "Agent Slice Impact Analysis identity",
+    "Agent Slice evidence currentness",
+    "Agent Slice Product Agent applicability",
+]
+BASELINE_FORBIDDEN_SLICE_FIELDS = {
+    "Agent Slice ID",
+    "Agent Slice class",
+    "Agent Slice route ID",
+    "Agent Slice route proof identity",
+    "Agent Slice D0-D3 verification evidence",
+    "Agent Slice Owner acceptance evidence",
+    "Agent Slice actor kind",
+    "Agent Slice actor ID",
+}
 
 
 def markdown_fields(text):
@@ -92,8 +113,9 @@ assert {key for key in final_template_fields if key.startswith("Agent Slice ")} 
     COMMON_FIELDS + FINAL_FIELDS
 )
 assert {key for key in baseline_template_fields if key.startswith("Agent Slice ")} == set(
-    COMMON_FIELDS + BASELINE_FIELDS
+    BASELINE_CANDIDATE_FIELDS + BASELINE_FIELDS
 )
+assert not BASELINE_FORBIDDEN_SLICE_FIELDS & set(baseline_template_fields)
 
 
 def load_module(name, path):
@@ -328,22 +350,17 @@ def final_fields(feature):
     return fields
 
 
-def baseline_fields(feature, configuration):
-    fields = {key: feature[key] for key in COMMON_FIELDS}
-    current_id = feature["Agent Slice ID"]
-    if feature["Agent Slice class"] == "PRODUCT":
-        product_ids = [current_id]
-        operations_ids = ["OPERATIONS-SLICE-OTHER"]
-    else:
-        product_ids = ["PRODUCT-SLICE-OTHER"]
-        operations_ids = [current_id]
+def baseline_fields(product_feature, operations_feature, configuration):
+    fields = {key: product_feature[key] for key in BASELINE_CANDIDATE_FIELDS}
+    product_ids = [product_feature["Agent Slice ID"]]
+    operations_ids = [operations_feature["Agent Slice ID"]]
     product_applicability = configuration["product_agent"]["applicability"]
     if product_applicability == "NOT_APPLICABLE":
         product_agent_slice = "NOT_APPLICABLE"
         product_agent_evidence = "NOT_APPLICABLE"
     else:
-        if feature["Agent Slice class"] == "PRODUCT" and feature["Agent Slice actor kind"] == "PRODUCT_AGENT":
-            product_agent_slice = current_id
+        if product_feature["Agent Slice actor kind"] == "PRODUCT_AGENT":
+            product_agent_slice = product_feature["Agent Slice ID"]
         else:
             product_agent_slice = "PRODUCT-AGENT-SLICE-OTHER"
             product_ids.append(product_agent_slice)
@@ -370,9 +387,13 @@ def baseline_fields(feature, configuration):
 
 def documents(slice_class, configuration=None, actor_kind=None):
     configuration = configuration or valid_configuration()
-    feature = feature_fields(slice_class, configuration, actor_kind)
+    product_actor = actor_kind if slice_class == "PRODUCT" else None
+    operations_actor = actor_kind if slice_class == "OPERATIONS" else None
+    product_feature = feature_fields("PRODUCT", configuration, product_actor)
+    operations_feature = feature_fields("OPERATIONS", configuration, operations_actor)
+    feature = product_feature if slice_class == "PRODUCT" else operations_feature
     final = final_fields(feature)
-    baseline = baseline_fields(feature, configuration)
+    baseline = baseline_fields(product_feature, operations_feature, configuration)
     return feature, final, baseline, configuration
 
 
@@ -403,6 +424,7 @@ def validate_records(records):
 product = documents("PRODUCT")
 operations = documents("OPERATIONS")
 not_applicable = documents("PRODUCT", valid_configuration("NOT_APPLICABLE"), "UI_ACTOR")
+assert texts(product)[2].encode("utf-8") == texts(operations)[2].encode("utf-8")
 assert validate_records(product) == []
 assert validate_records(operations) == []
 assert validate_records(not_applicable) == []
@@ -412,7 +434,7 @@ for index, allowed_fields in enumerate(
     (
         COMMON_FIELDS + PRODUCT_FIELDS + OPERATIONS_FIELDS,
         COMMON_FIELDS + FINAL_FIELDS,
-        COMMON_FIELDS + BASELINE_FIELDS,
+        BASELINE_CANDIDATE_FIELDS + BASELINE_FIELDS,
     )
 ):
     for field in allowed_fields:
@@ -460,12 +482,14 @@ changed = copy.deepcopy(product); changed[1]["Agent Slice Verification route evi
 changed = copy.deepcopy(product); changed[1]["Agent Slice Verification class isolation"] = "MIXED_EVIDENCE"; mutations.append(changed)
 
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline accepted class set"] = "PRODUCT|OPERATIONS|MIXED"; mutations.append(changed)
+changed = copy.deepcopy(product); changed[2]["Agent Slice candidate ID / exact hash"] = "CANDIDATE-2 / " + HASH_B; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline accepted OPERATIONS Slice IDs"] = ""; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline accepted PRODUCT Slice IDs"] = ""; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline required Operations Slice ID"] = "OPS-UNKNOWN"; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline Product Agent Slice ID"] = "PRODUCT-UNKNOWN"; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline Product Agent acceptance evidence"] = changed[2]["Agent Slice Baseline required Operations acceptance evidence"]; mutations.append(changed)
 changed = copy.deepcopy(product); changed[2]["Agent Slice Baseline class isolation"] = "ONE_MIXED_ROUTE"; mutations.append(changed)
+changed = copy.deepcopy(product); changed[2]["Agent Slice ID"] = changed[0]["Agent Slice ID"]; mutations.append(changed)
 
 ui_product = documents("PRODUCT", valid_configuration(), "UI_ACTOR")
 changed = copy.deepcopy(ui_product)

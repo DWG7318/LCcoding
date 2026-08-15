@@ -141,6 +141,13 @@ SLICE_FINAL_FIELDS={
     'Agent Slice Verification route evidence kind',
     'Agent Slice Verification class isolation','Agent Slice Verification result',
 }
+SLICE_BASELINE_CANDIDATE_FIELDS={
+    'Agent Slice schema version','Agent Slice candidate ID / exact hash',
+    'Agent Slice Product Baseline identity','Agent Slice Configuration Baseline identity',
+    'Agent Slice Production Topology identity','Agent Slice Runtime Adapter Attestation identity',
+    'Agent Slice Impact Analysis identity','Agent Slice evidence currentness',
+    'Agent Slice Product Agent applicability',
+}
 SLICE_BASELINE_FIELDS={
     'Agent Slice Baseline accepted class set','Agent Slice Baseline accepted PRODUCT Slice IDs',
     'Agent Slice Baseline accepted OPERATIONS Slice IDs',
@@ -910,7 +917,7 @@ def validate_agent_slice(
     expected_sets=(
         SLICE_COMMON_FIELDS|SLICE_PRODUCT_FIELDS|SLICE_OPERATIONS_FIELDS,
         SLICE_COMMON_FIELDS|SLICE_FINAL_FIELDS,
-        SLICE_COMMON_FIELDS|SLICE_BASELINE_FIELDS,
+        SLICE_BASELINE_CANDIDATE_FIELDS|SLICE_BASELINE_FIELDS,
     )
     for label,record,expected in (
         ('Feature Slice',feature,expected_sets[0]),
@@ -922,7 +929,9 @@ def validate_agent_slice(
         if missing: errors.append(label+' missing Agent Slice fields '+', '.join(sorted(missing)))
         if unknown: errors.append(label+' unknown Agent Slice fields '+', '.join(sorted(unknown)))
     for field in SLICE_COMMON_FIELDS:
-        if verification.get(field)!=feature.get(field) or baseline.get(field)!=feature.get(field): errors.append('Agent Slice common identity '+field+' disagrees across artifacts')
+        if verification.get(field)!=feature.get(field): errors.append('Agent Slice common identity '+field+' disagrees across Feature and Final Verification')
+    for field in SLICE_BASELINE_CANDIDATE_FIELDS:
+        if baseline.get(field)!=feature.get(field): errors.append('Agent Slice candidate identity '+field+' disagrees with Integration Baseline')
     if feature.get('Agent Slice schema version')!='2.8.0': errors.append('Agent Slice schema version must be 2.8.0')
     slice_id=feature.get('Agent Slice ID'); route_id=feature.get('Agent Slice route ID')
     if not safe_id(slice_id) or not safe_id(route_id) or slice_id==route_id: errors.append('Agent Slice and route IDs are invalid')
