@@ -56,6 +56,7 @@ HISTORICAL_RECEIPTS = (
 )
 HISTORY_ROOT = Path("history/2.7.0")
 REPORT_REFERENCE = "MIGRATION-2.7.0-TO-2.8.0.json"
+AGENT_PRODUCT_FORMATION_FIELD = "agent_product_formation"
 BLOCKERS = [
     "AGENT_CONFIGURATION_BASELINE_UNPROVED",
     "AGENT_SECURITY_EVIDENCE_UNPROVED",
@@ -237,8 +238,12 @@ def validate_source(source):
     target_template = read_json(STATUS_TEMPLATE_PATH)
     if target_template.get("status_schema_version") != TARGET_SCHEMA:
         raise MigrationError("installed target status template is not 2.8.0")
-    if set(status) != set(target_template):
-        raise MigrationError("source status does not use the closed current status shape")
+    agent_default = target_template.get(AGENT_PRODUCT_FORMATION_FIELD)
+    if not isinstance(agent_default, dict) or agent_default.get("state") != "UNPROVED":
+        raise MigrationError("installed target status template lacks unproved Agent state")
+    source_fields = set(target_template) - {AGENT_PRODUCT_FORMATION_FIELD}
+    if set(status) != source_fields:
+        raise MigrationError("source status does not use the closed 2.7 status shape")
     if status.get("record_role") != "AUTHORITATIVE_PROJECT_STATUS":
         raise MigrationError("source status is not authoritative")
     if status.get("status_schema_version") != SOURCE_SCHEMA:
@@ -284,6 +289,9 @@ def archive_historical_evidence(stage):
 def migrated_status(source, target_template):
     status = copy.deepcopy(source)
     status["status_schema_version"] = TARGET_SCHEMA
+    status[AGENT_PRODUCT_FORMATION_FIELD] = copy.deepcopy(
+        target_template[AGENT_PRODUCT_FORMATION_FIELD]
+    )
     initial_complete = PHASE_VALIDATOR.completed_evidence(
         source["phase_gates"]["INITIAL_READY"]
     )
@@ -311,6 +319,8 @@ def migrated_status(source, target_template):
     status["next_action"] = "PROVE_2_8_AGENT_NATIVE_REQUIREMENTS"
     status["evidence_pointers"] = [REPORT_REFERENCE]
     status["blockers"] = list(BLOCKERS)
+    if set(status) != set(target_template):
+        raise MigrationError("target status does not use the closed 2.8 status shape")
     return status
 
 

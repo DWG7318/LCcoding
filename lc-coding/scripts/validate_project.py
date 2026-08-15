@@ -239,6 +239,7 @@ STATUS_FIELDS_270={
     'post_security_owner_acceptance','delivery_method_qa','delivery',
     'last_material_change','next_action','evidence_pointers','blockers',
 }
+STATUS_FIELDS_280=STATUS_FIELDS_270|{'agent_product_formation'}
 DEFINITION_CLAUSE_RE=re.compile(
     r'^baseline:/(?:grandpa|product_architecture|ontology)(?:/[^,\s]+)*$'
     r'|^baseline:/full_layers/(?:contract|policy|workflow|action_catalog|adapter|eval_and_audit)(?:/[^,\s]+)*$'
@@ -276,9 +277,20 @@ def validate_security_status_shape(status):
         return errors
     if not isinstance(closure,dict) or not isinstance(acceptance,dict):
         return ['current security status cannot mix scalar and structured authority']
-    unknown=set(status)-STATUS_FIELDS_270
+    schema=status.get('status_schema_version')
+    expected_fields=(
+        STATUS_FIELDS_280 if schema=='2.8.0' else STATUS_FIELDS_270
+        if schema in {'2.6.0','2.7.0'} else None
+    )
+    if expected_fields is None:
+        return ['current security status has unsupported status_schema_version']
+    missing=expected_fields-set(status); unknown=set(status)-expected_fields
+    if missing:
+        errors.append('current security status missing closed fields '+', '.join(sorted(missing)))
     if unknown:
         errors.append('current security status has unknown or second-authority fields '+', '.join(sorted(unknown)))
+    if schema=='2.8.0':
+        errors.extend(_AGENT_NATIVE.validate_product_formation_status(status.get('agent_product_formation')))
     for record,required,label in [
         (closure,VULNERABILITY_STATUS_FIELDS,'vulnerability_closure'),
         (acceptance,POST_SECURITY_STATUS_FIELDS,'post_security_owner_acceptance'),

@@ -5,6 +5,29 @@
 - Project frozen exact commit SHA:
 - Calabash Definition Handoff ID / exact hash:
 - Calabash Definition Handoff result: PASS
+- Agent Product Formation candidate ID / exact hash:
+- Product Agent applicability:
+- Product Agent applicability Calabash basis:
+- Agent Configuration Baseline ID / exact hash:
+- Product Agent ID:
+- Product Agent capability state:
+- Product Agent proof actor kind:
+- Product Agent Workflow Capability ID:
+- Product Agent runnable evidence:
+- Product Agent API evidence:
+- Product Agent MCP evidence:
+- Product Agent Simulation scenario/recovery evidence:
+- Product Agent Product Baseline ID / exact hash:
+- Operations Agent ID:
+- Operations Agent Product Formation state: PREPARED_NOT_INTEGRATED
+- Operations Agent prepared configuration evidence:
+- Operations Agent prepared Action Catalog evidence:
+- Operations Agent telemetry evidence:
+- Operations Agent audit evidence:
+- Operations Agent fallback evidence:
+- Operations Agent Kill Switch evidence:
+- Operations Agent Runtime Adapter requirement evidence:
+- Agent Product Formation result: BLOCKED / PASS
 - Workflow Map:
 - UI Map:
 - Simulation World:

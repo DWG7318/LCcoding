@@ -31,6 +31,52 @@ ROLLBACK_FIELDS=set(ACTION_CONTRACT['rollback_fields'])
 FREE_FORM_TOKENS={'SHELL','COMMAND','COMMANDS','POWERSHELL','BASH','CMD','EXEC','EXECUTE','EXECUTION','EVAL','DISCOVER','DISCOVERY','DYNAMIC','ARBITRARY'}
 PREAUTH_FORBIDDEN_TOKENS={'DELETE','DELETION','PERMISSION','PERMISSIONS','RELEASE','UPGRADE','MIGRATE','MIGRATION','CREDENTIAL','CREDENTIALS','ROOT','KILL','IRREVERSIBLE'}
 BROAD_TARGETS={'ALL','ANY','GLOBAL','BROAD','WILDCARD'}
+PRODUCT_FORMATION_STATUS_FIELDS={
+    'state','product_agent_applicability','calabash_definition_handoff_id',
+    'calabash_definition_handoff_hash','configuration_baseline_id',
+    'configuration_baseline_hash','product_agent_capability_state',
+    'operations_agent_state',
+}
+UNPROVED_PRODUCT_FORMATION_STATUS={
+    'state':'UNPROVED','product_agent_applicability':'UNPROVED',
+    'calabash_definition_handoff_id':'NOT_APPLICABLE',
+    'calabash_definition_handoff_hash':'NOT_APPLICABLE',
+    'configuration_baseline_id':'NOT_APPLICABLE',
+    'configuration_baseline_hash':'NOT_APPLICABLE',
+    'product_agent_capability_state':'UNPROVED',
+    'operations_agent_state':'UNPROVED',
+}
+PRODUCT_APPLICABILITY={'NOT_APPLICABLE','APPLICABLE_EXTRA','APPLICABLE_CORE'}
+AGENT_RULE_FIELDS={
+    'Agent Product applicability authority':'CALABASH_DEFINITION_HANDOFF',
+    'Agent Product CORE proof':'REAL_RUNNABLE_WORKFLOW_API_MCP_SIMULATION',
+    'Agent Product mock/prompt/demo substitution':'FORBIDDEN',
+    'Agent Construction substitution':'FORBIDDEN',
+    'Agent Operations Product Formation maximum':'PREPARED_NOT_INTEGRATED',
+    'Agent Operations integration / execution / Slice claim':'FORBIDDEN',
+    'Agent identity alias':'FORBIDDEN','Agent lifecycle effect':'NO_NEW_GATE',
+}
+AGENT_HANDOFF_FIELDS={
+    'Agent Product Formation candidate ID / exact hash','Product Agent applicability',
+    'Product Agent applicability Calabash basis','Agent Configuration Baseline ID / exact hash',
+    'Product Agent ID','Product Agent capability state','Product Agent proof actor kind',
+    'Product Agent Workflow Capability ID','Product Agent runnable evidence',
+    'Product Agent API evidence','Product Agent MCP evidence',
+    'Product Agent Simulation scenario/recovery evidence',
+    'Product Agent Product Baseline ID / exact hash','Operations Agent ID',
+    'Operations Agent Product Formation state','Operations Agent prepared configuration evidence',
+    'Operations Agent prepared Action Catalog evidence','Operations Agent telemetry evidence',
+    'Operations Agent audit evidence','Operations Agent fallback evidence',
+    'Operations Agent Kill Switch evidence','Operations Agent Runtime Adapter requirement evidence',
+    'Agent Product Formation result',
+}
+PRODUCT_PROOF_FIELDS={
+    'Product Agent proof actor kind','Product Agent Workflow Capability ID',
+    'Product Agent runnable evidence','Product Agent API evidence','Product Agent MCP evidence',
+    'Product Agent Simulation scenario/recovery evidence',
+    'Product Agent Product Baseline ID / exact hash',
+}
+PROOF_FORBIDDEN_TOKENS={'MOCK','STUB','PROMPT','DEMO','CONSTRUCTION'}
 
 class DuplicateKeyError(ValueError): pass
 def _pairs(pairs):
@@ -224,6 +270,136 @@ def validate_action_catalog_file(path,configuration,agent_slot='operations_agent
     content_hash='sha256:'+hashlib.sha256(raw).hexdigest()
     if agent.get('action_catalog_hash')!=content_hash: errors.append('action catalog file hash disagrees with Agent Configuration Baseline')
     return errors
+
+def markdown_fields(text):
+    fields={}; errors=[]
+    if not isinstance(text,str): return fields,['markdown artifact must be text']
+    for line in text.splitlines():
+        if not line.startswith('- ') or ':' not in line: continue
+        name,value=line[2:].split(':',1)
+        if name in fields: errors.append('duplicate markdown field '+name)
+        else: fields[name]=value.strip()
+    return fields,errors
+
+def exact_id_hash(value):
+    if not isinstance(value,str): return None
+    parts=[part.strip() for part in value.split('/')]
+    if len(parts)!=2 or not safe_id(parts[0]) or not exact_hash(parts[1]): return None
+    return parts[0],parts[1]
+
+def baseline_identity(value):
+    if not isinstance(value,str): return None
+    parts=[part.strip() for part in value.split('/')]
+    if len(parts)!=3 or not safe_id(parts[0]) or not SEMVER.fullmatch(parts[1]) or not exact_hash(parts[2]): return None
+    return parts[0],parts[2]
+
+def capability_evidence(value,simulation=False):
+    if not isinstance(value,str): return None
+    identity,digest=(value.rsplit('/',1)+[None])[:2] if '/' in value else (None,None)
+    if identity is None or not exact_hash(str(digest or '').strip()): return None
+    parts=[part.strip() for part in identity.split('@')]
+    expected=3 if simulation else 2
+    if len(parts)!=expected or any(not safe_id(part) for part in parts): return None
+    if any(tokens(part)&PROOF_FORBIDDEN_TOKENS for part in parts): return None
+    return tuple(parts)+(str(digest).strip(),)
+
+def validate_product_formation_status(value):
+    errors=[]; record=closed(value,PRODUCT_FORMATION_STATUS_FIELDS,'agent_product_formation status',errors)
+    if record.get('state')=='UNPROVED':
+        if record!=UNPROVED_PRODUCT_FORMATION_STATUS: errors.append('unproved Agent Product Formation status must not claim evidence')
+        return errors
+    if record.get('state')!='PRODUCT_FORMATION_AGENT_BOUND': errors.append('Agent Product Formation state is invalid')
+    if record.get('product_agent_applicability') not in PRODUCT_APPLICABILITY: errors.append('Product Agent applicability is invalid')
+    for field in ('calabash_definition_handoff_id','configuration_baseline_id'):
+        if not safe_id(record.get(field)): errors.append('Agent Product Formation '+field+' is invalid')
+    for field in ('calabash_definition_handoff_hash','configuration_baseline_hash'):
+        if not exact_hash(record.get(field)): errors.append('Agent Product Formation '+field+' is invalid')
+    allowed_states={'NOT_APPLICABLE','UNIMPLEMENTED_EXTRA','REAL_RUNNABLE_EXTRA','REAL_RUNNABLE_CORE'}
+    if record.get('product_agent_capability_state') not in allowed_states: errors.append('Product Agent capability state is invalid')
+    if record.get('operations_agent_state')!='PREPARED_NOT_INTEGRATED': errors.append('Operations Agent may only be PREPARED_NOT_INTEGRATED in Product Formation')
+    return errors
+
+def validate_product_formation(rule_text,handoff_text,status,configuration,configuration_hash):
+    errors=[]
+    rule,rule_errors=markdown_fields(rule_text); handoff,handoff_errors=markdown_fields(handoff_text)
+    errors.extend(rule_errors); errors.extend(handoff_errors)
+    relevant_rule={name:value for name,value in rule.items() if name.startswith('Agent ')}
+    if relevant_rule!=AGENT_RULE_FIELDS: errors.append('Agent Rule Product Formation contract is not closed')
+    relevant_handoff={name for name in handoff if name.startswith(('Agent Product','Product Agent','Operations Agent','Agent Configuration'))}
+    missing=AGENT_HANDOFF_FIELDS-relevant_handoff; unknown=relevant_handoff-AGENT_HANDOFF_FIELDS
+    if missing: errors.append('Product Baseline Handoff missing Agent fields '+', '.join(sorted(missing)))
+    if unknown: errors.append('Product Baseline Handoff unknown Agent fields '+', '.join(sorted(unknown)))
+    if not isinstance(status,dict) or status.get('status_schema_version')!='2.8.0': errors.append('Product Formation Agent join requires exact 2.8 status'); status={}
+    candidate=status.get('canonical_candidate',{}) if isinstance(status.get('canonical_candidate',{}),dict) else {}
+    errors.extend(validate_configuration(configuration,candidate.get('candidate_id'),candidate.get('candidate_hash')))
+    config=configuration if isinstance(configuration,dict) else {}
+    if not exact_hash(configuration_hash): errors.append('Agent Configuration Baseline file hash is invalid')
+    state=status.get('agent_product_formation')
+    errors.extend(validate_product_formation_status(state))
+    state=state if isinstance(state,dict) else {}
+    if state.get('state')!='PRODUCT_FORMATION_AGENT_BOUND': errors.append('Product Formation Agent evidence is not bound')
+    applicability=state.get('product_agent_applicability')
+    configured_product=config.get('product_agent',{})
+    if not isinstance(configured_product,dict): configured_product={}
+    if handoff.get('Product Agent applicability')!=applicability: errors.append('Product Agent applicability disagrees with status')
+    if configured_product.get('applicability')!=applicability: errors.append('Product Agent applicability disagrees with configuration')
+    candidate_identity=exact_id_hash(handoff.get('Agent Product Formation candidate ID / exact hash'))
+    if candidate_identity!=(candidate.get('candidate_id'),candidate.get('candidate_hash')): errors.append('Agent Product Formation candidate identity disagrees')
+    definition=exact_id_hash(handoff.get('Calabash Definition Handoff ID / exact hash'))
+    basis=exact_id_hash(handoff.get('Product Agent applicability Calabash basis'))
+    if not definition or definition!=basis or handoff.get('Calabash Definition Handoff result')!='PASS': errors.append('Product Agent applicability lacks exact Calabash basis')
+    if definition!=(state.get('calabash_definition_handoff_id'),state.get('calabash_definition_handoff_hash')): errors.append('Calabash basis disagrees with status')
+    config_identity=exact_id_hash(handoff.get('Agent Configuration Baseline ID / exact hash'))
+    expected_config=(config.get('configuration_baseline_id'),configuration_hash)
+    if config_identity!=expected_config or config_identity!=(state.get('configuration_baseline_id'),state.get('configuration_baseline_hash')): errors.append('Agent Configuration Baseline identity disagrees')
+    product_baseline=baseline_identity(handoff.get('Baseline ID / version / hash'))
+    if not product_baseline: errors.append('Product Baseline identity is invalid')
+    operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent',{}),dict) else {}
+    if handoff.get('Operations Agent ID')!=operations.get('agent_id'): errors.append('Operations Agent identity disagrees with configuration')
+    if handoff.get('Operations Agent Product Formation state')!='PREPARED_NOT_INTEGRATED' or state.get('operations_agent_state')!='PREPARED_NOT_INTEGRATED': errors.append('Operations Agent integration is falsely claimed in Product Formation')
+    operations_joins={
+        'Operations Agent prepared configuration evidence':'configuration',
+        'Operations Agent prepared Action Catalog evidence':'action_catalog',
+        'Operations Agent telemetry evidence':'interface',
+        'Operations Agent audit evidence':'audit_stream',
+        'Operations Agent fallback evidence':'fallback',
+        'Operations Agent Kill Switch evidence':'kill_switch',
+    }
+    for field,kind in operations_joins.items():
+        if exact_id_hash(handoff.get(field))!=(operations.get(kind+'_id'),operations.get(kind+'_hash')): errors.append(field+' disagrees with configuration')
+    if not exact_id_hash(handoff.get('Operations Agent Runtime Adapter requirement evidence')): errors.append('Operations Agent Runtime Adapter requirement evidence is invalid')
+    product=configured_product
+    if tokens(product.get('agent_id'))&{'CONSTRUCTION'}: errors.append('Construction Agent cannot substitute for Product Agent')
+    capability_state=handoff.get('Product Agent capability state')
+    if capability_state!=state.get('product_agent_capability_state'): errors.append('Product Agent capability state disagrees with status')
+    if applicability=='NOT_APPLICABLE':
+        if handoff.get('Product Agent ID')!='NOT_APPLICABLE' or any(handoff.get(field)!='NOT_APPLICABLE' for field in PRODUCT_PROOF_FIELDS): errors.append('NOT_APPLICABLE Product Agent cannot claim identity or capability')
+    elif applicability=='APPLICABLE_EXTRA' and capability_state=='UNIMPLEMENTED_EXTRA':
+        if handoff.get('Product Agent ID')!=product.get('agent_id') or any(handoff.get(field)!='NOT_APPLICABLE' for field in PRODUCT_PROOF_FIELDS): errors.append('unimplemented EXTRA cannot claim Product Agent capability')
+    else:
+        expected_state='REAL_RUNNABLE_CORE' if applicability=='APPLICABLE_CORE' else 'REAL_RUNNABLE_EXTRA'
+        if capability_state!=expected_state: errors.append('applicable Product Agent real capability state is invalid')
+        if handoff.get('Product Agent ID')!=product.get('agent_id') or handoff.get('Product Agent proof actor kind')!='PRODUCT_AGENT': errors.append('Product Agent proof uses an invalid or Construction actor')
+        capability=handoff.get('Product Agent Workflow Capability ID')
+        if not safe_id(capability): errors.append('Product Agent Workflow Capability ID is invalid')
+        evidence=[capability_evidence(handoff.get(field)) for field in ('Product Agent runnable evidence','Product Agent API evidence','Product Agent MCP evidence')]
+        simulation=capability_evidence(handoff.get('Product Agent Simulation scenario/recovery evidence'),True)
+        if any(item is None or item[0]!=capability for item in evidence) or simulation is None or simulation[0]!=capability: errors.append('Product Agent real Workflow/API/MCP/Simulation proof is incomplete or not same-capability')
+        if exact_id_hash(handoff.get('Product Agent Product Baseline ID / exact hash'))!=product_baseline: errors.append('Product Agent proof is not bound to Product Baseline')
+    if isinstance(product.get('agent_id'),str) and isinstance(operations.get('agent_id'),str) and product.get('agent_id').casefold()==operations.get('agent_id').casefold(): errors.append('Product and Operations Agent identities alias')
+    if handoff.get('Agent Product Formation result')!='PASS' or handoff.get('Handoff status')!='COMPLETE': errors.append('Agent Product Formation handoff is incomplete')
+    return errors
+
+def validate_product_formation_files(rule_path,handoff_path,status_path,configuration_path):
+    paths=[Path(item) for item in (rule_path,handoff_path,status_path,configuration_path)]
+    if any(path.is_symlink() or not path.is_file() for path in paths): return ['Agent Product Formation inputs must be regular files']
+    try:
+        rule=paths[0].read_text(encoding='utf-8'); handoff=paths[1].read_text(encoding='utf-8')
+        status=strict_json(paths[2]); config_raw=paths[3].read_bytes(); configuration=strict_json_bytes(config_raw)
+    except (OSError,UnicodeError,ValueError) as error:
+        return ['Agent Product Formation input is not strict UTF-8: '+str(error)]
+    config_hash='sha256:'+hashlib.sha256(config_raw).hexdigest()
+    return validate_product_formation(rule,handoff,status,configuration,config_hash)
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('path'); args=parser.parse_args(); errors=validate_file(args.path)
     if errors:

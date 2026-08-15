@@ -23,6 +23,16 @@
     "DELIVERY_READY": "PENDING"
   },
   "product_baseline": "PENDING",
+  "agent_product_formation": {
+    "state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "calabash_definition_handoff_id": "NOT_APPLICABLE",
+    "calabash_definition_handoff_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "product_agent_capability_state": "UNPROVED",
+    "operations_agent_state": "UNPROVED"
+  },
   "proposal": "PENDING",
   "initialization": "PENDING",
   "calabash_draft": "PENDING",

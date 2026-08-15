@@ -44,6 +44,17 @@ BLOCKERS = [
     "RUNTIME_ADAPTER_ATTESTATION_UNPROVED",
 ]
 REPORT_REFERENCE = "MIGRATION-2.7.0-TO-2.8.0.json"
+AGENT_PRODUCT_FORMATION_FIELD = "agent_product_formation"
+UNPROVED_AGENT_PRODUCT_FORMATION = {
+    "state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "calabash_definition_handoff_id": "NOT_APPLICABLE",
+    "calabash_definition_handoff_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "product_agent_capability_state": "UNPROVED",
+    "operations_agent_state": "UNPROVED",
+}
 
 assert MIGRATION_CONTRACT.is_file(), "2.7.0 to 2.8.0 migration contract is absent"
 assert MIGRATOR.is_file(), "2.7.0 to 2.8.0 migrator is absent"
@@ -145,6 +156,7 @@ def make_source(project):
         + "\n",
     )
     status = strict_json(TEMPLATES / "STATUS.json")
+    assert status.pop(AGENT_PRODUCT_FORMATION_FIELD) == UNPROVED_AGENT_PRODUCT_FORMATION
     status["status_schema_version"] = "2.7.0"
     status["project_id"] = "migration-270-fixture"
     status["initialization_mode"] = "NEW"
@@ -275,6 +287,7 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     assert status["next_action"] == "PROVE_2_8_AGENT_NATIVE_REQUIREMENTS"
     assert status["evidence_pointers"] == [REPORT_REFERENCE]
     assert status["blockers"] == BLOCKERS
+    assert status[AGENT_PRODUCT_FORMATION_FIELD] == UNPROVED_AGENT_PRODUCT_FORMATION
 
     assert phase_status["status_schema_version"] == "2.8.0"
     assert tuple(phase_status["phases"]) == TARGET_PHASES
@@ -354,6 +367,30 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     write(wrong_status_path, json.dumps(wrong_status, indent=2) + "\n")
     wrong_before = snapshot(wrong_identity)
     assert_failed_without_publish(wrong_identity, base / "wrong-output", wrong_before)
+
+    hybrid_agent = base / "hybrid-agent-source"
+    make_source(hybrid_agent)
+    hybrid_agent_status_path = hybrid_agent / ".lccoding/status.json"
+    hybrid_agent_status = strict_json(hybrid_agent_status_path)
+    hybrid_agent_status[AGENT_PRODUCT_FORMATION_FIELD] = copy.deepcopy(
+        UNPROVED_AGENT_PRODUCT_FORMATION
+    )
+    write(hybrid_agent_status_path, json.dumps(hybrid_agent_status, indent=2) + "\n")
+    hybrid_agent_before = snapshot(hybrid_agent)
+    assert_failed_without_publish(
+        hybrid_agent, base / "hybrid-agent-output", hybrid_agent_before
+    )
+
+    unknown_source = base / "unknown-status-source"
+    make_source(unknown_source)
+    unknown_status_path = unknown_source / ".lccoding/status.json"
+    unknown_status = strict_json(unknown_status_path)
+    unknown_status["unknown_2_8_field"] = "UNPROVED"
+    write(unknown_status_path, json.dumps(unknown_status, indent=2) + "\n")
+    unknown_before = snapshot(unknown_source)
+    assert_failed_without_publish(
+        unknown_source, base / "unknown-status-output", unknown_before
+    )
 
     duplicate = base / "duplicate-source"
     make_source(duplicate)

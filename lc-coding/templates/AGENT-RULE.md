@@ -17,3 +17,14 @@
 - Worker does not accept its own result.
 - Reuse valid evidence; repeat checks only with a recorded reason.
 - Do not expose LC core/internal dependencies in Delivery.
+
+## Agent Product Formation contract
+
+- Agent Product applicability authority: CALABASH_DEFINITION_HANDOFF
+- Agent Product CORE proof: REAL_RUNNABLE_WORKFLOW_API_MCP_SIMULATION
+- Agent Product mock/prompt/demo substitution: FORBIDDEN
+- Agent Construction substitution: FORBIDDEN
+- Agent Operations Product Formation maximum: PREPARED_NOT_INTEGRATED
+- Agent Operations integration / execution / Slice claim: FORBIDDEN
+- Agent identity alias: FORBIDDEN
+- Agent lifecycle effect: NO_NEW_GATE
