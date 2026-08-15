@@ -1,4 +1,4 @@
-# LCCoding Standard Specification 2.7.0
+# LCCoding Standard Specification 2.8.0
 
 This document is the complete normative specification for LCCoding. Stable clause IDs are the source for every constitutional, operational, explanatory, contractual, template, validator, and BI projection. A projection may summarize or mechanically encode a clause, but it may not redefine it.
 

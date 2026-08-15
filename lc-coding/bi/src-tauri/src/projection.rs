@@ -933,7 +933,8 @@ pub fn snapshot_from_status(
 ) -> Result<Snapshot, ProjectionError> {
     let manifest_schema = match status.status_schema_version.as_str() {
         "2.6.0" => "2.6.0",
-        "2.7.0" | "2.8.0" => "2.7.0",
+        "2.7.0" => "2.7.0",
+        "2.8.0" => "2.8.0",
         _ => return Err(ProjectionError::Inconsistent),
     };
     if manifest.is_some_and(|manifest| manifest.lccoding.version != manifest_schema) {

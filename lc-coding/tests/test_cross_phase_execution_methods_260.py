@@ -31,17 +31,17 @@ legacy_phases = [
     "ENGINEERING_RUNS",
     "DELIVERY_PREPARATION",
 ]
-assert manifest["version"] == "2.7.0"
-assert manifest["phase_overlay"] == legacy_phases
-assert manifest["execution_method_overlay"]["available_in_phases"] == legacy_phases
-
-phase_contract = json.loads(text("lc-coding/contracts/phases.json"))
 current_phases = [
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 ]
+assert manifest["version"] == "2.8.0"
+assert manifest["phase_overlay"] == current_phases
+assert manifest["execution_method_overlay"]["available_in_phases"] == current_phases
+
+phase_contract = json.loads(text("lc-coding/contracts/phases.json"))
 assert phase_contract["version"] == "2.8.0"
 assert [phase["id"] for phase in phase_contract["phases"]] == current_phases
 assert phase_contract["execution_methods"]["phase_ids"] == current_phases

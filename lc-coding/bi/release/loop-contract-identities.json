@@ -39,7 +39,7 @@
     },
     "2.7.0": {
       "status_schema_version": "2.7.0",
-      "compatibility_status": "CURRENT",
+      "compatibility_status": "SUPPORTED_LEGACY",
       "minimum_bi_version": "2.7.0",
       "phase_steps": {
         "INITIAL": [
@@ -75,7 +75,7 @@
     },
     "2.8.0": {
       "status_schema_version": "2.8.0",
-      "compatibility_status": "PREPARED",
+      "compatibility_status": "CURRENT",
       "minimum_bi_version": "2.8.0",
       "phase_steps": {
         "INITIAL": [

@@ -456,13 +456,16 @@ fn status_adapters_drive_exact_260_270_and_280_phase_layouts() {
     let legacy = compatibility.status_phase_steps("2.6.0").unwrap();
     assert_eq!(legacy[2].step_ids[0], "MANDATORY_CALABASH_UPGRADE");
     assert_eq!(legacy[2].step_ids[1], "PRODUCT_BASELINE");
-    let current = compatibility.status_phase_steps("2.7.0").unwrap();
-    assert_eq!(current[1].step_ids[5], "MANDATORY_CALABASH_UPGRADE");
-    assert_eq!(current[1].step_ids[6], "PRODUCT_BASELINE");
-    assert_eq!(current[2].step_ids[0], "FEATURE_SLICE_EXECUTION_COVERAGE");
-    let prepared = compatibility.status_phase_steps("2.8.0").unwrap();
-    assert_eq!(prepared[2].phase_id, "REAL_PRODUCT_INTEGRATION");
-    assert_eq!(prepared[2].step_ids, current[2].step_ids);
+    let legacy_270 = compatibility.status_phase_steps("2.7.0").unwrap();
+    assert_eq!(legacy_270[1].step_ids[5], "MANDATORY_CALABASH_UPGRADE");
+    assert_eq!(legacy_270[1].step_ids[6], "PRODUCT_BASELINE");
+    assert_eq!(
+        legacy_270[2].step_ids[0],
+        "FEATURE_SLICE_EXECUTION_COVERAGE"
+    );
+    let current_280 = compatibility.status_phase_steps("2.8.0").unwrap();
+    assert_eq!(current_280[2].phase_id, "REAL_PRODUCT_INTEGRATION");
+    assert_eq!(current_280[2].step_ids, legacy_270[2].step_ids);
 }
 
 #[test]
@@ -792,7 +795,7 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replace("\"2.7.0\"", "\"2.4.1\"");
+    let mismatched = manifest_text.replace("\"2.8.0\"", "\"2.4.1\"");
     let manifest = parse_manifest(&mismatched).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))

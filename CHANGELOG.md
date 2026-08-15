@@ -2,7 +2,7 @@
 
 ## Unreleased - 2.8.0 candidate
 
-- Added a copy-on-write 2.7-to-2.8 project migration that preserves prior evidence as historical and leaves all new Agent-native conditions explicitly unproved; this candidate work does not change VERSION, does not change the current BI release, and does not deploy the global Skill.
+- Added a copy-on-write 2.7-to-2.8 project migration that preserves prior evidence as historical and leaves all new Agent-native conditions explicitly unproved. The current repository and BI release carriers are prepared for 2.8.0; this remains an unreleased candidate, not a release, no formal tag or GitHub Release exists yet, and global installed Skill deployment remains a separate post-release action.
 
 ## 2.7.0
 

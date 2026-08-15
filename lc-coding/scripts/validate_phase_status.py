@@ -29,8 +29,8 @@ METHOD_FIELDS = (
 )
 ADAPTER_SPECS = {
     "2.6.0": ("SUPPORTED_LEGACY", "2.6.0", "ENGINEERING_RUNS", (3, 5, 7, 6)),
-    "2.7.0": ("CURRENT", "2.7.0", "ENGINEERING_RUNS", (3, 7, 5, 6)),
-    "2.8.0": ("PREPARED", "2.8.0", "REAL_PRODUCT_INTEGRATION", (3, 7, 5, 6)),
+    "2.7.0": ("SUPPORTED_LEGACY", "2.7.0", "ENGINEERING_RUNS", (3, 7, 5, 6)),
+    "2.8.0": ("CURRENT", "2.8.0", "REAL_PRODUCT_INTEGRATION", (3, 7, 5, 6)),
 }
 MACHINE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,95}$")
 

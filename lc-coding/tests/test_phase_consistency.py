@@ -22,10 +22,10 @@ legacy_ids = [
 
 assert phase_contract["version"] == "2.8.0"
 assert canonical_ids == current_ids
-assert manifest["version"] == "2.7.0"
-assert manifest["phase_overlay"] == legacy_ids
-assert manifest["execution_method_overlay"]["available_in_phases"] == legacy_ids
-assert manifest["phase_overlay"] != canonical_ids
+assert manifest["version"] == "2.8.0"
+assert manifest["phase_overlay"] == current_ids
+assert manifest["execution_method_overlay"]["available_in_phases"] == current_ids
+assert manifest["phase_overlay"] == canonical_ids
 assert phase_contract["execution_methods"]["phase_ids"] == canonical_ids
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
 assert phase_contract["execution_methods"]["method_completion_advances_phase"] is False

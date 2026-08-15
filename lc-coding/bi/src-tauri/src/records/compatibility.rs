@@ -61,9 +61,9 @@ struct StatusAdapters {
     #[serde(rename = "2.6.0")]
     legacy_260: StatusAdapter,
     #[serde(rename = "2.7.0")]
-    current_270: StatusAdapter,
+    adapter_270: StatusAdapter,
     #[serde(rename = "2.8.0")]
-    prepared_280: Option<StatusAdapter>,
+    adapter_280: Option<StatusAdapter>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -105,11 +105,11 @@ impl CompatibilityAsset {
                 "ENGINEERING_RUNS",
             ),
             "2.7.0" => (
-                &self.status_adapters.current_270.phase_steps,
+                &self.status_adapters.adapter_270.phase_steps,
                 "ENGINEERING_RUNS",
             ),
             "2.8.0" => (
-                &self.status_adapters.prepared_280.as_ref()?.phase_steps,
+                &self.status_adapters.adapter_280.as_ref()?.phase_steps,
                 "REAL_PRODUCT_INTEGRATION",
             ),
             _ => return None,
@@ -231,19 +231,18 @@ fn canonical_status_step_index(step: &str) -> Option<usize> {
 
 fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bool {
     let legacy = &adapters.legacy_260;
-    let current = &adapters.current_270;
+    let adapter_270 = &adapters.adapter_270;
     let base_valid = legacy.status_schema_version == "2.6.0"
         && legacy.compatibility_status == "SUPPORTED_LEGACY"
         && legacy.minimum_bi_version == "2.6.0"
-        && current.status_schema_version == "2.7.0"
-        && current.compatibility_status == "CURRENT"
-        && current.minimum_bi_version == "2.7.0"
+        && adapter_270.status_schema_version == "2.7.0"
+        && adapter_270.minimum_bi_version == "2.7.0"
         && phase_step_set(legacy, "ENGINEERING_RUNS").is_some_and(|steps| {
-            phase_step_set(current, "ENGINEERING_RUNS")
-                .is_some_and(|current_steps| steps == current_steps)
+            phase_step_set(adapter_270, "ENGINEERING_RUNS")
+                .is_some_and(|adapter_steps| steps == adapter_steps)
         })
-        && legacy.phase_steps.initial == current.phase_steps.initial
-        && legacy.phase_steps.delivery_preparation == current.phase_steps.delivery_preparation
+        && legacy.phase_steps.initial == adapter_270.phase_steps.initial
+        && legacy.phase_steps.delivery_preparation == adapter_270.phase_steps.delivery_preparation
         && legacy.phase_steps.initial.len() == 3
         && legacy.phase_steps.product_formation.len() == 5
         && legacy
@@ -252,47 +251,54 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
             .as_ref()
             .is_some_and(|steps| steps.len() == 7)
         && legacy.phase_steps.delivery_preparation.len() == 6
-        && current.phase_steps.product_formation.len() == 7
-        && current
+        && adapter_270.phase_steps.product_formation.len() == 7
+        && adapter_270
             .phase_steps
             .engineering_runs
             .as_ref()
             .is_some_and(|steps| steps.len() == 5)
-        && current.phase_steps.product_formation[..5] == legacy.phase_steps.product_formation
-        && current.phase_steps.product_formation[5..]
+        && adapter_270.phase_steps.product_formation[..5] == legacy.phase_steps.product_formation
+        && adapter_270.phase_steps.product_formation[5..]
             == legacy.phase_steps.engineering_runs.as_ref().unwrap()[..2]
-        && current.phase_steps.engineering_runs.as_ref().unwrap()[..]
+        && adapter_270.phase_steps.engineering_runs.as_ref().unwrap()[..]
             == legacy.phase_steps.engineering_runs.as_ref().unwrap()[2..];
     if !base_valid {
         return false;
     }
     match asset_schema {
-        ASSET_SCHEMA_V1 => adapters.prepared_280.is_none(),
-        ASSET_SCHEMA_V2 => adapters.prepared_280.as_ref().is_some_and(|prepared| {
-            prepared.status_schema_version == "2.8.0"
-                && prepared.compatibility_status == "PREPARED"
-                && prepared.minimum_bi_version == "2.8.0"
-                && phase_step_set(prepared, "REAL_PRODUCT_INTEGRATION").is_some_and(
-                    |prepared_steps| {
-                        phase_step_set(current, "ENGINEERING_RUNS")
-                            .is_some_and(|current_steps| prepared_steps == current_steps)
-                    },
-                )
-                && prepared.phase_steps.initial == current.phase_steps.initial
-                && prepared.phase_steps.product_formation == current.phase_steps.product_formation
-                && prepared.phase_steps.real_product_integration.as_ref()
-                    == current.phase_steps.engineering_runs.as_ref()
-                && prepared.phase_steps.delivery_preparation
-                    == current.phase_steps.delivery_preparation
-                && prepared.phase_steps.initial.len() == 3
-                && prepared.phase_steps.product_formation.len() == 7
-                && prepared
-                    .phase_steps
-                    .real_product_integration
-                    .as_ref()
-                    .is_some_and(|steps| steps.len() == 5)
-                && prepared.phase_steps.delivery_preparation.len() == 6
-        }),
+        ASSET_SCHEMA_V1 => {
+            adapter_270.compatibility_status == "CURRENT" && adapters.adapter_280.is_none()
+        }
+        ASSET_SCHEMA_V2 => {
+            adapter_270.compatibility_status == "SUPPORTED_LEGACY"
+                && adapters.adapter_280.as_ref().is_some_and(|adapter_280| {
+                    adapter_280.status_schema_version == "2.8.0"
+                        && adapter_280.compatibility_status == "CURRENT"
+                        && adapter_280.minimum_bi_version == "2.8.0"
+                        && phase_step_set(adapter_280, "REAL_PRODUCT_INTEGRATION").is_some_and(
+                            |adapter_280_steps| {
+                                phase_step_set(adapter_270, "ENGINEERING_RUNS").is_some_and(
+                                    |adapter_270_steps| adapter_280_steps == adapter_270_steps,
+                                )
+                            },
+                        )
+                        && adapter_280.phase_steps.initial == adapter_270.phase_steps.initial
+                        && adapter_280.phase_steps.product_formation
+                            == adapter_270.phase_steps.product_formation
+                        && adapter_280.phase_steps.real_product_integration.as_ref()
+                            == adapter_270.phase_steps.engineering_runs.as_ref()
+                        && adapter_280.phase_steps.delivery_preparation
+                            == adapter_270.phase_steps.delivery_preparation
+                        && adapter_280.phase_steps.initial.len() == 3
+                        && adapter_280.phase_steps.product_formation.len() == 7
+                        && adapter_280
+                            .phase_steps
+                            .real_product_integration
+                            .as_ref()
+                            .is_some_and(|steps| steps.len() == 5)
+                        && adapter_280.phase_steps.delivery_preparation.len() == 6
+                })
+        }
         _ => false,
     }
 }

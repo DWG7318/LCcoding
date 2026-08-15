@@ -81,7 +81,7 @@ EXPECTED_ADAPTERS = {
     },
     "2.7.0": {
         "status_schema_version": "2.7.0",
-        "compatibility_status": "CURRENT",
+        "compatibility_status": "SUPPORTED_LEGACY",
         "minimum_bi_version": "2.7.0",
         "phase_steps": dict(
             zip(LEGACY_PHASES, (INITIAL, FORMATION_270, INTEGRATION_270, DELIVERY))
@@ -89,7 +89,7 @@ EXPECTED_ADAPTERS = {
     },
     "2.8.0": {
         "status_schema_version": "2.8.0",
-        "compatibility_status": "PREPARED",
+        "compatibility_status": "CURRENT",
         "minimum_bi_version": "2.8.0",
         "phase_steps": dict(
             zip(
@@ -254,7 +254,8 @@ mutation(
 mutation(lambda x: x["status_adapters"]["2.6.0"].__setitem__("compatibility_status", "CURRENT"))
 mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("minimum_bi_version", "2.6.0"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("status_schema_version", "2.7.0"))
-mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "CURRENT"))
+mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("compatibility_status", "CURRENT"))
+mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "PREPARED"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("minimum_bi_version", "2.7.0"))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_FORMATION", FORMATION_260))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_INTEGRATION", x["status_adapters"]["2.7.0"]["phase_steps"].pop("ENGINEERING_RUNS")))
@@ -348,7 +349,7 @@ for mutator in [
         {"2.9.0": copy.deepcopy(x["status_adapters"]["2.8.0"])}
     ),
     lambda x: x["status_adapters"]["2.8.0"].__setitem__(
-        "compatibility_status", "CURRENT"
+        "compatibility_status", "PREPARED"
     ),
     lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__(
         "ENGINEERING_RUNS",

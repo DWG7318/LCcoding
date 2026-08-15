@@ -292,8 +292,8 @@ function Test-CompatibilityAsset($Identities) {
     return (
       (Test-ExactKeys $Identities.status_adapters @("2.6.0", "2.7.0", "2.8.0")) -and
       (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
-      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "CURRENT" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
-      (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "PREPARED" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280)
+      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "SUPPORTED_LEGACY" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "CURRENT" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280)
     )
   }
   return $false

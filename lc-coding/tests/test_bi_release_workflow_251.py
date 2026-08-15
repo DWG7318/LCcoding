@@ -57,7 +57,7 @@ for marker in required:
 assert text.count("actions/upload-artifact@v4") == 1
 release_root = "${{ runner.temp }}\\lccoding-bi-formal\\release\\"
 uploads = {
-    f"{release_root}LCCoding-BI_2.7.0_x64-setup.exe",
+    f"{release_root}LCCoding-BI_2.8.0_x64-setup.exe",
     f"{release_root}installer.sha256",
     f"{release_root}provenance.json",
 }

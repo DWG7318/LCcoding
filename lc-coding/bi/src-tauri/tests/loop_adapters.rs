@@ -159,17 +159,19 @@ fn v2_compatibility_asset() -> Value {
     }
     assert_eq!(asset["asset_schema"], "LCCODING_BI_COMPATIBILITY_V1");
     asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V2".into());
-    let mut prepared = asset["status_adapters"]["2.7.0"].clone();
-    prepared["status_schema_version"] = Value::String("2.8.0".into());
-    prepared["compatibility_status"] = Value::String("PREPARED".into());
-    prepared["minimum_bi_version"] = Value::String("2.8.0".into());
-    let integration = prepared["phase_steps"]
+    asset["status_adapters"]["2.7.0"]["compatibility_status"] =
+        Value::String("SUPPORTED_LEGACY".into());
+    let mut current = asset["status_adapters"]["2.7.0"].clone();
+    current["status_schema_version"] = Value::String("2.8.0".into());
+    current["compatibility_status"] = Value::String("CURRENT".into());
+    current["minimum_bi_version"] = Value::String("2.8.0".into());
+    let integration = current["phase_steps"]
         .as_object_mut()
         .unwrap()
         .remove("ENGINEERING_RUNS")
         .unwrap();
-    prepared["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = integration;
-    asset["status_adapters"]["2.8.0"] = prepared;
+    current["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = integration;
+    asset["status_adapters"]["2.8.0"] = current;
     asset
 }
 
@@ -180,6 +182,7 @@ fn v1_compatibility_asset() -> Value {
         .as_object_mut()
         .unwrap()
         .remove("2.8.0");
+    asset["status_adapters"]["2.7.0"]["compatibility_status"] = Value::String("CURRENT".into());
     asset
 }
 
@@ -264,13 +267,21 @@ fn embedded_execution_method_identities_match_the_single_asset() {
 }
 
 #[test]
-fn compatibility_asset_v2_is_strictly_prepared_in_memory_without_identity_drift() {
+fn compatibility_asset_v2_is_strictly_current_in_memory_without_identity_drift() {
     let v1 = v1_compatibility_asset();
     let v2 = v2_compatibility_asset();
     assert!(parse_compatibility_asset(&serde_json::to_string(&v1).unwrap()).is_ok());
     let parsed = parse_compatibility_asset(&serde_json::to_string(&v2).unwrap()).unwrap();
     assert_eq!(v2["asset_schema"], "LCCODING_BI_COMPATIBILITY_V2");
     assert_eq!(v2["execution_methods"], v1["execution_methods"]);
+    assert_eq!(
+        v2["status_adapters"]["2.7.0"]["compatibility_status"],
+        "SUPPORTED_LEGACY"
+    );
+    assert_eq!(
+        v2["status_adapters"]["2.8.0"]["compatibility_status"],
+        "CURRENT"
+    );
     let phases = parsed.status_phase_steps("2.8.0").unwrap();
     assert_eq!(
         phases
@@ -325,7 +336,11 @@ fn compatibility_asset_v2_is_strictly_prepared_in_memory_without_identity_drift(
         asset["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_INTEGRATION"] = integration;
     });
     rejects_v2_mutation(|asset| {
-        asset["status_adapters"]["2.8.0"]["compatibility_status"] = Value::String("CURRENT".into());
+        asset["status_adapters"]["2.7.0"]["compatibility_status"] = Value::String("CURRENT".into());
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.8.0"]["compatibility_status"] =
+            Value::String("PREPARED".into());
     });
     rejects_v2_mutation(|asset| {
         asset["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_FORMATION"]

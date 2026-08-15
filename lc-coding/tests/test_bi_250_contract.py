@@ -159,14 +159,15 @@ def compatibility_v2_candidate(asset: dict) -> dict:
         assert set(candidate.get("status_adapters", {})) == {"2.6.0", "2.7.0", "2.8.0"}
         return candidate
     candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V2"
-    prepared = copy.deepcopy(candidate["status_adapters"]["2.7.0"])
-    prepared["status_schema_version"] = "2.8.0"
-    prepared["compatibility_status"] = "PREPARED"
-    prepared["minimum_bi_version"] = "2.8.0"
-    prepared["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = prepared[
+    candidate["status_adapters"]["2.7.0"]["compatibility_status"] = "SUPPORTED_LEGACY"
+    current = copy.deepcopy(candidate["status_adapters"]["2.7.0"])
+    current["status_schema_version"] = "2.8.0"
+    current["compatibility_status"] = "CURRENT"
+    current["minimum_bi_version"] = "2.8.0"
+    current["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = current[
         "phase_steps"
     ].pop("ENGINEERING_RUNS")
-    candidate["status_adapters"]["2.8.0"] = prepared
+    candidate["status_adapters"]["2.8.0"] = current
     return candidate
 
 
@@ -174,6 +175,7 @@ def compatibility_v1_candidate(asset: dict) -> dict:
     candidate = copy.deepcopy(asset)
     candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V1"
     candidate["status_adapters"].pop("2.8.0", None)
+    candidate["status_adapters"]["2.7.0"]["compatibility_status"] = "CURRENT"
     assert set(candidate["status_adapters"]) == {"2.6.0", "2.7.0"}
     return candidate
 
@@ -498,8 +500,11 @@ wrong_v2_phase["status_adapters"]["2.8.0"]["phase_steps"][
 )
 v2_early_rejections.append(wrong_v2_phase)
 wrong_v2_status = copy.deepcopy(valid_v2_asset)
-wrong_v2_status["status_adapters"]["2.8.0"]["compatibility_status"] = "CURRENT"
+wrong_v2_status["status_adapters"]["2.8.0"]["compatibility_status"] = "PREPARED"
 v2_early_rejections.append(wrong_v2_status)
+wrong_v2_legacy_status = copy.deepcopy(valid_v2_asset)
+wrong_v2_legacy_status["status_adapters"]["2.7.0"]["compatibility_status"] = "CURRENT"
+v2_early_rejections.append(wrong_v2_legacy_status)
 wrong_v2_order = copy.deepcopy(valid_v2_asset)
 wrong_v2_order["status_adapters"]["2.8.0"]["phase_steps"][
     "PRODUCT_FORMATION"

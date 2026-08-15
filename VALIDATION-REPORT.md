@@ -1,10 +1,10 @@
-# LCCoding 2.7.0 Validation Report
+# LCCoding 2.8.0 Validation Report
 
 ## Result
 
 Local source implementation candidate: **PASS**. Formal installer/Release publication: **NOT ATTEMPTED**.
 
-LCCoding 2.7.0 separates the four-phase lifecycle from cross-phase execution methods and makes Phase 3 the explicit real Product Integration phase. It preserves one current-user NSIS installer contract for `lccoding-bi.exe`, four compatible phase IDs, 21 BI steps, eight protected reports, the 300×480 client area, bilingual interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority. It does not claim that a new installer asset or GitHub Release exists; those remain formal-release workflow outputs.
+LCCoding 2.8.0 separates the four-phase lifecycle from cross-phase execution methods and makes Phase 3 the explicit real Product Integration phase. It preserves one current-user NSIS installer contract for `lccoding-bi.exe`, four compatible phase IDs, 21 BI steps, eight protected reports, the 300×480 client area, bilingual interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority. It does not claim that a new installer asset or GitHub Release exists; those remain formal-release workflow outputs.
 
 ## Fresh verification
 
@@ -17,7 +17,7 @@ LCCoding 2.7.0 separates the four-phase lifecycle from cross-phase execution met
 - Vitest DOM/accessibility/refresh tests: PASS, 71/71.
 - Vite production build to an external temporary directory: PASS.
 - Rust normal tests: PASS, 32/32 across binding, single-flight commands, exact Git reads, bounded input, Loop adapters, Unicode evidence references, and project projection.
-- NSIS current-user packaging contract: source-validated with `embedBootstrapper`, exact safe basename `LCCoding-BI_2.7.0_x64-setup.exe`, installer SHA-256/overall-version/commit provenance requirements, and no independent BI version.
+- NSIS current-user packaging contract: source-validated with `embedBootstrapper`, exact safe basename `LCCoding-BI_2.8.0_x64-setup.exe`, installer SHA-256/overall-version/commit provenance requirements, and no independent BI version.
 - `npm audit`: one inherited indirect High finding for `nanoid <3.3.17`; dependency remediation was not part of this method-only release and remains open.
 - Not run for this source candidate: Playwright visual suite, Rust optimized tests, formal NSIS package build, installed-tool smoke, uninstall smoke, GitHub Actions, tag, or GitHub Release.
 - `git diff --check`, JSON/Markdown/version consistency, and scope inspection: PASS.
@@ -105,13 +105,13 @@ $download = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-formal-download-$r
 if (Test-Path $download) { throw "choose an empty download directory" }
 gh run download $runId -R $repo --name $artifactName --dir $download
 $provenance = Get-Content (Join-Path $download "provenance.json") -Raw | ConvertFrom-Json
-$installer = Join-Path $download "LCCoding-BI_2.7.0_x64-setup.exe"
+$installer = Join-Path $download "LCCoding-BI_2.8.0_x64-setup.exe"
 $sha256 = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($provenance.commit -ne $releaseCommit -or $provenance.build_mode -ne "FORMAL_GITHUB_ACTIONS" -or $provenance.build_run_id -ne $runId -or $provenance.sha256 -ne $sha256) { throw "formal provenance failed" }
-if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding-BI_2.7.0_x64-setup.exe") { throw "formal checksum failed" }
+if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding-BI_2.8.0_x64-setup.exe") { throw "formal checksum failed" }
 ```
 
-Before creating a GitHub Release for `v2.7.0`, repeat the accepted current-user installation smoke with its workflow-produced installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
+Before creating a GitHub Release for `v2.8.0`, repeat the accepted current-user installation smoke with its workflow-produced installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
 
 ## Safety and authority
 

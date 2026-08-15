@@ -277,12 +277,19 @@ assert changelog.startswith("# Changelog\n\n## Unreleased - 2.8.0 candidate\n")
 candidate_section = changelog.split("\n## 2.7.0", 1)[0]
 for marker in (
     "copy-on-write",
-    "does not change VERSION",
-    "does not change the current BI release",
-    "does not deploy the global Skill",
+    "current repository and BI release carriers are prepared for 2.8.0",
+    "this remains an unreleased candidate, not a release",
+    "no formal tag or GitHub Release exists yet",
+    "global installed Skill deployment remains a separate post-release action",
 ):
     assert marker in candidate_section
-assert "2.8.0 has been released" not in candidate_section
+for stale_claim in (
+    "does not change VERSION",
+    "does not change the current BI release",
+    "2.8.0 has been released",
+    "formal release is complete",
+):
+    assert stale_claim not in candidate_section
 
 with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     base = Path(temporary)
