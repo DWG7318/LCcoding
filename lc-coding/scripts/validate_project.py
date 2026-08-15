@@ -38,12 +38,25 @@ _VULNERABILITY_VALIDATOR=importlib.util.module_from_spec(_VULNERABILITY_VALIDATO
 _VULNERABILITY_VALIDATOR_SPEC.loader.exec_module(_VULNERABILITY_VALIDATOR)
 validate_vulnerability_receipt=_VULNERABILITY_VALIDATOR.validate_receipt
 strict_vulnerability_json=_VULNERABILITY_VALIDATOR.strict_json
+_AGENT_NATIVE_PATH=Path(__file__).with_name('validate_agent_native.py')
+_AGENT_NATIVE_SPEC=importlib.util.spec_from_file_location('lccoding_validate_agent_native',_AGENT_NATIVE_PATH)
+_AGENT_NATIVE=importlib.util.module_from_spec(_AGENT_NATIVE_SPEC)
+_AGENT_NATIVE_SPEC.loader.exec_module(_AGENT_NATIVE)
 VULNERABILITY_CONTRACT=json.loads(
     _VULNERABILITY_VALIDATOR.CONTRACT_PATH.read_text(encoding='utf-8')
 )
 LOOP_CONTROL_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/loop-control-contract.json'
 LOOP_CONTROL_BINDING_NAME='LOOP-CONTROL-BINDING.json'
 LOOP_CONTROL_METHODS={'SLK','CLK','GLK'}
+AGENT_CONFIGURATION_BASELINE_NAME='AGENT-CONFIGURATION-BASELINE.json'
+
+def validate_agent_native_artifacts(lc,status):
+    if status.get('status_schema_version')!='2.8.0': return []
+    path=lc/AGENT_CONFIGURATION_BASELINE_NAME
+    if not path.exists() and not path.is_symlink(): return []
+    if path.is_symlink() or not path.is_file(): return ['Agent Configuration Baseline must be a regular project file']
+    candidate=status.get('canonical_candidate',{})
+    return _AGENT_NATIVE.validate_file(path,candidate.get('candidate_id'),candidate.get('candidate_hash'))
 
 REQUIRED=['PROJECT-START.json','OWNER-POLICY.md','PROJECT-PROFILE.md','PROJECT-FINGERPRINT.json','PROJECT-HEALTH.json','AGENT-RULE.md','CANONICAL-MANIFEST.json','INTERPRETATION-LOCK.json','WORKFLOW-MAP.md','UI-MAP.md','SIMULATION-WORLD.md','status.json','PHASE-STATUS.json']
 COMPLEXITY_FACTORS=['product_uncertainty','system_coupling','real_risk','irreversibility','novelty']
@@ -3296,6 +3309,8 @@ def main():
     if (lc/'PROJECT-HEALTH.json').exists(): health=json.loads((lc/'PROJECT-HEALTH.json').read_text(encoding='utf-8'))
     if status and phase_status and health:
         errors.extend(validate_status_authority(status,phase_status,health))
+    if status:
+        errors.extend(validate_agent_native_artifacts(lc,status))
     if start and status and health:
         errors.extend(validate_takeover_readiness(start,status,health))
     fingerprint={}

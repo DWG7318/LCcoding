@@ -1,0 +1,55 @@
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "AGENT_CONFIGURATION_BASELINE",
+  "configuration_baseline_id": "",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "root_authority": {
+    "authority_flow": "OWNER_DECIDES_CALABASH_DEFINES_LCCODING_CONSTRUCTION_IMPLEMENTS_INDEPENDENT_VERIFICATION_OWNER_ACCEPTS_AUTHORIZED_RUNTIME_ADAPTER_MECHANICALLY_LOADS",
+    "root_authority_id": "",
+    "root_authority_hash": "",
+    "scorpion_policy_id": "",
+    "scorpion_policy_hash": "",
+    "secrets_storage": "REFERENCES_ONLY_NO_INLINE_SECRETS",
+    "runtime_permission": "CANNOT_EXPAND_AUTHORITY"
+  },
+  "operations_agent": {
+    "applicability": "REQUIRED",
+    "agent_id": "",
+    "policy_id": "", "policy_hash": "",
+    "action_catalog_id": "", "action_catalog_hash": "",
+    "configuration_id": "", "configuration_hash": "",
+    "private_memory_store_id": "", "private_memory_store_hash": "",
+    "retriever_id": "", "retriever_hash": "",
+    "write_credential_reference_id": "", "write_credential_reference_hash": "",
+    "encryption_key_reference_id": "", "encryption_key_reference_hash": "",
+    "audit_stream_id": "", "audit_stream_hash": "",
+    "kill_switch_id": "", "kill_switch_hash": "",
+    "fallback_id": "", "fallback_hash": "",
+    "interface_id": "", "interface_hash": ""
+  },
+  "product_agent": {
+    "applicability": "NOT_APPLICABLE",
+    "agent_id": "NOT_APPLICABLE",
+    "policy_id": "NOT_APPLICABLE", "policy_hash": "NOT_APPLICABLE",
+    "action_catalog_id": "NOT_APPLICABLE", "action_catalog_hash": "NOT_APPLICABLE",
+    "configuration_id": "NOT_APPLICABLE", "configuration_hash": "NOT_APPLICABLE",
+    "private_memory_store_id": "NOT_APPLICABLE", "private_memory_store_hash": "NOT_APPLICABLE",
+    "retriever_id": "NOT_APPLICABLE", "retriever_hash": "NOT_APPLICABLE",
+    "write_credential_reference_id": "NOT_APPLICABLE", "write_credential_reference_hash": "NOT_APPLICABLE",
+    "encryption_key_reference_id": "NOT_APPLICABLE", "encryption_key_reference_hash": "NOT_APPLICABLE",
+    "audit_stream_id": "NOT_APPLICABLE", "audit_stream_hash": "NOT_APPLICABLE",
+    "kill_switch_id": "NOT_APPLICABLE", "kill_switch_hash": "NOT_APPLICABLE",
+    "fallback_id": "NOT_APPLICABLE", "fallback_hash": "NOT_APPLICABLE",
+    "interface_id": "NOT_APPLICABLE", "interface_hash": "NOT_APPLICABLE"
+  },
+  "verification": {
+    "verification_id": "", "candidate_id": "", "candidate_hash": "",
+    "configuration_baseline_id": "", "independent_verifier_id": "",
+    "evidence_id": "", "evidence_hash": "", "result": "PENDING"
+  },
+  "owner_acceptance": {
+    "acceptance_id": "", "owner_id": "", "candidate_id": "", "candidate_hash": "",
+    "configuration_baseline_id": "", "verification_id": "", "result": "PENDING"
+  }
+}

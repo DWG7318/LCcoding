@@ -1,0 +1,9 @@
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "AGENT_CONFIGURATION_BASELINE_CONTRACT",
+  "top_level_fields": ["schema_version", "artifact_role", "configuration_baseline_id", "candidate_id", "candidate_hash", "root_authority", "operations_agent", "product_agent", "verification", "owner_acceptance"],
+  "operations_applicability": ["REQUIRED"],
+  "product_applicability": ["APPLICABLE_CORE", "APPLICABLE_EXTRA", "NOT_APPLICABLE"],
+  "root_authority_flow": "OWNER_DECIDES_CALABASH_DEFINES_LCCODING_CONSTRUCTION_IMPLEMENTS_INDEPENDENT_VERIFICATION_OWNER_ACCEPTS_AUTHORIZED_RUNTIME_ADAPTER_MECHANICALLY_LOADS",
+  "agent_identity_kinds": ["policy", "action_catalog", "configuration", "private_memory_store", "retriever", "write_credential_reference", "encryption_key_reference", "audit_stream", "kill_switch", "fallback", "interface"]
+}
