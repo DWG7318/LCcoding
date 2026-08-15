@@ -13,7 +13,7 @@ MANIFEST_FIELDS = {
     "delivery_id", "project_id", "product_version", "candidate_id", "included",
     "excluded", "internal_dependencies", "runtime_certification", "license_policy",
     "package_hashes", "verification_receipts", "owner_approval",
-    "delivery_decision_id", "delivery_method_confirmed", "qa_status",
+    "delivery_decision_id", "delivery_method_confirmed", "qa_status", "agent_delivery",
 }
 HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
 VERSION_BUILD_SUFFIX_RE = re.compile(
@@ -42,6 +42,114 @@ DECISION_SPEC = importlib.util.spec_from_file_location(
 DECISION_VALIDATOR = importlib.util.module_from_spec(DECISION_SPEC)
 DECISION_SPEC.loader.exec_module(DECISION_VALIDATOR)
 PROJECT_VALIDATOR = DECISION_VALIDATOR.PROJECT_VALIDATOR
+AGENT_DELIVERY_HEADING = "## Agent Delivery evidence"
+
+
+def file_hash(path):
+    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def closed_record(value, fields, label):
+    if not isinstance(value, dict): return {}, [label + " must be a closed object"]
+    missing = set(fields) - set(value); unknown = set(value) - set(fields); errors = []
+    if missing: errors.append(label + " missing fields " + ", ".join(sorted(missing)))
+    if unknown: errors.append(label + " unknown fields " + ", ".join(sorted(unknown)))
+    return value, errors
+
+
+def not_applicable_agent_delivery(fields):
+    return {
+        field: ([] if field in {"approved_product_assets", "approved_runtime_assets"}
+                else "NOT_APPLICABLE")
+        for field in fields
+    }
+
+
+def forbidden_agent_asset(value, terms):
+    normalized = re.sub(r"[^a-z0-9]+", "-", str(value).casefold()).strip("-")
+    padded = "-" + normalized + "-"
+    return any(
+        "-" + re.sub(r"[^a-z0-9]+", "-", term).strip("-") + "-" in padded
+        for term in terms
+    )
+
+
+def parse_agent_certification(path):
+    try: text = Path(path).read_bytes().decode("utf-8")
+    except (OSError, UnicodeError) as error: return {}, ["Runtime Certification is unreadable: " + str(error)]
+    pattern = re.escape(AGENT_DELIVERY_HEADING) + r"\r?\n\r?\n```json\r?\n(.*?)\r?\n```"
+    matches = re.findall(pattern, text, re.DOTALL)
+    if len(matches) != 1: return {}, ["Runtime Certification requires one strict Agent Delivery JSON section"]
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result: raise ValueError("duplicate JSON key: " + key)
+            result[key] = value
+        return result
+    try:
+        return json.loads(matches[0], object_pairs_hook=pairs,
+                          parse_constant=lambda value: (_ for _ in ()).throw(ValueError("non-finite JSON"))), []
+    except (ValueError, json.JSONDecodeError) as error:
+        return {}, ["Runtime Certification Agent Delivery JSON is invalid: " + str(error)]
+
+
+def expected_agent_certification(lc, status):
+    errors = []; lc = Path(lc)
+    binding, binding_errors = PROJECT_VALIDATOR._expected_agent_security_binding(lc, status)
+    errors.extend(binding_errors)
+    if not isinstance(binding, dict) or binding.get("state") != "BOUND":
+        return {}, errors + ["Agent-native Delivery requires a BOUND Agent security identity"]
+    try:
+        configuration = PROJECT_VALIDATOR._AGENT_NATIVE.strict_json(
+            lc / PROJECT_VALIDATOR.AGENT_CONFIGURATION_BASELINE_NAME
+        )
+        attestation = PROJECT_VALIDATOR._AGENT_NATIVE.strict_json(
+            lc / PROJECT_VALIDATOR.RUNTIME_ADAPTER_ATTESTATION_NAME
+        )
+    except (OSError, UnicodeError, ValueError) as error:
+        return {}, errors + ["Agent Delivery identity evidence is unreadable: " + str(error)]
+    closure_status = status.get("vulnerability_closure", {})
+    post_status = status.get("post_security_owner_acceptance", {})
+    closure_path = PROJECT_VALIDATOR.resolve_security_reference(
+        lc, closure_status.get("current_receipt_reference")
+    )
+    post_path = PROJECT_VALIDATOR.resolve_security_reference(
+        lc, post_status.get("current_acceptance_reference")
+    )
+    if closure_path is None or post_path is None:
+        return {}, errors + ["Agent Delivery requires current contained security receipts"]
+    operations = configuration.get("operations_agent", {})
+    product = configuration.get("product_agent", {})
+    authority = attestation.get("authority_boundaries", {})
+    fallback = attestation.get("fallback", {})
+    kill_switch = attestation.get("kill_switch", {})
+    applicable = binding.get("product_agent_applicability") != "NOT_APPLICABLE"
+    expected = dict(binding)
+    expected.pop("identity_status", None)
+    expected.update({
+        "operations_base_model_id": operations.get("base_model_id"),
+        "operations_base_model_hash": operations.get("base_model_hash"),
+        "operations_runtime_provider_id": operations.get("runtime_provider_id"),
+        "operations_runtime_provider_hash": operations.get("runtime_provider_hash"),
+        "product_base_model_id": product.get("base_model_id") if applicable else "NOT_APPLICABLE",
+        "product_base_model_hash": product.get("base_model_hash") if applicable else "NOT_APPLICABLE",
+        "product_runtime_provider_id": product.get("runtime_provider_id") if applicable else "NOT_APPLICABLE",
+        "product_runtime_provider_hash": product.get("runtime_provider_hash") if applicable else "NOT_APPLICABLE",
+        "isolation_evidence_id": authority.get("isolation_evidence_id"),
+        "isolation_evidence_hash": authority.get("isolation_evidence_hash"),
+        "fallback_evidence_id": fallback.get("fallback_id"),
+        "fallback_evidence_hash": fallback.get("evidence_hash"),
+        "kill_switch_evidence_id": kill_switch.get("kill_switch_id"),
+        "kill_switch_evidence_hash": kill_switch.get("evidence_hash"),
+        "audit_evidence_id": operations.get("audit_stream_id"),
+        "audit_evidence_hash": operations.get("audit_stream_hash"),
+        "vulnerability_closure_id": closure_status.get("current_receipt_id"),
+        "vulnerability_closure_hash": file_hash(closure_path),
+        "post_security_acceptance_id": post_status.get("current_acceptance_id"),
+        "post_security_acceptance_hash": file_hash(post_path),
+        "result": "PASS",
+    })
+    return expected, errors
 
 
 def manifest_root(path):
@@ -286,7 +394,8 @@ def validate_manifest(path):
     normalized_excluded = {normalized_asset(item) for item in excluded}
     if normalized_included & normalized_excluded:
         errors.append("included and excluded assets must be disjoint")
-    policy, _ = DECISION_VALIDATOR.load_policy()
+    policy, policy_errors = DECISION_VALIDATOR.load_policy()
+    errors.extend(policy_errors)
     locked = policy.get("owner_locked_default_exclusions", []) if isinstance(policy, dict) else []
     suffixes = policy.get("protected_package_suffixes", []) if isinstance(policy, dict) else []
     bad = sorted(
@@ -294,6 +403,10 @@ def validate_manifest(path):
     )
     if bad:
         errors.append("forbidden internal assets included")
+    forbidden_terms = policy.get("agent_delivery_forbidden_asset_terms", []) if isinstance(policy, dict) else []
+    exposed_assets = [*included, *(data.get("package_hashes", {}) if isinstance(data.get("package_hashes"), dict) else {})]
+    if any(forbidden_agent_asset(asset, forbidden_terms) for asset in exposed_assets):
+        errors.append("Agent-private or unapproved Runtime evidence included")
     package_hashes = data.get("package_hashes")
     errors.extend(validate_package_hashes(
         package_hashes, lc.parent, locked, suffixes
@@ -334,6 +447,66 @@ def validate_manifest(path):
         gates = status.get("phase_gates", {})
         if not isinstance(gates, dict) or gates.get("DELIVERY_READY") != "DELIVERY_READY":
             errors.append("Delivery Manifest requires current DELIVERY_READY")
+        agent_fields = policy.get("agent_delivery_manifest_fields", []) if isinstance(policy, dict) else []
+        agent_delivery, agent_errors = closed_record(
+            data.get("agent_delivery"), agent_fields, "Delivery Manifest agent_delivery"
+        )
+        errors.extend(agent_errors)
+        if status.get("status_schema_version") == "2.8.0":
+            if agent_delivery.get("state") != "BOUND":
+                errors.append("Agent-native Delivery Manifest requires BOUND Agent evidence")
+            certification_reference = agent_delivery.get("runtime_certification_reference")
+            if data.get("runtime_certification") != certification_reference:
+                errors.append("Delivery Manifest Runtime Certification reference mismatch")
+            certification_path = PROJECT_VALIDATOR.resolve_security_reference(
+                lc, certification_reference
+            )
+            if certification_path is None:
+                errors.append("Agent-native Runtime Certification is missing or outside .lccoding")
+                certification = {}
+            else:
+                certification, certification_errors = parse_agent_certification(
+                    certification_path
+                )
+                errors.extend(certification_errors)
+                certification, certification_shape_errors = closed_record(
+                    certification,
+                    policy.get("agent_delivery_certification_fields", []),
+                    "Runtime Certification Agent Delivery evidence",
+                )
+                errors.extend(certification_shape_errors)
+                if agent_delivery.get("runtime_certification_hash") != file_hash(certification_path):
+                    errors.append("Runtime Certification hash mismatch")
+            expected_certification, certification_identity_errors = expected_agent_certification(
+                lc, status
+            )
+            errors.extend(certification_identity_errors)
+            if certification != expected_certification:
+                errors.append("Runtime Certification Agent identity/evidence mismatch")
+            for field in policy.get("agent_delivery_certification_fields", []):
+                if agent_delivery.get(field) != certification.get(field):
+                    errors.append("Delivery Manifest disagrees with Runtime Certification: " + field)
+            if isinstance(decision, dict):
+                if agent_delivery.get("delivery_decision_id") != decision.get("delivery_decision_id"):
+                    errors.append("Agent Delivery evidence decision ID mismatch")
+                if agent_delivery.get("delivery_decision_hash") != file_hash(decision_path):
+                    errors.append("Agent Delivery evidence decision hash mismatch")
+            product_assets = agent_delivery.get("approved_product_assets")
+            runtime_assets = agent_delivery.get("approved_runtime_assets")
+            if not unique_string_list(product_assets, allow_empty=True) or not unique_string_list(runtime_assets, allow_empty=True):
+                errors.append("approved Product/Runtime assets must be closed unique lists")
+                product_assets = []; runtime_assets = []
+            if set(product_assets) & set(runtime_assets):
+                errors.append("approved Product and Runtime assets must be disjoint")
+            approved = set(product_assets) | set(runtime_assets)
+            if approved != set(package_hashes if isinstance(package_hashes, dict) else {}):
+                errors.append("approved Product/Runtime assets must exactly cover package_hashes")
+            if approved != set(included):
+                errors.append("approved Product/Runtime assets must exactly equal included assets")
+            if agent_delivery.get("result") != "PASS":
+                errors.append("Agent Delivery evidence result must be PASS")
+        elif agent_delivery != not_applicable_agent_delivery(agent_fields):
+            errors.append("legacy Delivery requires exact NOT_APPLICABLE Agent evidence")
     return errors
 
 

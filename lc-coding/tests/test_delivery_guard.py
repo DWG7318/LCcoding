@@ -46,6 +46,19 @@ REQUIRED_PACKAGE_SUFFIXES = (
     ".a", ".lib", ".wasm", ".zip", ".tar.gz", ".exe", ".msi", ".dll",
     ".so", ".dylib", ".jar", ".pdb",
 )
+SENSITIVE_AGENT_ASSETS = (
+    "bundle/keys.json",
+    "bundle/secrets.txt",
+    "bundle/credentials.json",
+    "runtime/sessions.db",
+    "runtime/contexts.json",
+    "runtime/raw-prompts.txt",
+    "runtime/private-memories.bin",
+    "runtime/retrievers.json",
+    "runtime/vector-stores.bin",
+    "runtime/prompt-caches.json",
+    "runtime/construction-agents.txt",
+)
 
 
 def package_digest(data=PACKAGE_BYTES):
@@ -71,6 +84,11 @@ def good_manifest(candidate_id=fixtures.CANDIDATE_ID, candidate_hash=fixtures.CA
         "project_id": "PROJECT-1",
         "product_version": "1.0.0",
         "candidate_id": f"{candidate_id} / {candidate_hash}",
+        "agent_delivery": guard_module.not_applicable_agent_delivery(
+            guard_module.DECISION_VALIDATOR.load_policy()[0][
+                "agent_delivery_manifest_fields"
+            ]
+        ),
         "included": ["frontend", "client-runtime"],
         "excluded": list(fixtures.LOCKED_EXCLUSIONS),
         "internal_dependencies": [],
@@ -99,6 +117,52 @@ def write_manifest(lc, manifest):
     return path
 
 
+def write_agent_certification(lc, status):
+    certification, errors = guard_module.expected_agent_certification(lc, status)
+    assert errors == [], errors
+    return write_certification_record(lc, certification), certification
+
+
+def write_certification_record(lc, certification):
+    path = lc / "RUNTIME-CERTIFICATION.md"
+    path.write_text(
+        "# Runtime Certification\n\n"
+        "- Runtime ID: authenticated by Agent Delivery evidence\n\n"
+        f"{guard_module.AGENT_DELIVERY_HEADING}\n\n"
+        "```json\n" + json.dumps(certification, indent=2) + "\n```\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def agent_manifest(lc, decision, status, certification_path, certification):
+    manifest = good_manifest()
+    manifest.update({
+        "candidate_id": (
+            status["canonical_candidate"]["candidate_id"] + " / "
+            + status["canonical_candidate"]["candidate_hash"]
+        ),
+        "included": [PACKAGE_PATH],
+        "runtime_certification": certification_path.name,
+        "agent_delivery": {
+            **copy.deepcopy(certification),
+            "runtime_certification_reference": certification_path.name,
+            "runtime_certification_hash": guard_module.file_hash(certification_path),
+            "delivery_decision_id": decision["delivery_decision_id"],
+            "delivery_decision_hash": guard_module.file_hash(
+                lc / "DELIVERY-DECISION.json"
+            ),
+            "approved_product_assets": [PACKAGE_PATH],
+            "approved_runtime_assets": [],
+        },
+    })
+    manifest["verification_receipts"] = [verification_receipt(
+        candidate_id=status["canonical_candidate"]["candidate_id"],
+        candidate_hash=status["canonical_candidate"]["candidate_hash"],
+    )]
+    return manifest
+
+
 def assert_fails(path):
     project = Path(path).parent.parent
     before = fixtures.snapshot(project)
@@ -120,6 +184,163 @@ with tempfile.TemporaryDirectory(prefix="lccoding-delivery-guard-270-") as td:
     assert result.returncode == 0, result.stdout + result.stderr
     assert fixtures.snapshot(project) == before
 
+    agent_project = base / "agent-bound-280"
+    agent_lc, agent_decision, agent_status = fixtures.build_agent_delivery_project(
+        agent_project
+    )
+    (agent_project / PACKAGE_PATH).write_bytes(PACKAGE_BYTES)
+    certification_path, certification = write_agent_certification(
+        agent_lc, agent_status
+    )
+    bound_manifest = agent_manifest(
+        agent_lc, agent_decision, agent_status, certification_path, certification
+    )
+    bound_path = write_manifest(agent_lc, bound_manifest)
+    agent_before = fixtures.snapshot(agent_project)
+    agent_result = run_guard(bound_path)
+    assert agent_result.returncode == 0, agent_result.stdout + agent_result.stderr
+    assert fixtures.snapshot(agent_project) == agent_before
+
+    manifest_template = json.loads(
+        (root / "lc-coding/templates/DELIVERY-MANIFEST.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    policy = guard_module.DECISION_VALIDATOR.load_policy()[0]
+    assert manifest_template["agent_delivery"] == (
+        guard_module.not_applicable_agent_delivery(
+            policy["agent_delivery_manifest_fields"]
+        )
+    )
+    certification_template, template_errors = guard_module.parse_agent_certification(
+        root / "lc-coding/templates/RUNTIME-CERTIFICATION.md"
+    )
+    assert template_errors == []
+    assert certification_template == guard_module.not_applicable_agent_delivery(
+        policy["agent_delivery_certification_fields"]
+    )
+
+    def agent_case(name):
+        target = base / name
+        shutil.copytree(agent_project, target)
+        return target / ".lccoding"
+
+    def assert_agent_failure(name, marker, *, field=None, value=None):
+        lc_case = agent_case(name)
+        cert_path = lc_case / "RUNTIME-CERTIFICATION.md"
+        cert, errors = guard_module.parse_agent_certification(cert_path)
+        assert errors == []
+        manifest_path = lc_case / "DELIVERY-MANIFEST.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if field is not None:
+            cert[field] = value
+            write_certification_record(lc_case, cert)
+            manifest["agent_delivery"][field] = value
+            manifest["agent_delivery"]["runtime_certification_hash"] = (
+                guard_module.file_hash(cert_path)
+            )
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        result = assert_fails(manifest_path)
+        assert marker in result.stdout + result.stderr, result.stdout + result.stderr
+
+    identity_mutations = {
+        "candidate_id": "CANDIDATE-OTHER",
+        "candidate_hash": "sha256:" + "4" * 64,
+        "configuration_baseline_hash": "sha256:" + "5" * 64,
+        "production_topology_hash": "sha256:" + "6" * 64,
+        "runtime_adapter_attestation_hash": "sha256:" + "7" * 64,
+        "runtime_adapter_id": "RUNTIME-ADAPTER-OTHER",
+        "runtime_adapter_version": "9.9.9",
+        "runtime_adapter_digest": "sha256:" + "8" * 64,
+        "product_agent_id": "PRODUCT-AGENT-OTHER",
+        "operations_agent_id": "OPERATIONS-AGENT-OTHER",
+        "operations_base_model_hash": "sha256:" + "9" * 64,
+        "operations_runtime_provider_hash": "sha256:" + "0" * 64,
+        "isolation_evidence_hash": "sha256:" + "1" * 64,
+        "fallback_evidence_hash": "sha256:" + "2" * 64,
+        "kill_switch_evidence_hash": "sha256:" + "3" * 64,
+        "audit_evidence_hash": "sha256:" + "4" * 64,
+        "vulnerability_closure_hash": "sha256:" + "5" * 64,
+        "post_security_acceptance_hash": "sha256:" + "6" * 64,
+    }
+    for field, value in identity_mutations.items():
+        assert_agent_failure(
+            "agent-wrong-" + field.replace("_", "-"),
+            "Runtime Certification Agent identity/evidence mismatch",
+            field=field,
+            value=value,
+        )
+
+    missing_agent_field = agent_case("agent-missing-field")
+    changed = json.loads(
+        (missing_agent_field / "DELIVERY-MANIFEST.json").read_text(encoding="utf-8")
+    )
+    changed["agent_delivery"].pop("fallback_evidence_hash")
+    result = assert_fails(write_manifest(missing_agent_field, changed))
+    assert "Delivery Manifest agent_delivery missing fields fallback_evidence_hash" in (
+        result.stdout + result.stderr
+    )
+
+    wrong_decision_hash = agent_case("agent-wrong-decision-hash")
+    changed = json.loads(
+        (wrong_decision_hash / "DELIVERY-MANIFEST.json").read_text(encoding="utf-8")
+    )
+    changed["agent_delivery"]["delivery_decision_hash"] = "sha256:" + "d" * 64
+    result = assert_fails(write_manifest(wrong_decision_hash, changed))
+    assert "Agent Delivery evidence decision hash mismatch" in result.stdout + result.stderr
+
+    wrong_assets = agent_case("agent-wrong-assets")
+    changed = json.loads(
+        (wrong_assets / "DELIVERY-MANIFEST.json").read_text(encoding="utf-8")
+    )
+    changed["agent_delivery"]["approved_product_assets"] = []
+    result = assert_fails(write_manifest(wrong_assets, changed))
+    assert "approved Product/Runtime assets must exactly cover package_hashes" in (
+        result.stdout + result.stderr
+    )
+
+    forbidden_terms = policy["agent_delivery_forbidden_asset_terms"]
+    for index, asset in enumerate(SENSITIVE_AGENT_ASSETS, 1):
+        assert guard_module.forbidden_agent_asset(asset, forbidden_terms), asset
+        private_asset = agent_case(f"agent-private-asset-{index}")
+        asset_path = private_asset.parent / asset
+        asset_path.parent.mkdir(parents=True, exist_ok=True)
+        asset_bytes = f"sensitive-agent-evidence-{index}\n".encode("utf-8")
+        asset_path.write_bytes(asset_bytes)
+        digest = "sha256:" + hashlib.sha256(asset_bytes).hexdigest()
+        changed = json.loads(
+            (private_asset / "DELIVERY-MANIFEST.json").read_text(encoding="utf-8")
+        )
+        changed["included"].append(asset)
+        changed["package_hashes"][asset] = digest
+        changed["verification_receipts"].append(verification_receipt(
+            receipt_id=f"VR-SENSITIVE-{index}", asset=asset, digest=digest,
+        ))
+        changed["agent_delivery"]["approved_product_assets"].append(asset)
+        result = assert_fails(write_manifest(private_asset, changed))
+        assert "Agent-private or unapproved Runtime evidence included" in (
+            result.stdout + result.stderr
+        ), asset
+    assert not guard_module.forbidden_agent_asset("monkey.zip", forbidden_terms)
+    assert not guard_module.forbidden_agent_asset(
+        "runtime/contextual-help.json", forbidden_terms
+    )
+
+    duplicate_cert = agent_case("agent-duplicate-certification-key")
+    cert_path = duplicate_cert / "RUNTIME-CERTIFICATION.md"
+    raw = cert_path.read_text(encoding="utf-8").replace(
+        '  "candidate_id":', '  "candidate_id": "SHADOW",\n  "candidate_id":', 1
+    )
+    cert_path.write_text(raw, encoding="utf-8")
+    changed = json.loads(
+        (duplicate_cert / "DELIVERY-MANIFEST.json").read_text(encoding="utf-8")
+    )
+    changed["agent_delivery"]["runtime_certification_hash"] = guard_module.file_hash(
+        cert_path
+    )
+    result = assert_fails(write_manifest(duplicate_cert, changed))
+    assert "duplicate JSON key: candidate_id" in result.stdout + result.stderr
+
     def case(name):
         target = base / name
         shutil.copytree(project, target)
@@ -130,6 +351,9 @@ with tempfile.TemporaryDirectory(prefix="lccoding-delivery-guard-270-") as td:
             "candidate_id", f"{fixtures.CANDIDATE_ID} / {fixtures.NEXT_HASH}"
         )),
         ("wrong-decision", lambda item: item.__setitem__("delivery_decision_id", "DD-OTHER")),
+        ("legacy-agent-bound", lambda item: item["agent_delivery"].__setitem__(
+            "state", "BOUND"
+        )),
         ("empty-hashes", lambda item: item.__setitem__("package_hashes", {})),
         ("bad-hash", lambda item: item.__setitem__(
             "package_hashes", {"LCCoding-client.zip": "sha256:" + "C" * 64}

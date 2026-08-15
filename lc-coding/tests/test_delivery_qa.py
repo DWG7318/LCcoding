@@ -38,6 +38,15 @@ DECISION_ANSWERS = {
     "license": "customer-license",
     "operations": "customer-operated",
 }
+AGENT_DECISION_ANSWERS = json.loads(policy_path.read_text(encoding="utf-8"))[
+    "agent_delivery_decision_records"
+]
+AGENT_SURFACE_CONTRACT = json.loads(
+    (root / "lc-coding/contracts/vulnerability-closure.json").read_text(
+        encoding="utf-8"
+    )
+)
+_AGENT_PROJECT_FIXTURES = None
 
 
 def bound(evidence_id, surfaces, candidate_id, candidate_hash):
@@ -219,6 +228,11 @@ def current_status(status_id, status_hash, receipt_id, receipt_hash, impact=None
     status = json.loads(
         (root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
     )
+    assert status["agent_product_formation"]["state"] == "UNPROVED"
+    assert status["agent_slice_integration"]["state"] == "UNPROVED"
+    status.pop("agent_product_formation")
+    status.pop("agent_slice_integration")
+    status["status_schema_version"] = "2.7.0"
     status["canonical_candidate"] = {
         "repository": "owner/project",
         "version": "1.0.0",
@@ -277,6 +291,137 @@ def good_decision(candidate_id=CANDIDATE_ID, candidate_hash=CANDIDATE_HASH):
         "owner_confirmed": True,
         "confirmed_at": "2026-08-13T01:00:00Z",
     }
+
+
+def load_agent_project_fixtures():
+    global _AGENT_PROJECT_FIXTURES
+    if _AGENT_PROJECT_FIXTURES is None:
+        path = root / "lc-coding/tests/test_agent_product_formation_280.py"
+        spec = importlib.util.spec_from_file_location("delivery_agent_project_fixture", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _AGENT_PROJECT_FIXTURES = module
+    return _AGENT_PROJECT_FIXTURES
+
+
+def bound_agent_closure(binding):
+    receipt = closure_receipt(binding["candidate_id"], binding["candidate_hash"])
+    receipt["agent_security_binding"] = copy.deepcopy(binding)
+    receipt["findings"] = [{
+        "finding_id": "F-DELIVERY-AUTH-1",
+        "candidate_id": binding["candidate_id"],
+        "candidate_hash": binding["candidate_hash"],
+        "surface_ids": ["SURFACE-AUTH"],
+        "severity": "HIGH",
+        "category": "AUTHENTICATION_BYPASS",
+        "status": "MITIGATED",
+        "evidence_id": "E-FINDING-DELIVERY-AUTH",
+    }]
+    receipt["remediation_runs"] = [{
+        "run_id": "SEC-DELIVERY-RUN-1",
+        "candidate_id": binding["candidate_id"],
+        "candidate_hash": binding["candidate_hash"],
+        "surface_ids": ["SURFACE-AUTH"],
+        "evidence_id": "E-DELIVERY-REMEDIATION-1",
+        "implementer_id": "DELIVERY-REMEDIATOR-1",
+    }]
+    receipt["affected_receipts"] = [bound(
+        "OA-DELIVERY-AFFECTED-1", ["SURFACE-AUTH"],
+        binding["candidate_id"], binding["candidate_hash"],
+    )]
+    active_agents = [binding["operations_agent_id"]]
+    if binding["product_agent_applicability"] != "NOT_APPLICABLE":
+        active_agents.insert(0, binding["product_agent_id"])
+    surface_bindings = []
+    for index, kind in enumerate(AGENT_SURFACE_CONTRACT["agent_surface_kinds"], 1):
+        role = AGENT_SURFACE_CONTRACT["agent_surface_kind_roles"][kind]
+        agent_ids = (
+            [binding["runtime_adapter_id"]] if role == "RUNTIME_ADAPTER"
+            else [binding["operations_agent_id"]] if role == "OPERATIONS_AGENT"
+            else list(active_agents)
+        )
+        surface_bindings.append({
+            "binding_id": f"AGENT-DELIVERY-SURFACE-{index}",
+            "agent_surface_kind": kind,
+            "security_surface_id": "SURFACE-AUTH",
+            "agent_role": role,
+            "agent_ids": agent_ids,
+            "candidate_id": binding["candidate_id"],
+            "candidate_hash": binding["candidate_hash"],
+            "configuration_baseline_id": binding["configuration_baseline_id"],
+            "configuration_baseline_hash": binding["configuration_baseline_hash"],
+            "production_topology_id": binding["production_topology_id"],
+            "production_topology_hash": binding["production_topology_hash"],
+            "runtime_adapter_id": binding["runtime_adapter_id"],
+            "runtime_adapter_version": binding["runtime_adapter_version"],
+            "runtime_adapter_digest": binding["runtime_adapter_digest"],
+            "audit_evidence_id": "E-AUTH-AUDIT",
+            "current_check_id": "E-AUTH-CHECK",
+            "remediation_evidence_id": "E-DELIVERY-REMEDIATION-1",
+            "reaudit_evidence_id": "SA-DELIVERY-1",
+            "result": "PASS",
+        })
+    receipt["agent_surface_bindings"] = surface_bindings
+    return receipt
+
+
+def build_agent_delivery_project(project, applicability="APPLICABLE_CORE"):
+    agent_fixtures = load_agent_project_fixtures()
+    lc, status = agent_fixtures.build_agent_slice_status_project(
+        Path(project), applicability
+    )
+    status["current_phase"] = "DELIVERY_PREPARATION"
+    status["phase_gates"]["DELIVERY_READY"] = "DELIVERY_READY"
+    status["delivery_method_qa"] = "DELIVERY_METHOD_CONFIRMED"
+    expected_binding, binding_errors = (
+        agent_fixtures.project_validator._expected_agent_security_binding(lc, status)
+    )
+    assert binding_errors == [], binding_errors
+    closure = bound_agent_closure(expected_binding)
+    closure_path = lc / "VULNERABILITY-CLOSURE.json"
+    closure_path.write_text(json.dumps(closure), encoding="utf-8")
+    post = post_receipt(expected_binding["candidate_id"], expected_binding["candidate_hash"])
+    post["Covered remediation surface IDs"] = "SURFACE-AUTH"
+    post["Changed remediation surface IDs"] = "SURFACE-AUTH"
+    post["Security Remediation Run IDs"] = (
+        f"SEC-DELIVERY-RUN-1@{expected_binding['candidate_id']}@"
+        f"{expected_binding['candidate_hash']}@SURFACE-AUTH@E-DELIVERY-REMEDIATION-1"
+    )
+    post_path = lc / "POST-SECURITY-OWNER-ACCEPTANCE.md"
+    post_path.write_text(markdown(post), encoding="utf-8")
+    status["vulnerability_closure"] = {
+        "state": "VULNERABILITY_CLOSED",
+        "candidate_id": expected_binding["candidate_id"],
+        "candidate_hash": expected_binding["candidate_hash"],
+        "current_receipt_id": closure["closure_id"],
+        "current_receipt_reference": closure_path.name,
+        "superseded_receipt_id": "NOT_APPLICABLE",
+        "superseded_receipt_reference": "NOT_APPLICABLE",
+        "superseded_candidate_id": "NOT_APPLICABLE",
+        "superseded_candidate_hash": "NOT_APPLICABLE",
+    }
+    status["post_security_owner_acceptance"] = {
+        "state": "POST_SECURITY_OWNER_ACCEPTED",
+        "candidate_id": expected_binding["candidate_id"],
+        "candidate_hash": expected_binding["candidate_hash"],
+        "current_acceptance_id": post["Acceptance ID"],
+        "current_acceptance_reference": post_path.name,
+        "vulnerability_closure_receipt_id": closure["closure_id"],
+        "vulnerability_closure_receipt_reference": closure_path.name,
+        "superseded_acceptance_id": "NOT_APPLICABLE",
+        "superseded_acceptance_reference": "NOT_APPLICABLE",
+        "superseded_candidate_id": "NOT_APPLICABLE",
+        "superseded_candidate_hash": "NOT_APPLICABLE",
+    }
+    status["evidence_pointers"] = sorted(set(status.get("evidence_pointers", [])) | {
+        closure_path.name, post_path.name,
+    })
+    (lc / "status.json").write_text(json.dumps(status), encoding="utf-8")
+    decision = good_decision(expected_binding["candidate_id"], expected_binding["candidate_hash"])
+    for group, value in AGENT_DECISION_ANSWERS.items():
+        decision["decisions"][group] = {"selected": value}
+    (lc / "DELIVERY-DECISION.json").write_text(json.dumps(decision), encoding="utf-8")
+    return lc, decision, status
 
 
 def build_delivery_project(
@@ -343,6 +488,45 @@ def execute_tests():
             target = base / name
             shutil.copytree(project, target)
             return target / ".lccoding"
+
+        unbound_agent = case("unbound-agent-280")
+        unbound_status = json.loads((unbound_agent / "status.json").read_text())
+        current_template = json.loads(
+            (root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
+        )
+        unbound_status["status_schema_version"] = "2.8.0"
+        unbound_status["agent_product_formation"] = current_template[
+            "agent_product_formation"
+        ]
+        unbound_status["agent_slice_integration"] = current_template[
+            "agent_slice_integration"
+        ]
+        (unbound_agent / "status.json").write_text(json.dumps(unbound_status))
+        unbound_result = run_decision(unbound_agent / "DELIVERY-DECISION.json")
+        assert unbound_result.returncode != 0
+        assert "Agent-native Delivery requires accepted Agent Slice integration" in (
+            unbound_result.stdout + unbound_result.stderr
+        )
+
+        agent_project = base / "agent-bound-280"
+        agent_lc, agent_decision, _ = build_agent_delivery_project(agent_project)
+        agent_before = snapshot(agent_project)
+        agent_result = run_decision(agent_lc / "DELIVERY-DECISION.json")
+        assert agent_result.returncode == 0, agent_result.stdout + agent_result.stderr
+        assert snapshot(agent_project) == agent_before
+        for group in AGENT_DECISION_ANSWERS:
+            changed = copy.deepcopy(agent_decision)
+            changed["decisions"][group]["selected"] = "customer-responsibility-recorded"
+            path = agent_lc / "DELIVERY-DECISION.json"
+            path.write_text(json.dumps(changed), encoding="utf-8")
+            result = run_decision(path)
+            assert result.returncode != 0
+            assert f"Agent-native Delivery Q&A record mismatch: {group}" in (
+                result.stdout + result.stderr
+            )
+        (agent_lc / "DELIVERY-DECISION.json").write_text(
+            json.dumps(agent_decision), encoding="utf-8"
+        )
 
         same_id_wrong_hash = case("same-id-wrong-hash")
         changed = copy.deepcopy(decision)
@@ -534,6 +718,51 @@ def execute_tests():
             pass
         else:
             raise AssertionError("strict policy JSON parser accepted non-finite float")
+
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        original_policy_path = decision_module.POLICY_PATH
+        try:
+            decision_module.POLICY_PATH = fake_policy
+            for field in (
+                "configuration_baseline_hash",
+                "runtime_adapter_digest",
+                "operations_base_model_hash",
+                "isolation_evidence_hash",
+                "fallback_evidence_hash",
+                "kill_switch_evidence_hash",
+                "audit_evidence_hash",
+                "vulnerability_closure_hash",
+                "post_security_acceptance_hash",
+            ):
+                changed_policy = copy.deepcopy(policy)
+                changed_policy["agent_delivery_certification_fields"].remove(field)
+                changed_policy["agent_delivery_manifest_fields"].remove(field)
+                fake_policy.write_text(json.dumps(changed_policy), encoding="utf-8")
+                _, policy_errors = decision_module.load_policy()
+                assert "Delivery policy Agent certification fields are invalid" in (
+                    policy_errors
+                ), (field, policy_errors)
+            certification_fields = set(policy["agent_delivery_certification_fields"])
+            for field in (
+                set(policy["agent_delivery_manifest_fields"]) - certification_fields
+            ):
+                changed_policy = copy.deepcopy(policy)
+                changed_policy["agent_delivery_manifest_fields"].remove(field)
+                fake_policy.write_text(json.dumps(changed_policy), encoding="utf-8")
+                _, policy_errors = decision_module.load_policy()
+                assert "Delivery policy Agent manifest fields are invalid" in (
+                    policy_errors
+                ), (field, policy_errors)
+            for term in policy["agent_delivery_forbidden_asset_terms"]:
+                changed_policy = copy.deepcopy(policy)
+                changed_policy["agent_delivery_forbidden_asset_terms"].remove(term)
+                fake_policy.write_text(json.dumps(changed_policy), encoding="utf-8")
+                _, policy_errors = decision_module.load_policy()
+                assert "Delivery policy forbidden Agent asset terms are invalid" in (
+                    policy_errors
+                ), (term, policy_errors)
+        finally:
+            decision_module.POLICY_PATH = original_policy_path
 
         missing_receipt = case("missing-receipt")
         (missing_receipt / "VULNERABILITY-CLOSURE.json").unlink()
