@@ -40,6 +40,16 @@ SCHEMA_PHASES = {
         "DELIVERY_PREPARATION",
     ),
 }
+UNPROVED_AGENT_PRODUCT_FORMATION = {
+    "state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "calabash_definition_handoff_id": "NOT_APPLICABLE",
+    "calabash_definition_handoff_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "product_agent_capability_state": "UNPROVED",
+    "operations_agent_state": "UNPROVED",
+}
 START_ROLE = "RUN_START_CONTRACT"
 RECEIPT_ROLE = "LOOP_OWNER_ACCEPTANCE_RECEIPT"
 START_REQUIRED = {
@@ -774,6 +784,12 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
     write_manifest_and_lock(project, manifest_record())
 
     status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
+    if schema in {"2.6.0", "2.7.0"}:
+        assert (
+            status["agent_product_formation"]
+            == UNPROVED_AGENT_PRODUCT_FORMATION
+        )
+        status.pop("agent_product_formation")
     status["status_schema_version"] = schema
     status["initialization_mode"] = "NEW"
     status["current_phase"] = "DELIVERY_PREPARATION" if aggregate else "INITIAL"
@@ -878,6 +894,21 @@ with tempfile.TemporaryDirectory(prefix="lccoding-run-contract-") as temporary:
     build_cli_project(seed)
     result = validate_cli(seed)
     assert result.returncode == 0, result.stdout + result.stderr
+
+    legacy_hybrid_status_path = seed / ".lccoding/status.json"
+    legacy_hybrid_status = json.loads(
+        legacy_hybrid_status_path.read_text(encoding="utf-8")
+    )
+    legacy_hybrid_status["agent_product_formation"] = copy.deepcopy(
+        UNPROVED_AGENT_PRODUCT_FORMATION
+    )
+    write(
+        legacy_hybrid_status_path,
+        json.dumps(legacy_hybrid_status, indent=2) + "\n",
+    )
+    result = validate_cli(seed)
+    assert result.returncode != 0
+    assert "agent_product_formation" in result.stdout
 
     current_280 = base / "current-280"
     build_cli_project(current_280, schema="2.8.0")

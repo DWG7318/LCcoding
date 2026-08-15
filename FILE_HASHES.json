@@ -244,7 +244,7 @@
   "lc-coding/tests/test_public_method_posture_252.py": "c638e8644047b73f5bd543c6d55c22d2a05c3bb454a82ac82223d7ebb7360dc7",
   "lc-coding/tests/test_reference_consolidation_270.py": "8ccf062f23408319c83242bd570e80aa610470570c012e986478575af2ef9539",
   "lc-coding/tests/test_release_integrity.py": "088ee0f015a90f0d24eb560b42ed3e80e89e793264e47e3a13eda6e90fd2e8fd",
-  "lc-coding/tests/test_run_contract_270.py": "749dfebfb9cea17dcd181f4dad06a2e5162d8473a2814bfa92d754440baa22f8",
+  "lc-coding/tests/test_run_contract_270.py": "b6759210bf80a99511a82c1639454399bf94688ba57b9e80cb8e79dda502e966",
   "lc-coding/tests/test_security_invalidation_270.py": "41291de6e7367d2af2da1dcd523caca5f4257749c8fb559c6ff2dc209c3f7ec9",
   "lc-coding/tests/test_security_sequence.py": "b7b4393d1f5c02a6bfa99421d478a32b6c0a836e6f8e5a560c85326c9441ae58",
   "lc-coding/tests/test_slice_execution_preflight_220.py": "75af0b850c67b7135d3ba10bae941929b242df0a14cd0155ae7e2d33ff4e3d00",
