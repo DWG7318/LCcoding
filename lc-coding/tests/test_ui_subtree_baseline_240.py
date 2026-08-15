@@ -251,7 +251,7 @@ status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encodin
 assert [phase["id"] for phase in phases["phases"]] == [
     "INITIAL",
     "PRODUCT_FORMATION",
-    "ENGINEERING_RUNS",
+    "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 ]
 framework = json.dumps((lifecycle, phases, status)).upper()

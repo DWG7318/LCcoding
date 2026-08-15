@@ -243,7 +243,7 @@
   "lc-coding/tests/test_status_migration_270.py": "04a100cc586a8b14573fa239afe75dd9ae562704e9aeaeea6982664d498a9273",
   "lc-coding/tests/test_subtree_git_identity_240.py": "164d835752b678f5da96a23466beea5dc3956b9a386d61cddac921ff19b69b88",
   "lc-coding/tests/test_takeover_and_status_authority.py": "9bb1ff7edee9332b81e7017f17af6395f2725fba6a954f225c3a39f884028b5d",
-  "lc-coding/tests/test_ui_subtree_baseline_240.py": "a63ceaadf87cac6e090ffe550fac7506caf75f03fdaf00db14578ae20d43b0ee",
+  "lc-coding/tests/test_ui_subtree_baseline_240.py": "60972e1c849a48d79ce624c54fae476dd23533ada2a0e35ed0332bf66c078b3d",
   "lc-coding/tests/test_verification_reuse.py": "056ef52a988c223ec4b5e6a3419d562a91045b4ac589ac54f8d99c03ce931e98",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "d87a577767750a3397b81762784be739b74f20141ca10a654d98b3468cf33033",
