@@ -20,6 +20,17 @@ health = json.loads(
     (root / "lc-coding/templates/PROJECT-HEALTH.json").read_text(encoding="utf-8")
 )
 
+UNPROVED_AGENT_PRODUCT_FORMATION = {
+    "state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "calabash_definition_handoff_id": "NOT_APPLICABLE",
+    "calabash_definition_handoff_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "product_agent_capability_state": "UNPROVED",
+    "operations_agent_state": "UNPROVED",
+}
+
 assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
@@ -58,9 +69,25 @@ def legacy_phase_view(current_view):
 
 # Exact 2.7 schema remains readable with its legacy phase identity.
 legacy_status_270 = copy.deepcopy(status)
+assert (
+    legacy_status_270["agent_product_formation"]
+    == UNPROVED_AGENT_PRODUCT_FORMATION
+)
+legacy_status_270.pop("agent_product_formation")
 legacy_status_270["status_schema_version"] = "2.7.0"
 legacy_view_270 = legacy_phase_view(phase_status)
 assert module.validate_status_authority(legacy_status_270, legacy_view_270, health) == []
+
+hybrid_legacy = copy.deepcopy(legacy_status_270)
+hybrid_legacy["agent_product_formation"] = copy.deepcopy(
+    UNPROVED_AGENT_PRODUCT_FORMATION
+)
+assert any(
+    "agent_product_formation" in error and "unknown" in error
+    for error in module.validate_status_authority(
+        hybrid_legacy, legacy_view_270, health
+    )
+)
 
 # Schema and identity cannot be mixed, inferred, or crossed.
 mixed_schema_view = legacy_phase_view(phase_status)
@@ -185,6 +212,11 @@ engineering_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "ACTIVE"
 assert module.validate_status_authority(engineering_status, engineering_view, health) == []
 
 legacy_engineering_status = copy.deepcopy(engineering_status)
+assert (
+    legacy_engineering_status["agent_product_formation"]
+    == UNPROVED_AGENT_PRODUCT_FORMATION
+)
+legacy_engineering_status.pop("agent_product_formation")
 legacy_engineering_status["status_schema_version"] = "2.7.0"
 legacy_engineering_status["current_phase"] = "ENGINEERING_RUNS"
 legacy_engineering_view = legacy_phase_view(engineering_view)

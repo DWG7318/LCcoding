@@ -12,6 +12,17 @@ root = Path(__file__).resolve().parents[2]
 migrator = root / "lc-coding/scripts/migrate_project_260_to_270.py"
 assert migrator.exists(), "2.6 to 2.7 migration command is absent"
 
+UNPROVED_AGENT_PRODUCT_FORMATION = {
+    "state": "UNPROVED",
+    "product_agent_applicability": "UNPROVED",
+    "calabash_definition_handoff_id": "NOT_APPLICABLE",
+    "calabash_definition_handoff_hash": "NOT_APPLICABLE",
+    "configuration_baseline_id": "NOT_APPLICABLE",
+    "configuration_baseline_hash": "NOT_APPLICABLE",
+    "product_agent_capability_state": "UNPROVED",
+    "operations_agent_state": "UNPROVED",
+}
+
 
 def run(command, cwd=None, check=True):
     result = subprocess.run(command, cwd=cwd, capture_output=True, text=True)
@@ -339,6 +350,8 @@ def make_project(
     status = copy.deepcopy(
         json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
     )
+    assert status["agent_product_formation"] == UNPROVED_AGENT_PRODUCT_FORMATION
+    status.pop("agent_product_formation")
     status["status_schema_version"] = "2.6.0"
     status["project_id"] = "migration-fixture"
     status["initialization_mode"] = "NEW"
@@ -831,6 +844,21 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-270-") as temporary:
     assert_source_unchanged(malformed, malformed_before)
     stages = list(base.glob(".malformed-output.lccoding-migrate-*"))
     assert not stages, stages
+
+    hybrid = base / "hybrid-agent-status-source"
+    make_project(hybrid)
+    hybrid_status_path = hybrid / ".lccoding/status.json"
+    hybrid_status = json.loads(hybrid_status_path.read_text(encoding="utf-8"))
+    hybrid_status["agent_product_formation"] = copy.deepcopy(
+        UNPROVED_AGENT_PRODUCT_FORMATION
+    )
+    write(hybrid_status_path, json.dumps(hybrid_status, indent=2) + "\n")
+    hybrid_before = snapshot(hybrid)
+    hybrid_output = base / "hybrid-agent-status-output"
+    result = migrate(hybrid, hybrid_output)
+    assert result.returncode != 0 and not hybrid_output.exists()
+    assert "agent_product_formation" in result.stdout
+    assert_source_unchanged(hybrid, hybrid_before)
 
     for label, schema in (
         ("missing-derived-schema", None),
