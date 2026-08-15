@@ -76,6 +76,14 @@ pub enum RowValue {
     Record {
         value: &'static str,
     },
+    SafeIdentity {
+        id: String,
+        version: String,
+    },
+    AgentStatus {
+        applicability: &'static str,
+        integration: &'static str,
+    },
     Metric {
         status: &'static str,
         completed: Option<u32>,

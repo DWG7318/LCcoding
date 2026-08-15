@@ -85,7 +85,13 @@ snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
 assert '"LCCoding 2.7.0 derived BI"' in snapshot_model
 assert '"LCCoding 2.6.0 derived BI"' in snapshot_model
 projection = (bi_root / "src-tauri/src/projection.rs").read_text(encoding="utf-8")
-assert 'schema: "LCCoding 2.7.0 derived BI"' in projection
+projection_schema_mapping = '''schema: match status.status_schema_version.as_str() {
+            "2.6.0" => "LCCoding 2.6.0 derived BI",
+            "2.7.0" => "LCCoding 2.7.0 derived BI",
+            "2.8.0" => "LCCoding 2.8.0 derived BI",
+            _ => return Err(ProjectionError::Inconsistent),
+        }'''
+assert projection.count(projection_schema_mapping) == 1
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
 release_heading = "## 2.7.0"

@@ -43,7 +43,7 @@ fn baseline_complete_status() -> String {
     product_formation_status()
         .replace(
             "\"current_phase\": \"PRODUCT_FORMATION\"",
-            "\"current_phase\": \"ENGINEERING_RUNS\"",
+            "\"current_phase\": \"REAL_PRODUCT_INTEGRATION\"",
         )
         .replace(
             "\"CALABASH_UPGRADE_READY\": \"PENDING\"",
@@ -71,7 +71,89 @@ fn baseline_complete_status() -> String {
 
 fn status_version(body: &str, version: &str) -> String {
     let mut value: Value = serde_json::from_str(body).unwrap();
+    if version == "2.8.0" {
+        assert!(value.get("agent_product_formation").is_some());
+        assert!(value.get("agent_slice_integration").is_some());
+    } else {
+        assert!(
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("agent_product_formation")
+                .is_some()
+        );
+        assert!(
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("agent_slice_integration")
+                .is_some()
+        );
+        if value["current_phase"] == "REAL_PRODUCT_INTEGRATION" {
+            value["current_phase"] = Value::String("ENGINEERING_RUNS".into());
+        }
+    }
     value["status_schema_version"] = Value::String(version.to_owned());
+    serde_json::to_string_pretty(&value).unwrap()
+}
+
+fn accepted_agent_status(applicability: &str) -> String {
+    let mut value: Value = serde_json::from_str(&initial_status()).unwrap();
+    value["canonical_candidate"] = serde_json::json!({
+        "repository": "https://example.invalid/repository",
+        "version": "1.0.0",
+        "commit": "c".repeat(40),
+        "candidate_id": "CANDIDATE-1",
+        "candidate_hash": format!("sha256:{}", "a".repeat(64)),
+    });
+    let capability = match applicability {
+        "APPLICABLE_CORE" => "REAL_RUNNABLE_CORE",
+        "APPLICABLE_EXTRA" => "UNIMPLEMENTED_EXTRA",
+        "NOT_APPLICABLE" => "NOT_APPLICABLE",
+        _ => panic!("unsupported Product Agent applicability fixture"),
+    };
+    value["agent_product_formation"] = serde_json::json!({
+        "state": "PRODUCT_FORMATION_AGENT_BOUND",
+        "product_agent_applicability": applicability,
+        "calabash_definition_handoff_id": "CALABASH-HANDOFF-1",
+        "calabash_definition_handoff_hash": format!("sha256:{}", "d".repeat(64)),
+        "configuration_baseline_id": "AGENT-CONFIG-1",
+        "configuration_baseline_hash": format!("sha256:{}", "b".repeat(64)),
+        "product_agent_capability_state": capability,
+        "operations_agent_state": "PREPARED_NOT_INTEGRATED",
+    });
+    value["agent_slice_integration"] = serde_json::json!({
+        "state": "AGENT_SLICES_ACCEPTED",
+        "candidate_id": "CANDIDATE-1",
+        "candidate_hash": format!("sha256:{}", "a".repeat(64)),
+        "product_baseline_id": "PRODUCT-BASELINE-1",
+        "product_baseline_hash": format!("sha256:{}", "e".repeat(64)),
+        "configuration_baseline_id": "AGENT-CONFIG-1",
+        "configuration_baseline_hash": format!("sha256:{}", "b".repeat(64)),
+        "production_topology_id": "PRODUCTION-TOPOLOGY-1",
+        "production_topology_hash": format!("sha256:{}", "f".repeat(64)),
+        "runtime_adapter_attestation_id": "RUNTIME-ATTESTATION-1",
+        "runtime_adapter_attestation_hash": format!("sha256:{}", "1".repeat(64)),
+        "runtime_adapter_id": "RUNTIME-ADAPTER-1",
+        "runtime_adapter_version": "1.2.3",
+        "dual_agent_isolation_state": "VERIFIED",
+        "product_agent_applicability": applicability,
+        "product_integration_state": "ACCEPTED",
+        "product_agent_integration_state": if applicability == "NOT_APPLICABLE" {
+            "NOT_APPLICABLE"
+        } else {
+            "ACCEPTED"
+        },
+        "operations_agent_integration_state": "ACCEPTED",
+        "accepted_product_slice_ids": ["PRODUCT-SLICE-1", "PRODUCT-SLICE-2"],
+        "accepted_operations_slice_ids": ["OPERATIONS-SLICE-1"],
+        "required_operations_slice_id": "OPERATIONS-SLICE-1",
+        "current_product_slice_reference": "slices/PRODUCT-FEATURE.md",
+        "product_verification_reference": "slices/PRODUCT-FINAL.md",
+        "current_operations_slice_reference": "slices/OPERATIONS-FEATURE.md",
+        "operations_verification_reference": "slices/OPERATIONS-FINAL.md",
+        "integration_baseline_reference": "INTEGRATION-BASELINE.md",
+    });
     serde_json::to_string_pretty(&value).unwrap()
 }
 
@@ -92,6 +174,14 @@ fn phase_steps(snapshot: &Value) -> Vec<(String, Vec<String>)> {
             )
         })
         .collect()
+}
+
+fn report_row<'a>(snapshot: &'a Value, key: &str) -> Option<&'a Value> {
+    snapshot["reports"]["candidate"]["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["key"] == key)
 }
 
 fn canonical_single_blob_hash(path: &str, bytes: &[u8]) -> String {
@@ -138,6 +228,8 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
         21,
     );
     assert_eq!(value["reports"].as_object().unwrap().len(), 8);
+    assert_eq!(value["schema"], "LCCoding 2.8.0 derived BI");
+    assert_eq!(value["phases"][2]["id"], "REAL_PRODUCT_INTEGRATION");
 
     for phase in value["phases"].as_array().unwrap() {
         for step in phase["steps"].as_array().unwrap() {
@@ -149,9 +241,182 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
 }
 
 #[test]
-fn status_adapters_drive_exact_260_and_270_phase_layouts() {
+fn agent_native_status_projects_only_sanitized_candidate_summary_rows() {
+    let raw = accepted_agent_status("APPLICABLE_CORE");
+    let status = parse_status(&raw).unwrap();
+    let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+
+    assert_eq!(
+        report_row(&snapshot, "row.operations_agent_integration").unwrap()["value"],
+        serde_json::json!({"kind": "record", "value": "ACCEPTED"})
+    );
+    assert_eq!(
+        report_row(&snapshot, "row.product_agent_integration").unwrap()["value"],
+        serde_json::json!({
+            "kind": "agent_status",
+            "applicability": "APPLICABLE_CORE",
+            "integration": "ACCEPTED"
+        })
+    );
+    assert_eq!(
+        report_row(&snapshot, "row.runtime_adapter").unwrap()["value"],
+        serde_json::json!({
+            "kind": "safe_identity",
+            "id": "RUNTIME-ADAPTER-1",
+            "version": "1.2.3"
+        })
+    );
+    assert_eq!(
+        report_row(&snapshot, "row.dual_agent_isolation").unwrap()["value"],
+        serde_json::json!({"kind": "record", "value": "VERIFIED"})
+    );
+    assert_eq!(
+        report_row(&snapshot, "row.product_slice_progress").unwrap()["value"]["completed"],
+        2
+    );
+    assert_eq!(
+        report_row(&snapshot, "row.operations_slice_progress").unwrap()["value"]["completed"],
+        1
+    );
+
+    let wire = serde_json::to_string(&snapshot).unwrap();
+    let candidate_hash = format!("sha256:{}", "a".repeat(64));
+    let configuration_hash = format!("sha256:{}", "b".repeat(64));
+    for forbidden in [
+        "CANDIDATE-1",
+        "AGENT-CONFIG-1",
+        "PRODUCTION-TOPOLOGY-1",
+        "RUNTIME-ATTESTATION-1",
+        "PRODUCT-SLICE-1",
+        "OPERATIONS-SLICE-1",
+        "slices/PRODUCT-FEATURE.md",
+        "INTEGRATION-BASELINE.md",
+        &candidate_hash,
+        &configuration_hash,
+    ] {
+        assert!(
+            !wire.contains(forbidden),
+            "raw Agent value leaked: {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn agent_native_status_is_schema_exact_and_identity_bound() {
+    let accepted: Value = serde_json::from_str(&accepted_agent_status("APPLICABLE_CORE")).unwrap();
+    assert!(parse_status(&accepted.to_string()).is_ok());
+
+    for field in ["agent_product_formation", "agent_slice_integration"] {
+        let mut missing = accepted.clone();
+        missing.as_object_mut().unwrap().remove(field);
+        assert!(
+            parse_status(&missing.to_string()).is_err(),
+            "missing {field}"
+        );
+        let mut null = accepted.clone();
+        null[field] = Value::Null;
+        assert!(parse_status(&null.to_string()).is_err(), "null {field}");
+    }
+
+    for raw_field in [
+        "raw_prompt",
+        "private_memory",
+        "credential",
+        "absolute_path",
+        "raw_hash",
+        "event",
+    ] {
+        let mut leaked = accepted.clone();
+        leaked["agent_slice_integration"][raw_field] = Value::String("secret".into());
+        assert!(
+            parse_status(&leaked.to_string()).is_err(),
+            "raw field {raw_field}"
+        );
+    }
+    for field in ["runtime_adapter_id", "production_topology_id"] {
+        let mut missing = accepted.clone();
+        missing["agent_slice_integration"]
+            .as_object_mut()
+            .unwrap()
+            .remove(field);
+        assert!(
+            parse_status(&missing.to_string()).is_err(),
+            "missing {field}"
+        );
+        let mut null = accepted.clone();
+        null["agent_slice_integration"][field] = Value::Null;
+        assert!(parse_status(&null.to_string()).is_err(), "null {field}");
+    }
+    let mut stale_candidate = accepted.clone();
+    stale_candidate["agent_slice_integration"]["candidate_id"] =
+        Value::String("CANDIDATE-STALE".into());
+    assert!(parse_status(&stale_candidate.to_string()).is_err());
+    let mut wrong_configuration = accepted.clone();
+    wrong_configuration["agent_slice_integration"]["configuration_baseline_hash"] =
+        Value::String(format!("sha256:{}", "9".repeat(64)));
+    assert!(parse_status(&wrong_configuration.to_string()).is_err());
+    let mut wrong_topology = accepted.clone();
+    wrong_topology["agent_slice_integration"]["production_topology_hash"] =
+        Value::String("NOT_APPLICABLE".into());
+    assert!(parse_status(&wrong_topology.to_string()).is_err());
+    let mut wrong_adapter = accepted.clone();
+    wrong_adapter["agent_slice_integration"]["runtime_adapter_version"] =
+        Value::String("latest".into());
+    assert!(parse_status(&wrong_adapter.to_string()).is_err());
+    let mut secret_adapter = accepted.clone();
+    secret_adapter["agent_slice_integration"]["runtime_adapter_id"] =
+        Value::String("sk-secret".into());
+    assert!(parse_status(&secret_adapter.to_string()).is_err());
+    let mut aliased_slices = accepted.clone();
+    aliased_slices["agent_slice_integration"]["accepted_operations_slice_ids"] =
+        serde_json::json!(["PRODUCT-SLICE-1"]);
+    aliased_slices["agent_slice_integration"]["required_operations_slice_id"] =
+        Value::String("PRODUCT-SLICE-1".into());
+    assert!(parse_status(&aliased_slices.to_string()).is_err());
+    let mut hybrid_phase = accepted.clone();
+    hybrid_phase["current_phase"] = Value::String("ENGINEERING_RUNS".into());
+    assert!(parse_status(&hybrid_phase.to_string()).is_err());
+
+    for version in ["2.6.0", "2.7.0"] {
+        let legacy = status_version(&initial_status(), version);
+        let status = parse_status(&legacy).unwrap();
+        let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+        assert_eq!(snapshot["schema"], format!("LCCoding {version} derived BI"));
+        assert_eq!(snapshot["phases"][2]["id"], "ENGINEERING_RUNS");
+        assert_eq!(
+            snapshot["reports"]["candidate"]["rows"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(report_row(&snapshot, "row.runtime_adapter").is_none());
+        let mut hybrid: Value = serde_json::from_str(&legacy).unwrap();
+        hybrid["agent_product_formation"] = accepted["agent_product_formation"].clone();
+        assert!(parse_status(&hybrid.to_string()).is_err());
+    }
+
+    let not_applicable = parse_status(&accepted_agent_status("NOT_APPLICABLE")).unwrap();
+    let snapshot =
+        serde_json::to_value(snapshot_from_status(&not_applicable, None).unwrap()).unwrap();
+    assert_eq!(
+        report_row(&snapshot, "row.product_agent_integration").unwrap()["value"],
+        serde_json::json!({
+            "kind": "agent_status",
+            "applicability": "NOT_APPLICABLE",
+            "integration": "NOT_APPLICABLE"
+        })
+    );
+}
+
+#[test]
+fn status_adapters_drive_exact_260_270_and_280_phase_layouts() {
     let compatibility = embedded_compatibility_asset().unwrap();
-    let expected_counts = [("2.6.0", vec![3, 5, 7, 6]), ("2.7.0", vec![3, 7, 5, 6])];
+    let expected_counts = [
+        ("2.6.0", vec![3, 5, 7, 6]),
+        ("2.7.0", vec![3, 7, 5, 6]),
+        ("2.8.0", vec![3, 7, 5, 6]),
+    ];
     for (version, counts) in expected_counts {
         let status = parse_status(&status_version(&initial_status(), version)).unwrap();
         let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
@@ -181,7 +446,11 @@ fn status_adapters_drive_exact_260_and_270_phase_layouts() {
                 .collect::<Vec<_>>()
         );
         assert_eq!(snapshot["reports"].as_object().unwrap().len(), 8);
-        assert!(!snapshot.to_string().contains("PRODUCT_INTEGRATION"));
+        assert!(
+            !snapshot
+                .to_string()
+                .contains("\"id\":\"PRODUCT_INTEGRATION\"")
+        );
     }
 
     let legacy = compatibility.status_phase_steps("2.6.0").unwrap();
@@ -191,6 +460,9 @@ fn status_adapters_drive_exact_260_and_270_phase_layouts() {
     assert_eq!(current[1].step_ids[5], "MANDATORY_CALABASH_UPGRADE");
     assert_eq!(current[1].step_ids[6], "PRODUCT_BASELINE");
     assert_eq!(current[2].step_ids[0], "FEATURE_SLICE_EXECUTION_COVERAGE");
+    let prepared = compatibility.status_phase_steps("2.8.0").unwrap();
+    assert_eq!(prepared[2].phase_id, "REAL_PRODUCT_INTEGRATION");
+    assert_eq!(prepared[2].step_ids, current[2].step_ids);
 }
 
 #[test]
@@ -250,7 +522,11 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     });
     assert!(parse_status(&current.to_string()).is_ok());
 
-    for fields in [vec!["candidate_id", "candidate_hash"], vec!["candidate_id"], vec!["candidate_hash"]] {
+    for fields in [
+        vec!["candidate_id", "candidate_hash"],
+        vec!["candidate_id"],
+        vec!["candidate_hash"],
+    ] {
         let mut mutation = current.clone();
         for field in fields {
             mutation["canonical_candidate"]
@@ -280,6 +556,20 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     assert!(parse_status(&explicit_empty).is_ok());
 
     let mut legacy: Value = serde_json::from_str(&status_text).unwrap();
+    assert!(
+        legacy
+            .as_object_mut()
+            .unwrap()
+            .remove("agent_product_formation")
+            .is_some()
+    );
+    assert!(
+        legacy
+            .as_object_mut()
+            .unwrap()
+            .remove("agent_slice_integration")
+            .is_some()
+    );
     legacy["status_schema_version"] = Value::String("2.6.0".into());
     legacy["canonical_candidate"]
         .as_object_mut()
@@ -311,7 +601,10 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
         let mut mutation = current_manifest.clone();
         match replacement {
             None => {
-                mutation.as_object_mut().unwrap().remove("execution_methods");
+                mutation
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("execution_methods");
             }
             Some(value) => mutation["execution_methods"] = value,
         }
@@ -379,7 +672,7 @@ fn phase_truth_and_report_links_follow_the_selected_270_layout() {
 
     let baseline_exit_while_formation = status_version(
         &baseline_complete_status().replace(
-            "\"current_phase\": \"ENGINEERING_RUNS\"",
+            "\"current_phase\": \"REAL_PRODUCT_INTEGRATION\"",
             "\"current_phase\": \"PRODUCT_FORMATION\"",
         ),
         "2.7.0",
@@ -420,7 +713,7 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
         1,
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
-    let unsupported = valid.replace("\"2.7.0\"", "\"2.3.0\"");
+    let unsupported = valid.replace("\"2.8.0\"", "\"2.3.0\"");
 
     for malformed in [duplicate, unknown, unsafe_name] {
         let error = parse_status(&malformed).unwrap_err();

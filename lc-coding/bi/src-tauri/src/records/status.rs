@@ -85,6 +85,60 @@ pub struct Candidate {
     candidate_hash: Present<String>,
 }
 
+impl Candidate {
+    fn candidate_id(&self) -> Option<&str> {
+        self.candidate_id.value().map(String::as_str)
+    }
+
+    fn candidate_hash(&self) -> Option<&str> {
+        self.candidate_hash.value().map(String::as_str)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentProductFormation {
+    pub state: String,
+    pub product_agent_applicability: String,
+    pub calabash_definition_handoff_id: String,
+    pub calabash_definition_handoff_hash: String,
+    pub configuration_baseline_id: String,
+    pub configuration_baseline_hash: String,
+    pub product_agent_capability_state: String,
+    pub operations_agent_state: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentSliceIntegration {
+    pub state: String,
+    pub candidate_id: String,
+    pub candidate_hash: String,
+    pub product_baseline_id: String,
+    pub product_baseline_hash: String,
+    pub configuration_baseline_id: String,
+    pub configuration_baseline_hash: String,
+    pub production_topology_id: String,
+    pub production_topology_hash: String,
+    pub runtime_adapter_attestation_id: String,
+    pub runtime_adapter_attestation_hash: String,
+    pub runtime_adapter_id: String,
+    pub runtime_adapter_version: String,
+    pub dual_agent_isolation_state: String,
+    pub product_agent_applicability: String,
+    pub product_integration_state: String,
+    pub product_agent_integration_state: String,
+    pub operations_agent_integration_state: String,
+    pub accepted_product_slice_ids: Vec<String>,
+    pub accepted_operations_slice_ids: Vec<String>,
+    pub required_operations_slice_id: String,
+    pub current_product_slice_reference: String,
+    pub product_verification_reference: String,
+    pub current_operations_slice_reference: String,
+    pub operations_verification_reference: String,
+    pub integration_baseline_reference: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VulnerabilityClosureState {
@@ -198,6 +252,10 @@ pub struct StatusRecord {
     pub existing_project_classification: String,
     pub current_phase: String,
     pub phase_gates: PhaseGates,
+    #[serde(default)]
+    agent_product_formation: Present<AgentProductFormation>,
+    #[serde(default)]
+    agent_slice_integration: Present<AgentSliceIntegration>,
     pub proposal: String,
     pub initialization: String,
     pub calabash_draft: String,
@@ -224,6 +282,16 @@ pub struct StatusRecord {
     pub blockers: Vec<String>,
 }
 
+impl StatusRecord {
+    pub fn agent_product_formation(&self) -> Option<&AgentProductFormation> {
+        self.agent_product_formation.value()
+    }
+
+    pub fn agent_slice_integration(&self) -> Option<&AgentSliceIntegration> {
+        self.agent_slice_integration.value()
+    }
+}
+
 pub fn parse_status(text: &str) -> Result<StatusRecord, RecordError> {
     let status: StatusRecord = strict_json::parse(text)?;
     validate(&status)?;
@@ -232,18 +300,14 @@ pub fn parse_status(text: &str) -> Result<StatusRecord, RecordError> {
 
 fn validate(status: &StatusRecord) -> Result<(), RecordError> {
     let compatibility = embedded_compatibility_asset()?;
-    if compatibility
+    let phase_layout = compatibility
         .status_phase_steps(&status.status_schema_version)
-        .is_none()
-    {
-        return Err(RecordError::UnsupportedVersion);
-    }
+        .ok_or(RecordError::UnsupportedVersion)?;
     if status.record_role != "AUTHORITATIVE_PROJECT_STATUS"
         || !safe_project_name(&status.project_id)
-        || !matches!(
-            status.current_phase.as_str(),
-            "INITIAL" | "PRODUCT_FORMATION" | "ENGINEERING_RUNS" | "DELIVERY_PREPARATION"
-        )
+        || !phase_layout
+            .iter()
+            .any(|phase| phase.phase_id == status.current_phase)
         || !matches!(status.initialization_mode.as_str(), "NEW" | "EXISTING")
         || !matches!(
             status.continuity_decision.as_str(),
@@ -277,6 +341,7 @@ fn validate(status: &StatusRecord) -> Result<(), RecordError> {
         }
     }
     validate_candidate(&status.canonical_candidate, &status.status_schema_version)?;
+    validate_agent_state(status)?;
     match &status.vulnerability_closure {
         VulnerabilityClosure::Legacy(_) if status.status_schema_version == "2.6.0" => {}
         VulnerabilityClosure::Current(value) => validate_security_identity(value)?,
@@ -349,6 +414,219 @@ pub(crate) fn direct_states(status: &StatusRecord) -> [&str; 19] {
     ]
 }
 
+fn validate_agent_state(status: &StatusRecord) -> Result<(), RecordError> {
+    match status.status_schema_version.as_str() {
+        "2.6.0" | "2.7.0" => {
+            if status.agent_product_formation().is_some()
+                || status.agent_slice_integration().is_some()
+            {
+                return Err(RecordError::Invalid);
+            }
+        }
+        "2.8.0" => {
+            let formation = status
+                .agent_product_formation()
+                .ok_or(RecordError::Invalid)?;
+            let integration = status
+                .agent_slice_integration()
+                .ok_or(RecordError::Invalid)?;
+            validate_agent_product_formation(formation)?;
+            validate_agent_slice_integration(status, formation, integration)?;
+        }
+        _ => return Err(RecordError::UnsupportedVersion),
+    }
+    Ok(())
+}
+
+fn validate_agent_product_formation(value: &AgentProductFormation) -> Result<(), RecordError> {
+    if value.state == "UNPROVED" {
+        if value.product_agent_applicability == "UNPROVED"
+            && value.calabash_definition_handoff_id == "NOT_APPLICABLE"
+            && value.calabash_definition_handoff_hash == "NOT_APPLICABLE"
+            && value.configuration_baseline_id == "NOT_APPLICABLE"
+            && value.configuration_baseline_hash == "NOT_APPLICABLE"
+            && value.product_agent_capability_state == "UNPROVED"
+            && value.operations_agent_state == "UNPROVED"
+        {
+            return Ok(());
+        }
+        return Err(RecordError::Invalid);
+    }
+    let capability_matches = match value.product_agent_applicability.as_str() {
+        "NOT_APPLICABLE" => value.product_agent_capability_state == "NOT_APPLICABLE",
+        "APPLICABLE_EXTRA" => matches!(
+            value.product_agent_capability_state.as_str(),
+            "UNIMPLEMENTED_EXTRA" | "REAL_RUNNABLE_EXTRA"
+        ),
+        "APPLICABLE_CORE" => value.product_agent_capability_state == "REAL_RUNNABLE_CORE",
+        _ => false,
+    };
+    if value.state != "PRODUCT_FORMATION_AGENT_BOUND"
+        || !capability_matches
+        || value.operations_agent_state != "PREPARED_NOT_INTEGRATED"
+        || !safe_identity(&value.calabash_definition_handoff_id)
+        || !safe_sha256(&value.calabash_definition_handoff_hash)
+        || !safe_identity(&value.configuration_baseline_id)
+        || !safe_sha256(&value.configuration_baseline_hash)
+    {
+        return Err(RecordError::Invalid);
+    }
+    Ok(())
+}
+
+fn validate_agent_slice_integration(
+    status: &StatusRecord,
+    formation: &AgentProductFormation,
+    value: &AgentSliceIntegration,
+) -> Result<(), RecordError> {
+    if value.state == "UNPROVED" {
+        if value.candidate_id == "NOT_APPLICABLE"
+            && value.candidate_hash == "NOT_APPLICABLE"
+            && value.product_baseline_id == "NOT_APPLICABLE"
+            && value.product_baseline_hash == "NOT_APPLICABLE"
+            && value.configuration_baseline_id == "NOT_APPLICABLE"
+            && value.configuration_baseline_hash == "NOT_APPLICABLE"
+            && value.production_topology_id == "NOT_APPLICABLE"
+            && value.production_topology_hash == "NOT_APPLICABLE"
+            && value.runtime_adapter_attestation_id == "NOT_APPLICABLE"
+            && value.runtime_adapter_attestation_hash == "NOT_APPLICABLE"
+            && value.runtime_adapter_id == "NOT_APPLICABLE"
+            && value.runtime_adapter_version == "NOT_APPLICABLE"
+            && value.dual_agent_isolation_state == "UNPROVED"
+            && value.product_agent_applicability == "UNPROVED"
+            && value.product_integration_state == "UNPROVED"
+            && value.product_agent_integration_state == "UNPROVED"
+            && value.operations_agent_integration_state == "UNPROVED"
+            && value.accepted_product_slice_ids.is_empty()
+            && value.accepted_operations_slice_ids.is_empty()
+            && value.required_operations_slice_id == "NOT_APPLICABLE"
+            && value.current_product_slice_reference == "NOT_APPLICABLE"
+            && value.product_verification_reference == "NOT_APPLICABLE"
+            && value.current_operations_slice_reference == "NOT_APPLICABLE"
+            && value.operations_verification_reference == "NOT_APPLICABLE"
+            && value.integration_baseline_reference == "NOT_APPLICABLE"
+        {
+            return Ok(());
+        }
+        return Err(RecordError::Invalid);
+    }
+
+    let id_values = [
+        &value.candidate_id,
+        &value.product_baseline_id,
+        &value.configuration_baseline_id,
+        &value.production_topology_id,
+        &value.runtime_adapter_attestation_id,
+        &value.runtime_adapter_id,
+        &value.required_operations_slice_id,
+    ];
+    let hash_values = [
+        &value.candidate_hash,
+        &value.product_baseline_hash,
+        &value.configuration_baseline_hash,
+        &value.production_topology_hash,
+        &value.runtime_adapter_attestation_hash,
+    ];
+    let references = [
+        &value.current_product_slice_reference,
+        &value.product_verification_reference,
+        &value.current_operations_slice_reference,
+        &value.operations_verification_reference,
+        &value.integration_baseline_reference,
+    ];
+    let product_ids =
+        closed_identity_set(&value.accepted_product_slice_ids).ok_or(RecordError::Invalid)?;
+    let operations_ids =
+        closed_identity_set(&value.accepted_operations_slice_ids).ok_or(RecordError::Invalid)?;
+    let expected_product_agent = if value.product_agent_applicability == "NOT_APPLICABLE" {
+        "NOT_APPLICABLE"
+    } else {
+        "ACCEPTED"
+    };
+    if value.state != "AGENT_SLICES_ACCEPTED"
+        || formation.state != "PRODUCT_FORMATION_AGENT_BOUND"
+        || id_values.iter().any(|identity| !safe_identity(identity))
+        || hash_values.iter().any(|hash| !safe_sha256(hash))
+        || !semantic_version(&value.runtime_adapter_version)
+        || value.dual_agent_isolation_state != "VERIFIED"
+        || value.product_agent_applicability != formation.product_agent_applicability
+        || value.product_integration_state != "ACCEPTED"
+        || value.product_agent_integration_state != expected_product_agent
+        || value.operations_agent_integration_state != "ACCEPTED"
+        || status.canonical_candidate.candidate_id() != Some(value.candidate_id.as_str())
+        || status.canonical_candidate.candidate_hash() != Some(value.candidate_hash.as_str())
+        || value.configuration_baseline_id != formation.configuration_baseline_id
+        || value.configuration_baseline_hash != formation.configuration_baseline_hash
+        || !operations_ids.contains(value.required_operations_slice_id.as_str())
+        || product_ids
+            .iter()
+            .any(|identity| operations_ids.contains(identity))
+        || references
+            .iter()
+            .any(|reference| *reference == "NOT_APPLICABLE" || !safe_ref(reference))
+        || references.iter().collect::<HashSet<_>>().len() != references.len()
+    {
+        return Err(RecordError::Invalid);
+    }
+    Ok(())
+}
+
+fn closed_identity_set(values: &[String]) -> Option<HashSet<&str>> {
+    if values.is_empty() || values.iter().any(|value| !safe_identity(value)) {
+        return None;
+    }
+    let unique: HashSet<&str> = values.iter().map(String::as_str).collect();
+    (unique.len() == values.len()).then_some(unique)
+}
+
+fn safe_identity(value: &str) -> bool {
+    const GENERIC: [&str; 9] = [
+        "NONE",
+        "PENDING",
+        "UNKNOWN",
+        "NOT_APPLICABLE",
+        "PASS",
+        "DONE",
+        "READY",
+        "TEST",
+        "FAKE",
+    ];
+    !value.is_empty()
+        && value.len() <= 128
+        && !GENERIC.contains(&value)
+        && !secret_like(value)
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_alphanumeric())
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+}
+
+fn secret_like(value: &str) -> bool {
+    let lowercase = value.to_ascii_lowercase();
+    lowercase.starts_with("sk-")
+        || lowercase.starts_with("ghp_")
+        || lowercase.starts_with("github_pat_")
+        || lowercase.starts_with("xoxb-")
+        || lowercase.contains("password")
+        || lowercase.contains("secret")
+        || lowercase.contains("private_key")
+}
+
+fn semantic_version(value: &str) -> bool {
+    let parts: Vec<&str> = value.split('.').collect();
+    parts.len() == 3
+        && parts.iter().all(|part| {
+            !part.is_empty()
+                && part.bytes().all(|byte| byte.is_ascii_digit())
+                && part
+                    .parse::<u32>()
+                    .is_ok_and(|number| number.to_string() == *part)
+        })
+}
+
 fn safe_project_name(value: &str) -> bool {
     let characters: Vec<char> = value.chars().collect();
     if characters.is_empty()
@@ -401,7 +679,7 @@ fn safe_text(value: &str, maximum: usize) -> bool {
 fn validate_candidate(candidate: &Candidate, schema: &str) -> Result<(), RecordError> {
     let candidate_id = candidate.candidate_id.value().map(String::as_str);
     let candidate_hash = candidate.candidate_hash.value().map(String::as_str);
-    if (schema == "2.7.0" && (candidate_id.is_none() || candidate_hash.is_none()))
+    if (schema != "2.6.0" && (candidate_id.is_none() || candidate_hash.is_none()))
         || (candidate_id.is_none() != candidate_hash.is_none())
     {
         return Err(RecordError::Invalid);

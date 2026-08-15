@@ -858,11 +858,85 @@ const fn inconsistent() -> ProjectLoadError {
     }
 }
 
+fn normalized_agent_value(value: &str) -> Result<&'static str, ProjectionError> {
+    match value {
+        "UNPROVED" => Ok("UNPROVED"),
+        "NOT_APPLICABLE" => Ok("NOT_APPLICABLE"),
+        "APPLICABLE_EXTRA" => Ok("APPLICABLE_EXTRA"),
+        "APPLICABLE_CORE" => Ok("APPLICABLE_CORE"),
+        "ACCEPTED" => Ok("ACCEPTED"),
+        "VERIFIED" => Ok("VERIFIED"),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn agent_summary_rows(status: &StatusRecord) -> Result<Vec<ReportRow>, ProjectionError> {
+    let integration = status
+        .agent_slice_integration()
+        .ok_or(ProjectionError::Inconsistent)?;
+    let operations = normalized_agent_value(&integration.operations_agent_integration_state)?;
+    let applicability = normalized_agent_value(&integration.product_agent_applicability)?;
+    let product = normalized_agent_value(&integration.product_agent_integration_state)?;
+    let isolation = normalized_agent_value(&integration.dual_agent_isolation_state)?;
+    let slice_status = match integration.state.as_str() {
+        "UNPROVED" => "UNPROVED",
+        "AGENT_SLICES_ACCEPTED" => "ACCEPTED",
+        _ => return Err(ProjectionError::Inconsistent),
+    };
+    Ok(vec![
+        ReportRow {
+            key: "row.operations_agent_integration",
+            value: RowValue::Record { value: operations },
+        },
+        ReportRow {
+            key: "row.product_agent_integration",
+            value: RowValue::AgentStatus {
+                applicability,
+                integration: product,
+            },
+        },
+        ReportRow {
+            key: "row.runtime_adapter",
+            value: RowValue::SafeIdentity {
+                id: integration.runtime_adapter_id.clone(),
+                version: integration.runtime_adapter_version.clone(),
+            },
+        },
+        ReportRow {
+            key: "row.dual_agent_isolation",
+            value: RowValue::Record { value: isolation },
+        },
+        ReportRow {
+            key: "row.product_slice_progress",
+            value: RowValue::Metric {
+                status: slice_status,
+                completed: Some(count(integration.accepted_product_slice_ids.len())),
+                total: None,
+                interval_minutes: None,
+            },
+        },
+        ReportRow {
+            key: "row.operations_slice_progress",
+            value: RowValue::Metric {
+                status: slice_status,
+                completed: Some(count(integration.accepted_operations_slice_ids.len())),
+                total: None,
+                interval_minutes: None,
+            },
+        },
+    ])
+}
+
 pub fn snapshot_from_status(
     status: &StatusRecord,
     manifest: Option<&CanonicalManifest>,
 ) -> Result<Snapshot, ProjectionError> {
-    if manifest.is_some_and(|manifest| manifest.lccoding.version != status.status_schema_version) {
+    let manifest_schema = match status.status_schema_version.as_str() {
+        "2.6.0" => "2.6.0",
+        "2.7.0" | "2.8.0" => "2.7.0",
+        _ => return Err(ProjectionError::Inconsistent),
+    };
+    if manifest.is_some_and(|manifest| manifest.lccoding.version != manifest_schema) {
         return Err(ProjectionError::Inconsistent);
     }
 
@@ -950,6 +1024,33 @@ pub fn snapshot_from_status(
     let calabash_version = manifest.and_then(|manifest| {
         (!manifest.calabash.version.is_empty()).then(|| manifest.calabash.version.clone())
     });
+    let mut candidate_rows = vec![
+        ReportRow {
+            key: "row.identity",
+            value: RowValue::Lock {
+                value: if candidate_locked {
+                    "LOCKED"
+                } else {
+                    "PENDING"
+                },
+            },
+        },
+        ReportRow {
+            key: "row.integrity",
+            value: RowValue::Record {
+                value: if candidate_locked
+                    && step_state(&phases, "PROJECT_INITIALIZATION")? == ViewState::Done
+                {
+                    "RECORDED"
+                } else {
+                    "PENDING"
+                },
+            },
+        },
+    ];
+    if status.status_schema_version == "2.8.0" {
+        candidate_rows.extend(agent_summary_rows(status)?);
+    }
     let reports = Reports {
         proposal: report(
             "proposal",
@@ -964,30 +1065,7 @@ pub fn snapshot_from_status(
             "candidate",
             step_state(&phases, "PROJECT_INITIALIZATION")?,
             candidate_locked.then(|| status.canonical_candidate.version.clone()),
-            vec![
-                ReportRow {
-                    key: "row.identity",
-                    value: RowValue::Lock {
-                        value: if candidate_locked {
-                            "LOCKED"
-                        } else {
-                            "PENDING"
-                        },
-                    },
-                },
-                ReportRow {
-                    key: "row.integrity",
-                    value: RowValue::Record {
-                        value: if candidate_locked
-                            && step_state(&phases, "PROJECT_INITIALIZATION")? == ViewState::Done
-                        {
-                            "RECORDED"
-                        } else {
-                            "PENDING"
-                        },
-                    },
-                },
-            ],
+            candidate_rows,
         ),
         calabash: report(
             "calabash",
@@ -1065,7 +1143,12 @@ pub fn snapshot_from_status(
     };
 
     Ok(Snapshot {
-        schema: "LCCoding 2.7.0 derived BI",
+        schema: match status.status_schema_version.as_str() {
+            "2.6.0" => "LCCoding 2.6.0 derived BI",
+            "2.7.0" => "LCCoding 2.7.0 derived BI",
+            "2.8.0" => "LCCoding 2.8.0 derived BI",
+            _ => return Err(ProjectionError::Inconsistent),
+        },
         authoritative: false,
         read_only: true,
         health: "ok",
