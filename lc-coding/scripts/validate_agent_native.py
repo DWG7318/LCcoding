@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import argparse, hashlib, json, re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/agent-configuration-baseline.json'
 CONTRACT=json.loads(CONTRACT_PATH.read_text(encoding='utf-8'))
 ACTION_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/agent-action-catalog.json'
 ACTION_CONTRACT=json.loads(ACTION_CONTRACT_PATH.read_text(encoding='utf-8'))
+RUNTIME_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/runtime-adapter-attestation.json'
+RUNTIME_CONTRACT=json.loads(RUNTIME_CONTRACT_PATH.read_text(encoding='utf-8'))
 TOP=set(CONTRACT['top_level_fields'])
 KINDS=tuple(CONTRACT['agent_identity_kinds'])
 AGENT_FIELDS={'applicability','agent_id'}|{suffix for kind in KINDS for suffix in (kind+'_id',kind+'_hash')}
@@ -17,6 +19,7 @@ SAFE=re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
 HASH=re.compile(r'^sha256:[0-9a-f]{64}$')
 GENERIC={'','NONE','PENDING','UNKNOWN','NOT_APPLICABLE','PASS','DONE','READY','TEST','FAKE','MOCK','STUB','TODO','TBD','COMPLETE','INVALID'}
 SECRET=re.compile(r'(?i)(?:^sk-|^ghp_|password\s*=|secret\s*=|-----BEGIN .*PRIVATE KEY-----)')
+RUNTIME_SECRET=re.compile(r'(?i)(?:^(?:AKIA|ASIA)[0-9A-Z]{16}$|^xox[baprs]-|^github_pat_|bearer\s+)')
 SEMVER=re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+$')
 UTC=re.compile(r'^[0-9]{4}-(0[1-9]|1[0-2])-([012][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z$')
 CATALOG_TOP=set(ACTION_CONTRACT['top_level_fields'])
@@ -31,6 +34,18 @@ ROLLBACK_FIELDS=set(ACTION_CONTRACT['rollback_fields'])
 FREE_FORM_TOKENS={'SHELL','COMMAND','COMMANDS','POWERSHELL','BASH','CMD','EXEC','EXECUTE','EXECUTION','EVAL','DISCOVER','DISCOVERY','DYNAMIC','ARBITRARY'}
 PREAUTH_FORBIDDEN_TOKENS={'DELETE','DELETION','PERMISSION','PERMISSIONS','RELEASE','UPGRADE','MIGRATE','MIGRATION','CREDENTIAL','CREDENTIALS','ROOT','KILL','IRREVERSIBLE'}
 BROAD_TARGETS={'ALL','ANY','GLOBAL','BROAD','WILDCARD'}
+RUNTIME_TOP=set(RUNTIME_CONTRACT['top_level_fields'])
+RUNTIME_ADAPTER_FIELDS=set(RUNTIME_CONTRACT['runtime_adapter_fields'])
+RUNTIME_PROVIDER_FIELDS=set(RUNTIME_CONTRACT['runtime_provider_fields'])
+RUNTIME_CONFIGURATION_FIELDS=set(RUNTIME_CONTRACT['configuration_fields'])
+RUNTIME_TOPOLOGY_FIELDS=set(RUNTIME_CONTRACT['topology_fields'])
+RUNTIME_CAPABILITY_FIELDS=set(RUNTIME_CONTRACT['capability_fields'])
+RUNTIME_AUTHORITY_FIELDS=set(RUNTIME_CONTRACT['authority_boundary_fields'])
+RUNTIME_VALIDITY_FIELDS=set(RUNTIME_CONTRACT['validity_fields'])
+RUNTIME_EVIDENCE_FIELDS=set(RUNTIME_CONTRACT['evidence_fields'])
+RUNTIME_FALLBACK_FIELDS=set(RUNTIME_CONTRACT['fallback_fields'])
+RUNTIME_KILL_SWITCH_FIELDS=set(RUNTIME_CONTRACT['kill_switch_fields'])
+RUNTIME_CONFORMANCE_FIELDS=set(RUNTIME_CONTRACT['conformance_fields'])
 PRODUCT_FORMATION_STATUS_FIELDS={
     'state','product_agent_applicability','calabash_definition_handoff_id',
     'calabash_definition_handoff_hash','configuration_baseline_id',
@@ -250,6 +265,164 @@ def _strings(value):
     elif isinstance(value,list):
         for item in value: yield from _strings(item)
     elif isinstance(value,str): yield value
+
+def strict_utc(value):
+    if not isinstance(value,str) or not UTC.fullmatch(value): return None
+    try: return datetime.strptime(value,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+    except ValueError: return None
+
+def contained_evidence_path(value):
+    if not isinstance(value,str) or not value or '\\' in value or ':' in value: return False
+    path=PurePosixPath(value)
+    return (
+        not path.is_absolute() and str(path)==value and len(path.parts)>=2
+        and path.parts[0]=='evidence' and all(part not in {'','.','..'} for part in path.parts)
+    )
+
+def validate_runtime_adapter_attestation(
+    value,configuration,configuration_hash,expected_topology_id,
+    expected_topology_hash,as_of_utc,
+):
+    errors=validate_configuration(configuration)
+    config=configuration if isinstance(configuration,dict) else {}
+    record=closed(value,RUNTIME_TOP,'Runtime Adapter Attestation',errors)
+    if record.get('schema_version')!='2.8.0': errors.append('Runtime Adapter Attestation schema_version must be 2.8.0')
+    if record.get('artifact_role')!='RUNTIME_ADAPTER_ATTESTATION': errors.append('Runtime Adapter Attestation artifact_role is invalid')
+    for field in ('attestation_id','candidate_id'):
+        if not safe_id(record.get(field)): errors.append('Runtime Adapter Attestation '+field+' is invalid')
+    if not exact_hash(record.get('candidate_hash')): errors.append('Runtime Adapter Attestation candidate_hash is invalid')
+    if record.get('candidate_id')!=config.get('candidate_id') or record.get('candidate_hash')!=config.get('candidate_hash'): errors.append('Runtime Adapter Attestation candidate identity disagrees with configuration')
+
+    adapter=closed(record.get('runtime_adapter'),RUNTIME_ADAPTER_FIELDS,'runtime_adapter',errors)
+    if not safe_id(adapter.get('adapter_id')): errors.append('runtime_adapter adapter_id is invalid')
+    if not isinstance(adapter.get('adapter_version'),str) or not SEMVER.fullmatch(adapter.get('adapter_version','')): errors.append('runtime_adapter version is invalid')
+    if not exact_hash(adapter.get('adapter_digest')): errors.append('runtime_adapter digest must be lowercase sha256')
+
+    provider=closed(record.get('runtime_provider'),RUNTIME_PROVIDER_FIELDS,'runtime_provider',errors)
+    for field in ('provider_id','identity_evidence_id'):
+        if not safe_id(provider.get(field)): errors.append('runtime_provider '+field+' is invalid')
+    if provider.get('provider_kind') not in RUNTIME_CONTRACT['provider_kinds']: errors.append('runtime_provider kind is invalid')
+    if not exact_hash(provider.get('identity_evidence_hash')) or provider.get('verification_result')!='PASS': errors.append('runtime_provider requires independently verified identity evidence')
+
+    baseline=closed(record.get('configuration_baseline'),RUNTIME_CONFIGURATION_FIELDS,'configuration_baseline',errors)
+    if not safe_id(baseline.get('configuration_baseline_id')) or not exact_hash(baseline.get('configuration_baseline_hash')): errors.append('configuration_baseline identity is invalid')
+    if not exact_hash(configuration_hash): errors.append('accepted configuration file hash is invalid')
+    if baseline.get('configuration_baseline_id')!=config.get('configuration_baseline_id') or baseline.get('configuration_baseline_hash')!=configuration_hash: errors.append('Runtime Adapter Attestation configuration identity disagrees with accepted baseline')
+
+    topology=closed(record.get('production_topology'),RUNTIME_TOPOLOGY_FIELDS,'production_topology',errors)
+    if not safe_id(topology.get('production_topology_id')) or not exact_hash(topology.get('production_topology_hash')): errors.append('production_topology opaque identity is invalid')
+    if not safe_id(expected_topology_id) or not exact_hash(expected_topology_hash): errors.append('expected production topology identity is invalid')
+    if topology.get('production_topology_id')!=expected_topology_id or topology.get('production_topology_hash')!=expected_topology_hash: errors.append('Runtime Adapter Attestation topology identity disagrees')
+    if record.get('loaded_result')!='PASS': errors.append('loaded_result must be exact PASS')
+
+    expected_agents={'OPERATIONS_AGENT':config.get('operations_agent',{})}
+    product=config.get('product_agent',{})
+    if isinstance(product,dict) and product.get('applicability')!='NOT_APPLICABLE': expected_agents['PRODUCT_AGENT']=product
+    capabilities=record.get('capability_attestations')
+    if not isinstance(capabilities,list) or not capabilities:
+        errors.append('capability_attestations must be a non-empty list'); capabilities=[]
+    seen_roles=set(); seen_capabilities=set()
+    for index,item in enumerate(capabilities):
+        label='capability attestation '+str(index+1)
+        capability=closed(item,RUNTIME_CAPABILITY_FIELDS,label,errors)
+        role=capability.get('agent_role')
+        if role not in expected_agents: errors.append(label+' agent_role is unexpected')
+        elif role in seen_roles: errors.append('capability Agent roles must be unique')
+        else: seen_roles.add(role)
+        capability_id=capability.get('capability_id')
+        if not safe_id(capability_id): errors.append(label+' capability_id is invalid')
+        elif capability_id.casefold() in seen_capabilities: errors.append('capability IDs must be unique')
+        else: seen_capabilities.add(capability_id.casefold())
+        for field in ('agent_id','policy_id','action_catalog_id','configuration_id'):
+            if not safe_id(capability.get(field)): errors.append(label+' '+field+' is invalid')
+        for field in ('policy_hash','action_catalog_hash','configuration_hash'):
+            if not exact_hash(capability.get(field)): errors.append(label+' '+field+' is invalid')
+        agent=expected_agents.get(role,{}) if role in expected_agents else {}
+        if any(capability.get(field)!=agent.get(field) for field in ('agent_id','policy_id','policy_hash','action_catalog_id','action_catalog_hash','configuration_id','configuration_hash')): errors.append(label+' expands or disagrees with the accepted Agent boundary')
+        if capability.get('authorization_result')!='AUTHORIZED_CONFIGURATION_BOUNDARY': errors.append(label+' authorization is invalid')
+    if seen_roles!=set(expected_agents): errors.append('capability attestations must cover each applicable Agent exactly once')
+
+    authority=closed(record.get('authority_boundaries'),RUNTIME_AUTHORITY_FIELDS,'authority_boundaries',errors)
+    exact_authority={
+        'runtime_permission':'CANNOT_EXPAND_AUTHORITY',
+        'agent_separation':'DISTINCT_LOGICAL_AGENTS',
+        'scorpion_result':'ENFORCED',
+        'environment_fallback':'FORBIDDEN',
+        'provider_authority':'NO_VENDOR_SELF_AUTHORITY',
+        'secret_loading':'REFERENCES_ONLY_NO_INLINE_SECRETS',
+    }
+    if any(authority.get(field)!=expected for field,expected in exact_authority.items()): errors.append('Runtime Adapter authority boundaries are invalid')
+    root=config.get('root_authority',{}) if isinstance(config.get('root_authority',{}),dict) else {}
+    if authority.get('scorpion_policy_id')!=root.get('scorpion_policy_id') or authority.get('scorpion_policy_hash')!=root.get('scorpion_policy_hash'): errors.append('Runtime Adapter Scorpion boundary disagrees with configuration')
+
+    validity=closed(record.get('validity'),RUNTIME_VALIDITY_FIELDS,'validity',errors)
+    as_of=strict_utc(as_of_utc)
+    observed=strict_utc(validity.get('observed_at_utc'))
+    validated=strict_utc(validity.get('validated_at_utc'))
+    expires=strict_utc(validity.get('expires_at_utc'))
+    if as_of is None: errors.append('validation as-of UTC is invalid')
+    if any(item is None for item in (observed,validated,expires)): errors.append('Runtime Adapter validity timestamps must be strict UTC')
+    elif as_of is not None:
+        if not observed<=validated<=as_of: errors.append('Runtime Adapter evidence is future-dated or unordered')
+        if expires<=as_of: errors.append('Runtime Adapter Attestation is expired')
+        maximum=timedelta(seconds=RUNTIME_CONTRACT['max_observation_age_seconds'])
+        if as_of-observed>maximum or as_of-validated>maximum: errors.append('Runtime Adapter Attestation evidence is stale')
+
+    evidence=record.get('evidence')
+    if not isinstance(evidence,list) or not evidence:
+        errors.append('Runtime Adapter evidence must be a non-empty list'); evidence=[]
+    evidence_ids=set(); evidence_paths=set()
+    for index,item in enumerate(evidence):
+        label='Runtime Adapter evidence '+str(index+1)
+        item=closed(item,RUNTIME_EVIDENCE_FIELDS,label,errors)
+        identity=item.get('evidence_id'); path=item.get('evidence_path')
+        if not safe_id(identity): errors.append(label+' evidence_id is invalid')
+        elif identity.casefold() in evidence_ids: errors.append('Runtime Adapter evidence IDs must be unique')
+        else: evidence_ids.add(identity.casefold())
+        if not contained_evidence_path(path): errors.append(label+' path is not contained')
+        elif path.casefold() in evidence_paths: errors.append('Runtime Adapter evidence paths must be unique')
+        else: evidence_paths.add(path.casefold())
+        if not exact_hash(item.get('evidence_hash')): errors.append(label+' hash is invalid')
+        if item.get('producer_kind')!='INDEPENDENT_VERIFIER' or item.get('independence')!='INDEPENDENT' or item.get('result')!='PASS': errors.append(label+' is not independent PASS evidence')
+
+    operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent',{}),dict) else {}
+    fallback=closed(record.get('fallback'),RUNTIME_FALLBACK_FIELDS,'fallback',errors)
+    if not safe_id(fallback.get('fallback_id')) or not contained_evidence_path(fallback.get('evidence_path')) or not exact_hash(fallback.get('evidence_hash')) or fallback.get('result')!='PASS': errors.append('Runtime Adapter fallback proof is invalid')
+    if fallback.get('fallback_id')!=operations.get('fallback_id') or fallback.get('evidence_hash')!=operations.get('fallback_hash'): errors.append('Runtime Adapter fallback proof disagrees with configuration')
+    kill_switch=closed(record.get('kill_switch'),RUNTIME_KILL_SWITCH_FIELDS,'kill_switch',errors)
+    if not safe_id(kill_switch.get('kill_switch_id')) or not contained_evidence_path(kill_switch.get('evidence_path')) or not exact_hash(kill_switch.get('evidence_hash')) or kill_switch.get('result')!='PASS': errors.append('Runtime Adapter Kill Switch proof is invalid')
+    if kill_switch.get('kill_switch_id')!=operations.get('kill_switch_id') or kill_switch.get('evidence_hash')!=operations.get('kill_switch_hash'): errors.append('Runtime Adapter Kill Switch proof disagrees with configuration')
+
+    conformance=record.get('conformance')
+    if not isinstance(conformance,list): errors.append('Runtime Adapter conformance must be a list'); conformance=[]
+    case_ids=[]; conformance_evidence=set()
+    for index,item in enumerate(conformance):
+        label='Runtime Adapter conformance '+str(index+1)
+        item=closed(item,RUNTIME_CONFORMANCE_FIELDS,label,errors)
+        case_ids.append(item.get('case_id'))
+        for field in ('harness_id','evidence_id'):
+            if not safe_id(item.get(field)): errors.append(label+' '+field+' is invalid')
+        evidence_id=item.get('evidence_id')
+        if isinstance(evidence_id,str):
+            if evidence_id.casefold() in conformance_evidence: errors.append('Runtime Adapter conformance evidence IDs must be unique')
+            conformance_evidence.add(evidence_id.casefold())
+        if not exact_hash(item.get('evidence_hash')) or item.get('result')!='PASS': errors.append(label+' result is not PASS evidence')
+    if case_ids!=RUNTIME_CONTRACT['conformance_cases']: errors.append('Runtime Adapter positive/negative conformance cases are incomplete or unordered')
+    if any(SECRET.search(item) or RUNTIME_SECRET.search(item) for item in _strings(record)): errors.append('Runtime Adapter Attestation contains secret-like inline material')
+    return errors
+
+def validate_runtime_adapter_attestation_file(
+    path,configuration,configuration_hash,expected_topology_id,
+    expected_topology_hash,as_of_utc,
+):
+    target=Path(path)
+    if target.is_symlink() or not target.is_file(): return ['Runtime Adapter Attestation must be a regular file']
+    try: value=strict_json_bytes(target.read_bytes())
+    except (OSError,UnicodeError,ValueError) as error: return ['Runtime Adapter Attestation is not strict UTF-8 JSON: '+str(error)]
+    return validate_runtime_adapter_attestation(
+        value,configuration,configuration_hash,expected_topology_id,
+        expected_topology_hash,as_of_utc,
+    )
 
 def validate_action_catalog_file(path,configuration,agent_slot='operations_agent'):
     errors=validate_configuration(configuration)
