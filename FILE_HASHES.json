@@ -247,5 +247,5 @@
   "lc-coding/tests/test_verification_reuse.py": "056ef52a988c223ec4b5e6a3419d562a91045b4ac589ac54f8d99c03ce931e98",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "d87a577767750a3397b81762784be739b74f20141ca10a654d98b3468cf33033",
-  "lc-coding/tests/test_version_consistency_270.py": "a681b90ef4db56697cfbe1243c547e13ab936ce6c2fccf5e6cf40a9a81450a53"
+  "lc-coding/tests/test_version_consistency_270.py": "ea0d73fae945dde7c14e397688bd7cfd45cc632d22be42ac4bb025784dc47f3b"
 }

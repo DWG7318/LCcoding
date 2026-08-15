@@ -4,40 +4,70 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-current = "2.7.0"
+release_current = "2.7.0"
+prepared_schema = "2.8.0"
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == current
-assert json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == current
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == release_current
+release_manifest = json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))
+assert release_manifest["version"] == release_current
 
 for relative in [
     "lc-coding/contracts/delivery-policy.json",
-    "lc-coding/contracts/lifecycle.json",
-    "lc-coding/contracts/phases.json",
     "lc-coding/contracts/verification-receipt.json",
     "lc-coding/contracts/version-policy.json",
     "lc-coding/contracts/vulnerability-closure.json",
 ]:
-    assert json.loads((root / relative).read_text(encoding="utf-8"))["version"] == current
+    assert json.loads((root / relative).read_text(encoding="utf-8"))["version"] == release_current
+
+lifecycle = json.loads(
+    (root / "lc-coding/contracts/lifecycle.json").read_text(encoding="utf-8")
+)
+phases = json.loads(
+    (root / "lc-coding/contracts/phases.json").read_text(encoding="utf-8")
+)
+assert lifecycle["version"] == prepared_schema
+assert phases["version"] == prepared_schema
+prepared_phase_ids = [phase["id"] for phase in phases["phases"]]
+assert prepared_phase_ids == [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "REAL_PRODUCT_INTEGRATION",
+    "DELIVERY_PREPARATION",
+]
+release_phase_ids = [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "ENGINEERING_RUNS",
+    "DELIVERY_PREPARATION",
+]
+assert release_manifest["phase_overlay"] == release_phase_ids
+assert release_manifest["execution_method_overlay"]["available_in_phases"] == release_phase_ids
+assert prepared_phase_ids != release_phase_ids
 
 canonical = json.loads(
     (root / "lc-coding/templates/CANONICAL-MANIFEST.json").read_text(encoding="utf-8")
 )
-assert canonical["lccoding"]["version"] == current
+assert canonical["lccoding"]["version"] == release_current
 status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
-assert status["status_schema_version"] == current
+phase_status = json.loads(
+    (root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8")
+)
+assert status["status_schema_version"] == prepared_schema
+assert phase_status["status_schema_version"] == prepared_schema
+assert list(phase_status["phases"]) == prepared_phase_ids
 
 bi_root = root / "lc-coding/bi"
-assert json.loads((bi_root / "package.json").read_text(encoding="utf-8"))["version"] == current
-assert json.loads((bi_root / "package-lock.json").read_text(encoding="utf-8"))["version"] == current
+assert json.loads((bi_root / "package.json").read_text(encoding="utf-8"))["version"] == release_current
+assert json.loads((bi_root / "package-lock.json").read_text(encoding="utf-8"))["version"] == release_current
 assert tomllib.loads((bi_root / "src-tauri/Cargo.toml").read_text(encoding="utf-8"))[
     "package"
-]["version"] == current
-assert f'name = "lccoding"\nversion = "{current}"' in (
+]["version"] == release_current
+assert f'name = "lccoding"\nversion = "{release_current}"' in (
     bi_root / "src-tauri/Cargo.lock"
 ).read_text(encoding="utf-8")
 assert json.loads(
     (bi_root / "src-tauri/tauri.conf.json").read_text(encoding="utf-8")
-)["version"] == current
+)["version"] == release_current
 
 for relative in [
     "README.md",
@@ -49,7 +79,7 @@ for relative in [
     "PUBLISH-TO-GITHUB.md",
     "lc-coding/scripts/validate_repository.py",
 ]:
-    assert current in (root / relative).read_text(encoding="utf-8"), relative
+    assert release_current in (root / relative).read_text(encoding="utf-8"), relative
 
 snapshot_model = (bi_root / "src/model/snapshot.ts").read_text(encoding="utf-8")
 assert '"LCCoding 2.7.0 derived BI"' in snapshot_model
@@ -59,8 +89,14 @@ assert 'schema: "LCCoding 2.7.0 derived BI"' in projection
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
 release_heading = "## 2.7.0"
-assert changelog.startswith("# Changelog\n\n" + release_heading + "\n")
-release_section = changelog.split(release_heading, 1)[1].split("## 2.6.0", 1)[0]
+next_heading = "## 2.6.0"
+assert changelog.startswith("# Changelog\n\n")
+assert changelog.count("\n" + release_heading + "\n") == 1
+assert changelog.count("\n" + next_heading + "\n") == 1
+release_start = changelog.index("\n" + release_heading + "\n") + 1
+release_end = changelog.index("\n" + next_heading + "\n")
+assert release_start < release_end
+release_section = changelog[release_start:release_end]
 for marker in [
     "copy-on-write",
     "current repository and BI release carriers are finalized for 2.7.0",
@@ -115,4 +151,4 @@ assert "calabash" not in release_verifier.lower()
 for powershell7_only in ["Text.Json", "HashData", "ToHexString"]:
     assert powershell7_only not in release_verifier
 
-print("PASS: LCCoding 2.7.0 version is consistent across release artifacts")
+print("PASS: 2.7 release carriers and prepared 2.8 method schema are consistent")
