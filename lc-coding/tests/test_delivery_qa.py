@@ -25,6 +25,9 @@ SURFACES = ["SURFACE-AUTH", "SURFACE-API"]
 LOCKED_EXCLUSIONS = json.loads(policy_path.read_text(encoding="utf-8"))[
     "owner_locked_default_exclusions"
 ]
+VULNERABILITY_TEMPLATE = json.loads(
+    (root / "lc-coding/templates/VULNERABILITY-CLOSURE.json").read_text(encoding="utf-8")
+)
 DECISION_ANSWERS = {
     "delivery_model": "per-customer-package",
     "assets": "client-runtime-only",
@@ -66,6 +69,10 @@ def closure_receipt(candidate_id=CANDIDATE_ID, candidate_hash=CANDIDATE_HASH):
         "closure_id": "VC-DELIVERY-1",
         "candidate_id": candidate_id,
         "candidate_hash": candidate_hash,
+        "agent_security_binding": copy.deepcopy(
+            VULNERABILITY_TEMPLATE["agent_security_binding"]
+        ),
+        "agent_surface_bindings": [],
         "pre_audit_loop_owner_acceptance_receipts": [evidence("OA-DELIVERY-1", SURFACES)],
         "security_auditor": auditor("PRIMARY"),
         "audit_scope": {"scope": "FINAL_ACCEPTED_CANDIDATE", **evidence("E-SCOPE", SURFACES)},

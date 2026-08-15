@@ -17,3 +17,5 @@
 - Accepted at:
 
 This terminal receipt binds one exact candidate and its exact Vulnerability Closure. Later invalidation or supersession is recorded only in authoritative `status.json` and the new Impact Analysis; this receipt remains `CURRENT` immutable evidence for the candidate it accepted. Reused acceptance, remediation Run, and critical smoke/delta fields use closed `ID@CANDIDATE_ID@sha256:<64 lowercase hex>@SURFACE_ID[+SURFACE_ID...]` records separated by `;`; remediation Run records append `@EVIDENCE_ID`.
+
+When the referenced Vulnerability Closure has a `BOUND` Agent security binding, this acceptance confirms that its complete Agent surface coverage, exact Configuration/Topology/Runtime Adapter identities, remediation, and transitive re-audit remain the same current candidate evidence. It cannot preserve a stale or replaced Agent, model, Policy, catalog, memory, credential, topology, or Adapter identity.

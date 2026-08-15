@@ -2787,7 +2787,56 @@ def validate_post_security_receipt(
         errors.append('Post-Security Owner Acceptance requires an exact accepted-at timestamp')
     return fields,errors
 
-def load_vulnerability_reference(lc,reference,expected_id,expected_candidate):
+def _expected_agent_security_binding(lc,status):
+    fields=VULNERABILITY_CONTRACT['agent_security_binding_fields']
+    not_applicable={field:'NOT_APPLICABLE' for field in fields}
+    if not isinstance(status,dict) or status.get('status_schema_version')!='2.8.0':
+        return not_applicable,[]
+    agent_slice=status.get('agent_slice_integration')
+    if not isinstance(agent_slice,dict) or agent_slice.get('state')!='AGENT_SLICES_ACCEPTED':
+        return not_applicable,[]
+    errors=[]; lc=Path(lc)
+    config_path=lc/AGENT_CONFIGURATION_BASELINE_NAME
+    adapter_path=lc/RUNTIME_ADAPTER_ATTESTATION_NAME
+    for label,path,expected_hash in (
+        ('Agent Configuration Baseline',config_path,agent_slice.get('configuration_baseline_hash')),
+        ('Runtime Adapter Attestation',adapter_path,agent_slice.get('runtime_adapter_attestation_hash')),
+    ):
+        if path.is_symlink() or not path.is_file(): errors.append(label+' is required for Agent security binding')
+        elif _agent_file_hash(path)!=expected_hash: errors.append(label+' hash disagrees with authoritative Agent Slice status')
+    if errors: return None,errors
+    try:
+        configuration=_AGENT_NATIVE.strict_json(config_path)
+        attestation=_AGENT_NATIVE.strict_json(adapter_path)
+    except (OSError,UnicodeError,ValueError) as error:
+        return None,['Agent security identity evidence is not strict UTF-8: '+str(error)]
+    operations=configuration.get('operations_agent',{})
+    product=configuration.get('product_agent',{})
+    runtime=attestation.get('runtime_adapter',{})
+    binding={
+        'state':'BOUND','candidate_id':agent_slice.get('candidate_id'),
+        'candidate_hash':agent_slice.get('candidate_hash'),
+        'configuration_baseline_id':agent_slice.get('configuration_baseline_id'),
+        'configuration_baseline_hash':agent_slice.get('configuration_baseline_hash'),
+        'production_topology_id':agent_slice.get('production_topology_id'),
+        'production_topology_hash':agent_slice.get('production_topology_hash'),
+        'runtime_adapter_attestation_id':agent_slice.get('runtime_adapter_attestation_id'),
+        'runtime_adapter_attestation_hash':agent_slice.get('runtime_adapter_attestation_hash'),
+        'runtime_adapter_id':agent_slice.get('runtime_adapter_id'),
+        'runtime_adapter_version':agent_slice.get('runtime_adapter_version'),
+        'runtime_adapter_digest':runtime.get('adapter_digest'),
+        'product_agent_applicability':agent_slice.get('product_agent_applicability'),
+        'product_agent_id':(
+            'NOT_APPLICABLE' if agent_slice.get('product_agent_applicability')=='NOT_APPLICABLE'
+            else product.get('agent_id')
+        ),
+        'operations_agent_id':operations.get('agent_id'),'identity_status':'CURRENT',
+    }
+    return binding,errors
+
+def load_vulnerability_reference(
+    lc,reference,expected_id,expected_candidate,expected_agent_binding=None
+):
     errors=[]
     if not expected_candidate or not exact_security_identity(*expected_candidate):
         return None,['Vulnerability Closure expected candidate identity is invalid']
@@ -2800,7 +2849,8 @@ def load_vulnerability_reference(lc,reference,expected_id,expected_candidate):
         errors.append('Vulnerability Closure receipt ID mismatch')
     required=data.get('required_surface_ids') if isinstance(data.get('required_surface_ids'),list) else None
     errors.extend(validate_vulnerability_receipt(
-        data,VULNERABILITY_CONTRACT,expected_candidate[0],expected_candidate[1],required
+        data,VULNERABILITY_CONTRACT,expected_candidate[0],expected_candidate[1],required,
+        expected_agent_binding
     ))
     return data,errors
 
@@ -2881,6 +2931,8 @@ def validate_security_invalidation(lc,status):
         return errors
     canonical=status.get('canonical_candidate',{})
     current=(canonical.get('candidate_id'),canonical.get('candidate_hash'))
+    expected_agent_binding,agent_binding_errors=_expected_agent_security_binding(lc,status)
+    errors.extend(agent_binding_errors)
     last_change=str(status.get('last_material_change','')).strip()
     if impact_record is None:
         if last_change:
@@ -2890,7 +2942,7 @@ def validate_security_invalidation(lc,status):
             return errors
         closure_reference=(closure.get('current_receipt_id'),closure.get('current_receipt_reference'))
         closure_data,closure_errors=load_vulnerability_reference(
-            lc,closure_reference[1],closure_reference[0],current
+            lc,closure_reference[1],closure_reference[0],current,expected_agent_binding
         )
         errors.extend(closure_errors)
         if acceptance_state=='PENDING':
@@ -2991,6 +3043,8 @@ def validate_security_invalidation(lc,status):
             errors.append('preserved status must cite the exact prior Vulnerability Closure')
         if current_acceptance!=prior_acceptance:
             errors.append('preserved status must cite the exact prior Post-Security acceptance')
+        if isinstance(prior_closure_data,dict) and prior_closure_data.get('agent_security_binding')!=expected_agent_binding:
+            errors.append('preserved Agent security binding disagrees with authoritative Agent Slice status')
         errors.extend(_status_reference_matches(
             acceptance,'vulnerability_closure_receipt_id',
             'vulnerability_closure_receipt_reference',prior_closure,

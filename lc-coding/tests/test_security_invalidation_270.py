@@ -20,6 +20,22 @@ project_spec.loader.exec_module(project_validator)
 CANDIDATE_ID = "CANDIDATE-1"
 CANDIDATE_HASH = "sha256:" + "a" * 64
 SURFACES = ["SURFACE-AUTH", "SURFACE-API", "SURFACE-DATA", "SURFACE-INSTALLER"]
+AGENT_SURFACE_KINDS = [
+    "PROMPT_INJECTION_INSTRUCTION_BOUNDARY",
+    "PRIVILEGE_AUTHORIZATION",
+    "DUAL_AGENT_MEMORY_ISOLATION",
+    "SESSION_CONTEXT_RETRIEVER_VECTOR_PROMPT_CACHE",
+    "CREDENTIAL_KEY_TOOL_SECRET",
+    "MODEL_DRIFT_UNAVAILABILITY",
+    "RUNTIME_ADAPTER_DRIFT_REPLACEMENT",
+    "POLICY_ACTION_CATALOG_BYPASS",
+    "TYPED_EVENT_REDACTION_PROVENANCE",
+    "FALLBACK_ROLLBACK_AUDIT_KILL_SWITCH",
+]
+SECURITY_CONTRACT = json.loads(
+    (root / "lc-coding/contracts/vulnerability-closure.json").read_text(encoding="utf-8")
+)
+assert SECURITY_CONTRACT["agent_surface_kinds"] == AGENT_SURFACE_KINDS
 
 
 def evidence(evidence_id, surfaces, candidate_id=CANDIDATE_ID, candidate_hash=CANDIDATE_HASH):
@@ -70,7 +86,68 @@ def relation(source, target, suffix, candidate_id=CANDIDATE_ID, candidate_hash=C
     }
 
 
-def valid_receipt():
+def not_applicable_agent_binding():
+    return {
+        field: "NOT_APPLICABLE"
+        for field in SECURITY_CONTRACT["agent_security_binding_fields"]
+    }
+
+
+def bound_agent_binding():
+    return {
+        "state": "BOUND",
+        "candidate_id": CANDIDATE_ID,
+        "candidate_hash": CANDIDATE_HASH,
+        "configuration_baseline_id": "ACB-1",
+        "configuration_baseline_hash": "sha256:" + "c" * 64,
+        "production_topology_id": "TOPOLOGY-1",
+        "production_topology_hash": "sha256:" + "d" * 64,
+        "runtime_adapter_attestation_id": "RAA-1",
+        "runtime_adapter_attestation_hash": "sha256:" + "e" * 64,
+        "runtime_adapter_id": "RUNTIME-ADAPTER-1",
+        "runtime_adapter_version": "1.2.3",
+        "runtime_adapter_digest": "sha256:" + "f" * 64,
+        "product_agent_applicability": "APPLICABLE_CORE",
+        "product_agent_id": "PRODUCT-AGENT-1",
+        "operations_agent_id": "OPERATIONS-AGENT-1",
+        "identity_status": "CURRENT",
+    }
+
+
+def agent_surface_bindings(binding):
+    records = []
+    for index, kind in enumerate(AGENT_SURFACE_KINDS, 1):
+        role = SECURITY_CONTRACT["agent_surface_kind_roles"][kind]
+        agent_ids = (
+            [binding["runtime_adapter_id"]] if role == "RUNTIME_ADAPTER"
+            else [binding["operations_agent_id"]] if role == "OPERATIONS_AGENT"
+            else [binding["product_agent_id"], binding["operations_agent_id"]]
+        )
+        records.append({
+            "binding_id": f"AGENT-SURFACE-BINDING-{index}",
+            "agent_surface_kind": kind,
+            "security_surface_id": "SURFACE-AUTH",
+            "agent_role": role,
+            "agent_ids": agent_ids,
+            "candidate_id": binding["candidate_id"],
+            "candidate_hash": binding["candidate_hash"],
+            "configuration_baseline_id": binding["configuration_baseline_id"],
+            "configuration_baseline_hash": binding["configuration_baseline_hash"],
+            "production_topology_id": binding["production_topology_id"],
+            "production_topology_hash": binding["production_topology_hash"],
+            "runtime_adapter_id": binding["runtime_adapter_id"],
+            "runtime_adapter_version": binding["runtime_adapter_version"],
+            "runtime_adapter_digest": binding["runtime_adapter_digest"],
+            "audit_evidence_id": "E-AUTH-AUDIT",
+            "current_check_id": "E-AUTH-CHECK",
+            "remediation_evidence_id": "E-REMEDIATION-1",
+            "reaudit_evidence_id": "SA-REAUDIT-1",
+            "result": "PASS",
+        })
+    return records
+
+
+def valid_receipt(agent_bound=False):
     checks = [
         evidence("E-AUTH-AUDIT", ["SURFACE-AUTH"]),
         evidence("E-AUTH-CHECK", ["SURFACE-AUTH"]),
@@ -81,12 +158,15 @@ def valid_receipt():
         evidence("E-INSTALLER-CHECK", ["SURFACE-INSTALLER"]),
         evidence("E-INSTALLER-NOT-APPLICABLE", ["SURFACE-INSTALLER"]),
     ]
+    binding = bound_agent_binding() if agent_bound else not_applicable_agent_binding()
     return {
         "schema_version": "2.7.0",
         "artifact_role": "VULNERABILITY_CLOSURE_RECEIPT",
         "closure_id": "VC-270",
         "candidate_id": CANDIDATE_ID,
         "candidate_hash": CANDIDATE_HASH,
+        "agent_security_binding": binding,
+        "agent_surface_bindings": agent_surface_bindings(binding) if agent_bound else [],
         "pre_audit_loop_owner_acceptance_receipts": [
             evidence("OA-PRE-1", SURFACES)
         ],
@@ -265,6 +345,86 @@ with tempfile.TemporaryDirectory(prefix="lccoding-security-270-") as temporary:
     assert set(template) == set(contract["top_level_fields"])
     assert template["schema_version"] == "2.7.0"
     assert template["artifact_role"] == "VULNERABILITY_CLOSURE_RECEIPT"
+    assert template["agent_security_binding"] == not_applicable_agent_binding()
+    assert template["agent_surface_bindings"] == []
+
+    agent_valid = valid_receipt(agent_bound=True)
+    result = run(receipt_path, agent_valid)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    def reject_agent(mutate, marker):
+        changed = valid_receipt(agent_bound=True)
+        mutate(changed)
+        rejected = run(receipt_path, changed)
+        assert rejected.returncode != 0, marker
+        assert marker in rejected.stdout + rejected.stderr, rejected.stdout + rejected.stderr
+
+    reject_agent(
+        lambda item: item["agent_surface_bindings"].pop(),
+        "Agent security surface kinds are missing, extra, duplicated, unknown, or unordered",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"].append(
+            {**copy.deepcopy(item["agent_surface_bindings"][0]),
+             "binding_id": "AGENT-SURFACE-BINDING-EXTRA",
+             "agent_surface_kind": "UNKNOWN_AGENT_SURFACE"}
+        ),
+        "Agent security surface kinds are missing, extra, duplicated, unknown, or unordered",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][0].__setitem__(
+            "agent_ids", ["OPERATIONS-AGENT-1"]
+        ),
+        "Agent identities disagree with Agent security binding",
+    )
+    reject_agent(
+        lambda item: item["agent_security_binding"].__setitem__(
+            "candidate_hash", "sha256:" + "b" * 64
+        ),
+        "Agent security binding must bind the exact current candidate",
+    )
+    reject_agent(
+        lambda item: item["agent_security_binding"].__setitem__(
+            "identity_status", "REPLACED"
+        ),
+        "Agent security binding requires current non-replaced identities",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][1].__setitem__(
+            "binding_id", item["agent_surface_bindings"][0]["binding_id"]
+        ),
+        "Agent security surface binding IDs must be unique",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][0].__setitem__(
+            "audit_evidence_id", "PASS"
+        ),
+        "audit evidence does not map to the security surface",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][0].__setitem__(
+            "security_surface_id", "SURFACE-MISSING"
+        ),
+        "must map to an INCLUDED required security surface",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][0].__setitem__(
+            "remediation_evidence_id", "E-MISSING"
+        ),
+        "lacks exact remediation evidence",
+    )
+    reject_agent(
+        lambda item: item["agent_surface_bindings"][0].__setitem__(
+            "reaudit_evidence_id", "E-MISSING"
+        ),
+        "lacks exact transitive re-audit evidence",
+    )
+    reject_agent(
+        lambda item: item.update({
+            "agent_security_binding": not_applicable_agent_binding(),
+        }),
+        "NOT_APPLICABLE Agent security binding requires empty Agent surfaces",
+    )
 
     accepted_residual = valid_receipt()
     accepted_residual["findings"][0].update(
@@ -621,6 +781,81 @@ with tempfile.TemporaryDirectory(prefix="lccoding-security-270-") as temporary:
         '"verdict":"VULNERABILITY_CLOSED"}\n'
     ).encode()
     assert run_bytes(receipt_path, legacy_bytes).returncode != 0
+
+
+agent_project_spec = importlib.util.spec_from_file_location(
+    "security_agent_project_fixture",
+    root / "lc-coding/tests/test_agent_product_formation_280.py",
+)
+agent_project_fixture = importlib.util.module_from_spec(agent_project_spec)
+agent_project_spec.loader.exec_module(agent_project_fixture)
+
+
+def bind_receipt_to_agent_status(receipt, binding):
+    receipt["agent_security_binding"] = copy.deepcopy(binding)
+    for surface_binding in receipt["agent_surface_bindings"]:
+        for field in (
+            "candidate_id", "candidate_hash", "configuration_baseline_id",
+            "configuration_baseline_hash", "production_topology_id",
+            "production_topology_hash", "runtime_adapter_id",
+            "runtime_adapter_version", "runtime_adapter_digest",
+        ):
+            surface_binding[field] = binding[field]
+        if surface_binding["agent_role"] == "RUNTIME_ADAPTER":
+            surface_binding["agent_ids"] = [binding["runtime_adapter_id"]]
+        elif surface_binding["agent_role"] == "OPERATIONS_AGENT":
+            surface_binding["agent_ids"] = [binding["operations_agent_id"]]
+        else:
+            surface_binding["agent_ids"] = [
+                binding["product_agent_id"], binding["operations_agent_id"]
+            ]
+
+
+with tempfile.TemporaryDirectory(prefix="lccoding-agent-security-280-") as temporary:
+    lc, agent_status = agent_project_fixture.build_agent_slice_status_project(
+        Path(temporary) / "project"
+    )
+    (lc / "status.json").write_text(json.dumps(agent_status), encoding="utf-8")
+    expected_binding, binding_errors = project_validator._expected_agent_security_binding(
+        lc, agent_status
+    )
+    assert binding_errors == []
+    current_receipt = valid_receipt(agent_bound=True)
+    agent_candidate = (
+        agent_status["canonical_candidate"]["candidate_id"],
+        agent_status["canonical_candidate"]["candidate_hash"],
+    )
+    rewrite_identity(current_receipt, *agent_candidate)
+    bind_receipt_to_agent_status(current_receipt, expected_binding)
+    closure_path = lc / "VULNERABILITY-CLOSURE.json"
+    closure_path.write_text(json.dumps(current_receipt), encoding="utf-8")
+    _, errors = project_validator.load_vulnerability_reference(
+        lc, "VULNERABILITY-CLOSURE.json", "VC-270",
+        agent_candidate, expected_binding,
+    )
+    assert errors == [], errors
+    for field, value in (
+        ("configuration_baseline_hash", "sha256:" + "1" * 64),
+        ("production_topology_hash", "sha256:" + "2" * 64),
+        ("runtime_adapter_attestation_hash", "sha256:" + "3" * 64),
+        ("runtime_adapter_id", "RUNTIME-ADAPTER-OTHER"),
+        ("runtime_adapter_digest", "sha256:" + "4" * 64),
+        ("product_agent_id", "PRODUCT-AGENT-OTHER"),
+        ("operations_agent_id", "OPERATIONS-AGENT-OTHER"),
+    ):
+        changed = copy.deepcopy(current_receipt)
+        changed_binding = changed["agent_security_binding"]
+        changed_binding[field] = value
+        bind_receipt_to_agent_status(changed, changed_binding)
+        closure_path.write_text(json.dumps(changed), encoding="utf-8")
+        _, errors = project_validator.load_vulnerability_reference(
+            lc, "VULNERABILITY-CLOSURE.json", "VC-270",
+            agent_candidate, expected_binding,
+        )
+        assert any(
+            "Agent security binding disagrees with authoritative Agent Slice status" in error
+            for error in errors
+        ), errors
 
 
 status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
