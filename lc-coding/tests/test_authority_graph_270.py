@@ -67,6 +67,7 @@ HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/specs/2026-08-10-cross-phase-execution-methods-design.md": "14c7460ee661c94df34d0ff8985e50b225799db57591649e3deb79ae82d92e51",
     "docs/superpowers/specs/2026-08-12-lccoding-2.7.0-structure-consolidation-design.md": "c48b659333f1b6252029faebe50476016f561ba9c6818de1a138e86fe4b5604e",
     "docs/superpowers/specs/2026-08-15-lccoding-2.8.0-agent-native-integration-design.md": "c0799931ce2267a8aef64ecc71c30d9bc426741e4586c002db34e4385a0953d1",
+    "docs/superpowers/specs/2026-08-16-lccoding-bi-single-build-release-design.md": "6c82ff29346f515f49e8fcf4300af6288b17fefd3cc6da890c9bb56059e7e32d",
 }
 actual_historical_records = {
     path.relative_to(root).as_posix()
