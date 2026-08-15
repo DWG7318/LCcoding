@@ -464,6 +464,28 @@ def build_agent_slice_status_project(root, applicability="APPLICABLE_CORE"):
         "production_topology_id": topology["topology_id"],
         "production_topology_hash": topology_hash,
     }
+    for failure in attestation["failure_recovery_attestations"]:
+        failure["candidate_id"] = attestation["candidate_id"]
+        failure["candidate_hash"] = attestation["candidate_hash"]
+        failure["configuration_baseline_id"] = attestation["configuration_baseline"][
+            "configuration_baseline_id"
+        ]
+        failure["configuration_baseline_hash"] = attestation["configuration_baseline"][
+            "configuration_baseline_hash"
+        ]
+        failure["production_topology_id"] = attestation["production_topology"][
+            "production_topology_id"
+        ]
+        failure["production_topology_hash"] = attestation["production_topology"][
+            "production_topology_hash"
+        ]
+        failure["runtime_adapter_id"] = attestation["runtime_adapter"]["adapter_id"]
+        failure["runtime_adapter_version"] = attestation["runtime_adapter"][
+            "adapter_version"
+        ]
+        failure["runtime_adapter_digest"] = attestation["runtime_adapter"][
+            "adapter_digest"
+        ]
     now = datetime.now(timezone.utc).replace(microsecond=0)
     attestation["validity"] = {
         "observed_at_utc": (now - timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),

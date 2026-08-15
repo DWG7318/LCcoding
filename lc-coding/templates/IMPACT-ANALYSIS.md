@@ -43,3 +43,22 @@
 `MEANING_CHANGING` cites the current Calabash Definition Baseline, affected clauses, invalidation effect, and `CALABASH_UPDATE / OWNER`. `MEANING_NEUTRAL` cites phase authority and evidence-backed neutral rationale, records `NONE` for Definition identity/clauses, `NO_DEFINITION_INVALIDATION`, and `NOT_APPLICABLE` for the update route. Meaning-neutral work must not fabricate a Definition Baseline.
 
 The security delta group is closed whenever any of its fields is used. A post-closure material security-surface change records the distinct exact candidates, affected surfaces, transitive evidence, superseded receipts, and `INVALIDATE_AND_RETURN_TO_AUDIT`. Preservation is never implicit: it requires either exact unchanged security identity with neutral evidence or an exact packaging transformation plus security-equivalence evidence.
+
+## Agent failure impact evidence
+
+```json
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "AGENT_FAILURE_IMPACT_EVIDENCE",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "configuration_baseline_id": "",
+  "configuration_baseline_hash": "",
+  "production_topology_id": "",
+  "production_topology_hash": "",
+  "runtime_adapter_id": "",
+  "runtime_adapter_version": "",
+  "runtime_adapter_digest": "",
+  "failure_recovery_attestations": []
+}
+```

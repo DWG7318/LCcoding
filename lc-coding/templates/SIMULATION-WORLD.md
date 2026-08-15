@@ -15,3 +15,22 @@ Peer simulations do not nest inside any realized UI, Workflow, or other Simulati
 |---|---|---|---|---|---|---|---|---|---|
 
 Reuse Scenario IDs; increase fidelity/version instead of copying the scenario.
+
+## Agent failure simulation evidence
+
+```json
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "AGENT_FAILURE_SIMULATION_EVIDENCE",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "configuration_baseline_id": "",
+  "configuration_baseline_hash": "",
+  "production_topology_id": "",
+  "production_topology_hash": "",
+  "runtime_adapter_id": "",
+  "runtime_adapter_version": "",
+  "runtime_adapter_digest": "",
+  "failure_recovery_attestations": []
+}
+```

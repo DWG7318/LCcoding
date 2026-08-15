@@ -41,6 +41,7 @@
     "shared_execution_result": "PENDING"
   },
   "typed_event_attestations": [],
+  "failure_recovery_attestations": [],
   "validity": {
     "observed_at_utc": "",
     "validated_at_utc": "",

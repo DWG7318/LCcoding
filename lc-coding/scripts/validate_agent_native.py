@@ -46,6 +46,8 @@ RUNTIME_TOPOLOGY_FIELDS=set(RUNTIME_CONTRACT['topology_fields'])
 RUNTIME_CAPABILITY_FIELDS=set(RUNTIME_CONTRACT['capability_fields'])
 RUNTIME_AUTHORITY_FIELDS=set(RUNTIME_CONTRACT['authority_boundary_fields'])
 RUNTIME_EVENT_FIELDS=set(RUNTIME_CONTRACT['typed_event_fields'])
+RUNTIME_FAILURE_FIELDS=set(RUNTIME_CONTRACT['failure_recovery_fields'])
+RUNTIME_FAILURE_DOCUMENT_FIELDS=set(RUNTIME_CONTRACT['failure_document_fields'])
 RUNTIME_VALIDITY_FIELDS=set(RUNTIME_CONTRACT['validity_fields'])
 RUNTIME_EVIDENCE_FIELDS=set(RUNTIME_CONTRACT['evidence_fields'])
 RUNTIME_FALLBACK_FIELDS=set(RUNTIME_CONTRACT['fallback_fields'])
@@ -586,6 +588,145 @@ def validate_typed_event_attestations(
         errors.append('typed event kinds are incomplete, duplicated, unknown, or unordered')
     return errors
 
+def _failure_id_list(value,label,allow_empty=False):
+    if not isinstance(value,list) or (not allow_empty and not value): return None,[label+' must be a closed ID list']
+    if any(not safe_id(item) for item in value): return None,[label+' contains an invalid ID']
+    if len(value)!=len(set(value)): return None,[label+' contains duplicate IDs']
+    return value,[]
+
+def validate_failure_recovery_attestations(
+    value,configuration,configuration_hash,candidate_id,candidate_hash,
+    topology_id,topology_hash,adapter,
+):
+    errors=[]; config=configuration if isinstance(configuration,dict) else {}
+    if not isinstance(value,list): return ['failure_recovery_attestations must be a list']
+    failure_ids=set(); kinds=[]; states=set()
+    root=config.get('root_authority',{}) if isinstance(config.get('root_authority'),dict) else {}
+    operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent'),dict) else {}
+    product=config.get('product_agent',{}) if isinstance(config.get('product_agent'),dict) else {}
+    for index,item in enumerate(value):
+        label='failure/recovery attestation '+str(index+1)
+        case=closed(item,RUNTIME_FAILURE_FIELDS,label,errors)
+        identity=case.get('failure_id')
+        if not safe_id(identity): errors.append(label+' failure_id is invalid')
+        elif identity.casefold() in failure_ids: errors.append('failure/recovery IDs must be unique')
+        else: failure_ids.add(identity.casefold())
+        kind=case.get('failure_kind'); state=case.get('lifecycle_state')
+        kinds.append(kind); states.add(state)
+        if kind not in RUNTIME_CONTRACT['failure_kinds']: errors.append(label+' failure_kind is invalid')
+        if state not in RUNTIME_CONTRACT['failure_states']: errors.append(label+' lifecycle_state is invalid')
+        if (kind=='NONE')!=(state=='HEALTHY'): errors.append(label+' HEALTHY state must be the exact NONE case')
+        role=case.get('agent_role'); agent={}
+        if role=='OPERATIONS_AGENT': agent=operations
+        elif role=='PRODUCT_AGENT' and product.get('applicability')!='NOT_APPLICABLE': agent=product
+        else: errors.append(label+' Agent role is not applicable')
+        if case.get('agent_id')!=agent.get('agent_id'): errors.append(label+' Agent identity disagrees with configuration')
+        classification=case.get('product_classification')
+        if role=='OPERATIONS_AGENT':
+            if classification!='NOT_APPLICABLE' or case.get('calabash_basis_id')!='NOT_APPLICABLE' or case.get('calabash_basis_hash')!='NOT_APPLICABLE': errors.append(label+' Operations failure cannot claim Product classification')
+        else:
+            if classification not in {'CORE','EXTRA'} or not safe_id(case.get('calabash_basis_id')) or not exact_hash(case.get('calabash_basis_hash')): errors.append(label+' Product failure requires exact Calabash classification evidence')
+        expected_identity={
+            'candidate_id':candidate_id,'candidate_hash':candidate_hash,
+            'configuration_baseline_id':config.get('configuration_baseline_id'),
+            'configuration_baseline_hash':configuration_hash,
+            'production_topology_id':topology_id,'production_topology_hash':topology_hash,
+            'runtime_adapter_id':adapter.get('adapter_id'),
+            'runtime_adapter_version':adapter.get('adapter_version'),
+            'runtime_adapter_digest':adapter.get('adapter_digest'),
+        }
+        if any(case.get(field)!=expected for field,expected in expected_identity.items()): errors.append(label+' candidate/configuration/topology/Adapter identity disagrees')
+        healthy=state=='HEALTHY'
+        expected_impact='NO_CURRENT_IMPACT' if healthy else 'VISIBLE_PRODUCT_DEGRADATION' if role=='PRODUCT_AGENT' else 'VISIBLE_DEGRADED_OPERATIONS'
+        if case.get('visible_impact')!=expected_impact: errors.append(label+' failure impact is silent or misclassified')
+        fallback_mode=case.get('fallback_mode')
+        if role=='OPERATIONS_AGENT':
+            if case.get('core_business_continuity')!='CORE_BUSINESS_CONTINUES': errors.append(label+' Operations failure must not default-stop core business')
+            if fallback_mode!='BOUNDED_OPERATIONS_FALLBACK' or case.get('fallback_id')!=operations.get('fallback_id') or case.get('fallback_evidence_hash')!=operations.get('fallback_hash') or not contained_evidence_path(case.get('fallback_evidence_path')): errors.append(label+' Operations fallback is not bounded to configuration')
+        elif classification=='CORE' and fallback_mode=='NO_ACCEPTED_NON_AGENT_FALLBACK':
+            if case.get('core_business_continuity')!='CORE_CAPABILITY_BLOCKED' or any(case.get(field)!='NOT_APPLICABLE' for field in ('fallback_id','fallback_evidence_path','fallback_evidence_hash')): errors.append(label+' CORE Product failure without fallback must block only that core capability')
+        elif fallback_mode=='ACCEPTED_NON_AGENT_FALLBACK':
+            if case.get('core_business_continuity')!='CORE_BUSINESS_CONTINUES' or not safe_id(case.get('fallback_id')) or not contained_evidence_path(case.get('fallback_evidence_path')) or not exact_hash(case.get('fallback_evidence_hash')): errors.append(label+' Product fallback evidence is invalid')
+        elif classification=='EXTRA' and fallback_mode=='NO_ACCEPTED_NON_AGENT_FALLBACK':
+            if case.get('core_business_continuity')!='CORE_BUSINESS_CONTINUES' or any(case.get(field)!='NOT_APPLICABLE' for field in ('fallback_id','fallback_evidence_path','fallback_evidence_hash')): errors.append(label+' EXTRA Product failure cannot claim a core blocker')
+        else: errors.append(label+' Product fallback mode is invalid')
+        fixed_boundaries={
+            'authority_result':'OWNER_OR_CALABASH_POLICY_BOUND',
+            'agent_separation_result':'DISTINCT_LOGICAL_AGENTS',
+            'scorpion_result':'ENFORCED','credential_currentness':'CURRENT_REFERENCES_ONLY',
+            'audit_result':'APPEND_ONLY_ACTIVE',
+            'proposal_action_boundary':'PROPOSAL_REQUIRES_AUTHORIZATION',
+        }
+        if any(case.get(field)!=expected for field,expected in fixed_boundaries.items()): errors.append(label+' fallback expands authority or weakens safety boundaries')
+        killed=state=='KILLED'; root_bound=state in {'RECOVERING','REPLACED'}
+        for prefix,required in (('control_authority',killed),('root_authority',root_bound)):
+            expected=(root.get('root_authority_id'),root.get('root_authority_hash')) if required else ('NOT_APPLICABLE','NOT_APPLICABLE')
+            if (case.get(prefix+'_id'),case.get(prefix+'_hash'))!=expected: errors.append(label+' '+prefix+' binding is invalid')
+        replacement=(case.get('replacement_identity_id'),case.get('replacement_identity_hash'))
+        material=case.get('material_identity_effect')
+        if state=='REPLACED':
+            if not safe_id(replacement[0]) or not exact_hash(replacement[1]) or material!='INVALIDATE_AFFECTED_EVIDENCE': errors.append(label+' replacement lacks material identity invalidation')
+        elif replacement!=('NOT_APPLICABLE','NOT_APPLICABLE'): errors.append(label+' non-replacement case claims replacement identity')
+        if kind=='MODEL_DRIFT':
+            if material!='INVALIDATE_AFFECTED_EVIDENCE': errors.append(label+' model drift must invalidate affected evidence')
+        elif state!='REPLACED' and material!='NO_IDENTITY_CHANGE': errors.append(label+' non-identity change has invalid material effect')
+        evidence_ids=[]; evidence_paths=[]
+        for prefix in ('recovery_evidence','verification_evidence','audit_event','alert_evidence'):
+            evidence_id=case.get(prefix+'_id'); path=case.get(prefix+'_path'); digest=case.get(prefix+'_hash')
+            if not safe_id(evidence_id) or not contained_evidence_path(path) or not exact_hash(digest): errors.append(label+' '+prefix+' is invalid')
+            evidence_ids.append(str(evidence_id).casefold()); evidence_paths.append(str(path).casefold())
+        if len(evidence_ids)!=len(set(evidence_ids)) or len(evidence_paths)!=len(set(evidence_paths)): errors.append(label+' evidence links must be unique')
+        affected,list_errors=_failure_id_list(case.get('affected_evidence_ids'),label+' affected evidence',allow_empty=healthy); errors.extend(list_errors)
+        unaffected,list_errors=_failure_id_list(case.get('unaffected_core_evidence_ids'),label+' unaffected core evidence',allow_empty=role=='PRODUCT_AGENT'); errors.extend(list_errors)
+        if affected is not None and unaffected is not None and set(affected)&set(unaffected): errors.append(label+' affected and unaffected evidence must be disjoint')
+        expected_currentness='CURRENT' if healthy else 'AFFECTED_EVIDENCE_INVALIDATED'
+        if case.get('evidence_currentness')!=expected_currentness: errors.append(label+' changed evidence currentness is invalid')
+        if case.get('result')!='PASS': errors.append(label+' result must be exact PASS')
+        if any(SECRET.search(text) or RUNTIME_SECRET.search(text) for text in _strings(case)): errors.append(label+' contains secret-like inline material')
+    if kinds!=RUNTIME_CONTRACT['failure_kinds']: errors.append('failure kinds are incomplete, duplicated, unknown, or unordered')
+    if states!=set(RUNTIME_CONTRACT['failure_states']): errors.append('failure lifecycle states are incomplete or unknown')
+    return errors
+
+def _json_markdown_section(text,heading):
+    if not isinstance(text,str) or text.count(heading)!=1: return {},[heading+' must occur exactly once']
+    pattern=re.escape(heading)+r'\r?\n\r?\n```json\r?\n(.*?)\r?\n```'
+    matches=re.findall(pattern,text,re.DOTALL)
+    if len(matches)!=1: return {},[heading+' requires one strict JSON evidence block']
+    try: return strict_json_bytes(matches[0].encode('utf-8')),[]
+    except (UnicodeError,ValueError) as error: return {},[heading+' is not strict JSON: '+str(error)]
+
+def _validate_failure_document(document,role,attestation):
+    errors=[]; record=closed(document,RUNTIME_FAILURE_DOCUMENT_FIELDS,role,errors)
+    if record.get('schema_version')!='2.8.0' or record.get('artifact_role')!=role: errors.append(role+' schema/artifact role is invalid')
+    expected={
+        'candidate_id':attestation.get('candidate_id'),'candidate_hash':attestation.get('candidate_hash'),
+        'configuration_baseline_id':attestation.get('configuration_baseline',{}).get('configuration_baseline_id'),
+        'configuration_baseline_hash':attestation.get('configuration_baseline',{}).get('configuration_baseline_hash'),
+        'production_topology_id':attestation.get('production_topology',{}).get('production_topology_id'),
+        'production_topology_hash':attestation.get('production_topology',{}).get('production_topology_hash'),
+        'runtime_adapter_id':attestation.get('runtime_adapter',{}).get('adapter_id'),
+        'runtime_adapter_version':attestation.get('runtime_adapter',{}).get('adapter_version'),
+        'runtime_adapter_digest':attestation.get('runtime_adapter',{}).get('adapter_digest'),
+    }
+    if any(record.get(field)!=value for field,value in expected.items()): errors.append(role+' candidate/configuration/topology/Adapter identity disagrees')
+    if record.get('failure_recovery_attestations')!=attestation.get('failure_recovery_attestations'): errors.append(role+' failure cases disagree with Runtime Adapter Attestation')
+    return errors
+
+def validate_agent_failure_recovery(
+    impact_text,simulation_text,attestation,configuration,configuration_hash,
+    expected_topology_id,expected_topology_hash,as_of_utc,
+):
+    errors=validate_runtime_adapter_attestation(
+        attestation,configuration,configuration_hash,
+        expected_topology_id,expected_topology_hash,as_of_utc,
+    )
+    impact,parse_errors=_json_markdown_section(impact_text,'## Agent failure impact evidence'); errors.extend(parse_errors)
+    simulation,parse_errors=_json_markdown_section(simulation_text,'## Agent failure simulation evidence'); errors.extend(parse_errors)
+    if isinstance(attestation,dict):
+        errors.extend(_validate_failure_document(impact,'AGENT_FAILURE_IMPACT_EVIDENCE',attestation))
+        errors.extend(_validate_failure_document(simulation,'AGENT_FAILURE_SIMULATION_EVIDENCE',attestation))
+    return errors
+
 def validate_runtime_adapter_attestation(
     value,configuration,configuration_hash,expected_topology_id,
     expected_topology_hash,as_of_utc,
@@ -681,6 +822,11 @@ def validate_runtime_adapter_attestation(
         record.get('typed_event_attestations'),configuration,
         record.get('candidate_id'),record.get('candidate_hash'),
         validity.get('observed_at_utc'),validity.get('validated_at_utc'),as_of_utc,
+    ))
+    errors.extend(validate_failure_recovery_attestations(
+        record.get('failure_recovery_attestations'),configuration,configuration_hash,
+        record.get('candidate_id'),record.get('candidate_hash'),
+        topology.get('production_topology_id'),topology.get('production_topology_hash'),adapter,
     ))
 
     evidence=record.get('evidence')

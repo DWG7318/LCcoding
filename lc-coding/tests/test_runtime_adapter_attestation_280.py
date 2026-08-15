@@ -29,6 +29,7 @@ TOP_LEVEL_FIELDS = [
     "capability_attestations",
     "authority_boundaries",
     "typed_event_attestations",
+    "failure_recovery_attestations",
     "validity",
     "evidence",
     "fallback",
@@ -54,6 +55,10 @@ assert set(contract) == {
     "authority_boundary_fields",
     "typed_event_fields",
     "event_kinds",
+    "failure_document_fields",
+    "failure_recovery_fields",
+    "failure_states",
+    "failure_kinds",
     "validity_fields",
     "evidence_fields",
     "fallback_fields",
@@ -98,8 +103,47 @@ EVENT_FIELDS = [
     "policy_hash", "policy_result", "redaction_result", "event_at_utc",
 ]
 EVENT_KINDS = ["MAINTENANCE_REQUEST", "SERVICE_STATUS_UPDATE"]
+FAILURE_STATES = [
+    "HEALTHY", "DEGRADED", "UNAVAILABLE", "KILLED", "RECOVERING", "REPLACED",
+]
+FAILURE_KINDS = [
+    "NONE", "MODEL_UNAVAILABLE", "MODEL_DRIFT", "RUNTIME_ADAPTER_FAILURE",
+    "TOOL_FAILURE", "AUTHORIZATION_DENIAL", "TELEMETRY_LOSS",
+    "MEMORY_ISOLATION_FAILURE", "ACTION_FAILURE", "ROLLBACK_FAILURE",
+    "AUDIT_FAILURE",
+]
+FAILURE_DOCUMENT_FIELDS = [
+    "schema_version", "artifact_role", "candidate_id", "candidate_hash",
+    "configuration_baseline_id", "configuration_baseline_hash",
+    "production_topology_id", "production_topology_hash", "runtime_adapter_id",
+    "runtime_adapter_version", "runtime_adapter_digest",
+    "failure_recovery_attestations",
+]
+FAILURE_FIELDS = [
+    "failure_id", "failure_kind", "lifecycle_state", "agent_role", "agent_id",
+    "product_classification", "calabash_basis_id", "calabash_basis_hash",
+    "candidate_id", "candidate_hash", "configuration_baseline_id",
+    "configuration_baseline_hash", "production_topology_id",
+    "production_topology_hash", "runtime_adapter_id", "runtime_adapter_version",
+    "runtime_adapter_digest", "visible_impact", "core_business_continuity",
+    "fallback_mode", "fallback_id", "fallback_evidence_path",
+    "fallback_evidence_hash", "authority_result", "agent_separation_result",
+    "scorpion_result", "credential_currentness", "audit_result",
+    "proposal_action_boundary", "control_authority_id", "control_authority_hash",
+    "root_authority_id", "root_authority_hash", "replacement_identity_id",
+    "replacement_identity_hash", "material_identity_effect", "recovery_evidence_id",
+    "recovery_evidence_path", "recovery_evidence_hash", "verification_evidence_id",
+    "verification_evidence_path", "verification_evidence_hash", "audit_event_id",
+    "audit_event_path", "audit_event_hash", "alert_evidence_id",
+    "alert_evidence_path", "alert_evidence_hash", "affected_evidence_ids",
+    "unaffected_core_evidence_ids", "evidence_currentness", "result",
+]
 assert contract["typed_event_fields"] == EVENT_FIELDS
 assert contract["event_kinds"] == EVENT_KINDS
+assert contract["failure_document_fields"] == FAILURE_DOCUMENT_FIELDS
+assert contract["failure_recovery_fields"] == FAILURE_FIELDS
+assert contract["failure_states"] == FAILURE_STATES
+assert contract["failure_kinds"] == FAILURE_KINDS
 assert contract["validity_fields"] == [
     "observed_at_utc", "validated_at_utc", "expires_at_utc",
 ]
@@ -279,6 +323,123 @@ def typed_events(configuration):
     return records
 
 
+def failure_cases(configuration):
+    states = {
+        "NONE": "HEALTHY",
+        "MODEL_UNAVAILABLE": "UNAVAILABLE",
+        "MODEL_DRIFT": "DEGRADED",
+        "RUNTIME_ADAPTER_FAILURE": "REPLACED",
+        "TOOL_FAILURE": "DEGRADED",
+        "AUTHORIZATION_DENIAL": "DEGRADED",
+        "TELEMETRY_LOSS": "UNAVAILABLE",
+        "MEMORY_ISOLATION_FAILURE": "KILLED",
+        "ACTION_FAILURE": "DEGRADED",
+        "ROLLBACK_FAILURE": "RECOVERING",
+        "AUDIT_FAILURE": "DEGRADED",
+    }
+    root = configuration["root_authority"]
+    operations = configuration["operations_agent"]
+    product = configuration["product_agent"]
+    records = []
+    for index, kind in enumerate(FAILURE_KINDS, 1):
+        state = states[kind]
+        product_case = (
+            kind == "MODEL_UNAVAILABLE"
+            and product["applicability"] != "NOT_APPLICABLE"
+        )
+        agent_record = product if product_case else operations
+        role = "PRODUCT_AGENT" if product_case else "OPERATIONS_AGENT"
+        classification = "CORE" if product_case else "NOT_APPLICABLE"
+        fallback_mode = (
+            "NO_ACCEPTED_NON_AGENT_FALLBACK"
+            if product_case else "BOUNDED_OPERATIONS_FALLBACK"
+        )
+        fallback_id = "NOT_APPLICABLE" if product_case else operations["fallback_id"]
+        fallback_path = (
+            "NOT_APPLICABLE"
+            if product_case else f"evidence/failure/fallback-{index}.json"
+        )
+        fallback_hash = (
+            "NOT_APPLICABLE" if product_case else operations["fallback_hash"]
+        )
+        killed = state == "KILLED"
+        root_bound = state in {"RECOVERING", "REPLACED"}
+        replaced = state == "REPLACED"
+        identity_material = replaced or kind == "MODEL_DRIFT"
+        healthy = state == "HEALTHY"
+        records.append(
+            {
+                "failure_id": f"FAILURE-CASE-{index}",
+                "failure_kind": kind,
+                "lifecycle_state": state,
+                "agent_role": role,
+                "agent_id": agent_record["agent_id"],
+                "product_classification": classification,
+                "calabash_basis_id": "CALABASH-CORE-1" if product_case else "NOT_APPLICABLE",
+                "calabash_basis_hash": HASH_A if product_case else "NOT_APPLICABLE",
+                "candidate_id": "CANDIDATE-1",
+                "candidate_hash": HASH_B,
+                "configuration_baseline_id": "ACB-1",
+                "configuration_baseline_hash": CONFIG_HASH,
+                "production_topology_id": "TOPOLOGY-1",
+                "production_topology_hash": HASH_D,
+                "runtime_adapter_id": "RUNTIME-ADAPTER-1",
+                "runtime_adapter_version": "1.2.3",
+                "runtime_adapter_digest": HASH_C,
+                "visible_impact": (
+                    "NO_CURRENT_IMPACT" if healthy else
+                    "VISIBLE_PRODUCT_DEGRADATION" if product_case else
+                    "VISIBLE_DEGRADED_OPERATIONS"
+                ),
+                "core_business_continuity": (
+                    "CORE_CAPABILITY_BLOCKED" if product_case else
+                    "CORE_BUSINESS_CONTINUES"
+                ),
+                "fallback_mode": fallback_mode,
+                "fallback_id": fallback_id,
+                "fallback_evidence_path": fallback_path,
+                "fallback_evidence_hash": fallback_hash,
+                "authority_result": "OWNER_OR_CALABASH_POLICY_BOUND",
+                "agent_separation_result": "DISTINCT_LOGICAL_AGENTS",
+                "scorpion_result": "ENFORCED",
+                "credential_currentness": "CURRENT_REFERENCES_ONLY",
+                "audit_result": "APPEND_ONLY_ACTIVE",
+                "proposal_action_boundary": "PROPOSAL_REQUIRES_AUTHORIZATION",
+                "control_authority_id": root["root_authority_id"] if killed else "NOT_APPLICABLE",
+                "control_authority_hash": root["root_authority_hash"] if killed else "NOT_APPLICABLE",
+                "root_authority_id": root["root_authority_id"] if root_bound else "NOT_APPLICABLE",
+                "root_authority_hash": root["root_authority_hash"] if root_bound else "NOT_APPLICABLE",
+                "replacement_identity_id": "RUNTIME-ADAPTER-2" if replaced else "NOT_APPLICABLE",
+                "replacement_identity_hash": HASH_D if replaced else "NOT_APPLICABLE",
+                "material_identity_effect": (
+                    "INVALIDATE_AFFECTED_EVIDENCE" if identity_material else
+                    "NO_IDENTITY_CHANGE"
+                ),
+                "recovery_evidence_id": f"RECOVERY-EVIDENCE-{index}",
+                "recovery_evidence_path": f"evidence/failure/recovery-{index}.json",
+                "recovery_evidence_hash": HASH_A,
+                "verification_evidence_id": f"VERIFICATION-EVIDENCE-{index}",
+                "verification_evidence_path": f"evidence/failure/verification-{index}.json",
+                "verification_evidence_hash": HASH_C,
+                "audit_event_id": f"AUDIT-EVENT-{index}",
+                "audit_event_path": f"evidence/failure/audit-{index}.json",
+                "audit_event_hash": HASH_D,
+                "alert_evidence_id": f"ALERT-EVIDENCE-{index}",
+                "alert_evidence_path": f"evidence/failure/alert-{index}.json",
+                "alert_evidence_hash": HASH_A,
+                "affected_evidence_ids": [] if healthy else [f"AFFECTED-EVIDENCE-{index}"],
+                "unaffected_core_evidence_ids": (
+                    [] if product_case else [f"UNAFFECTED-CORE-{index}"]
+                ),
+                "evidence_currentness": (
+                    "CURRENT" if healthy else "AFFECTED_EVIDENCE_INVALIDATED"
+                ),
+                "result": "PASS",
+            }
+        )
+    return records
+
+
 def valid_attestation(configuration):
     capabilities = [
         capability("OPERATIONS_AGENT", configuration["operations_agent"], 1),
@@ -330,6 +491,7 @@ def valid_attestation(configuration):
             "shared_execution_result": "PASS",
         },
         "typed_event_attestations": typed_events(configuration),
+        "failure_recovery_attestations": failure_cases(configuration),
         "validity": {
             "observed_at_utc": "2026-08-15T11:30:00Z",
             "validated_at_utc": "2026-08-15T11:45:00Z",
@@ -418,7 +580,8 @@ for section in (
     changed = copy.deepcopy(base); changed[section].pop(next(iter(changed[section]))); mutations.append(changed)
     changed = copy.deepcopy(base); changed[section]["unknown"] = "x"; mutations.append(changed)
 for section in (
-    "capability_attestations", "typed_event_attestations", "evidence", "conformance",
+    "capability_attestations", "typed_event_attestations",
+    "failure_recovery_attestations", "evidence", "conformance",
 ):
     if not base[section]:
         continue
