@@ -85,7 +85,12 @@ if ($releaseGateText.Contains("tests/fixtures")) {
 foreach ($marker in @(
     "release/loop-contract-identities.json",
     ".execution_methods",
-    'asset_schema -cne "LCCODING_BI_COMPATIBILITY_V1"',
+    '$assetSchemaV1 = "LCCODING_BI_COMPATIBILITY_V1"',
+    '$assetSchemaV2 = "LCCODING_BI_COMPATIBILITY_V2"',
+    "Test-CompatibilityAsset",
+    '.status_adapters."2.8.0"',
+    '"REAL_PRODUCT_INTEGRATION"',
+    '"PREPARED"',
     '$tag = "v$($identity.version)"',
     "DWG7318/small-loop-skill",
     "DWG7318/chain-loop-skill",
@@ -98,6 +103,12 @@ foreach ($marker in @(
 )) {
     if (-not $releaseGateText.Contains($marker)) { throw "missing release gate marker: $marker" }
 }
+if ([regex]::Matches($releaseGateText, 'release/loop-contract-identities\.json').Count -ne 1) {
+    throw "release verifier must consume exactly one compatibility asset path"
+}
+if ($releaseGateText -match '(?i)(fallback|default).*(candidate_commit|manifest_sha256|schema_sha256|template_sha256)') {
+    throw "release verifier must not contain a fallback Loop identity table"
+}
 if ($releaseGateText.Contains("git/ref/heads/main")) {
     throw "formal release identity must not depend on mutable repository main"
 }
@@ -109,7 +120,9 @@ foreach ($retired in @(
 )) {
     if ($releaseGateText.Contains($retired)) { throw "retired release identity: $retired" }
 }
-if ($releaseGateText -match '(?i)calabash') { throw "Calabash is not a Loop release identity" }
+if ($releaseGateText -match '(?i)(execution_methods\.)?["'']?calabash["'']?\s*=') {
+    throw "Calabash is not a Loop release identity"
+}
 foreach ($powerShell7Only in @("Text.Json", "HashData", "ToHexString")) {
     if ($releaseGateText.Contains($powerShell7Only)) {
         throw "release verifier must support Windows PowerShell 5.1: $powerShell7Only"

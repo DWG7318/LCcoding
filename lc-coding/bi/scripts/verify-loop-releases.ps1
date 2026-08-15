@@ -4,6 +4,8 @@ param()
 $ErrorActionPreference = "Stop"
 $bi = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $identityPath = Join-Path $bi "release/loop-contract-identities.json"
+$assetSchemaV1 = "LCCODING_BI_COMPATIBILITY_V1"
+$assetSchemaV2 = "LCCODING_BI_COMPATIBILITY_V2"
 
 function Stop-ReleaseGate([string]$Reason) {
   throw "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:$Reason"
@@ -196,7 +198,15 @@ function Test-ClosedStringArray($Value, [int]$ExpectedCount) {
   return $true
 }
 
-function Test-StatusAdapter($Adapter, [string]$Version, [string]$Status, [string]$Minimum) {
+function Test-StatusAdapter(
+  $Adapter,
+  [string]$Version,
+  [string]$Status,
+  [string]$Minimum,
+  [string]$IntegrationPhase,
+  [int[]]$ExpectedCounts,
+  [string]$ExpectedLayoutSha256
+) {
   if (-not (Test-ExactKeys $Adapter @(
     "status_schema_version", "compatibility_status", "minimum_bi_version", "phase_steps"
   ))) { return $false }
@@ -205,19 +215,32 @@ function Test-StatusAdapter($Adapter, [string]$Version, [string]$Status, [string
     $Adapter.compatibility_status -cne $Status -or
     $Adapter.minimum_bi_version -cne $Minimum -or
     -not (Test-ExactKeys $Adapter.phase_steps @(
-      "INITIAL", "PRODUCT_FORMATION", "ENGINEERING_RUNS", "DELIVERY_PREPARATION"
+      "INITIAL", "PRODUCT_FORMATION", $IntegrationPhase, "DELIVERY_PREPARATION"
     ))
   ) { return $false }
-  $all = [Collections.Generic.List[string]]::new()
-  foreach ($phase in @("INITIAL", "PRODUCT_FORMATION", "ENGINEERING_RUNS", "DELIVERY_PREPARATION")) {
+  $phaseNames = @("INITIAL", "PRODUCT_FORMATION", $IntegrationPhase, "DELIVERY_PREPARATION")
+  $layout = [Collections.Generic.List[string]]::new()
+  $allSteps = [Collections.Generic.List[string]]::new()
+  for ($phaseIndex = 0; $phaseIndex -lt $phaseNames.Count; $phaseIndex++) {
+    $phase = $phaseNames[$phaseIndex]
     $steps = $Adapter.phase_steps.$phase
-    if ($steps -isnot [Array] -or $steps.Count -eq 0) { return $false }
+    if ($steps -isnot [Array] -or $steps.Count -ne $ExpectedCounts[$phaseIndex]) { return $false }
+    $layout.Add($phase)
     foreach ($step in $steps) {
       if ($step -isnot [string] -or $step -cnotmatch "^[A-Z][A-Z0-9_]{0,95}$") { return $false }
-      $all.Add($step)
+      $layout.Add($step)
+      $allSteps.Add($step)
     }
   }
-  return (Test-ClosedStringArray $all.ToArray() 21)
+  if (-not (Test-ClosedStringArray $allSteps.ToArray() 21)) { return $false }
+  $sha256 = [Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [Text.Encoding]::UTF8.GetBytes([string]::Join("`n", $layout.ToArray()))
+    $actualLayoutSha256 = ([BitConverter]::ToString($sha256.ComputeHash($bytes))).Replace("-", "").ToLowerInvariant()
+  } finally {
+    $sha256.Dispose()
+  }
+  return $actualLayoutSha256 -ceq $ExpectedLayoutSha256
 }
 
 function Test-ExecutionMethod($Identity, [string]$Kind) {
@@ -245,6 +268,35 @@ function Test-ExecutionMethod($Identity, [string]$Kind) {
     if ([string]$Identity.$hashField -cnotmatch "^[0-9a-f]{64}$") { return $false }
   }
   return $true
+}
+
+function Test-CompatibilityAsset($Identities) {
+  $layout260 = "ddaf4c42505ed83196d96c8a3afd9e37907e352c61a1de901aac22202d48d1dd"
+  $layout270 = "908c0cf60c93830e178508e9750298820638aa24349f8f9a51f0566ab17eb71f"
+  $layout280 = "9816495f048cb64565f30af7f3802509e04d4b890c1d1f6dd97554db055f468b"
+  if (
+    -not (Test-ExactKeys $Identities @("asset_schema", "status_adapters", "execution_methods")) -or
+    -not (Test-ExactKeys $Identities.execution_methods @("slk", "clk", "glk")) -or
+    -not (Test-ExecutionMethod $Identities.execution_methods.slk "SLK_RUN_RUNTIME_INDEX") -or
+    -not (Test-ExecutionMethod $Identities.execution_methods.clk "CLK_RUN_CONTROL_TRACE") -or
+    -not (Test-ExecutionMethod $Identities.execution_methods.glk "GLK_RUN_PACKAGE_INDEX")
+  ) { return $false }
+  if ($Identities.asset_schema -ceq $assetSchemaV1) {
+    return (
+      (Test-ExactKeys $Identities.status_adapters @("2.6.0", "2.7.0")) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "CURRENT" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270)
+    )
+  }
+  if ($Identities.asset_schema -ceq $assetSchemaV2) {
+    return (
+      (Test-ExactKeys $Identities.status_adapters @("2.6.0", "2.7.0", "2.8.0")) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "CURRENT" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "PREPARED" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280)
+    )
+  }
+  return $false
 }
 
 function Invoke-GhApi([string]$Endpoint) {
@@ -298,17 +350,7 @@ if (-not (Test-Path -LiteralPath $identityPath -PathType Leaf)) {
   Stop-ReleaseGate "IDENTITY_FILE"
 }
 $identities = Read-StrictJson $identityPath
-if (
-  -not (Test-ExactKeys $identities @("asset_schema", "status_adapters", "execution_methods")) -or
-  $identities.asset_schema -cne "LCCODING_BI_COMPATIBILITY_V1" -or
-  -not (Test-ExactKeys $identities.status_adapters @("2.6.0", "2.7.0")) -or
-  -not (Test-StatusAdapter $identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0") -or
-  -not (Test-StatusAdapter $identities.status_adapters."2.7.0" "2.7.0" "CURRENT" "2.7.0") -or
-  -not (Test-ExactKeys $identities.execution_methods @("slk", "clk", "glk")) -or
-  -not (Test-ExecutionMethod $identities.execution_methods.slk "SLK_RUN_RUNTIME_INDEX") -or
-  -not (Test-ExecutionMethod $identities.execution_methods.clk "CLK_RUN_CONTROL_TRACE") -or
-  -not (Test-ExecutionMethod $identities.execution_methods.glk "GLK_RUN_PACKAGE_INDEX")
-) {
+if (-not (Test-CompatibilityAsset $identities)) {
   Stop-ReleaseGate "IDENTITY_RECORD"
 }
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {

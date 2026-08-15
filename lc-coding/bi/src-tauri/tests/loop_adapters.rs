@@ -151,8 +151,31 @@ fn raw_compatibility_asset() -> Value {
     serde_json::from_str(include_str!("../../release/loop-contract-identities.json")).unwrap()
 }
 
+fn v2_compatibility_asset() -> Value {
+    let mut asset = raw_compatibility_asset();
+    asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V2".into());
+    let mut prepared = asset["status_adapters"]["2.7.0"].clone();
+    prepared["status_schema_version"] = Value::String("2.8.0".into());
+    prepared["compatibility_status"] = Value::String("PREPARED".into());
+    prepared["minimum_bi_version"] = Value::String("2.8.0".into());
+    let integration = prepared["phase_steps"]
+        .as_object_mut()
+        .unwrap()
+        .remove("ENGINEERING_RUNS")
+        .unwrap();
+    prepared["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = integration;
+    asset["status_adapters"]["2.8.0"] = prepared;
+    asset
+}
+
 fn rejects_mutation(change: impl FnOnce(&mut Value)) {
     let mut asset = raw_compatibility_asset();
+    change(&mut asset);
+    assert!(parse_compatibility_asset(&serde_json::to_string(&asset).unwrap()).is_err());
+}
+
+fn rejects_v2_mutation(change: impl FnOnce(&mut Value)) {
+    let mut asset = v2_compatibility_asset();
     change(&mut asset);
     assert!(parse_compatibility_asset(&serde_json::to_string(&asset).unwrap()).is_err());
 }
@@ -223,6 +246,132 @@ fn embedded_execution_method_identities_match_the_single_asset() {
         );
     }
     assert!(parsed.execution_method("calabash").is_none());
+}
+
+#[test]
+fn compatibility_asset_v2_is_strictly_prepared_in_memory_without_identity_drift() {
+    let v1 = raw_compatibility_asset();
+    let v2 = v2_compatibility_asset();
+    let parsed = parse_compatibility_asset(&serde_json::to_string(&v2).unwrap()).unwrap();
+    assert_eq!(v2["asset_schema"], "LCCODING_BI_COMPATIBILITY_V2");
+    assert_eq!(v2["execution_methods"], v1["execution_methods"]);
+    let phases = parsed.status_phase_steps("2.8.0").unwrap();
+    assert_eq!(
+        phases
+            .iter()
+            .map(|phase| phase.phase_id)
+            .collect::<Vec<_>>(),
+        [
+            "INITIAL",
+            "PRODUCT_FORMATION",
+            "REAL_PRODUCT_INTEGRATION",
+            "DELIVERY_PREPARATION",
+        ]
+    );
+    assert_eq!(
+        phases
+            .iter()
+            .map(|phase| phase.step_ids.len())
+            .collect::<Vec<_>>(),
+        [3, 7, 5, 6]
+    );
+    for phase in phases {
+        assert_eq!(
+            Value::Array(phase.step_ids.into_iter().map(Value::String).collect()),
+            v2["status_adapters"]["2.8.0"]["phase_steps"][phase.phase_id]
+        );
+    }
+    assert!(parsed.status_phase_steps("2.9.0").is_none());
+
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]
+            .as_object_mut()
+            .unwrap()
+            .remove("2.8.0");
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.9.0"] = asset["status_adapters"]["2.8.0"].clone();
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.8.0"]["status_schema_version"] = Value::String("2.7.0".into());
+    });
+    rejects_v2_mutation(|asset| {
+        let integration =
+            asset["status_adapters"]["2.8.0"]["phase_steps"]["REAL_PRODUCT_INTEGRATION"].clone();
+        asset["status_adapters"]["2.8.0"]["phase_steps"]["ENGINEERING_RUNS"] = integration;
+    });
+    rejects_v2_mutation(|asset| {
+        let integration = asset["status_adapters"]["2.8.0"]["phase_steps"]
+            .as_object_mut()
+            .unwrap()
+            .remove("REAL_PRODUCT_INTEGRATION")
+            .unwrap();
+        asset["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_INTEGRATION"] = integration;
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.8.0"]["compatibility_status"] = Value::String("CURRENT".into());
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_FORMATION"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+    });
+    rejects_v2_mutation(|asset| {
+        for version in ["2.6.0", "2.7.0", "2.8.0"] {
+            asset["status_adapters"][version]["phase_steps"]["PRODUCT_FORMATION"]
+                .as_array_mut()
+                .unwrap()
+                .swap(0, 1);
+        }
+    });
+    rejects_v2_mutation(|asset| {
+        for version in ["2.6.0", "2.7.0", "2.8.0"] {
+            asset["status_adapters"][version]["phase_steps"]["INITIAL"]
+                .as_array_mut()
+                .unwrap()
+                .swap(0, 1);
+        }
+    });
+    rejects_v2_mutation(|asset| {
+        asset["status_adapters"]["2.6.0"]["phase_steps"]["ENGINEERING_RUNS"]
+            .as_array_mut()
+            .unwrap()
+            .swap(2, 3);
+        asset["status_adapters"]["2.7.0"]["phase_steps"]["ENGINEERING_RUNS"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+        asset["status_adapters"]["2.8.0"]["phase_steps"]["REAL_PRODUCT_INTEGRATION"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+    });
+    rejects_v2_mutation(|asset| {
+        asset["execution_methods"]["other"] = asset["execution_methods"]["slk"].clone();
+    });
+    rejects_v2_mutation(|asset| {
+        asset["execution_methods"]["calabash"] = asset["execution_methods"]["slk"].clone();
+    });
+    rejects_v2_mutation(|asset| {
+        asset["execution_methods"]["slk"]["candidate_commit"] = Value::String("A".repeat(40));
+    });
+    rejects_v2_mutation(|asset| {
+        asset["execution_methods"]["clk"]["manifest_sha256"] = Value::String("A".repeat(64));
+    });
+    rejects_v2_mutation(|asset| {
+        asset["execution_methods"]["glk"]["normalization_mapping"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+    });
+
+    let duplicate = serde_json::to_string_pretty(&v2).unwrap().replacen(
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
+        1,
+    );
+    assert!(parse_compatibility_asset(&duplicate).is_err());
 }
 
 #[test]
@@ -330,7 +479,10 @@ fn compatibility_asset_parser_rejects_shadow_or_malformed_identity_shapes() {
 fn production_rust_contains_no_shadow_loop_identity_table() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let production = rust_sources(&root).join("\n");
-    assert_eq!(production.matches("loop-contract-identities.json").count(), 1);
+    assert_eq!(
+        production.matches("loop-contract-identities.json").count(),
+        1
+    );
     for retired in [
         "SLK_VERSION",
         "CLK_VERSION",
@@ -439,6 +591,22 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
         )
         .replace("\"active_runs\": []", "\"active_runs\": [\"runs/RUN-001\"]");
     let mut status: Value = serde_json::from_str(&status).unwrap();
+    assert!(status.get("agent_product_formation").is_some());
+    assert!(status.get("agent_slice_integration").is_some());
+    assert!(
+        status
+            .as_object_mut()
+            .unwrap()
+            .remove("agent_product_formation")
+            .is_some()
+    );
+    assert!(
+        status
+            .as_object_mut()
+            .unwrap()
+            .remove("agent_slice_integration")
+            .is_some()
+    );
     status["status_schema_version"] = Value::String("2.6.0".into());
     status["canonical_candidate"]
         .as_object_mut()

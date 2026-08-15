@@ -156,8 +156,8 @@ for product_marker in [
 release_paths = {
     ".github/workflows/release-bi.yml": "540f77590b345cffe05663605be0c74a00fe26349b39a3df92c58cd97f920e35",
     "lc-coding/bi/scripts/package-release.ps1": "6171ba9c3ddf8888029e40dbe089053087ca52eb9c5784526bd39b83e85a05c8",
-    "lc-coding/bi/scripts/verify-loop-releases.ps1": "67125a1c628a78144cfa11ef0f7ab8b9fc35686e56b3390a289b583df05cbb7d",
-    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "d03e35dd4b9850dd7a284501ad4d248c35434d373e33d1fcb3917251c73b2efc",
+    "lc-coding/bi/scripts/verify-loop-releases.ps1": "03ae6c0aaf823808694261fb7734a7280e17d9b0022ece70d0c4304f3e37eabe",
+    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "47cd5609a9fb26630697fe1595f5ca1733d2c8f8ec66541f6e5cc5cacf801aeb",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash

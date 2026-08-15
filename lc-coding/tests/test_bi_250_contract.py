@@ -153,6 +153,20 @@ def controlled_asset_and_gh_state() -> tuple[dict, dict]:
     return asset, state
 
 
+def compatibility_v2_candidate(asset: dict) -> dict:
+    candidate = copy.deepcopy(asset)
+    candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V2"
+    prepared = copy.deepcopy(candidate["status_adapters"]["2.7.0"])
+    prepared["status_schema_version"] = "2.8.0"
+    prepared["compatibility_status"] = "PREPARED"
+    prepared["minimum_bi_version"] = "2.8.0"
+    prepared["phase_steps"]["REAL_PRODUCT_INTEGRATION"] = prepared[
+        "phase_steps"
+    ].pop("ENGINEERING_RUNS")
+    candidate["status_adapters"]["2.8.0"] = prepared
+    return candidate
+
+
 POWERSHELL_HOSTS = tuple(
     host for host in ("pwsh", "powershell") if shutil.which(host) is not None
 )
@@ -287,6 +301,14 @@ for host in POWERSHELL_HOSTS:
                 and f"contents/{contract[f'{field}_path']}?ref=" in json.loads(call)[1]
                 for call in calls
             )
+
+valid_v2_asset = compatibility_v2_candidate(valid_asset)
+assert valid_v2_asset["execution_methods"] == valid_asset["execution_methods"]
+for host in POWERSHELL_HOSTS:
+    verified, calls = run_release_verifier(valid_v2_asset, host)
+    assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
+    assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
+    assert len(calls) in {15, 18}
 
 
 def advance_all_mains(state: dict) -> None:
@@ -425,6 +447,70 @@ escaped_duplicate_json = json.dumps(valid_asset, indent=2).replace(
     1,
 )
 early_rejections.append(escaped_duplicate_json)
+
+v2_early_rejections = []
+missing_v2_adapter = copy.deepcopy(valid_v2_asset)
+del missing_v2_adapter["status_adapters"]["2.8.0"]
+v2_early_rejections.append(missing_v2_adapter)
+extra_v2_adapter = copy.deepcopy(valid_v2_asset)
+extra_v2_adapter["status_adapters"]["2.9.0"] = copy.deepcopy(
+    extra_v2_adapter["status_adapters"]["2.8.0"]
+)
+v2_early_rejections.append(extra_v2_adapter)
+cross_v2_id = copy.deepcopy(valid_v2_asset)
+cross_v2_id["status_adapters"]["2.8.0"]["status_schema_version"] = "2.7.0"
+v2_early_rejections.append(cross_v2_id)
+mixed_v2_phase = copy.deepcopy(valid_v2_asset)
+mixed_v2_phase["status_adapters"]["2.8.0"]["phase_steps"][
+    "ENGINEERING_RUNS"
+] = copy.deepcopy(
+    mixed_v2_phase["status_adapters"]["2.8.0"]["phase_steps"][
+        "REAL_PRODUCT_INTEGRATION"
+    ]
+)
+v2_early_rejections.append(mixed_v2_phase)
+wrong_v2_phase = copy.deepcopy(valid_v2_asset)
+wrong_v2_phase["status_adapters"]["2.8.0"]["phase_steps"][
+    "PRODUCT_INTEGRATION"
+] = wrong_v2_phase["status_adapters"]["2.8.0"]["phase_steps"].pop(
+    "REAL_PRODUCT_INTEGRATION"
+)
+v2_early_rejections.append(wrong_v2_phase)
+wrong_v2_status = copy.deepcopy(valid_v2_asset)
+wrong_v2_status["status_adapters"]["2.8.0"]["compatibility_status"] = "CURRENT"
+v2_early_rejections.append(wrong_v2_status)
+wrong_v2_order = copy.deepcopy(valid_v2_asset)
+wrong_v2_order["status_adapters"]["2.8.0"]["phase_steps"][
+    "PRODUCT_FORMATION"
+].reverse()
+v2_early_rejections.append(wrong_v2_order)
+fourth_v2_method = copy.deepcopy(valid_v2_asset)
+fourth_v2_method["execution_methods"]["other"] = copy.deepcopy(
+    fourth_v2_method["execution_methods"]["slk"]
+)
+v2_early_rejections.append(fourth_v2_method)
+calabash_v2_method = copy.deepcopy(valid_v2_asset)
+calabash_v2_method["execution_methods"]["calabash"] = copy.deepcopy(
+    calabash_v2_method["execution_methods"]["slk"]
+)
+v2_early_rejections.append(calabash_v2_method)
+bad_v2_commit = copy.deepcopy(valid_v2_asset)
+bad_v2_commit["execution_methods"]["slk"]["candidate_commit"] = "A" * 40
+v2_early_rejections.append(bad_v2_commit)
+bad_v2_hash = copy.deepcopy(valid_v2_asset)
+bad_v2_hash["execution_methods"]["clk"]["schema_sha256"] = "A" * 64
+v2_early_rejections.append(bad_v2_hash)
+bad_v2_mapping = copy.deepcopy(valid_v2_asset)
+bad_v2_mapping["execution_methods"]["glk"]["normalization_mapping"].reverse()
+v2_early_rejections.append(bad_v2_mapping)
+duplicate_v2_json = json.dumps(valid_v2_asset, indent=2).replace(
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
+    '"asset_schema": "LCCODING_BI_COMPATIBILITY_V2",\n'
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
+    1,
+)
+v2_early_rejections.append(duplicate_v2_json)
+early_rejections.extend(v2_early_rejections)
 for malformed in early_rejections:
     for host in POWERSHELL_HOSTS:
         blocked, calls = run_release_verifier(malformed, host)
