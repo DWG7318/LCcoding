@@ -55,12 +55,12 @@ describe("React BI product contract", () => {
     expect([...phases].map((phase) => phase.getAttribute("data-phase-id"))).toEqual([
       "INITIAL",
       "PRODUCT_FORMATION",
-      "ENGINEERING_RUNS",
+      "REAL_PRODUCT_INTEGRATION",
       "DELIVERY_PREPARATION",
     ]);
     expect(document.querySelectorAll("[data-step-id]")).toHaveLength(21);
     expect(document.querySelectorAll(".open-report")).toHaveLength(8);
-    expect(screen.getByText("REAL_PRODUCT_INTEGRATION")).toBeTruthy();
+    expect(screen.getByText("Real Product Integration")).toBeTruthy();
     expect(screen.queryByText("PRODUCT_INTEGRATION")).toBeNull();
 
     const workflow = document.querySelector<HTMLElement>(
@@ -82,6 +82,67 @@ describe("React BI product contract", () => {
       expect(open?.isConnected).toBe(false);
       expect(document.activeElement).toBe(restored);
     });
+  });
+
+  it("renders the sanitized Agent-native summary in the existing candidate report", async () => {
+    const snapshot = parseSnapshot(structuredClone(okFixture));
+    render(<App ports={ports(snapshot)} />);
+
+    await screen.findByText("Example Project");
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-step-id="PROJECT_INITIALIZATION"] .open-report',
+      )!,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Canonical Candidate" })).toBeTruthy();
+    const rows = document.querySelectorAll(".report-row");
+    expect(rows).toHaveLength(8);
+    expect(document.querySelector('[data-row-key="row.operations_agent_integration"]')?.textContent)
+      .toBe("Operations Agent integrationUnproved");
+    expect(document.querySelector('[data-row-key="row.product_agent_integration"]')?.textContent)
+      .toBe("Product Agent applicability / integrationUnproved · Unproved");
+    expect(document.querySelector('[data-row-key="row.runtime_adapter"]')?.textContent)
+      .toBe("Runtime AdapterNot applicable");
+    expect(document.querySelector('[data-row-key="row.dual_agent_isolation"]')?.textContent)
+      .toBe("Dual-Agent isolationUnproved");
+    expect(document.querySelector('[data-row-key="row.product_slice_progress"]')?.textContent)
+      .toBe("Product Slice countUnproved0");
+    expect(document.querySelector('[data-row-key="row.operations_slice_progress"]')?.textContent)
+      .toBe("Operations Slice countUnproved0");
+    expect(document.querySelector(".report-surface a")).toBeNull();
+    expect(within(document.querySelector<HTMLElement>(".report-surface")!).getAllByRole("button"))
+      .toHaveLength(1);
+  });
+
+  it("renders only safe accepted Agent identities and independent Slice counts", async () => {
+    const accepted = structuredClone(okFixture);
+    const values = accepted.reports.candidate.rows.map((row) => row.value);
+    Object.assign(values[2]!, { value: "ACCEPTED" });
+    Object.assign(values[3]!, {
+      applicability: "APPLICABLE_CORE",
+      integration: "ACCEPTED",
+    });
+    Object.assign(values[4]!, { id: "RUNTIME-ADAPTER-1", version: "1.2.3" });
+    Object.assign(values[5]!, { value: "VERIFIED" });
+    Object.assign(values[6]!, { status: "ACCEPTED", completed: 2 });
+    Object.assign(values[7]!, { status: "ACCEPTED", completed: 1 });
+    render(<App ports={ports(accepted)} />);
+
+    await screen.findByText("Example Project");
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-step-id="PROJECT_INITIALIZATION"] .open-report',
+      )!,
+    );
+    expect(await screen.findByText("RUNTIME-ADAPTER-1 · 1.2.3")).toBeTruthy();
+    expect(document.querySelector('[data-row-key="row.product_agent_integration"]')?.textContent)
+      .toContain("Applicable · CORE · Accepted");
+    expect(document.querySelector('[data-row-key="row.product_slice_progress"]')?.textContent)
+      .toBe("Product Slice countAccepted2");
+    expect(document.querySelector('[data-row-key="row.operations_slice_progress"]')?.textContent)
+      .toBe("Operations Slice countAccepted1");
+    expect(document.querySelector(".report-surface a")).toBeNull();
   });
 
   it("switches fixed text to Chinese without translating project values", async () => {

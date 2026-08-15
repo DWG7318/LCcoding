@@ -1,11 +1,15 @@
 export type Health = "ok" | "error";
 export type ViewState = "done" | "active" | "pending" | "error";
-export type SnapshotSchema = "LCCoding 2.6.0 derived BI" | "LCCoding 2.7.0 derived BI";
+export type SnapshotSchema =
+  | "LCCoding 2.6.0 derived BI"
+  | "LCCoding 2.7.0 derived BI"
+  | "LCCoding 2.8.0 derived BI";
 
 export type PhaseId =
   | "INITIAL"
   | "PRODUCT_FORMATION"
   | "ENGINEERING_RUNS"
+  | "REAL_PRODUCT_INTEGRATION"
   | "DELIVERY_PREPARATION";
 
 export type PhaseValue = PhaseId | "UNKNOWN";
@@ -71,11 +75,38 @@ export type RowKey =
   | "row.no_subagents"
   | "row.progress"
   | "row.cell_capacity"
-  | "row.pin_policy";
+  | "row.pin_policy"
+  | "row.operations_agent_integration"
+  | "row.product_agent_integration"
+  | "row.runtime_adapter"
+  | "row.dual_agent_isolation"
+  | "row.product_slice_progress"
+  | "row.operations_slice_progress";
 
 export type LockValue = "LOCKED" | "PENDING" | "UNKNOWN";
-export type RecordValue = "RECORDED" | "PRESENT" | "PENDING" | "NOT_RECORDED" | "UNKNOWN";
-export type MetricStatus = "COMPLIANT" | "ACTIVE" | "VIOLATION" | "UNKNOWN" | "NOT_RECORDED";
+export type RecordValue =
+  | "RECORDED"
+  | "PRESENT"
+  | "PENDING"
+  | "NOT_RECORDED"
+  | "UNKNOWN"
+  | "UNPROVED"
+  | "ACCEPTED"
+  | "VERIFIED";
+export type MetricStatus =
+  | "COMPLIANT"
+  | "ACTIVE"
+  | "VIOLATION"
+  | "UNKNOWN"
+  | "NOT_RECORDED"
+  | "UNPROVED"
+  | "ACCEPTED";
+export type AgentApplicability =
+  | "UNPROVED"
+  | "NOT_APPLICABLE"
+  | "APPLICABLE_EXTRA"
+  | "APPLICABLE_CORE";
+export type AgentIntegration = "UNPROVED" | "NOT_APPLICABLE" | "ACCEPTED";
 
 export type MetricValue = Readonly<{
   kind: "metric";
@@ -90,6 +121,12 @@ export type RowValue =
   | Readonly<{ kind: "phase"; value: PhaseValue }>
   | Readonly<{ kind: "lock"; value: LockValue }>
   | Readonly<{ kind: "record"; value: RecordValue }>
+  | Readonly<{ kind: "safe_identity"; id: string; version: string }>
+  | Readonly<{
+      kind: "agent_status";
+      applicability: AgentApplicability;
+      integration: AgentIntegration;
+    }>
   | MetricValue;
 
 export type ReportRow = Readonly<{ key: RowKey; value: RowValue }>;
@@ -134,16 +171,19 @@ export type Snapshot = Readonly<{
 }>;
 
 const VIEW_STATES = ["done", "active", "pending", "error"] as const;
-const PHASE_VALUES = [
-  "INITIAL",
-  "PRODUCT_FORMATION",
-  "ENGINEERING_RUNS",
-  "DELIVERY_PREPARATION",
-  "UNKNOWN",
-] as const;
 const LOCK_VALUES = ["LOCKED", "PENDING", "UNKNOWN"] as const;
 const RECORD_VALUES = ["RECORDED", "PRESENT", "PENDING", "NOT_RECORDED", "UNKNOWN"] as const;
+const AGENT_INTEGRATION_RECORD_VALUES = ["UNPROVED", "ACCEPTED"] as const;
+const ISOLATION_RECORD_VALUES = ["UNPROVED", "VERIFIED"] as const;
 const METRIC_STATUSES = ["COMPLIANT", "ACTIVE", "VIOLATION", "UNKNOWN", "NOT_RECORDED"] as const;
+const AGENT_SLICE_METRIC_STATUSES = ["UNPROVED", "ACCEPTED"] as const;
+const AGENT_APPLICABILITIES = [
+  "UNPROVED",
+  "NOT_APPLICABLE",
+  "APPLICABLE_EXTRA",
+  "APPLICABLE_CORE",
+] as const;
+const AGENT_INTEGRATIONS = ["UNPROVED", "NOT_APPLICABLE", "ACCEPTED"] as const;
 const REPORT_IDS = [
   "proposal",
   "candidate",
@@ -218,20 +258,34 @@ const PHASE_LAYOUT_270: readonly PhaseLayout[] = [
   PHASE_LAYOUT_260[3]!,
 ] as const;
 
+const PHASE_LAYOUT_280: readonly PhaseLayout[] = [
+  PHASE_LAYOUT_270[0]!,
+  PHASE_LAYOUT_270[1]!,
+  {
+    id: "REAL_PRODUCT_INTEGRATION",
+    steps: PHASE_LAYOUT_270[2]!.steps,
+  },
+  PHASE_LAYOUT_270[3]!,
+] as const;
+
 const SNAPSHOT_SCHEMAS = [
   "LCCoding 2.6.0 derived BI",
   "LCCoding 2.7.0 derived BI",
+  "LCCoding 2.8.0 derived BI",
 ] as const;
 
 const PHASE_LAYOUTS: Readonly<Record<SnapshotSchema, readonly PhaseLayout[]>> = {
   "LCCoding 2.6.0 derived BI": PHASE_LAYOUT_260,
   "LCCoding 2.7.0 derived BI": PHASE_LAYOUT_270,
+  "LCCoding 2.8.0 derived BI": PHASE_LAYOUT_280,
 };
 
 type RowKind = RowValue["kind"];
 type RowLayout = readonly [key: RowKey, kind: RowKind];
 
-const REPORT_ROWS: Readonly<Record<ReportId, readonly RowLayout[]>> = {
+type ReportRows = Readonly<Record<ReportId, readonly RowLayout[]>>;
+
+const REPORT_ROWS_260_270: ReportRows = {
   proposal: [
     ["row.conclusion", "view_state"],
     ["row.initial_gate", "view_state"],
@@ -281,6 +335,25 @@ const REPORT_ROWS: Readonly<Record<ReportId, readonly RowLayout[]>> = {
   ],
 };
 
+const REPORT_ROWS_280: ReportRows = {
+  ...REPORT_ROWS_260_270,
+  candidate: [
+    ...REPORT_ROWS_260_270.candidate,
+    ["row.operations_agent_integration", "record"],
+    ["row.product_agent_integration", "agent_status"],
+    ["row.runtime_adapter", "safe_identity"],
+    ["row.dual_agent_isolation", "record"],
+    ["row.product_slice_progress", "metric"],
+    ["row.operations_slice_progress", "metric"],
+  ],
+};
+
+const REPORT_ROWS: Readonly<Record<SnapshotSchema, ReportRows>> = {
+  "LCCoding 2.6.0 derived BI": REPORT_ROWS_260_270,
+  "LCCoding 2.7.0 derived BI": REPORT_ROWS_260_270,
+  "LCCoding 2.8.0 derived BI": REPORT_ROWS_280,
+};
+
 const SNAPSHOT_KEYS = [
   "schema",
   "authoritative",
@@ -294,6 +367,20 @@ const SNAPSHOT_KEYS = [
 
 const SAFE_VERSION = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,31}$/u;
 const SAFE_PROJECT = /^[\p{L}\p{N}](?:[\p{L}\p{N} _().\[\]—-]{0,78}[\p{L}\p{N}])?$/u;
+const SAFE_IDENTITY = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
+const SEMANTIC_VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u;
+const UNSAFE_IDENTITY = /(?:^(?:sk-|ghp_|github_pat_|xoxb-)|password|secret|private[_-]?key)/iu;
+const GENERIC_IDENTITIES = new Set([
+  "NONE",
+  "PENDING",
+  "UNKNOWN",
+  "NOT_APPLICABLE",
+  "PASS",
+  "DONE",
+  "READY",
+  "TEST",
+  "FAKE",
+]);
 
 type InputObject = Record<string, unknown>;
 
@@ -366,9 +453,11 @@ function metricInterval(value: unknown): 10 | 15 | 30 | null {
   return invalid();
 }
 
-function parseMetric(input: unknown): MetricValue {
+function parseMetric(input: unknown, agentSlice: boolean): MetricValue {
   const value = exactObject(input, ["kind", "status", "completed", "total", "interval_minutes"]);
-  const status = exactEnum(value.status, METRIC_STATUSES);
+  const status = agentSlice
+    ? exactEnum(value.status, AGENT_SLICE_METRIC_STATUSES)
+    : exactEnum(value.status, METRIC_STATUSES);
   const completed = metricCount(value.completed);
   const total = metricCount(value.total);
   const intervalMinutes = metricInterval(value.interval_minutes);
@@ -381,6 +470,14 @@ function parseMetric(input: unknown): MetricValue {
   }
   if (total !== null && completed === null) invalid();
   if (completed !== null && total !== null && completed > total) invalid();
+  if (
+    agentSlice &&
+    (completed === null || total !== null || intervalMinutes !== null ||
+      (status === "UNPROVED" && completed !== 0) ||
+      (status === "ACCEPTED" && completed === 0))
+  ) {
+    invalid();
+  }
 
   return {
     kind: exactLiteral(value.kind, "metric"),
@@ -414,25 +511,77 @@ function parsePhase(input: unknown, layout: PhaseLayout): PhaseView {
   };
 }
 
-function parseRowValue(input: unknown, kind: RowKind): RowValue {
-  if (kind === "metric") return parseMetric(input);
+function parseSafeIdentity(input: unknown): Extract<RowValue, { kind: "safe_identity" }> {
+  const value = exactObject(input, ["kind", "id", "version"]);
+  exactLiteral(value.kind, "safe_identity");
+  if (value.id === "NOT_APPLICABLE" && value.version === "NOT_APPLICABLE") {
+    return { kind: "safe_identity", id: "NOT_APPLICABLE", version: "NOT_APPLICABLE" };
+  }
+  if (
+    typeof value.id !== "string" ||
+    !SAFE_IDENTITY.test(value.id) ||
+    GENERIC_IDENTITIES.has(value.id) ||
+    UNSAFE_IDENTITY.test(value.id) ||
+    typeof value.version !== "string" ||
+    !SEMANTIC_VERSION.test(value.version)
+  ) {
+    invalid();
+  }
+  return { kind: "safe_identity", id: value.id, version: value.version };
+}
+
+function parseAgentStatus(input: unknown): Extract<RowValue, { kind: "agent_status" }> {
+  const value = exactObject(input, ["kind", "applicability", "integration"]);
+  const applicability = exactEnum(value.applicability, AGENT_APPLICABILITIES);
+  const integration = exactEnum(value.integration, AGENT_INTEGRATIONS);
+  if (
+    (applicability === "UNPROVED" && integration !== "UNPROVED") ||
+    (applicability === "NOT_APPLICABLE" && integration !== "NOT_APPLICABLE") ||
+    ((applicability === "APPLICABLE_EXTRA" || applicability === "APPLICABLE_CORE") &&
+      integration !== "ACCEPTED")
+  ) {
+    invalid();
+  }
+  return { kind: exactLiteral(value.kind, "agent_status"), applicability, integration };
+}
+
+function parseRowValue(
+  input: unknown,
+  key: RowKey,
+  kind: RowKind,
+  phaseValues: readonly PhaseValue[],
+): RowValue {
+  if (kind === "metric") {
+    return parseMetric(
+      input,
+      key === "row.product_slice_progress" || key === "row.operations_slice_progress",
+    );
+  }
+  if (kind === "safe_identity") return parseSafeIdentity(input);
+  if (kind === "agent_status") return parseAgentStatus(input);
   const value = exactObject(input, ["kind", "value"]);
   exactLiteral(value.kind, kind);
   switch (kind) {
     case "view_state":
       return { kind, value: exactEnum(value.value, VIEW_STATES) };
     case "phase":
-      return { kind, value: exactEnum(value.value, PHASE_VALUES) };
+      return { kind, value: exactEnum(value.value, phaseValues) };
     case "lock":
       return { kind, value: exactEnum(value.value, LOCK_VALUES) };
     case "record":
+      if (key === "row.operations_agent_integration") {
+        return { kind, value: exactEnum(value.value, AGENT_INTEGRATION_RECORD_VALUES) };
+      }
+      if (key === "row.dual_agent_isolation") {
+        return { kind, value: exactEnum(value.value, ISOLATION_RECORD_VALUES) };
+      }
       return { kind, value: exactEnum(value.value, RECORD_VALUES) };
   }
 }
 
-function parseRow(input: unknown, layout: RowLayout): ReportRow {
+function parseRow(input: unknown, layout: RowLayout, phaseValues: readonly PhaseValue[]): ReportRow {
   const value = exactObject(input, ["key", "value"]);
-  const parsedValue = parseRowValue(value.value, layout[1]);
+  const parsedValue = parseRowValue(value.value, layout[0], layout[1], phaseValues);
   if (
     parsedValue.kind === "metric" &&
     parsedValue.interval_minutes !== null &&
@@ -446,21 +595,69 @@ function parseRow(input: unknown, layout: RowLayout): ReportRow {
   };
 }
 
-function parseReport(input: unknown, id: ReportId): ReportView {
+function validateAgentCandidateRows(rows: readonly ReportRow[]): void {
+  const operations = rows[2]?.value;
+  const product = rows[3]?.value;
+  const adapter = rows[4]?.value;
+  const isolation = rows[5]?.value;
+  const productSlices = rows[6]?.value;
+  const operationsSlices = rows[7]?.value;
+  if (
+    operations?.kind !== "record" ||
+    product?.kind !== "agent_status" ||
+    adapter?.kind !== "safe_identity" ||
+    isolation?.kind !== "record" ||
+    productSlices?.kind !== "metric" ||
+    operationsSlices?.kind !== "metric"
+  ) {
+    invalid();
+  }
+
+  const unproved =
+    operations.value === "UNPROVED" &&
+    product.applicability === "UNPROVED" &&
+    product.integration === "UNPROVED" &&
+    adapter.id === "NOT_APPLICABLE" &&
+    adapter.version === "NOT_APPLICABLE" &&
+    isolation.value === "UNPROVED" &&
+    productSlices.status === "UNPROVED" &&
+    operationsSlices.status === "UNPROVED";
+  const accepted =
+    operations.value === "ACCEPTED" &&
+    product.applicability !== "UNPROVED" &&
+    product.integration !== "UNPROVED" &&
+    adapter.id !== "NOT_APPLICABLE" &&
+    adapter.version !== "NOT_APPLICABLE" &&
+    isolation.value === "VERIFIED" &&
+    productSlices.status === "ACCEPTED" &&
+    operationsSlices.status === "ACCEPTED";
+  if (!unproved && !accepted) invalid();
+}
+
+function parseReport(
+  input: unknown,
+  id: ReportId,
+  schema: SnapshotSchema,
+  phaseValues: readonly PhaseValue[],
+): ReportView {
   const value = exactObject(input, ["id", "state", "version", "rows"]);
-  const rowLayout = REPORT_ROWS[id];
+  const rowLayout = REPORT_ROWS[schema][id];
   const rowInputs = exactArray(value.rows, rowLayout.length);
   const rows: ReportRow[] = [];
   for (let index = 0; index < rowLayout.length; index += 1) {
-    rows[index] = parseRow(rowInputs[index], rowLayout[index]!);
+    rows[index] = parseRow(rowInputs[index], rowLayout[index]!, phaseValues);
   }
   const mayHaveVersion = id === "candidate" || id === "calabash";
-  return {
+  const report = {
     id: exactLiteral(value.id, id),
     state: exactEnum(value.state, VIEW_STATES),
     version: mayHaveVersion ? safeVersion(value.version, true) : exactLiteral(value.version, null),
     rows,
   };
+  if (schema === "LCCoding 2.8.0 derived BI" && id === "candidate") {
+    validateAgentCandidateRows(rows);
+  }
+  return report;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -475,6 +672,7 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   const value = exactObject(input, SNAPSHOT_KEYS);
   const schema = exactEnum(value.schema, SNAPSHOT_SCHEMAS);
   const phaseLayout = PHASE_LAYOUTS[schema];
+  const phaseValues = [...phaseLayout.map(({ id }) => id), "UNKNOWN"] as const;
   const phasesInput = exactArray(value.phases, phaseLayout.length);
   const phases: PhaseView[] = [];
   for (let index = 0; index < phaseLayout.length; index += 1) {
@@ -484,14 +682,19 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
   const reportsInput = exactObject(value.reports, REPORT_IDS);
   if (Object.keys(reportsInput).some((key, index) => key !== REPORT_IDS[index])) invalid();
   const reports = {
-    proposal: parseReport(reportsInput.proposal, "proposal"),
-    candidate: parseReport(reportsInput.candidate, "candidate"),
-    calabash: parseReport(reportsInput.calabash, "calabash"),
-    simulation: parseReport(reportsInput.simulation, "simulation"),
-    workflow: parseReport(reportsInput.workflow, "workflow"),
-    ui: parseReport(reportsInput.ui, "ui"),
-    baseline: parseReport(reportsInput.baseline, "baseline"),
-    loop_governance: parseReport(reportsInput.loop_governance, "loop_governance"),
+    proposal: parseReport(reportsInput.proposal, "proposal", schema, phaseValues),
+    candidate: parseReport(reportsInput.candidate, "candidate", schema, phaseValues),
+    calabash: parseReport(reportsInput.calabash, "calabash", schema, phaseValues),
+    simulation: parseReport(reportsInput.simulation, "simulation", schema, phaseValues),
+    workflow: parseReport(reportsInput.workflow, "workflow", schema, phaseValues),
+    ui: parseReport(reportsInput.ui, "ui", schema, phaseValues),
+    baseline: parseReport(reportsInput.baseline, "baseline", schema, phaseValues),
+    loop_governance: parseReport(
+      reportsInput.loop_governance,
+      "loop_governance",
+      schema,
+      phaseValues,
+    ),
   };
 
   for (const phase of phases) {
@@ -506,7 +709,7 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
     read_only: exactLiteral(value.read_only, true),
     health: exactEnum(value.health, ["ok", "error"] as const),
     project: safeProject(value.project),
-    current_phase: exactEnum(value.current_phase, PHASE_VALUES),
+    current_phase: exactEnum(value.current_phase, phaseValues),
     phases,
     reports,
   } as unknown as Snapshot;

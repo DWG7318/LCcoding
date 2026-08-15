@@ -6,10 +6,10 @@ import { parseSnapshot } from "../../src/model/snapshot";
 import errorFixture from "../fixtures/snapshot-error.json";
 import successFixture from "../fixtures/snapshot-ok.json";
 
-const PHASE_IDS = [
+const PHASE_IDS_280 = [
   "INITIAL",
   "PRODUCT_FORMATION",
-  "ENGINEERING_RUNS",
+  "REAL_PRODUCT_INTEGRATION",
   "DELIVERY_PREPARATION",
 ] as const;
 
@@ -52,7 +52,7 @@ const UNKNOWN_METRIC = {
 } as const;
 
 const EXPECTED_SUCCESS = {
-  schema: "LCCoding 2.7.0 derived BI",
+  schema: "LCCoding 2.8.0 derived BI",
   authoritative: false,
   read_only: true,
   health: "ok",
@@ -82,7 +82,7 @@ const EXPECTED_SUCCESS = {
       ],
     },
     {
-      id: "ENGINEERING_RUNS",
+      id: "REAL_PRODUCT_INTEGRATION",
       state: "pending",
       steps: [
         { id: "FEATURE_SLICE_EXECUTION_COVERAGE", state: "pending", report: null },
@@ -126,6 +126,42 @@ const EXPECTED_SUCCESS = {
       rows: [
         { key: "row.identity", value: { kind: "lock", value: "LOCKED" } },
         { key: "row.integrity", value: { kind: "record", value: "RECORDED" } },
+        {
+          key: "row.operations_agent_integration",
+          value: { kind: "record", value: "UNPROVED" },
+        },
+        {
+          key: "row.product_agent_integration",
+          value: { kind: "agent_status", applicability: "UNPROVED", integration: "UNPROVED" },
+        },
+        {
+          key: "row.runtime_adapter",
+          value: { kind: "safe_identity", id: "NOT_APPLICABLE", version: "NOT_APPLICABLE" },
+        },
+        {
+          key: "row.dual_agent_isolation",
+          value: { kind: "record", value: "UNPROVED" },
+        },
+        {
+          key: "row.product_slice_progress",
+          value: {
+            kind: "metric",
+            status: "UNPROVED",
+            completed: 0,
+            total: null,
+            interval_minutes: null,
+          },
+        },
+        {
+          key: "row.operations_slice_progress",
+          value: {
+            kind: "metric",
+            status: "UNPROVED",
+            completed: 0,
+            total: null,
+            interval_minutes: null,
+          },
+        },
       ],
     },
     calabash: {
@@ -394,6 +430,14 @@ function mutated(change: (draft: JsonObject) => void): unknown {
   return draft;
 }
 
+function legacy270Fixture(): JsonObject {
+  const draft = structuredClone(successFixture) as JsonObject;
+  draft.schema = "LCCoding 2.7.0 derived BI";
+  phase(draft, 2).id = "ENGINEERING_RUNS";
+  array(report(draft, "candidate").rows).splice(2);
+  return draft;
+}
+
 function expectDeepFrozen(value: unknown): void {
   if (value === null || typeof value !== "object") {
     return;
@@ -423,7 +467,7 @@ describe("parseSnapshot", () => {
   ])("accepts the exact %s fixture as a fresh deep-frozen Snapshot", (_name, fixture, exact) => {
     expect(fixture).toEqual(exact);
     expect(Object.keys(fixture.reports)).toEqual(REPORT_IDS);
-    expect(fixture.phases.map(({ id }) => id)).toEqual(PHASE_IDS);
+    expect(fixture.phases.map(({ id }) => id)).toEqual(exact.phases.map(({ id }) => id));
 
     const parsed = parseSnapshot(fixture);
 
@@ -448,11 +492,14 @@ describe("parseSnapshot", () => {
 
   it("binds each accepted schema to exactly one phase and step tuple", () => {
     expect(parseSnapshot(structuredClone(successFixture)).schema).toBe(
-      "LCCoding 2.7.0 derived BI",
+      "LCCoding 2.8.0 derived BI",
     );
     expect(parseSnapshot(structuredClone(errorFixture)).schema).toBe(
       "LCCoding 2.6.0 derived BI",
     );
+
+    const legacy270 = legacy270Fixture();
+    expect(parseSnapshot(legacy270)).toEqual(legacy270);
 
     expect(() =>
       parseSnapshot(mutated((draft) => {
@@ -463,6 +510,14 @@ describe("parseSnapshot", () => {
     const legacyAsCurrent = structuredClone(errorFixture) as JsonObject;
     legacyAsCurrent.schema = "LCCoding 2.7.0 derived BI";
     expect(() => parseSnapshot(legacyAsCurrent)).toThrow(TypeError);
+
+    const hybrid280 = legacy270Fixture();
+    hybrid280.schema = "LCCoding 2.8.0 derived BI";
+    expect(() => parseSnapshot(hybrid280)).toThrow(TypeError);
+
+    const hybrid270 = legacy270Fixture();
+    phase(hybrid270, 2).id = PHASE_IDS_280[2];
+    expect(() => parseSnapshot(hybrid270)).toThrow(TypeError);
 
     expect(() =>
       parseSnapshot(mutated((draft) => {
@@ -543,8 +598,109 @@ describe("parseSnapshot", () => {
     ["lock RowValue", (draft: JsonObject) => void (rowValue(draft, "candidate").value = "RECORDED")],
     ["record RowValue", (draft: JsonObject) => void (rowValue(draft, "candidate", 1).value = "LOCKED")],
     ["metric RowValue", (draft: JsonObject) => void (rowValue(draft, "baseline").status = "DONE")],
+    ["Agent record RowValue", (draft: JsonObject) => void (rowValue(draft, "candidate", 2).value = "VERIFIED")],
+    ["AgentStatus applicability", (draft: JsonObject) => void (rowValue(draft, "candidate", 3).applicability = "CORE")],
+    ["AgentStatus integration", (draft: JsonObject) => void (rowValue(draft, "candidate", 3).integration = "PENDING")],
+    ["SafeIdentity id", (draft: JsonObject) => void (rowValue(draft, "candidate", 4).id = "sk-secret")],
+    ["SafeIdentity version", (draft: JsonObject) => void (rowValue(draft, "candidate", 4).version = "latest")],
+    ["SafeIdentity raw hash", (draft: JsonObject) => void (rowValue(draft, "candidate", 4).hash = "raw")],
+    ["Agent Slice metric", (draft: JsonObject) => void (rowValue(draft, "candidate", 6).status = "ACTIVE")],
   ])("rejects a one-field mutation of %s", (_name, change) => {
     expect(() => parseSnapshot(mutated(change))).toThrow(TypeError);
+  });
+
+  it("accepts only the exact accepted Agent summary forms and keeps the two Slice counts independent", () => {
+    const parsed = parseSnapshot(mutated((draft) => {
+      rowValue(draft, "candidate", 2).value = "ACCEPTED";
+      Object.assign(rowValue(draft, "candidate", 3), {
+        applicability: "APPLICABLE_CORE",
+        integration: "ACCEPTED",
+      });
+      Object.assign(rowValue(draft, "candidate", 4), {
+        id: "RUNTIME-ADAPTER-1",
+        version: "1.2.3",
+      });
+      rowValue(draft, "candidate", 5).value = "VERIFIED";
+      Object.assign(rowValue(draft, "candidate", 6), { status: "ACCEPTED", completed: 2 });
+      Object.assign(rowValue(draft, "candidate", 7), { status: "ACCEPTED", completed: 1 });
+    }));
+
+    expect(parsed.reports.candidate.rows[3]?.value).toEqual({
+      kind: "agent_status",
+      applicability: "APPLICABLE_CORE",
+      integration: "ACCEPTED",
+    });
+    expect(parsed.reports.candidate.rows[4]?.value).toEqual({
+      kind: "safe_identity",
+      id: "RUNTIME-ADAPTER-1",
+      version: "1.2.3",
+    });
+    expect(parsed.reports.candidate.rows[6]?.value).toMatchObject({ completed: 2 });
+    expect(parsed.reports.candidate.rows[7]?.value).toMatchObject({ completed: 1 });
+  });
+
+  it("accepts Product Agent not-applicable only as a closed not-applicable pair", () => {
+    const parsed = parseSnapshot(mutated((draft) => {
+      rowValue(draft, "candidate", 2).value = "ACCEPTED";
+      Object.assign(rowValue(draft, "candidate", 3), {
+        applicability: "NOT_APPLICABLE",
+        integration: "NOT_APPLICABLE",
+      });
+      Object.assign(rowValue(draft, "candidate", 4), {
+        id: "RUNTIME-ADAPTER-1",
+        version: "1.2.3",
+      });
+      rowValue(draft, "candidate", 5).value = "VERIFIED";
+      Object.assign(rowValue(draft, "candidate", 6), { status: "ACCEPTED", completed: 1 });
+      Object.assign(rowValue(draft, "candidate", 7), { status: "ACCEPTED", completed: 1 });
+    }));
+    expect(parsed.reports.candidate.rows[3]?.value).toEqual({
+      kind: "agent_status",
+      applicability: "NOT_APPLICABLE",
+      integration: "NOT_APPLICABLE",
+    });
+
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        rowValue(draft, "candidate", 2).value = "ACCEPTED";
+        Object.assign(rowValue(draft, "candidate", 3), {
+          applicability: "NOT_APPLICABLE",
+          integration: "ACCEPTED",
+        });
+        Object.assign(rowValue(draft, "candidate", 4), {
+          id: "RUNTIME-ADAPTER-1",
+          version: "1.2.3",
+        });
+        rowValue(draft, "candidate", 5).value = "VERIFIED";
+        Object.assign(rowValue(draft, "candidate", 6), { status: "ACCEPTED", completed: 1 });
+        Object.assign(rowValue(draft, "candidate", 7), { status: "ACCEPTED", completed: 1 });
+      })),
+    ).toThrow(TypeError);
+  });
+
+  it("rejects mixed UNPROVED and accepted Agent summary rows", () => {
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        rowValue(draft, "candidate", 2).value = "ACCEPTED";
+      })),
+    ).toThrow(TypeError);
+  });
+
+  it.each([
+    "secret",
+    "token",
+    "path",
+    "hash",
+    "raw_prompt",
+    "memory",
+    "credential",
+    "event",
+  ])("rejects %s material attached to SafeIdentity", (field) => {
+    expect(() =>
+      parseSnapshot(mutated((draft) => {
+        rowValue(draft, "candidate", 4)[field] = "hidden";
+      })),
+    ).toThrow(TypeError);
   });
 
   it.each([

@@ -1,5 +1,12 @@
 import { message, type Language, type MessageKey } from "../i18n/catalog";
-import type { MetricStatus, ReportRow, ReportView, ViewState } from "../model/snapshot";
+import type {
+  AgentApplicability,
+  AgentIntegration,
+  MetricStatus,
+  ReportRow,
+  ReportView,
+  ViewState,
+} from "../model/snapshot";
 import { StateMark } from "./StateMark";
 
 const VALUE_KEYS = {
@@ -9,6 +16,9 @@ const VALUE_KEYS = {
   PENDING: "value.pending",
   NOT_RECORDED: "value.not_recorded",
   UNKNOWN: "value.unknown",
+  UNPROVED: "value.unproved",
+  ACCEPTED: "value.accepted",
+  VERIFIED: "value.verified",
 } as const satisfies Readonly<Record<string, MessageKey>>;
 
 const METRIC_KEYS = {
@@ -17,6 +27,8 @@ const METRIC_KEYS = {
   VIOLATION: "metric.violation",
   UNKNOWN: "metric.unknown",
   NOT_RECORDED: "metric.not_recorded",
+  UNPROVED: "metric.unproved",
+  ACCEPTED: "metric.accepted",
 } as const satisfies Readonly<Record<MetricStatus, MessageKey>>;
 
 const METRIC_STATES = {
@@ -25,7 +37,22 @@ const METRIC_STATES = {
   VIOLATION: "error",
   UNKNOWN: "pending",
   NOT_RECORDED: "pending",
+  UNPROVED: "pending",
+  ACCEPTED: "done",
 } as const satisfies Readonly<Record<MetricStatus, ViewState>>;
+
+const AGENT_APPLICABILITY_KEYS = {
+  UNPROVED: "agent_applicability.unproved",
+  NOT_APPLICABLE: "agent_applicability.not_applicable",
+  APPLICABLE_EXTRA: "agent_applicability.applicable_extra",
+  APPLICABLE_CORE: "agent_applicability.applicable_core",
+} as const satisfies Readonly<Record<AgentApplicability, MessageKey>>;
+
+const AGENT_INTEGRATION_KEYS = {
+  UNPROVED: "value.unproved",
+  NOT_APPLICABLE: "value.not_applicable",
+  ACCEPTED: "value.accepted",
+} as const satisfies Readonly<Record<AgentIntegration, MessageKey>>;
 
 function RowValue({ row, language }: Readonly<{ row: ReportRow; language: Language }>) {
   const value = row.value;
@@ -59,6 +86,23 @@ function RowValue({ row, language }: Readonly<{ row: ReportRow; language: Langua
         {value.value === "UNKNOWN"
           ? message("value.unknown", language)
           : message(`phase.${value.value}`, language)}
+      </span>
+    );
+  }
+  if (value.kind === "agent_status") {
+    return (
+      <span className="row-value">
+        {message(AGENT_APPLICABILITY_KEYS[value.applicability], language)} ·{" "}
+        {message(AGENT_INTEGRATION_KEYS[value.integration], language)}
+      </span>
+    );
+  }
+  if (value.kind === "safe_identity") {
+    return (
+      <span className="row-value">
+        {value.id === "NOT_APPLICABLE"
+          ? message("value.not_applicable", language)
+          : `${value.id} · ${value.version}`}
       </span>
     );
   }

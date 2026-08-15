@@ -74,6 +74,10 @@ const EXPECTED_CATALOG = {
   "value.not_recorded": { en: "Not recorded", zh_CN: "未记录" },
   "value.pending": { en: "Pending", zh_CN: "待处理" },
   "value.unknown": { en: "Unknown", zh_CN: "未知" },
+  "value.unproved": { en: "Unproved", zh_CN: "未证明" },
+  "value.accepted": { en: "Accepted", zh_CN: "已验收" },
+  "value.verified": { en: "Verified", zh_CN: "已验证" },
+  "value.not_applicable": { en: "Not applicable", zh_CN: "不适用" },
   "report.proposal": { en: "Proposal Readiness", zh_CN: "提案就绪" },
   "report.candidate": { en: "Canonical Candidate", zh_CN: "权威候选" },
   "report.calabash": { en: "Calabash", zh_CN: "Calabash" },
@@ -113,14 +117,30 @@ const EXPECTED_CATALOG = {
   "row.progress": { en: "Progress receipt", zh_CN: "进度回执" },
   "row.cell_capacity": { en: "CELL capacity", zh_CN: "CELL 容量" },
   "row.pin_policy": { en: "Pin policy", zh_CN: "置顶规则" },
+  "row.operations_agent_integration": { en: "Operations Agent integration", zh_CN: "Operations Agent 集成" },
+  "row.product_agent_integration": {
+    en: "Product Agent applicability / integration",
+    zh_CN: "Product Agent 适用性 / 集成",
+  },
+  "row.runtime_adapter": { en: "Runtime Adapter", zh_CN: "Runtime Adapter" },
+  "row.dual_agent_isolation": { en: "Dual-Agent isolation", zh_CN: "双 Agent 隔离" },
+  "row.product_slice_progress": { en: "Product Slice count", zh_CN: "Product Slice 数量" },
+  "row.operations_slice_progress": { en: "Operations Slice count", zh_CN: "Operations Slice 数量" },
   "metric.compliant": { en: "Compliant", zh_CN: "合规" },
   "metric.active": { en: "Active", zh_CN: "执行中" },
   "metric.violation": { en: "Violation", zh_CN: "违规" },
   "metric.unknown": { en: "Unknown", zh_CN: "未知" },
   "metric.not_recorded": { en: "Not recorded", zh_CN: "未记录" },
+  "metric.unproved": { en: "Unproved", zh_CN: "未证明" },
+  "metric.accepted": { en: "Accepted", zh_CN: "已验收" },
+  "agent_applicability.unproved": { en: "Unproved", zh_CN: "未证明" },
+  "agent_applicability.not_applicable": { en: "Not applicable", zh_CN: "不适用" },
+  "agent_applicability.applicable_extra": { en: "Applicable · EXTRA", zh_CN: "适用 · EXTRA" },
+  "agent_applicability.applicable_core": { en: "Applicable · CORE", zh_CN: "适用 · CORE" },
   "phase.INITIAL": { en: "INITIAL", zh_CN: "初始" },
   "phase.PRODUCT_FORMATION": { en: "PRODUCT_FORMATION", zh_CN: "产品形成" },
-  "phase.ENGINEERING_RUNS": { en: "REAL_PRODUCT_INTEGRATION", zh_CN: "真实产品集成" },
+  "phase.ENGINEERING_RUNS": { en: "Real Product Integration", zh_CN: "真实产品集成" },
+  "phase.REAL_PRODUCT_INTEGRATION": { en: "Real Product Integration", zh_CN: "真实产品集成" },
   "phase.DELIVERY_PREPARATION": { en: "DELIVERY_PREPARATION", zh_CN: "交付准备" },
   "step.PROPOSAL_READINESS": { en: "Proposal Readiness", zh_CN: "提案就绪" },
   "step.PROJECT_INITIALIZATION": { en: "Project Initialization", zh_CN: "工程初始化" },
@@ -188,10 +208,10 @@ const EXPECTED_CATALOG = {
 } as const;
 
 describe("closed bilingual catalog", () => {
-  it("has the exact 98-key catalog with four phases and 21 steps", () => {
+  it("has the exact 115-key catalog with schema-specific four-phase tuples and 21 steps", () => {
     expect(CATALOG).toEqual(EXPECTED_CATALOG);
-    expect(Object.keys(CATALOG)).toHaveLength(98);
-    expect(Object.keys(CATALOG).filter((key) => key.startsWith("phase."))).toHaveLength(4);
+    expect(Object.keys(CATALOG)).toHaveLength(115);
+    expect(Object.keys(CATALOG).filter((key) => key.startsWith("phase."))).toHaveLength(5);
     expect(Object.keys(CATALOG).filter((key) => key.startsWith("step."))).toHaveLength(21);
   });
 

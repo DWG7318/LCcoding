@@ -1,5 +1,5 @@
 {
-  "schema": "LCCoding 2.7.0 derived BI",
+  "schema": "LCCoding 2.8.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": "ok",
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "id": "ENGINEERING_RUNS",
+      "id": "REAL_PRODUCT_INTEGRATION",
       "state": "pending",
       "steps": [
         { "id": "FEATURE_SLICE_EXECUTION_COVERAGE", "state": "pending", "report": null },
@@ -68,7 +68,13 @@
       "version": "v1.11.6",
       "rows": [
         { "key": "row.identity", "value": { "kind": "lock", "value": "LOCKED" } },
-        { "key": "row.integrity", "value": { "kind": "record", "value": "RECORDED" } }
+        { "key": "row.integrity", "value": { "kind": "record", "value": "RECORDED" } },
+        { "key": "row.operations_agent_integration", "value": { "kind": "record", "value": "UNPROVED" } },
+        { "key": "row.product_agent_integration", "value": { "kind": "agent_status", "applicability": "UNPROVED", "integration": "UNPROVED" } },
+        { "key": "row.runtime_adapter", "value": { "kind": "safe_identity", "id": "NOT_APPLICABLE", "version": "NOT_APPLICABLE" } },
+        { "key": "row.dual_agent_isolation", "value": { "kind": "record", "value": "UNPROVED" } },
+        { "key": "row.product_slice_progress", "value": { "kind": "metric", "status": "UNPROVED", "completed": 0, "total": null, "interval_minutes": null } },
+        { "key": "row.operations_slice_progress", "value": { "kind": "metric", "status": "UNPROVED", "completed": 0, "total": null, "interval_minutes": null } }
       ]
     },
     "calabash": {
