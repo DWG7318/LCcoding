@@ -273,23 +273,26 @@ for forbidden_claim in (
     assert forbidden_claim not in contract
 
 changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.startswith("# Changelog\n\n## Unreleased - 2.8.0 candidate\n")
-candidate_section = changelog.split("\n## 2.7.0", 1)[0]
+assert changelog.startswith("# Changelog\n\n## 2.8.0\n")
+final_section = changelog.split("\n## 2.7.0", 1)[0]
 for marker in (
     "copy-on-write",
-    "current repository and BI release carriers are prepared for 2.8.0",
-    "this remains an unreleased candidate, not a release",
+    "current repository and BI release carriers are finalized for 2.8.0",
     "no formal tag or GitHub Release exists yet",
     "global installed Skill deployment remains a separate post-release action",
+    "only after the formal release is independently accepted",
 ):
-    assert marker in candidate_section
+    assert marker in final_section
 for stale_claim in (
+    "candidate",
+    "not a release",
+    "prepared for 2.8.0",
     "does not change VERSION",
     "does not change the current BI release",
     "2.8.0 has been released",
     "formal release is complete",
 ):
-    assert stale_claim not in candidate_section
+    assert stale_claim not in final_section
 
 with tempfile.TemporaryDirectory(prefix="lccoding-migration-280-") as temporary:
     base = Path(temporary)

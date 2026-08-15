@@ -3,7 +3,7 @@
   ".github/workflows/release-bi.yml": "a6df16e06206f879e762029b2842b559f54e08c0b413b644c817b2ac1cc90754",
   ".github/workflows/validate.yml": "6ddb47656ca15c02cd160dec819a705b4462cd0f894dae6f550b1c66632fe758",
   ".gitignore": "4d86f9e7408711781d624b6f9fa51acef2d9529108bab46ea833a6e0a910a21a",
-  "CHANGELOG.md": "d5822303aaca05bcb50b2aa14d6f603abe3e2ee7daef09b01214275c83cc7de4",
+  "CHANGELOG.md": "dce44a290f7e7446485cf7f681c2799388e5bd98b89649e4b3aab09ed9107ebb",
   "CONSTITUTION.md": "3012182a267e661f3ff05ad0738d4239e5f22db84e09021195c0b207273476fb",
   "LICENSE": "5927db6a7b043c9f7c63044682996cd59bbd3d1697b05ca0782df898d879cb8a",
   "MANIFEST.json": "6fb7ade2b7907d053211728b862a416340f32ed0e7e96f9d6aac8149d93a20c1",
@@ -243,7 +243,7 @@
   "lc-coding/tests/test_migration_230_to_240.py": "3fe9c4446c9f07a7091e5bc607b024e03138adc139923791a835a7413cee50ff",
   "lc-coding/tests/test_migration_240_to_241.py": "42c76b60bf27ccd8335f34ad69a4952cefcf65c5bf6cf1106a95606da8c349bb",
   "lc-coding/tests/test_migration_260_to_270.py": "91781bf631fba50f95d954ce00bd764326c6c4ec843b0875669edd925fbbc95e",
-  "lc-coding/tests/test_migration_270_to_280.py": "9fe6fd16abec6f7df2ccdd37561f61c0937315e973b96954618eef8359c2f092",
+  "lc-coding/tests/test_migration_270_to_280.py": "fea2dda0106692cf52d8194cd30e335d115a649a754b5116f7971d191915c30d",
   "lc-coding/tests/test_nsis_path_restoration_280.py": "d22d64078b9c650d805adbd91e7505e4997087045d1d504f42bf502ac9c1a452",
   "lc-coding/tests/test_owner_gap_lineage_220.py": "0a120d26989f9c371ab4bf9d08a09e9b4a7ea043f380fa0b1f02bb36a2b3318b",
   "lc-coding/tests/test_phase_consistency.py": "c12ca3fffd727100cd1b8311da10a6127748dd4ff4f199a125c1f4ed94a7ecb3",
@@ -267,6 +267,6 @@
   "lc-coding/tests/test_verification_reuse.py": "056ef52a988c223ec4b5e6a3419d562a91045b4ac589ac54f8d99c03ce931e98",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "ac00be68015f3c07d9ebd6a06a87fd843689753e81913e7a108b4e1a89653ac9",
-  "lc-coding/tests/test_version_consistency_280.py": "f98dd71132e242ebaf5406b44375ca3a3f7460e7903405f5508bf805770970e8",
+  "lc-coding/tests/test_version_consistency_280.py": "c72ca28e787353fd89d65c8831b88a8d37318d4c7f83f6616f24d62623b97a4d",
   "lc-coding/tests/test_windows_ci_path_roundtrip_280.py": "41891ec2cbd55d5150ec65978c3cd99eb63a9c44ffbc996b0f920a2ab32e41ec"
 }
