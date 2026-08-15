@@ -1,6 +1,26 @@
 # Final Feature Verification
 
 - Artifact role: FINAL_FEATURE_VERIFICATION
+- Agent Slice schema version: 2.8.0
+- Agent Slice ID:
+- Agent Slice class: PENDING
+- Agent Slice route ID:
+- Agent Slice candidate ID / exact hash:
+- Agent Slice Product Baseline identity:
+- Agent Slice Configuration Baseline identity:
+- Agent Slice Production Topology identity:
+- Agent Slice Runtime Adapter Attestation identity:
+- Agent Slice Impact Analysis identity:
+- Agent Slice route proof identity:
+- Agent Slice D0-D3 verification evidence:
+- Agent Slice Owner acceptance evidence:
+- Agent Slice evidence currentness: PENDING
+- Agent Slice Product Agent applicability: PENDING
+- Agent Slice actor kind: PENDING
+- Agent Slice actor ID:
+- Agent Slice Verification route evidence kind: PENDING
+- Agent Slice Verification class isolation: PENDING
+- Agent Slice Verification result: PENDING
 - Verification ID:
 - Feature Slice ID / version:
 - Integration Route ID:

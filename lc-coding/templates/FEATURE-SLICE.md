@@ -1,6 +1,42 @@
 # Feature Slice
 
 - Artifact role: FEATURE_SLICE_INTEGRATION
+- Agent Slice schema version: 2.8.0
+- Agent Slice ID:
+- Agent Slice class: PENDING
+- Agent Slice route ID:
+- Agent Slice candidate ID / exact hash:
+- Agent Slice Product Baseline identity:
+- Agent Slice Configuration Baseline identity:
+- Agent Slice Production Topology identity:
+- Agent Slice Runtime Adapter Attestation identity:
+- Agent Slice Impact Analysis identity:
+- Agent Slice route proof identity:
+- Agent Slice D0-D3 verification evidence:
+- Agent Slice Owner acceptance evidence:
+- Agent Slice evidence currentness: PENDING
+- Agent Slice Product Agent applicability: PENDING
+- Agent Slice actor kind: PENDING
+- Agent Slice actor ID:
+- Agent Slice Product Workflow capability ID: NOT_APPLICABLE
+- Agent Slice Product API capability ID: NOT_APPLICABLE
+- Agent Slice Product MCP capability ID: NOT_APPLICABLE
+- Agent Slice Product governed integration boundary evidence: NOT_APPLICABLE
+- Agent Slice Product API-backed Workflow evidence: NOT_APPLICABLE
+- Agent Slice Product MCP-backed Workflow evidence: NOT_APPLICABLE
+- Agent Slice Product real state/data/side-effect evidence: NOT_APPLICABLE
+- Agent Slice Product visible actor result evidence: NOT_APPLICABLE
+- Agent Slice Product Simulation exception/recovery evidence: NOT_APPLICABLE
+- Agent Slice Operations telemetry/log/typed event evidence: NOT_APPLICABLE
+- Agent Slice Operations deterministic action ID: NOT_APPLICABLE
+- Agent Slice Operations Policy authorization evidence: NOT_APPLICABLE
+- Agent Slice Operations authorization mode: NOT_APPLICABLE
+- Agent Slice Operations authorization actor ID: NOT_APPLICABLE
+- Agent Slice Operations deterministic catalog action evidence: NOT_APPLICABLE
+- Agent Slice Operations postcondition verification evidence: NOT_APPLICABLE
+- Agent Slice Operations rollback/fallback evidence: NOT_APPLICABLE
+- Agent Slice Operations append-only audit evidence: NOT_APPLICABLE
+- Agent Slice Operations visible status evidence: NOT_APPLICABLE
 - Slice ID / version:
 - Integration Route ID:
 - Integration candidate ID / exact hash:

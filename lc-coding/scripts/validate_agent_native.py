@@ -108,6 +108,51 @@ PRODUCT_PROOF_FIELDS={
     'Product Agent Product Baseline ID / exact hash',
 }
 PROOF_FORBIDDEN_TOKENS={'MOCK','STUB','PROMPT','DEMO','CONSTRUCTION'}
+SLICE_COMMON_FIELDS={
+    'Agent Slice schema version','Agent Slice ID','Agent Slice class',
+    'Agent Slice route ID','Agent Slice candidate ID / exact hash',
+    'Agent Slice Product Baseline identity','Agent Slice Configuration Baseline identity',
+    'Agent Slice Production Topology identity','Agent Slice Runtime Adapter Attestation identity',
+    'Agent Slice Impact Analysis identity','Agent Slice route proof identity',
+    'Agent Slice D0-D3 verification evidence','Agent Slice Owner acceptance evidence',
+    'Agent Slice evidence currentness','Agent Slice Product Agent applicability',
+    'Agent Slice actor kind','Agent Slice actor ID',
+}
+SLICE_PRODUCT_FIELDS={
+    'Agent Slice Product Workflow capability ID','Agent Slice Product API capability ID',
+    'Agent Slice Product MCP capability ID','Agent Slice Product governed integration boundary evidence',
+    'Agent Slice Product API-backed Workflow evidence','Agent Slice Product MCP-backed Workflow evidence',
+    'Agent Slice Product real state/data/side-effect evidence',
+    'Agent Slice Product visible actor result evidence',
+    'Agent Slice Product Simulation exception/recovery evidence',
+}
+SLICE_OPERATIONS_FIELDS={
+    'Agent Slice Operations telemetry/log/typed event evidence',
+    'Agent Slice Operations deterministic action ID',
+    'Agent Slice Operations Policy authorization evidence',
+    'Agent Slice Operations authorization mode','Agent Slice Operations authorization actor ID',
+    'Agent Slice Operations deterministic catalog action evidence',
+    'Agent Slice Operations postcondition verification evidence',
+    'Agent Slice Operations rollback/fallback evidence',
+    'Agent Slice Operations append-only audit evidence',
+    'Agent Slice Operations visible status evidence',
+}
+SLICE_FINAL_FIELDS={
+    'Agent Slice Verification route evidence kind',
+    'Agent Slice Verification class isolation','Agent Slice Verification result',
+}
+SLICE_BASELINE_FIELDS={
+    'Agent Slice Baseline accepted class set','Agent Slice Baseline accepted PRODUCT Slice IDs',
+    'Agent Slice Baseline accepted OPERATIONS Slice IDs',
+    'Agent Slice Baseline required Operations Slice ID',
+    'Agent Slice Baseline required Operations acceptance evidence',
+    'Agent Slice Baseline Product Agent Slice ID',
+    'Agent Slice Baseline Product Agent acceptance evidence',
+    'Agent Slice Baseline class isolation','Agent Slice Baseline result',
+}
+SLICE_CLASSES={'PRODUCT','OPERATIONS'}
+SLICE_EVIDENCE_CURRENTNESS={'UNCHANGED_CURRENT','CHANGED_REVERIFIED'}
+SLICE_PROOF_FORBIDDEN_TOKENS={'MOCK','STUB','DEMO','PROMPT','TRANSCRIPT','SIMULATED'}
 
 class DuplicateKeyError(ValueError): pass
 def _pairs(pairs):
@@ -838,6 +883,180 @@ def validate_product_formation_files(rule_path,handoff_path,status_path,configur
         return ['Agent Product Formation input is not strict UTF-8: '+str(error)]
     config_hash='sha256:'+hashlib.sha256(config_raw).hexdigest()
     return validate_product_formation(rule,handoff,status,configuration,config_hash)
+
+def slice_evidence_reference(value):
+    if not isinstance(value,str): return None
+    parts=[part.strip() for part in value.split(' / ',2)]
+    if len(parts)!=3 or not safe_id(parts[0]) or not exact_hash(parts[1]) or not contained_evidence_path(parts[2]): return None
+    return tuple(parts)
+
+def slice_id_list(value):
+    if not isinstance(value,str) or not value: return None
+    identities=[item.strip() for item in value.split(',')]
+    if any(not safe_id(item) for item in identities) or len(identities)!=len(set(identities)): return None
+    return identities
+
+def validate_agent_slice(
+    feature_text,verification_text,baseline_text,configuration,configuration_hash,
+    expected_product_baseline_id,expected_product_baseline_hash,
+    expected_topology_id,expected_topology_hash,expected_adapter_id,expected_adapter_hash,
+):
+    errors=validate_configuration(configuration)
+    config=configuration if isinstance(configuration,dict) else {}
+    feature,feature_errors=markdown_fields(feature_text)
+    verification,verification_errors=markdown_fields(verification_text)
+    baseline,baseline_errors=markdown_fields(baseline_text)
+    errors.extend(feature_errors+verification_errors+baseline_errors)
+    expected_sets=(
+        SLICE_COMMON_FIELDS|SLICE_PRODUCT_FIELDS|SLICE_OPERATIONS_FIELDS,
+        SLICE_COMMON_FIELDS|SLICE_FINAL_FIELDS,
+        SLICE_COMMON_FIELDS|SLICE_BASELINE_FIELDS,
+    )
+    for label,record,expected in (
+        ('Feature Slice',feature,expected_sets[0]),
+        ('Final Feature Verification',verification,expected_sets[1]),
+        ('Integration Baseline',baseline,expected_sets[2]),
+    ):
+        relevant={name for name in record if name.startswith('Agent Slice ')}
+        missing=expected-relevant; unknown=relevant-expected
+        if missing: errors.append(label+' missing Agent Slice fields '+', '.join(sorted(missing)))
+        if unknown: errors.append(label+' unknown Agent Slice fields '+', '.join(sorted(unknown)))
+    for field in SLICE_COMMON_FIELDS:
+        if verification.get(field)!=feature.get(field) or baseline.get(field)!=feature.get(field): errors.append('Agent Slice common identity '+field+' disagrees across artifacts')
+    if feature.get('Agent Slice schema version')!='2.8.0': errors.append('Agent Slice schema version must be 2.8.0')
+    slice_id=feature.get('Agent Slice ID'); route_id=feature.get('Agent Slice route ID')
+    if not safe_id(slice_id) or not safe_id(route_id) or slice_id==route_id: errors.append('Agent Slice and route IDs are invalid')
+    slice_class=feature.get('Agent Slice class')
+    if slice_class not in SLICE_CLASSES: errors.append('Agent Slice class must be PRODUCT or OPERATIONS')
+    candidate=exact_id_hash(feature.get('Agent Slice candidate ID / exact hash'))
+    if candidate!=(config.get('candidate_id'),config.get('candidate_hash')): errors.append('Agent Slice candidate identity disagrees with configuration')
+    if not exact_hash(configuration_hash): errors.append('Agent Slice Configuration Baseline file hash is invalid')
+    expected_identities={
+        'Agent Slice Product Baseline identity':(expected_product_baseline_id,expected_product_baseline_hash),
+        'Agent Slice Configuration Baseline identity':(config.get('configuration_baseline_id'),configuration_hash),
+        'Agent Slice Production Topology identity':(expected_topology_id,expected_topology_hash),
+        'Agent Slice Runtime Adapter Attestation identity':(expected_adapter_id,expected_adapter_hash),
+    }
+    common_reference_fields=[
+        'Agent Slice Product Baseline identity','Agent Slice Configuration Baseline identity',
+        'Agent Slice Production Topology identity','Agent Slice Runtime Adapter Attestation identity',
+        'Agent Slice Impact Analysis identity','Agent Slice route proof identity',
+        'Agent Slice D0-D3 verification evidence','Agent Slice Owner acceptance evidence',
+    ]
+    reference_ids=set(); reference_paths=set()
+    def require_reference(field,record=feature,expected=None):
+        reference=slice_evidence_reference(record.get(field))
+        if reference is None: errors.append(field+' is not a contained identity/hash reference'); return None
+        if expected is not None and reference[:2]!=expected: errors.append(field+' identity disagrees')
+        if record is feature:
+            if reference[0].casefold() in reference_ids or reference[2].casefold() in reference_paths: errors.append('Agent Slice route links must be unique')
+            reference_ids.add(reference[0].casefold()); reference_paths.add(reference[2].casefold())
+        return reference
+    for field in common_reference_fields:
+        require_reference(field,expected=expected_identities.get(field))
+    currentness=feature.get('Agent Slice evidence currentness')
+    if currentness not in SLICE_EVIDENCE_CURRENTNESS: errors.append('Agent Slice changed evidence must be independently reverified, not reused')
+    applicability=feature.get('Agent Slice Product Agent applicability')
+    product=config.get('product_agent',{}) if isinstance(config.get('product_agent'),dict) else {}
+    operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent'),dict) else {}
+    if applicability!=product.get('applicability'): errors.append('Agent Slice Product Agent applicability disagrees with configuration')
+    actor_kind=feature.get('Agent Slice actor kind'); actor_id=feature.get('Agent Slice actor ID')
+    if not safe_id(actor_id) or tokens(actor_id)&{'CONSTRUCTION','MOCK','STUB'}: errors.append('Agent Slice actor ID is invalid')
+
+    if slice_class=='PRODUCT':
+        if any(feature.get(field)!='NOT_APPLICABLE' for field in SLICE_OPERATIONS_FIELDS): errors.append('PRODUCT Slice must not claim OPERATIONS route evidence')
+        capability_fields=(
+            'Agent Slice Product Workflow capability ID','Agent Slice Product API capability ID',
+            'Agent Slice Product MCP capability ID',
+        )
+        capabilities=[feature.get(field) for field in capability_fields]
+        if any(not safe_id(item) for item in capabilities) or len(set(capabilities))!=1: errors.append('PRODUCT Slice API and MCP must expose the same real Workflow capability')
+        product_reference_fields=[
+            'Agent Slice Product governed integration boundary evidence',
+            'Agent Slice Product API-backed Workflow evidence','Agent Slice Product MCP-backed Workflow evidence',
+            'Agent Slice Product real state/data/side-effect evidence',
+            'Agent Slice Product visible actor result evidence',
+            'Agent Slice Product Simulation exception/recovery evidence',
+        ]
+        for field in product_reference_fields:
+            reference=require_reference(field)
+            if reference and tokens(reference[0])&SLICE_PROOF_FORBIDDEN_TOKENS: errors.append(field+' is mock, prompt, demo, transcript, or simulated substitute evidence')
+        if actor_kind=='PRODUCT_AGENT':
+            if applicability=='NOT_APPLICABLE' or actor_id!=product.get('agent_id'): errors.append('PRODUCT Slice Product Agent actor disagrees with Calabash/configuration applicability')
+        elif actor_kind=='UI_ACTOR':
+            if actor_id in {product.get('agent_id'),operations.get('agent_id')}: errors.append('PRODUCT Slice UI actor aliases an Agent')
+        else: errors.append('PRODUCT Slice actor must be a real UI actor or applicable Product Agent')
+    elif slice_class=='OPERATIONS':
+        if any(feature.get(field)!='NOT_APPLICABLE' for field in SLICE_PRODUCT_FIELDS): errors.append('OPERATIONS Slice must not claim PRODUCT route evidence')
+        if actor_kind!='OPERATIONS_AGENT' or actor_id!=operations.get('agent_id'): errors.append('OPERATIONS Slice actor disagrees with configuration')
+        action_id=feature.get('Agent Slice Operations deterministic action ID')
+        if not safe_id(action_id) or forbidden_operation(action_id): errors.append('OPERATIONS Slice action must be deterministic and cataloged, not free-form')
+        authorization_mode=feature.get('Agent Slice Operations authorization mode')
+        if authorization_mode not in {'OWNER_APPROVAL_REQUIRED','CALABASH_PREAUTHORIZED_BOUNDED'}: errors.append('OPERATIONS Slice authorization mode is invalid')
+        authorization_actor=feature.get('Agent Slice Operations authorization actor ID')
+        if not safe_id(authorization_actor) or authorization_actor in {product.get('agent_id'),operations.get('agent_id')}: errors.append('OPERATIONS Slice cannot self-authorize')
+        operations_reference_fields=[
+            'Agent Slice Operations telemetry/log/typed event evidence',
+            'Agent Slice Operations Policy authorization evidence',
+            'Agent Slice Operations deterministic catalog action evidence',
+            'Agent Slice Operations postcondition verification evidence',
+            'Agent Slice Operations rollback/fallback evidence',
+            'Agent Slice Operations append-only audit evidence',
+            'Agent Slice Operations visible status evidence',
+        ]
+        operation_refs={field:require_reference(field) for field in operations_reference_fields}
+        expected_operation_refs={
+            'Agent Slice Operations Policy authorization evidence':(operations.get('policy_id'),operations.get('policy_hash')),
+            'Agent Slice Operations deterministic catalog action evidence':(operations.get('action_catalog_id'),operations.get('action_catalog_hash')),
+            'Agent Slice Operations rollback/fallback evidence':(operations.get('fallback_id'),operations.get('fallback_hash')),
+            'Agent Slice Operations append-only audit evidence':(operations.get('audit_stream_id'),operations.get('audit_stream_hash')),
+        }
+        for field,expected in expected_operation_refs.items():
+            if operation_refs.get(field) and operation_refs[field][:2]!=expected: errors.append(field+' disagrees with Agent Configuration Baseline')
+
+    expected_verification_kind='PRODUCT_ROUTE_PROOF' if slice_class=='PRODUCT' else 'OPERATIONS_ROUTE_PROOF'
+    if verification.get('Agent Slice Verification route evidence kind')!=expected_verification_kind: errors.append('Final Feature Verification uses the wrong Slice class evidence')
+    if verification.get('Agent Slice Verification class isolation')!='NO_CROSS_CLASS_EVIDENCE': errors.append('Final Feature Verification cross-borrows Slice class evidence')
+    if verification.get('Agent Slice Verification result')!='PASS': errors.append('Final Feature Verification Agent Slice result is not PASS')
+
+    if baseline.get('Agent Slice Baseline accepted class set')!='PRODUCT|OPERATIONS': errors.append('Integration Baseline Slice class set is not closed')
+    product_ids=slice_id_list(baseline.get('Agent Slice Baseline accepted PRODUCT Slice IDs'))
+    operations_ids=slice_id_list(baseline.get('Agent Slice Baseline accepted OPERATIONS Slice IDs'))
+    if not product_ids: errors.append('Integration Baseline must retain at least one accepted PRODUCT Slice')
+    if not operations_ids: errors.append('Integration Baseline requires at least one accepted OPERATIONS Slice')
+    if slice_class=='PRODUCT' and product_ids and slice_id not in product_ids: errors.append('current PRODUCT Slice is absent from Integration Baseline')
+    if slice_class=='OPERATIONS' and operations_ids and slice_id not in operations_ids: errors.append('current OPERATIONS Slice is absent from Integration Baseline')
+    required_operations=baseline.get('Agent Slice Baseline required Operations Slice ID')
+    if not safe_id(required_operations) or not operations_ids or required_operations not in operations_ids: errors.append('required OPERATIONS Slice is not in the accepted baseline set')
+    operations_acceptance=require_reference('Agent Slice Baseline required Operations acceptance evidence',baseline)
+    product_agent_slice=baseline.get('Agent Slice Baseline Product Agent Slice ID')
+    product_agent_evidence=baseline.get('Agent Slice Baseline Product Agent acceptance evidence')
+    if applicability=='NOT_APPLICABLE':
+        if product_agent_slice!='NOT_APPLICABLE' or product_agent_evidence!='NOT_APPLICABLE': errors.append('NOT_APPLICABLE Product Agent cannot claim an accepted Product Agent Slice')
+    else:
+        if not safe_id(product_agent_slice) or not product_ids or product_agent_slice not in product_ids: errors.append('applicable Product Agent requires an accepted PRODUCT Agent Slice')
+        product_agent_acceptance=require_reference('Agent Slice Baseline Product Agent acceptance evidence',baseline)
+        if operations_acceptance and product_agent_acceptance and (operations_acceptance[0].casefold()==product_agent_acceptance[0].casefold() or operations_acceptance[2].casefold()==product_agent_acceptance[2].casefold()): errors.append('Integration Baseline acceptance routes must not duplicate evidence links')
+        if product_agent_slice==slice_id and (slice_class!='PRODUCT' or actor_kind!='PRODUCT_AGENT'): errors.append('Integration Baseline misclassifies a non-Product-Agent route as Product Agent acceptance')
+    if baseline.get('Agent Slice Baseline class isolation')!='TWO_BOUND_SLICES_NO_MIXED_ROUTE': errors.append('Integration Baseline merges PRODUCT and OPERATIONS proof')
+    if baseline.get('Agent Slice Baseline result')!='PASS': errors.append('Integration Baseline Agent Slice result is not PASS')
+    if any(SECRET.search(item) or RUNTIME_SECRET.search(item) for item in _strings((feature,verification,baseline))): errors.append('Agent Slice artifacts contain secret-like inline material')
+    return errors
+
+def validate_agent_slice_files(
+    feature_path,verification_path,baseline_path,configuration,configuration_hash,
+    expected_product_baseline_id,expected_product_baseline_hash,
+    expected_topology_id,expected_topology_hash,expected_adapter_id,expected_adapter_hash,
+):
+    paths=[Path(item) for item in (feature_path,verification_path,baseline_path)]
+    if any(path.is_symlink() or not path.is_file() for path in paths): return ['Agent Slice inputs must be regular files']
+    try: texts=[path.read_text(encoding='utf-8') for path in paths]
+    except (OSError,UnicodeError) as error: return ['Agent Slice input is not strict UTF-8: '+str(error)]
+    return validate_agent_slice(
+        *texts,configuration,configuration_hash,
+        expected_product_baseline_id,expected_product_baseline_hash,
+        expected_topology_id,expected_topology_hash,expected_adapter_id,expected_adapter_hash,
+    )
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('path'); args=parser.parse_args(); errors=validate_file(args.path)
     if errors:

@@ -1,6 +1,32 @@
 # Integration Baseline
 
 - Artifact role: INTEGRATION_BASELINE
+- Agent Slice schema version: 2.8.0
+- Agent Slice ID:
+- Agent Slice class: PENDING
+- Agent Slice route ID:
+- Agent Slice candidate ID / exact hash:
+- Agent Slice Product Baseline identity:
+- Agent Slice Configuration Baseline identity:
+- Agent Slice Production Topology identity:
+- Agent Slice Runtime Adapter Attestation identity:
+- Agent Slice Impact Analysis identity:
+- Agent Slice route proof identity:
+- Agent Slice D0-D3 verification evidence:
+- Agent Slice Owner acceptance evidence:
+- Agent Slice evidence currentness: PENDING
+- Agent Slice Product Agent applicability: PENDING
+- Agent Slice actor kind: PENDING
+- Agent Slice actor ID:
+- Agent Slice Baseline accepted class set: PRODUCT|OPERATIONS
+- Agent Slice Baseline accepted PRODUCT Slice IDs:
+- Agent Slice Baseline accepted OPERATIONS Slice IDs:
+- Agent Slice Baseline required Operations Slice ID:
+- Agent Slice Baseline required Operations acceptance evidence:
+- Agent Slice Baseline Product Agent Slice ID: PENDING
+- Agent Slice Baseline Product Agent acceptance evidence: PENDING
+- Agent Slice Baseline class isolation: PENDING
+- Agent Slice Baseline result: PENDING
 - Baseline ID:
 - Feature Slice ID / version:
 - Feature Slice reference: slices/<Slice ID>.md
