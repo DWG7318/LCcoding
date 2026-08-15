@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "AGENT_ACTION_CATALOG",
+  "catalog_id": "",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "configuration_baseline_id": "",
+  "actions": [
+    {
+      "action_id": "",
+      "action_version": "",
+      "action_hash": "",
+      "definition_authority": "",
+      "risk": "",
+      "bounded_target": {"target_id": "", "target_kind": "", "scope_id": ""},
+      "operation": "",
+      "input_schema": {"schema_id": "", "schema_hash": ""},
+      "preconditions": [
+        {"condition_id": "", "evidence_schema_id": "", "evidence_schema_hash": "", "result_required": "PENDING"}
+      ],
+      "authority": {
+        "mode": "",
+        "author_kind": "",
+        "item_id": "",
+        "evidence_id": "",
+        "evidence_hash": "",
+        "target_id": "",
+        "scope_id": "",
+        "expires_at": "",
+        "result": "PENDING"
+      },
+      "adapter_operation": {"operation_id": "", "determinism": "PENDING"},
+      "postconditions": [
+        {"condition_id": "", "evidence_schema_id": "", "evidence_schema_hash": "", "result_required": "PENDING"}
+      ],
+      "verification": {
+        "verification_id": "",
+        "evidence_schema_id": "",
+        "evidence_schema_hash": "",
+        "result_required": "PENDING"
+      },
+      "rollback": {"operation_id": "", "trigger": "", "result": "PENDING"},
+      "audit_events": [],
+      "timeout_seconds": 0,
+      "max_retries": -1
+    }
+  ]
+}
