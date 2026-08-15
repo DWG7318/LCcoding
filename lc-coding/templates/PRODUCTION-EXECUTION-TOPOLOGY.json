@@ -1,0 +1,30 @@
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "PRODUCTION_EXECUTION_TOPOLOGY",
+  "topology_id": "",
+  "candidate_id": "",
+  "candidate_hash": "",
+  "product_baseline": {
+    "product_baseline_id": "",
+    "product_baseline_hash": ""
+  },
+  "configuration_baseline": {
+    "configuration_baseline_id": "",
+    "configuration_baseline_hash": ""
+  },
+  "discovered_members": [],
+  "dispositions": [],
+  "dependencies": [],
+  "logical_authorities": [],
+  "routes": [],
+  "evidence": [],
+  "verification": {
+    "verification_id": "",
+    "candidate_id": "",
+    "candidate_hash": "",
+    "topology_id": "",
+    "independent_verifier_id": "",
+    "evidence_ids": [],
+    "result": "PENDING"
+  }
+}

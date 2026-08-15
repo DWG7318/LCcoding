@@ -1,0 +1,19 @@
+{
+  "schema_version": "2.8.0",
+  "artifact_role": "PRODUCTION_EXECUTION_TOPOLOGY_CONTRACT",
+  "top_level_fields": ["schema_version", "artifact_role", "topology_id", "candidate_id", "candidate_hash", "product_baseline", "configuration_baseline", "discovered_members", "dispositions", "dependencies", "logical_authorities", "routes", "evidence", "verification"],
+  "product_baseline_fields": ["product_baseline_id", "product_baseline_hash"],
+  "configuration_fields": ["configuration_baseline_id", "configuration_baseline_hash"],
+  "member_fields": ["member_id", "member_kind", "identity_hash"],
+  "member_kinds": ["BACKEND", "SERVICE"],
+  "disposition_fields": ["member_id", "disposition"],
+  "dispositions": ["SELECT", "COMPOSE", "FEDERATE", "RETIRE"],
+  "dependency_fields": ["source_member_id", "target_member_id", "edge_kind"],
+  "edge_kinds": ["CALLS", "DEPENDS_ON"],
+  "authority_fields": ["domain", "authority_member_id"],
+  "authority_domains": ["behavior", "state", "data", "identity", "permission", "consistency", "failure_recovery", "calling"],
+  "route_fields": ["route_kind", "agent_id", "configuration_id", "configuration_hash", "candidate_id", "candidate_hash", "calling_authority_member_id", "member_path"],
+  "route_kinds": ["PRODUCT", "OPERATIONS"],
+  "evidence_fields": ["evidence_id", "evidence_path", "evidence_hash", "producer_kind", "independence", "result"],
+  "verification_fields": ["verification_id", "candidate_id", "candidate_hash", "topology_id", "independent_verifier_id", "evidence_ids", "result"]
+}

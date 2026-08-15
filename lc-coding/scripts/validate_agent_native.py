@@ -9,6 +9,8 @@ ACTION_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/agent-action
 ACTION_CONTRACT=json.loads(ACTION_CONTRACT_PATH.read_text(encoding='utf-8'))
 RUNTIME_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/runtime-adapter-attestation.json'
 RUNTIME_CONTRACT=json.loads(RUNTIME_CONTRACT_PATH.read_text(encoding='utf-8'))
+TOPOLOGY_CONTRACT_PATH=Path(__file__).resolve().parents[1]/'contracts/production-execution-topology.json'
+TOPOLOGY_CONTRACT=json.loads(TOPOLOGY_CONTRACT_PATH.read_text(encoding='utf-8'))
 TOP=set(CONTRACT['top_level_fields'])
 SHAREABLE_KINDS=tuple(CONTRACT['shareable_identity_kinds'])
 PRIVATE_KINDS=tuple(CONTRACT['private_identity_kinds'])
@@ -50,6 +52,16 @@ RUNTIME_FALLBACK_FIELDS=set(RUNTIME_CONTRACT['fallback_fields'])
 RUNTIME_KILL_SWITCH_FIELDS=set(RUNTIME_CONTRACT['kill_switch_fields'])
 RUNTIME_CONFORMANCE_FIELDS=set(RUNTIME_CONTRACT['conformance_fields'])
 EVENT_FORBIDDEN_VALUE=re.compile(r'(?i)(?:^|[._-])(?:RAW|PAYLOAD|SESSION|MEMORY|PROMPT|CREDENTIAL|SECRET|ADMIN_AUTHORIZATION|ADMINISTRATOR_AUTHORIZATION)(?:$|[._-])')
+TOPOLOGY_TOP=set(TOPOLOGY_CONTRACT['top_level_fields'])
+TOPOLOGY_PRODUCT_BASELINE_FIELDS=set(TOPOLOGY_CONTRACT['product_baseline_fields'])
+TOPOLOGY_CONFIGURATION_FIELDS=set(TOPOLOGY_CONTRACT['configuration_fields'])
+TOPOLOGY_MEMBER_FIELDS=set(TOPOLOGY_CONTRACT['member_fields'])
+TOPOLOGY_DISPOSITION_FIELDS=set(TOPOLOGY_CONTRACT['disposition_fields'])
+TOPOLOGY_DEPENDENCY_FIELDS=set(TOPOLOGY_CONTRACT['dependency_fields'])
+TOPOLOGY_AUTHORITY_FIELDS=set(TOPOLOGY_CONTRACT['authority_fields'])
+TOPOLOGY_ROUTE_FIELDS=set(TOPOLOGY_CONTRACT['route_fields'])
+TOPOLOGY_EVIDENCE_FIELDS=set(TOPOLOGY_CONTRACT['evidence_fields'])
+TOPOLOGY_VERIFICATION_FIELDS=set(TOPOLOGY_CONTRACT['verification_fields'])
 PRODUCT_FORMATION_STATUS_FIELDS={
     'state','product_agent_applicability','calabash_definition_handoff_id',
     'calabash_definition_handoff_hash','configuration_baseline_id',
@@ -292,6 +304,178 @@ def contained_evidence_path(value):
     return (
         not path.is_absolute() and str(path)==value and len(path.parts)>=2
         and path.parts[0]=='evidence' and all(part not in {'','.','..'} for part in path.parts)
+    )
+
+def validate_production_topology(
+    value,configuration,configuration_hash,
+    expected_product_baseline_id,expected_product_baseline_hash,
+):
+    errors=validate_configuration(configuration)
+    config=configuration if isinstance(configuration,dict) else {}
+    record=closed(value,TOPOLOGY_TOP,'Production Execution Topology',errors)
+    if record.get('schema_version')!='2.8.0': errors.append('Production Execution Topology schema_version must be 2.8.0')
+    if record.get('artifact_role')!='PRODUCTION_EXECUTION_TOPOLOGY': errors.append('Production Execution Topology artifact_role is invalid')
+    for field in ('topology_id','candidate_id'):
+        if not safe_id(record.get(field)): errors.append('Production Execution Topology '+field+' is invalid')
+    if not exact_hash(record.get('candidate_hash')): errors.append('Production Execution Topology candidate_hash is invalid')
+    if record.get('candidate_id')!=config.get('candidate_id') or record.get('candidate_hash')!=config.get('candidate_hash'): errors.append('Production Execution Topology candidate identity disagrees with configuration')
+
+    baseline=closed(record.get('product_baseline'),TOPOLOGY_PRODUCT_BASELINE_FIELDS,'product_baseline',errors)
+    if not safe_id(baseline.get('product_baseline_id')) or not exact_hash(baseline.get('product_baseline_hash')): errors.append('Product Baseline identity is invalid')
+    if not safe_id(expected_product_baseline_id) or not exact_hash(expected_product_baseline_hash): errors.append('expected Product Baseline identity is invalid')
+    if baseline.get('product_baseline_id')!=expected_product_baseline_id or baseline.get('product_baseline_hash')!=expected_product_baseline_hash: errors.append('Production Execution Topology Product Baseline identity disagrees')
+    configuration_baseline=closed(record.get('configuration_baseline'),TOPOLOGY_CONFIGURATION_FIELDS,'configuration_baseline',errors)
+    if not safe_id(configuration_baseline.get('configuration_baseline_id')) or not exact_hash(configuration_baseline.get('configuration_baseline_hash')): errors.append('Agent Configuration Baseline topology identity is invalid')
+    if not exact_hash(configuration_hash): errors.append('accepted Agent Configuration Baseline file hash is invalid')
+    if configuration_baseline.get('configuration_baseline_id')!=config.get('configuration_baseline_id') or configuration_baseline.get('configuration_baseline_hash')!=configuration_hash: errors.append('Production Execution Topology configuration identity disagrees')
+
+    members=record.get('discovered_members')
+    if not isinstance(members,list) or not members:
+        errors.append('discovered_members must be a non-empty list'); members=[]
+    member_ids=[]; member_hashes=set()
+    for index,item in enumerate(members):
+        label='discovered member '+str(index+1)
+        member=closed(item,TOPOLOGY_MEMBER_FIELDS,label,errors)
+        identity=member.get('member_id')
+        if not safe_id(identity): errors.append(label+' member_id is invalid')
+        elif identity in member_ids: errors.append('discovered member IDs must be unique')
+        else: member_ids.append(identity)
+        if member.get('member_kind') not in TOPOLOGY_CONTRACT['member_kinds']: errors.append(label+' member_kind is invalid')
+        identity_hash=member.get('identity_hash')
+        if not exact_hash(identity_hash): errors.append(label+' identity_hash is invalid')
+        elif identity_hash in member_hashes: errors.append('discovered member hashes must be unique')
+        else: member_hashes.add(identity_hash)
+    member_set=set(member_ids)
+
+    dispositions=record.get('dispositions')
+    if not isinstance(dispositions,list): errors.append('dispositions must be a list'); dispositions=[]
+    disposition_by_member={}; disposition_ids=[]
+    for index,item in enumerate(dispositions):
+        label='member disposition '+str(index+1)
+        disposition=closed(item,TOPOLOGY_DISPOSITION_FIELDS,label,errors)
+        identity=disposition.get('member_id'); result=disposition.get('disposition')
+        if identity not in member_set: errors.append(label+' references an unknown member')
+        if identity in disposition_by_member: errors.append('each discovered member must have exactly one disposition')
+        else: disposition_by_member[identity]=result
+        disposition_ids.append(identity)
+        if result not in TOPOLOGY_CONTRACT['dispositions']: errors.append(label+' disposition is invalid')
+    if len(disposition_ids)!=len(set(disposition_ids)) or set(disposition_ids)!=member_set: errors.append('disposition member set must exactly equal discovered member set')
+    active={identity for identity,result in disposition_by_member.items() if result!='RETIRE'}
+    active_results=[disposition_by_member.get(identity) for identity in active]
+    valid_selection=(len(active)==1 and set(active_results)=={'SELECT'})
+    valid_composition=(len(active)>=2 and set(active_results)=={'COMPOSE'})
+    valid_federation=(len(active)>=2 and set(active_results)=={'FEDERATE'})
+    if not (valid_selection or valid_composition or valid_federation): errors.append('active member dispositions do not resolve to one SELECT, COMPOSE, or FEDERATE topology')
+
+    dependencies=record.get('dependencies')
+    if not isinstance(dependencies,list): errors.append('dependencies must be a list'); dependencies=[]
+    dependency_keys=set(); edge_pairs=set(); graph={identity:set() for identity in active}
+    for index,item in enumerate(dependencies):
+        label='topology dependency '+str(index+1)
+        dependency=closed(item,TOPOLOGY_DEPENDENCY_FIELDS,label,errors)
+        source=dependency.get('source_member_id'); target=dependency.get('target_member_id'); kind=dependency.get('edge_kind')
+        if source not in member_set or target not in member_set: errors.append(label+' references an unknown member')
+        if source==target: errors.append(label+' must not self-reference')
+        if source not in active or target not in active: errors.append(label+' must only join active members')
+        if kind not in TOPOLOGY_CONTRACT['edge_kinds']: errors.append(label+' edge_kind is invalid')
+        key=(source,target,kind)
+        if key in dependency_keys: errors.append('topology dependencies must be unique')
+        else: dependency_keys.add(key)
+        if source in active and target in active and source!=target:
+            graph[source].add(target); edge_pairs.add((source,target))
+    visiting=set(); visited=set()
+    def visit(identity):
+        if identity in visiting: return False
+        if identity in visited: return True
+        visiting.add(identity)
+        if any(not visit(target) for target in graph.get(identity,set())): return False
+        visiting.remove(identity); visited.add(identity); return True
+    if any(not visit(identity) for identity in active): errors.append('active topology dependencies must be acyclic')
+
+    authorities=record.get('logical_authorities')
+    if not isinstance(authorities,list): errors.append('logical_authorities must be a list'); authorities=[]
+    domains=[]; authority_by_domain={}
+    for index,item in enumerate(authorities):
+        label='logical authority '+str(index+1)
+        authority=closed(item,TOPOLOGY_AUTHORITY_FIELDS,label,errors)
+        domain=authority.get('domain'); identity=authority.get('authority_member_id')
+        domains.append(domain)
+        if domain in authority_by_domain: errors.append('each logical authority domain must have exactly one authority')
+        else: authority_by_domain[domain]=identity
+        if domain not in TOPOLOGY_CONTRACT['authority_domains']: errors.append(label+' domain is invalid')
+        if identity not in active: errors.append(label+' authority must be one active discovered member')
+    if domains!=TOPOLOGY_CONTRACT['authority_domains']: errors.append('logical authority domains are incomplete, duplicated, unknown, or unordered')
+
+    routes=record.get('routes')
+    if not isinstance(routes,list): errors.append('routes must be a list'); routes=[]
+    route_kinds=[]
+    expected_agents={
+        'PRODUCT':config.get('product_agent',{}),
+        'OPERATIONS':config.get('operations_agent',{}),
+    }
+    calling_authority=authority_by_domain.get('calling')
+    for index,item in enumerate(routes):
+        label='production route '+str(index+1)
+        route=closed(item,TOPOLOGY_ROUTE_FIELDS,label,errors)
+        kind=route.get('route_kind'); route_kinds.append(kind)
+        agent=expected_agents.get(kind,{}) if kind in expected_agents else {}
+        if kind not in TOPOLOGY_CONTRACT['route_kinds']: errors.append(label+' route_kind is invalid')
+        product_not_applicable=(kind=='PRODUCT' and agent.get('applicability')=='NOT_APPLICABLE')
+        for field in ('agent_id','configuration_id'):
+            if product_not_applicable:
+                if route.get(field)!='NOT_APPLICABLE': errors.append(label+' '+field+' must be NOT_APPLICABLE')
+            elif not safe_id(route.get(field)): errors.append(label+' '+field+' is invalid')
+        if product_not_applicable:
+            if route.get('configuration_hash')!='NOT_APPLICABLE': errors.append(label+' configuration_hash must be NOT_APPLICABLE')
+        elif not exact_hash(route.get('configuration_hash')): errors.append(label+' configuration_hash is invalid')
+        if any(route.get(field)!=agent.get(field) for field in ('agent_id','configuration_id','configuration_hash')): errors.append(label+' Agent/configuration identity disagrees with accepted baseline')
+        if route.get('candidate_id')!=record.get('candidate_id') or route.get('candidate_hash')!=record.get('candidate_hash'): errors.append(label+' candidate identity disagrees')
+        if route.get('calling_authority_member_id')!=calling_authority: errors.append(label+' calling authority disagrees')
+        path=route.get('member_path')
+        if not isinstance(path,list) or not path: errors.append(label+' member_path must be non-empty'); path=[]
+        if len(path)!=len(set(path)): errors.append(label+' member_path must not repeat a member')
+        if any(identity not in active for identity in path): errors.append(label+' member_path must contain only active discovered members')
+        if calling_authority not in path: errors.append(label+' member_path must include the calling authority')
+        if any((source,target) not in edge_pairs for source,target in zip(path,path[1:])): errors.append(label+' member_path is not joined by declared directed dependencies')
+    if route_kinds!=TOPOLOGY_CONTRACT['route_kinds']: errors.append('Product and Operations routes are incomplete, duplicated, unknown, or unordered')
+
+    evidence=record.get('evidence')
+    if not isinstance(evidence,list) or not evidence:
+        errors.append('Production Execution Topology evidence must be a non-empty list'); evidence=[]
+    evidence_ids=[]; evidence_paths=set()
+    for index,item in enumerate(evidence):
+        label='topology evidence '+str(index+1)
+        proof=closed(item,TOPOLOGY_EVIDENCE_FIELDS,label,errors)
+        identity=proof.get('evidence_id'); path=proof.get('evidence_path')
+        if not safe_id(identity): errors.append(label+' evidence_id is invalid')
+        elif identity in evidence_ids: errors.append('topology evidence IDs must be unique')
+        else: evidence_ids.append(identity)
+        if not contained_evidence_path(path): errors.append(label+' path is not contained')
+        elif path.casefold() in evidence_paths: errors.append('topology evidence paths must be unique')
+        else: evidence_paths.add(path.casefold())
+        if not exact_hash(proof.get('evidence_hash')): errors.append(label+' hash is invalid')
+        if proof.get('producer_kind')!='INDEPENDENT_VERIFIER' or proof.get('independence')!='INDEPENDENT' or proof.get('result')!='PASS': errors.append(label+' is not independent PASS evidence')
+    verification=closed(record.get('verification'),TOPOLOGY_VERIFICATION_FIELDS,'topology verification',errors)
+    for field in ('verification_id','independent_verifier_id'):
+        if not safe_id(verification.get(field)): errors.append('topology verification '+field+' is invalid')
+    if verification.get('candidate_id')!=record.get('candidate_id') or verification.get('candidate_hash')!=record.get('candidate_hash'): errors.append('topology verification candidate identity disagrees')
+    if verification.get('topology_id')!=record.get('topology_id'): errors.append('topology verification identity disagrees')
+    if verification.get('evidence_ids')!=evidence_ids: errors.append('topology verification must bind every independent evidence item exactly once and in order')
+    if verification.get('result')!='PASS': errors.append('topology verification result must be exact PASS')
+    if any(SECRET.search(item) or RUNTIME_SECRET.search(item) for item in _strings(record)): errors.append('Production Execution Topology contains secret-like inline material')
+    return errors
+
+def validate_production_topology_file(
+    path,configuration,configuration_hash,
+    expected_product_baseline_id,expected_product_baseline_hash,
+):
+    target=Path(path)
+    if target.is_symlink() or not target.is_file(): return ['Production Execution Topology must be a regular file']
+    try: value=strict_json_bytes(target.read_bytes())
+    except (OSError,UnicodeError,ValueError) as error: return ['Production Execution Topology is not strict UTF-8 JSON: '+str(error)]
+    return validate_production_topology(
+        value,configuration,configuration_hash,
+        expected_product_baseline_id,expected_product_baseline_hash,
     )
 
 def validate_typed_event_attestations(
