@@ -34,8 +34,13 @@
     "scorpion_result": "PENDING",
     "environment_fallback": "FORBIDDEN",
     "provider_authority": "NO_VENDOR_SELF_AUTHORITY",
-    "secret_loading": "REFERENCES_ONLY_NO_INLINE_SECRETS"
+    "secret_loading": "REFERENCES_ONLY_NO_INLINE_SECRETS",
+    "isolation_evidence_id": "",
+    "isolation_evidence_hash": "",
+    "private_boundary_result": "PENDING",
+    "shared_execution_result": "PENDING"
   },
+  "typed_event_attestations": [],
   "validity": {
     "observed_at_utc": "",
     "validated_at_utc": "",

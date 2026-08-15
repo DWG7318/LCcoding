@@ -43,11 +43,13 @@ RUNTIME_CONFIGURATION_FIELDS=set(RUNTIME_CONTRACT['configuration_fields'])
 RUNTIME_TOPOLOGY_FIELDS=set(RUNTIME_CONTRACT['topology_fields'])
 RUNTIME_CAPABILITY_FIELDS=set(RUNTIME_CONTRACT['capability_fields'])
 RUNTIME_AUTHORITY_FIELDS=set(RUNTIME_CONTRACT['authority_boundary_fields'])
+RUNTIME_EVENT_FIELDS=set(RUNTIME_CONTRACT['typed_event_fields'])
 RUNTIME_VALIDITY_FIELDS=set(RUNTIME_CONTRACT['validity_fields'])
 RUNTIME_EVIDENCE_FIELDS=set(RUNTIME_CONTRACT['evidence_fields'])
 RUNTIME_FALLBACK_FIELDS=set(RUNTIME_CONTRACT['fallback_fields'])
 RUNTIME_KILL_SWITCH_FIELDS=set(RUNTIME_CONTRACT['kill_switch_fields'])
 RUNTIME_CONFORMANCE_FIELDS=set(RUNTIME_CONTRACT['conformance_fields'])
+EVENT_FORBIDDEN_VALUE=re.compile(r'(?i)(?:^|[._-])(?:RAW|PAYLOAD|SESSION|MEMORY|PROMPT|CREDENTIAL|SECRET|ADMIN_AUTHORIZATION|ADMINISTRATOR_AUTHORIZATION)(?:$|[._-])')
 PRODUCT_FORMATION_STATUS_FIELDS={
     'state','product_agent_applicability','calabash_definition_handoff_id',
     'calabash_definition_handoff_hash','configuration_baseline_id',
@@ -292,6 +294,62 @@ def contained_evidence_path(value):
         and path.parts[0]=='evidence' and all(part not in {'','.','..'} for part in path.parts)
     )
 
+def validate_typed_event_attestations(
+    value,configuration,candidate_id,candidate_hash,
+    observed_at_utc,validated_at_utc,as_of_utc,
+):
+    errors=validate_configuration(configuration)
+    config=configuration if isinstance(configuration,dict) else {}
+    product=config.get('product_agent',{}) if isinstance(config.get('product_agent'),dict) else {}
+    operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent'),dict) else {}
+    if product.get('applicability')=='NOT_APPLICABLE':
+        if value!=[]: errors.append('typed event attestations must be empty when Product Agent is not applicable')
+        return errors
+    if not isinstance(value,list):
+        errors.append('typed_event_attestations must be a list'); return errors
+    if len(value)!=len(RUNTIME_CONTRACT['event_kinds']):
+        errors.append('typed event attestations must contain each allowed event exactly once')
+    expected={
+        'MAINTENANCE_REQUEST':(product,operations),
+        'SERVICE_STATUS_UPDATE':(operations,product),
+    }
+    observed=strict_utc(observed_at_utc); validated=strict_utc(validated_at_utc); as_of=strict_utc(as_of_utc)
+    if observed is None or validated is None or as_of is None or not observed<=validated<=as_of:
+        errors.append('typed event attestation time window is invalid')
+    kinds=[]; event_ids=set(); schema_ids=set(); provenance_ids=set()
+    for index,item in enumerate(value):
+        label='typed event attestation '+str(index+1)
+        event=closed(item,RUNTIME_EVENT_FIELDS,label,errors)
+        kind=event.get('event_kind'); kinds.append(kind)
+        for field,seen in (
+            ('event_id',event_ids),('event_schema_id',schema_ids),
+            ('provenance_id',provenance_ids),
+        ):
+            identity=event.get(field)
+            if not safe_id(identity): errors.append(label+' '+field+' is invalid')
+            elif identity.casefold() in seen: errors.append('typed event '+field+' values must be unique')
+            else: seen.add(identity.casefold())
+        for field in ('source_agent_id','target_agent_id','policy_id'):
+            if not safe_id(event.get(field)): errors.append(label+' '+field+' is invalid')
+        for field in ('event_schema_hash','provenance_hash','policy_hash'):
+            if not exact_hash(event.get(field)): errors.append(label+' '+field+' is invalid')
+        source,target=expected.get(kind,({},{}))
+        if kind not in expected: errors.append(label+' event_kind is invalid')
+        if event.get('source_agent_id')==event.get('target_agent_id'): errors.append(label+' source and target Agents must differ')
+        if event.get('source_agent_id')!=source.get('agent_id') or event.get('target_agent_id')!=target.get('agent_id'): errors.append(label+' direction disagrees with accepted Agent roles')
+        if event.get('candidate_id')!=candidate_id or event.get('candidate_hash')!=candidate_hash: errors.append(label+' candidate identity disagrees')
+        if event.get('candidate_id')!=config.get('candidate_id') or event.get('candidate_hash')!=config.get('candidate_hash'): errors.append(label+' candidate identity disagrees with configuration')
+        if event.get('policy_id')!=source.get('policy_id') or event.get('policy_hash')!=source.get('policy_hash'): errors.append(label+' Policy identity disagrees with source Agent')
+        if event.get('payload_classification')!='MINIMAL_NON_SENSITIVE_METADATA': errors.append(label+' payload classification is invalid')
+        if event.get('policy_result')!='PASS' or event.get('redaction_result')!='PASS': errors.append(label+' Policy and redaction results must be exact PASS')
+        event_at=strict_utc(event.get('event_at_utc'))
+        if event_at is None: errors.append(label+' event_at_utc must be strict UTC')
+        elif observed is not None and validated is not None and not observed<=event_at<=validated: errors.append(label+' timestamp is outside the attested observation window')
+        if any(EVENT_FORBIDDEN_VALUE.search(item) or SECRET.search(item) or RUNTIME_SECRET.search(item) for item in _strings(event)): errors.append(label+' contains raw, privileged, or secret-like material')
+    if kinds!=RUNTIME_CONTRACT['event_kinds']:
+        errors.append('typed event kinds are incomplete, duplicated, unknown, or unordered')
+    return errors
+
 def validate_runtime_adapter_attestation(
     value,configuration,configuration_hash,expected_topology_id,
     expected_topology_hash,as_of_utc,
@@ -367,6 +425,8 @@ def validate_runtime_adapter_attestation(
     if any(authority.get(field)!=expected for field,expected in exact_authority.items()): errors.append('Runtime Adapter authority boundaries are invalid')
     root=config.get('root_authority',{}) if isinstance(config.get('root_authority',{}),dict) else {}
     if authority.get('scorpion_policy_id')!=root.get('scorpion_policy_id') or authority.get('scorpion_policy_hash')!=root.get('scorpion_policy_hash'): errors.append('Runtime Adapter Scorpion boundary disagrees with configuration')
+    if not safe_id(authority.get('isolation_evidence_id')) or not exact_hash(authority.get('isolation_evidence_hash')): errors.append('Runtime Adapter isolation evidence identity is invalid')
+    if authority.get('private_boundary_result')!='PASS' or authority.get('shared_execution_result')!='PASS': errors.append('Runtime Adapter isolation results must be exact PASS')
 
     validity=closed(record.get('validity'),RUNTIME_VALIDITY_FIELDS,'validity',errors)
     as_of=strict_utc(as_of_utc)
@@ -381,10 +441,16 @@ def validate_runtime_adapter_attestation(
         maximum=timedelta(seconds=RUNTIME_CONTRACT['max_observation_age_seconds'])
         if as_of-observed>maximum or as_of-validated>maximum: errors.append('Runtime Adapter Attestation evidence is stale')
 
+    errors.extend(validate_typed_event_attestations(
+        record.get('typed_event_attestations'),configuration,
+        record.get('candidate_id'),record.get('candidate_hash'),
+        validity.get('observed_at_utc'),validity.get('validated_at_utc'),as_of_utc,
+    ))
+
     evidence=record.get('evidence')
     if not isinstance(evidence,list) or not evidence:
         errors.append('Runtime Adapter evidence must be a non-empty list'); evidence=[]
-    evidence_ids=set(); evidence_paths=set()
+    evidence_ids=set(); evidence_paths=set(); evidence_bindings=set()
     for index,item in enumerate(evidence):
         label='Runtime Adapter evidence '+str(index+1)
         item=closed(item,RUNTIME_EVIDENCE_FIELDS,label,errors)
@@ -397,6 +463,8 @@ def validate_runtime_adapter_attestation(
         else: evidence_paths.add(path.casefold())
         if not exact_hash(item.get('evidence_hash')): errors.append(label+' hash is invalid')
         if item.get('producer_kind')!='INDEPENDENT_VERIFIER' or item.get('independence')!='INDEPENDENT' or item.get('result')!='PASS': errors.append(label+' is not independent PASS evidence')
+        if isinstance(identity,str) and isinstance(item.get('evidence_hash'),str): evidence_bindings.add((identity,item.get('evidence_hash')))
+    if (authority.get('isolation_evidence_id'),authority.get('isolation_evidence_hash')) not in evidence_bindings: errors.append('Runtime Adapter isolation evidence is not bound to independent evidence')
 
     operations=config.get('operations_agent',{}) if isinstance(config.get('operations_agent',{}),dict) else {}
     fallback=closed(record.get('fallback'),RUNTIME_FALLBACK_FIELDS,'fallback',errors)

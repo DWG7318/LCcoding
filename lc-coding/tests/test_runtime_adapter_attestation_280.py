@@ -28,6 +28,7 @@ TOP_LEVEL_FIELDS = [
     "loaded_result",
     "capability_attestations",
     "authority_boundaries",
+    "typed_event_attestations",
     "validity",
     "evidence",
     "fallback",
@@ -51,6 +52,8 @@ assert set(contract) == {
     "topology_fields",
     "capability_fields",
     "authority_boundary_fields",
+    "typed_event_fields",
+    "event_kinds",
     "validity_fields",
     "evidence_fields",
     "fallback_fields",
@@ -84,8 +87,19 @@ assert contract["capability_fields"] == [
 assert contract["authority_boundary_fields"] == [
     "runtime_permission", "agent_separation", "scorpion_policy_id",
     "scorpion_policy_hash", "scorpion_result", "environment_fallback",
-    "provider_authority", "secret_loading",
+    "provider_authority", "secret_loading", "isolation_evidence_id",
+    "isolation_evidence_hash", "private_boundary_result",
+    "shared_execution_result",
 ]
+EVENT_FIELDS = [
+    "event_id", "event_kind", "event_schema_id", "event_schema_hash",
+    "source_agent_id", "target_agent_id", "candidate_id", "candidate_hash",
+    "payload_classification", "provenance_id", "provenance_hash", "policy_id",
+    "policy_hash", "policy_result", "redaction_result", "event_at_utc",
+]
+EVENT_KINDS = ["MAINTENANCE_REQUEST", "SERVICE_STATUS_UPDATE"]
+assert contract["typed_event_fields"] == EVENT_FIELDS
+assert contract["event_kinds"] == EVENT_KINDS
 assert contract["validity_fields"] == [
     "observed_at_utc", "validated_at_utc", "expires_at_utc",
 ]
@@ -215,6 +229,56 @@ def capability(role, agent_record, number):
     }
 
 
+def typed_events(configuration):
+    if configuration["product_agent"]["applicability"] == "NOT_APPLICABLE":
+        return []
+    product = configuration["product_agent"]
+    operations = configuration["operations_agent"]
+    records = []
+    for number, (kind, source, target, at_utc) in enumerate(
+        (
+            (
+                "MAINTENANCE_REQUEST",
+                product,
+                operations,
+                "2026-08-15T11:35:00Z",
+            ),
+            (
+                "SERVICE_STATUS_UPDATE",
+                operations,
+                product,
+                "2026-08-15T11:40:00Z",
+            ),
+        ),
+        1,
+    ):
+        records.append(
+            {
+                "event_id": f"EVENT-{number}",
+                "event_kind": kind,
+                "event_schema_id": f"EVENT-SCHEMA-{number}",
+                "event_schema_hash": "sha256:" + hashlib.sha256(
+                    f"event-schema:{number}".encode("utf-8")
+                ).hexdigest(),
+                "source_agent_id": source["agent_id"],
+                "target_agent_id": target["agent_id"],
+                "candidate_id": configuration["candidate_id"],
+                "candidate_hash": configuration["candidate_hash"],
+                "payload_classification": "MINIMAL_NON_SENSITIVE_METADATA",
+                "provenance_id": f"EVENT-PROVENANCE-{number}",
+                "provenance_hash": "sha256:" + hashlib.sha256(
+                    f"event-provenance:{number}".encode("utf-8")
+                ).hexdigest(),
+                "policy_id": source["policy_id"],
+                "policy_hash": source["policy_hash"],
+                "policy_result": "PASS",
+                "redaction_result": "PASS",
+                "event_at_utc": at_utc,
+            }
+        )
+    return records
+
+
 def valid_attestation(configuration):
     capabilities = [
         capability("OPERATIONS_AGENT", configuration["operations_agent"], 1),
@@ -260,7 +324,12 @@ def valid_attestation(configuration):
             "environment_fallback": "FORBIDDEN",
             "provider_authority": "NO_VENDOR_SELF_AUTHORITY",
             "secret_loading": "REFERENCES_ONLY_NO_INLINE_SECRETS",
+            "isolation_evidence_id": "BOUNDARY-EVIDENCE-1",
+            "isolation_evidence_hash": HASH_D,
+            "private_boundary_result": "PASS",
+            "shared_execution_result": "PASS",
         },
+        "typed_event_attestations": typed_events(configuration),
         "validity": {
             "observed_at_utc": "2026-08-15T11:30:00Z",
             "validated_at_utc": "2026-08-15T11:45:00Z",
@@ -348,7 +417,11 @@ for section in (
 ):
     changed = copy.deepcopy(base); changed[section].pop(next(iter(changed[section]))); mutations.append(changed)
     changed = copy.deepcopy(base); changed[section]["unknown"] = "x"; mutations.append(changed)
-for section in ("capability_attestations", "evidence", "conformance"):
+for section in (
+    "capability_attestations", "typed_event_attestations", "evidence", "conformance",
+):
+    if not base[section]:
+        continue
     changed = copy.deepcopy(base); changed[section][0].pop(next(iter(changed[section][0]))); mutations.append(changed)
     changed = copy.deepcopy(base); changed[section][0]["unknown"] = "x"; mutations.append(changed)
 
@@ -380,6 +453,14 @@ changed = copy.deepcopy(base); changed["authority_boundaries"]["scorpion_policy_
 changed = copy.deepcopy(base); changed["authority_boundaries"]["environment_fallback"] = "ALLOWED"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["authority_boundaries"]["provider_authority"] = "VENDOR_DECIDES"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["authority_boundaries"]["secret_loading"] = "INLINE_SECRET"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["authority_boundaries"]["isolation_evidence_id"] = "SELF-REPORT-1"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["authority_boundaries"]["isolation_evidence_hash"] = HASH_A; mutations.append(changed)
+changed = copy.deepcopy(base); changed["authority_boundaries"]["private_boundary_result"] = "SELF_REPORTED"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["authority_boundaries"]["shared_execution_result"] = "PENDING"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["typed_event_attestations"] = changed["typed_event_attestations"][:-1]; mutations.append(changed)
+changed = copy.deepcopy(base); changed["typed_event_attestations"][0]["candidate_id"] = "CANDIDATE-2"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["typed_event_attestations"][0]["policy_result"] = "SELF_REPORTED"; mutations.append(changed)
+changed = copy.deepcopy(base); changed["typed_event_attestations"][0]["payload"] = "raw administrator authorization"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["validity"]["observed_at_utc"] = "2026-08-15T10:00:00Z"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["validity"]["observed_at_utc"] = "2026-08-15T12:01:00Z"; mutations.append(changed)
 changed = copy.deepcopy(base); changed["validity"]["validated_at_utc"] = "2026-08-15T12:01:00Z"; mutations.append(changed)
