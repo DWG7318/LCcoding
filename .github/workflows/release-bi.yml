@@ -125,6 +125,78 @@ jobs:
           }
           & lc-coding/bi/tests/packaging/nsis-contract.ps1
           python lc-coding/tests/test_release_integrity.py
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "BI_RELEASE_DIRECTORY=$release"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "BI_RELEASE_INSTALLER=$installer"
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "BI_RELEASE_PRE_SMOKE_SHA256=$sha256"
+
+      - name: Smoke the exact formal installer as one standard user
+        shell: powershell
+        env:
+          EXPECTED_HOOKS_SHA256: e25a7bd12d9921444d8fe51578a3fa67f48d67e5175a57bb5303b01c297f4a47
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          $expectedRelease = [IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP "lccoding-bi-formal/release"))
+          $expectedInstaller = [IO.Path]::GetFullPath((Join-Path $expectedRelease "LCCoding-BI_2.8.0_x64-setup.exe"))
+          if ($env:BI_RELEASE_DIRECTORY -cne $expectedRelease -or
+              $env:BI_RELEASE_INSTALLER -cne $expectedInstaller) {
+            throw "BI_RELEASE_FROZEN_PATH_INVALID"
+          }
+          $parent = Join-Path $env:GITHUB_WORKSPACE "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1"
+          & $parent `
+            -SourceRepository $env:GITHUB_WORKSPACE `
+            -PackageDirectory $env:BI_RELEASE_DIRECTORY `
+            -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "lccoding-bi-formal-smoke-evidence") `
+            -ExpectedCommit $env:GITHUB_SHA `
+            -ExpectedHooksSha256 $env:EXPECTED_HOOKS_SHA256
+          if ($LASTEXITCODE -ne 0) { throw "BI_RELEASE_STANDARD_USER_SMOKE_FAILED" }
+
+      - name: Verify the same formal installer after smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidencePath = Join-Path $env:RUNNER_TEMP "lccoding-bi-formal-smoke-evidence/orchestrator-result.json"
+          if (-not (Test-Path -LiteralPath $evidencePath -PathType Leaf)) {
+            throw "BI_RELEASE_SMOKE_EVIDENCE_MISSING"
+          }
+          $evidence = Get-Content -LiteralPath $evidencePath -Raw | ConvertFrom-Json
+          $post = (Get-FileHash -LiteralPath $env:BI_RELEASE_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksumText = (Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "installer.sha256") -Raw).Trim()
+          $checksumMatch = [regex]::Match($checksumText, "^([0-9a-f]{64})  LCCoding-BI_2[.]8[.]0_x64-setup[.]exe$")
+          if (-not $checksumMatch.Success) { throw "BI_RELEASE_POST_SMOKE_CHECKSUM_INVALID" }
+          $checksumSha256 = $checksumMatch.Groups[1].Value
+          $provenance = Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "provenance.json") -Raw | ConvertFrom-Json
+          if ($post -cne $env:BI_RELEASE_PRE_SMOKE_SHA256 -or
+              $post -cne $evidence.pre_smoke_sha256 -or
+              $post -cne $evidence.smoked_installer_sha256 -or
+              $post -cne $evidence.post_smoke_sha256 -or
+              $post -cne $checksumSha256 -or
+              $post -cne $provenance.sha256 -or
+              $evidence.repository -cne $env:GITHUB_REPOSITORY -or
+              $evidence.commit -cne $env:GITHUB_SHA -or
+              $evidence.workflow -cne $env:GITHUB_WORKFLOW -or
+              $evidence.workflow_run_id -cne $env:GITHUB_RUN_ID -or
+              $evidence.workflow_run_attempt -cne $env:GITHUB_RUN_ATTEMPT -or
+              $evidence.workflow_ref -cne $env:GITHUB_REF -or
+              $evidence.installer_basename -cne "LCCoding-BI_2.8.0_x64-setup.exe" -or
+              $evidence.installer_path -cne $env:BI_RELEASE_INSTALLER -or
+              $evidence.child_status -cne "PASS" -or
+              $evidence.child_process_exit_code -ne 0 -or
+              $evidence.administrator -ne $false -or
+              $evidence.session_id -lt 1 -or
+              $evidence.exact_raw_match -ne $true -or
+              $evidence.exact_kind_match -ne $true -or
+              $evidence.uninstall_parent_exit_code -ne 0 -or
+              $evidence.residue_after.uninstall_record_count -ne 0 -or
+              $evidence.residue_after.install_root_exists -or
+              $evidence.residue_after.shortcut_exists -or
+              $evidence.residue_after.product_process_count -ne 0 -or
+              $evidence.status -cne "PASS" -or
+              $evidence.temporary_user_cleanup -cne "PASS") {
+            throw "BI_RELEASE_POST_SMOKE_IDENTITY_INVALID"
+          }
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value "BI_RELEASE_POST_SMOKE_SHA256=$post"
 
       - name: Upload formal three-file asset set
         uses: actions/upload-artifact@v4
@@ -134,5 +206,16 @@ jobs:
             ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding-BI_2.8.0_x64-setup.exe
             ${{ runner.temp }}\lccoding-bi-formal\release\installer.sha256
             ${{ runner.temp }}\lccoding-bi-formal\release\provenance.json
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload formal smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lccoding-bi-formal-smoke-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}\lccoding-bi-formal-smoke-evidence\orchestrator-result.json
+            ${{ runner.temp }}\lccoding-bi-formal-smoke-evidence\result.json
           if-no-files-found: error
           compression-level: 0

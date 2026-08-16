@@ -184,10 +184,11 @@ for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]
     assert forbidden_element not in protected_report, forbidden_element
 
 release_paths = {
-    ".github/workflows/release-bi.yml": "a6df16e06206f879e762029b2842b559f54e08c0b413b644c817b2ac1cc90754",
+    ".github/workflows/release-bi.yml": "f785373bf5f12c53ddb7afcc4d58a0fd2719c8550e9df03bd69030cad4bb153d",
     "lc-coding/bi/scripts/package-release.ps1": "cc68469b86b416a5927b69e415f188f37f5516d64cb3dd895752abae0255800b",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "5022a015c8ab737088fffaf118c67b1fe94d3eabde17c5022b91949577d72b05",
     "lc-coding/bi/tests/packaging/nsis-contract.ps1": "7a8b08d6a79aff63d94faaad8ea6a96267d8baee07789506e93eb6a8309057ce",
+    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "f6677902ba6c8aaaea906dc83a08251cc09f19045b5593bc40c7634a171af6f3",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash

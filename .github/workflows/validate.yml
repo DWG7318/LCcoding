@@ -60,104 +60,21 @@ jobs:
             throw "TASK22_WIN_CI_PACKAGE_PROVENANCE_INVALID"
           }
 
-      - name: Run original smoke as one ephemeral standard user
+      - name: Run reusable standard-user smoke parent
         shell: powershell
         env:
           EXPECTED_HOOKS_SHA256: e25a7bd12d9921444d8fe51578a3fa67f48d67e5175a57bb5303b01c297f4a47
         run: |
           $ErrorActionPreference = "Stop"
           Set-StrictMode -Version Latest
-          $userName = "Task22Smoke"
-          if (Get-LocalUser -Name $userName -ErrorAction SilentlyContinue) { throw "TASK22_WIN_CI_USER_PREEXISTS" }
-
-          $random = New-Object byte[] 32
-          $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
-          try { $generator.GetBytes($random) } finally { $generator.Dispose() }
-          $plainPassword = [Convert]::ToBase64String($random) + "aA1!"
-          [Array]::Clear($random, 0, $random.Length)
-          $securePassword = ConvertTo-SecureString $plainPassword -AsPlainText -Force
-          $credential = [Management.Automation.PSCredential]::new(".\$userName", $securePassword)
-          $plainPassword = $null
-
-          New-LocalUser -Name $userName -Password $securePassword -AccountNeverExpires -UserMayNotChangePassword | Out-Null
-          try {
-            $localUser = Get-LocalUser -Name $userName -ErrorAction Stop
-            $usersSid = [Security.Principal.SecurityIdentifier]::new("S-1-5-32-545")
-            $administratorsSid = [Security.Principal.SecurityIdentifier]::new("S-1-5-32-544")
-            Add-LocalGroupMember -SID $usersSid -Member $localUser -ErrorAction Stop
-            $users = @(Get-LocalGroupMember -SID $usersSid -ErrorAction Stop | Where-Object SID -eq $localUser.SID)
-            $administrators = @(Get-LocalGroupMember -SID $administratorsSid -ErrorAction Stop | Where-Object SID -eq $localUser.SID)
-            if ($users.Count -ne 1 -or $administrators.Count -ne 0) { throw "TASK22_WIN_CI_USER_ROLE_INVALID" }
-
-            $package = Join-Path $env:RUNNER_TEMP "lccoding-task22-win-ci-package/release"
-            $evidence = Join-Path $env:RUNNER_TEMP "lccoding-task22-win-ci-evidence"
-            $smokeParent = "D:\LCcoding\.codex\.tmp"
-            New-Item -ItemType Directory -Path $evidence -Force | Out-Null
-            New-Item -ItemType Directory -Path $smokeParent -Force | Out-Null
-            foreach ($grant in @(
-              [pscustomobject]@{ path = $env:GITHUB_WORKSPACE; rights = "RX" },
-              [pscustomobject]@{ path = $package; rights = "RX" },
-              [pscustomobject]@{ path = $evidence; rights = "M" },
-              [pscustomobject]@{ path = $smokeParent; rights = "M" }
-            )) {
-              & icacls.exe $grant.path /grant "${userName}:(OI)(CI)$($grant.rights)" /T /C | Out-Null
-              if ($LASTEXITCODE -ne 0) { throw "TASK22_WIN_CI_ACL_FAILED" }
-            }
-
-            $launcher = Join-Path $env:GITHUB_WORKSPACE "lc-coding/bi/tests/packaging/standard-user-install-smoke.ps1"
-            $resultPath = Join-Path $evidence "result.json"
-            $arguments = @(
-              "-NoLogo",
-              "-NoProfile",
-              "-NonInteractive",
-              "-ExecutionPolicy", "Bypass",
-              "-File", ('"{0}"' -f $launcher),
-              "-SourceRepository", ('"{0}"' -f $env:GITHUB_WORKSPACE),
-              "-PackageDirectory", ('"{0}"' -f $package),
-              "-EvidenceDirectory", ('"{0}"' -f $evidence),
-              "-ExpectedCommit", $env:GITHUB_SHA,
-              "-ExpectedHooksSha256", $env:EXPECTED_HOOKS_SHA256
-            )
-            $process = Start-Process -FilePath "powershell.exe" -ArgumentList $arguments -Credential $credential -LoadUserProfile -WindowStyle Hidden -PassThru
-            if (-not $process.WaitForExit(1200000)) {
-              Stop-Process -Id $process.Id -Force
-              throw "TASK22_WIN_CI_STANDARD_USER_TIMEOUT"
-            }
-            $process.Refresh()
-            $childExitCode = $process.ExitCode
-            $process.Dispose()
-            if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) { throw "TASK22_WIN_CI_RESULT_MISSING" }
-            $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-            $result | ConvertTo-Json -Depth 8
-            if ($null -ne $childExitCode -and $childExitCode -ne $result.process_exit_code) {
-              throw "TASK22_WIN_CI_PROCESS_EXIT_MISMATCH:observed=${childExitCode}:result=$($result.process_exit_code)"
-            }
-            if ($result.process_exit_code -ne 0 -or $result.status -ne "PASS") {
-              throw "TASK22_WIN_CI_STANDARD_USER_FAILED:observed=${childExitCode}:result=$($result.process_exit_code):$($result.error)"
-            }
-            if ($result.user_sid -ne $localUser.SID.Value -or
-                $result.administrator -ne $false -or
-                $result.session_id -lt 1 -or
-                $result.exact_raw_match -ne $true -or
-                $result.exact_kind_match -ne $true -or
-                $result.uninstall_parent_exit_code -ne 0 -or
-                $result.before_path.exists -ne $true -or
-                $result.after_path.exists -ne $true -or
-                $result.before_path.registry_kind -ne "ExpandString" -or
-                $result.before_path.registry_kind -cne $result.after_path.registry_kind -or
-                $result.before_path.raw_sha256 -ne $result.after_path.raw_sha256 -or
-                $result.before_path.raw_length -ne $result.after_path.raw_length -or
-                $result.residue_after.uninstall_record_count -ne 0 -or
-                $result.residue_after.install_root_exists -or
-                $result.residue_after.shortcut_exists -or
-                $result.residue_after.product_process_count -ne 0) {
-              throw "TASK22_WIN_CI_RESULT_INVALID"
-            }
-          } finally {
-            if (Get-LocalUser -Name $userName -ErrorAction SilentlyContinue) {
-              Remove-LocalUser -Name $userName
-            }
-          }
+          $parent = Join-Path $env:GITHUB_WORKSPACE "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1"
+          & $parent `
+            -SourceRepository $env:GITHUB_WORKSPACE `
+            -PackageDirectory (Join-Path $env:RUNNER_TEMP "lccoding-task22-win-ci-package/release") `
+            -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "lccoding-task22-win-ci-evidence") `
+            -ExpectedCommit $env:GITHUB_SHA `
+            -ExpectedHooksSha256 $env:EXPECTED_HOOKS_SHA256
+          if ($LASTEXITCODE -ne 0) { throw "TASK22_WIN_CI_PARENT_FAILED" }
 
       - name: Upload Task22 Windows evidence
         if: always()
@@ -165,6 +82,7 @@ jobs:
         with:
           name: task22-win-ci-evidence-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            ${{ runner.temp }}\lccoding-task22-win-ci-evidence\orchestrator-result.json
             ${{ runner.temp }}\lccoding-task22-win-ci-evidence\result.json
             ${{ runner.temp }}\lccoding-task22-win-ci-package\release\installer.sha256
             ${{ runner.temp }}\lccoding-task22-win-ci-package\release\provenance.json
