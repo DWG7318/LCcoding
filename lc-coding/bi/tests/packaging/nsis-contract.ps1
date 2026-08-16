@@ -26,7 +26,7 @@ for ($index = 0; $index -lt $workflowLines.Length; $index++) {
     }
     $runBlocks.Add(($body -join "`n"))
 }
-if ($runBlocks.Count -ne 4) { throw "formal workflow must contain exactly four PowerShell run blocks" }
+if ($runBlocks.Count -ne 6) { throw "formal workflow must contain exactly six PowerShell run blocks" }
 foreach ($block in $runBlocks) {
     $null = [scriptblock]::Create($block)
 }
