@@ -69,6 +69,7 @@ HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/specs/2026-08-12-lccoding-2.7.0-structure-consolidation-design.md": "c48b659333f1b6252029faebe50476016f561ba9c6818de1a138e86fe4b5604e",
     "docs/superpowers/specs/2026-08-15-lccoding-2.8.0-agent-native-integration-design.md": "c0799931ce2267a8aef64ecc71c30d9bc426741e4586c002db34e4385a0953d1",
     "docs/superpowers/specs/2026-08-16-lccoding-bi-single-build-release-design.md": "6c82ff29346f515f49e8fcf4300af6288b17fefd3cc6da890c9bb56059e7e32d",
+    "docs/superpowers/specs/2026-09-07-lccoding-3.0.0-real-user-journey-acceptance-design.md": "5caadc3d7c076b5b5fd7ee64793be8f791461b715b421faeb2c76b0537a9b0c3",
 }
 actual_historical_records = {
     path.relative_to(root).as_posix()
