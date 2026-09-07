@@ -211,7 +211,7 @@ export function App({ ports }: Readonly<{ ports: AppPorts }>) {
         ) : null}
         {state.mode === "report" && state.snapshot !== null && state.report !== null ? (
           <ProtectedReport
-            report={state.snapshot.reports[state.report]}
+            report={state.snapshot.reports[state.report]!}
             language={state.language}
             onBack={() => {
               pendingFocus.current = state.reportOrigin;

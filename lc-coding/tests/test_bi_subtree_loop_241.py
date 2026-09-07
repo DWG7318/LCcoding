@@ -42,6 +42,11 @@ expected_steps = [
     ("POST_SECURITY_OWNER_ACCEPTANCE", None),
     ("DELIVERY_METHOD_QA", None),
     ("DELIVERY_PACKAGE_GUARD_READY", None),
+    ("JOURNEY_COVERAGE_READY", "journey_acceptance"),
+    ("ACCEPTANCE_ENVIRONMENT_READY", "journey_acceptance"),
+    ("REAL_USER_JOURNEY_ROUND", "journey_acceptance"),
+    ("JOURNEY_DEFECT_CLOSURE", "journey_acceptance"),
+    ("REAL_USER_JOURNEY_OWNER_ACCEPTANCE", "journey_acceptance"),
 ]
 
 lifecycle = json.loads(
@@ -58,7 +63,7 @@ actual_steps = [
     )
 ]
 assert actual_steps == expected_steps
-assert len(actual_steps) == 21
+assert len(actual_steps) == 26
 
 report_type = model[model.index("export type ReportId"):model.index("export type StepId")]
 assert re.findall(r'\| "([a-z_]+)"', report_type) == [
@@ -70,11 +75,12 @@ assert re.findall(r'\| "([a-z_]+)"', report_type) == [
     "ui",
     "baseline",
     "loop_governance",
+    "journey_acceptance",
 ]
 
 candidate_rows_280 = model[
     model.index("const REPORT_ROWS_280"):model.index(
-        "const REPORT_ROWS: Readonly<Record<SnapshotSchema"
+        "const REPORT_ROWS_300"
     )
 ]
 assert re.findall(r'\["(row\.[a-z_]+)", "([a-z_]+)"\]', candidate_rows_280) == [
@@ -163,9 +169,9 @@ for marker in [
     assert marker in implementation, marker
 for product_marker in [
     "read-only projection",
-    "four phases",
-    "21-step",
-    "eight report joins",
+    "five phases",
+    "26-step",
+    "nine report joins",
     "status.json",
     "Non-goals",
 ]:
@@ -185,14 +191,14 @@ for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]
     assert forbidden_element not in protected_report, forbidden_element
 
 release_paths = {
-    ".github/workflows/release-bi.yml": "f785373bf5f12c53ddb7afcc4d58a0fd2719c8550e9df03bd69030cad4bb153d",
-    "lc-coding/bi/scripts/package-release.ps1": "cc68469b86b416a5927b69e415f188f37f5516d64cb3dd895752abae0255800b",
-    "lc-coding/bi/scripts/verify-loop-releases.ps1": "5022a015c8ab737088fffaf118c67b1fe94d3eabde17c5022b91949577d72b05",
-    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "f2d75dabc4d3cfa0dfb6a06ac4e60f032a9bb386f888b990d8db55a7a9b52631",
-    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "f6677902ba6c8aaaea906dc83a08251cc09f19045b5593bc40c7634a171af6f3",
+    ".github/workflows/release-bi.yml": "516eb44a46a1e23438354e80d457b9cea5505fcdd0bd457d8a0190842b74e8ef",
+    "lc-coding/bi/scripts/package-release.ps1": "05e22544c1fbe626f6cb1e3c81987e675c44e28d8e0cce3a238776bb316882a1",
+    "lc-coding/bi/scripts/verify-loop-releases.ps1": "2673874828f0de95461132451fdf05695c7c9245fd7d7e1e22e5e588ddb0b7b7",
+    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "0b121cb6315e685fe18f2a523b0b101b9d2d682d810d39a559d0a0c6aec0a78b",
+    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "1de78c8e55221281f8a10a548f288c5a93e4e810fc8db440616ba51b7a5de07b",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == "2.8.0"
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == "3.0.0"
 print("PASS: BI keeps protected subtree and Execution Method Governance reports")

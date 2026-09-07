@@ -447,12 +447,18 @@ def validate_manifest(path):
         gates = status.get("phase_gates", {})
         if not isinstance(gates, dict) or gates.get("DELIVERY_READY") != "DELIVERY_READY":
             errors.append("Delivery Manifest requires current DELIVERY_READY")
+        if status.get("status_schema_version") == "3.0.0" and (
+            gates.get("REAL_USER_JOURNEY_ACCEPTED") != "REAL_USER_JOURNEY_ACCEPTED"
+            or status.get("real_user_journey_acceptance", {}).get("state")
+            != "REAL_USER_JOURNEY_ACCEPTED"
+        ):
+            errors.append("LCCoding 3.0 Delivery Manifest requires current Real User Journey Acceptance")
         agent_fields = policy.get("agent_delivery_manifest_fields", []) if isinstance(policy, dict) else []
         agent_delivery, agent_errors = closed_record(
             data.get("agent_delivery"), agent_fields, "Delivery Manifest agent_delivery"
         )
         errors.extend(agent_errors)
-        if status.get("status_schema_version") == "2.8.0":
+        if status.get("status_schema_version") in {"2.8.0", "3.0.0"}:
             if agent_delivery.get("state") != "BOUND":
                 errors.append("Agent-native Delivery Manifest requires BOUND Agent evidence")
             certification_reference = agent_delivery.get("runtime_certification_reference")

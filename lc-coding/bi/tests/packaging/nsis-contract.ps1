@@ -163,7 +163,7 @@ foreach ($marker in @(
     "loop_release_dependencies",
     "expectedProvenanceKeys",
     "BI_FORMAL_SOURCE_MUST_BE_CLEAN",
-    '$releaseInstallerName = "LCCoding-BI_2.8.0_x64-setup.exe"',
+    '$releaseInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"',
     "BI_RELEASE_ASSET_NAME_UNSAFE",
     "stagedTauriRoot",
     'Join-Path $frontend "src-tauri"'
@@ -176,7 +176,7 @@ if ($driverText.Contains("LCCODING_LOOP_RELEASES_VERIFIED")) {
 if ($driverText -match 'Push-Location\s+\$bi') {
     throw "Tauri packaging must not run in the source BI tree"
 }
-if ($driverText.Contains('LCCoding BI_2.8.0_x64-setup.exe')) {
+if ($driverText.Contains('LCCoding BI_3.0.0_x64-setup.exe')) {
     throw "release installer basename must not contain spaces"
 }
 
@@ -189,8 +189,11 @@ foreach ($marker in @(
     ".execution_methods",
     '$assetSchemaV1 = "LCCODING_BI_COMPATIBILITY_V1"',
     '$assetSchemaV2 = "LCCODING_BI_COMPATIBILITY_V2"',
+    '$assetSchemaV3 = "LCCODING_BI_COMPATIBILITY_V3"',
     "Test-CompatibilityAsset",
     '.status_adapters."2.8.0"',
+    '.status_adapters."3.0.0"',
+    '"REAL_USER_JOURNEY_ACCEPTANCE"',
     '"REAL_PRODUCT_INTEGRATION"',
     '"SUPPORTED_LEGACY"',
     '"CURRENT"',

@@ -71,14 +71,14 @@ for marker in [
     "Source clauses: [LC-BI-001]",
     "[LC-BI-002]",
     "LCCoding 2.6.0 and 2.7.0",
-    "`LCCoding 2.8.0 derived BI`",
+    "`LCCoding 3.0.0 derived BI`",
     "Operations Agent integration",
     "Product Agent applicability / integration",
     "safe Runtime Adapter ID/version",
     "dual-Agent isolation",
     "Product Slice count",
     "Operations Slice count",
-    "exactly eight protected reports",
+    "exactly nine protected reports",
     "not an Agent console",
     "cannot open a project source file",
 ]:
@@ -128,19 +128,16 @@ visual_cases_contract = (
 visual_spec = (bi_root / "tests" / "visual" / "candidates.spec.ts").read_text(
     encoding="utf-8"
 )
-assert 'expect(slugs).toHaveLength(32)' in visual_cases_contract
-assert 'VISUAL_CASES.length + 1 !== 33' in visual_spec
-assert (
-    'test("2.7.0 protected reports stay inside the fixed scrollable client area"'
-    in visual_spec
-)
+assert 'expect(slugs).toHaveLength(36)' in visual_cases_contract
+assert 'VISUAL_CASES.length + 1 !== 37' in visual_spec
+assert 'test("protected reports stay inside the fixed scrollable client area"' in visual_spec
 assert 'expect(page.viewportSize()).toEqual({ width: 300, height: 480 })' in visual_spec
 assert 'expect(buttonClasses).toEqual([' in visual_spec
 
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))
 assert config["productName"] == "LCCoding BI"
-assert config["version"] == "2.8.0"
+assert config["version"] == "3.0.0"
 assert config["identifier"] == "com.lccoding.desktop"
 assert config["build"] == {"frontendDist": "../dist"}
 assert config["plugins"] == {}
@@ -269,7 +266,7 @@ cargo = tomllib.loads((tauri_root / "Cargo.toml").read_text(encoding="utf-8"))
 assert cargo["bin"] == [{"name": "lccoding-bi", "path": "src/main.rs"}]
 assert cargo["package"] == {
     "name": "lccoding",
-    "version": "2.8.0",
+    "version": "3.0.0",
     "edition": "2024",
     "rust-version": "1.96",
     "publish": False,

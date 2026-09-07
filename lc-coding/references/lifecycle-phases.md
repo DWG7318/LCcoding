@@ -1,6 +1,6 @@
 # Lifecycle Phases
 
-Four phases make product progress visible. SLK, CLK, GLK, and other execution methods are available across all four phases and are not lifecycle nodes.
+Five phases make product progress visible. SLK, CLK, GLK, and other execution methods are available across all five phases and are not lifecycle nodes.
 
 ## PHASE 0 — INITIAL
 

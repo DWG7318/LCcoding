@@ -1,4 +1,4 @@
-export type PreviewCase = "ok" | "error" | "max-en" | "max-zh";
+export type PreviewCase = "ok" | "error" | "max-en" | "max-zh" | "journey";
 
 export type CandidateView =
   | "main"
@@ -7,7 +7,8 @@ export type CandidateView =
   | "calabash"
   | "simulation"
   | "workflow"
-  | "ui";
+  | "ui"
+  | "journey_acceptance";
 export type CandidateLanguage = "en" | "zh";
 export type CandidateMotion = "normal" | "reduced";
 
@@ -77,6 +78,34 @@ const boundaryCases: readonly VisualCase[] = Object.freeze([
     slug: "candidate--max-zh--main--zh--reduced",
     preview: "max-zh",
     view: "main",
+    language: "zh",
+    motion: "reduced",
+  }),
+  Object.freeze<VisualCase>({
+    slug: "candidate--journey--main--en--reduced",
+    preview: "journey",
+    view: "main",
+    language: "en",
+    motion: "reduced",
+  }),
+  Object.freeze<VisualCase>({
+    slug: "candidate--journey--main--zh--reduced",
+    preview: "journey",
+    view: "main",
+    language: "zh",
+    motion: "reduced",
+  }),
+  Object.freeze<VisualCase>({
+    slug: "candidate--journey--report--en--reduced",
+    preview: "journey",
+    view: "journey_acceptance",
+    language: "en",
+    motion: "reduced",
+  }),
+  Object.freeze<VisualCase>({
+    slug: "candidate--journey--report--zh--reduced",
+    preview: "journey",
+    view: "journey_acceptance",
     language: "zh",
     motion: "reduced",
   }),

@@ -1,6 +1,6 @@
 {
   "record_role": "AUTHORITATIVE_PROJECT_STATUS",
-  "status_schema_version": "2.8.0",
+  "status_schema_version": "3.0.0",
   "project_id": "",
   "updated_at": "",
   "initialization_mode": "NEW|EXISTING",
@@ -20,6 +20,7 @@
     "INITIAL_READY": "PENDING",
     "CALABASH_UPGRADE_READY": "PENDING",
     "ALL_REQUIRED_RUNS_ACCEPTED": "PENDING",
+    "REAL_USER_JOURNEY_ACCEPTED": "PENDING",
     "DELIVERY_READY": "PENDING"
   },
   "product_baseline": "PENDING",
@@ -74,6 +75,27 @@
   "loop_owner_acceptances": [],
   "open_owner_gaps": [],
   "all_required_runs_accepted": "PENDING",
+  "real_user_journey_acceptance": {
+    "state": "UNPROVED",
+    "candidate_id": "NOT_APPLICABLE",
+    "candidate_hash": "NOT_APPLICABLE",
+    "coverage_state": "UNPROVED",
+    "acceptance_environment_state": "UNPROVED",
+    "current_round": 0,
+    "complete_round_count": 0,
+    "required_journey_count": 0,
+    "passed_journey_count": 0,
+    "failed_journey_count": 0,
+    "not_applicable_journey_count": 0,
+    "open_defect_ids": [],
+    "fixed_verified_defect_ids": [],
+    "exempted_defect_ids": [],
+    "deferred_defect_ids": [],
+    "reopened_defect_ids": [],
+    "acceptance_record_reference": "NOT_APPLICABLE",
+    "defect_log_reference": "NOT_APPLICABLE",
+    "owner_result": "PENDING"
+  },
   "centralized_security_audit": "PENDING",
   "security_remediation": "PENDING",
   "vulnerability_closure": {

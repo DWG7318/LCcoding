@@ -369,6 +369,8 @@ def make_project(
     status.pop("agent_product_formation")
     assert status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
     status.pop("agent_slice_integration")
+    assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
+    assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     status["status_schema_version"] = "2.6.0"
     status["project_id"] = "migration-fixture"
     status["initialization_mode"] = "NEW"

@@ -6,6 +6,7 @@ $bi = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $identityPath = Join-Path $bi "release/loop-contract-identities.json"
 $assetSchemaV1 = "LCCODING_BI_COMPATIBILITY_V1"
 $assetSchemaV2 = "LCCODING_BI_COMPATIBILITY_V2"
+$assetSchemaV3 = "LCCODING_BI_COMPATIBILITY_V3"
 
 function Stop-ReleaseGate([string]$Reason) {
   throw "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:$Reason"
@@ -207,6 +208,9 @@ function Test-StatusAdapter(
   [int[]]$ExpectedCounts,
   [string]$ExpectedLayoutSha256
 ) {
+  $phaseNames = @("INITIAL", "PRODUCT_FORMATION", $IntegrationPhase)
+  if ($ExpectedCounts.Count -eq 5) { $phaseNames += "REAL_USER_JOURNEY_ACCEPTANCE" }
+  $phaseNames += "DELIVERY_PREPARATION"
   if (-not (Test-ExactKeys $Adapter @(
     "status_schema_version", "compatibility_status", "minimum_bi_version", "phase_steps"
   ))) { return $false }
@@ -214,11 +218,8 @@ function Test-StatusAdapter(
     $Adapter.status_schema_version -cne $Version -or
     $Adapter.compatibility_status -cne $Status -or
     $Adapter.minimum_bi_version -cne $Minimum -or
-    -not (Test-ExactKeys $Adapter.phase_steps @(
-      "INITIAL", "PRODUCT_FORMATION", $IntegrationPhase, "DELIVERY_PREPARATION"
-    ))
+    -not (Test-ExactKeys $Adapter.phase_steps $phaseNames)
   ) { return $false }
-  $phaseNames = @("INITIAL", "PRODUCT_FORMATION", $IntegrationPhase, "DELIVERY_PREPARATION")
   $layout = [Collections.Generic.List[string]]::new()
   $allSteps = [Collections.Generic.List[string]]::new()
   for ($phaseIndex = 0; $phaseIndex -lt $phaseNames.Count; $phaseIndex++) {
@@ -232,7 +233,9 @@ function Test-StatusAdapter(
       $allSteps.Add($step)
     }
   }
-  if (-not (Test-ClosedStringArray $allSteps.ToArray() 21)) { return $false }
+  $expectedStepCount = 0
+  foreach ($count in $ExpectedCounts) { $expectedStepCount += $count }
+  if (-not (Test-ClosedStringArray $allSteps.ToArray() $expectedStepCount)) { return $false }
   $sha256 = [Security.Cryptography.SHA256]::Create()
   try {
     $bytes = [Text.Encoding]::UTF8.GetBytes([string]::Join("`n", $layout.ToArray()))
@@ -274,6 +277,7 @@ function Test-CompatibilityAsset($Identities) {
   $layout260 = "ddaf4c42505ed83196d96c8a3afd9e37907e352c61a1de901aac22202d48d1dd"
   $layout270 = "908c0cf60c93830e178508e9750298820638aa24349f8f9a51f0566ab17eb71f"
   $layout280 = "9816495f048cb64565f30af7f3802509e04d4b890c1d1f6dd97554db055f468b"
+  $layout300 = "0d46093bdf2b1c677a6ebc921c14a87c5b9ccf49692dfe7dd4e13103f691c587"
   if (
     -not (Test-ExactKeys $Identities @("asset_schema", "status_adapters", "execution_methods")) -or
     -not (Test-ExactKeys $Identities.execution_methods @("slk", "clk", "glk")) -or
@@ -294,6 +298,15 @@ function Test-CompatibilityAsset($Identities) {
       (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
       (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "SUPPORTED_LEGACY" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
       (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "CURRENT" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280)
+    )
+  }
+  if ($Identities.asset_schema -ceq $assetSchemaV3) {
+    return (
+      (Test-ExactKeys $Identities.status_adapters @("2.6.0", "2.7.0", "2.8.0", "3.0.0")) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "SUPPORTED_LEGACY" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "SUPPORTED_LEGACY" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280) -and
+      (Test-StatusAdapter $Identities.status_adapters."3.0.0" "3.0.0" "CURRENT" "3.0.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 5, 6) $layout300)
     )
   }
   return $false

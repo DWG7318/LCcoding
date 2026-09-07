@@ -28,9 +28,29 @@ METHOD_FIELDS = (
     "template_sha256",
 )
 ADAPTER_SPECS = {
-    "2.6.0": ("SUPPORTED_LEGACY", "2.6.0", "ENGINEERING_RUNS", (3, 5, 7, 6)),
-    "2.7.0": ("SUPPORTED_LEGACY", "2.7.0", "ENGINEERING_RUNS", (3, 7, 5, 6)),
-    "2.8.0": ("CURRENT", "2.8.0", "REAL_PRODUCT_INTEGRATION", (3, 7, 5, 6)),
+    "2.6.0": (
+        "SUPPORTED_LEGACY", "2.6.0",
+        ("INITIAL", "PRODUCT_FORMATION", "ENGINEERING_RUNS", "DELIVERY_PREPARATION"),
+        (3, 5, 7, 6),
+    ),
+    "2.7.0": (
+        "SUPPORTED_LEGACY", "2.7.0",
+        ("INITIAL", "PRODUCT_FORMATION", "ENGINEERING_RUNS", "DELIVERY_PREPARATION"),
+        (3, 7, 5, 6),
+    ),
+    "2.8.0": (
+        "SUPPORTED_LEGACY", "2.8.0",
+        ("INITIAL", "PRODUCT_FORMATION", "REAL_PRODUCT_INTEGRATION", "DELIVERY_PREPARATION"),
+        (3, 7, 5, 6),
+    ),
+    "3.0.0": (
+        "CURRENT", "3.0.0",
+        (
+            "INITIAL", "PRODUCT_FORMATION", "REAL_PRODUCT_INTEGRATION",
+            "REAL_USER_JOURNEY_ACCEPTANCE", "DELIVERY_PREPARATION",
+        ),
+        (3, 7, 5, 5, 6),
+    ),
 }
 MACHINE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,95}$")
 
@@ -52,7 +72,7 @@ def _load_compatibility_layout():
         raise RuntimeError("invalid fixed BI compatibility asset") from error
     if not isinstance(asset, dict) or tuple(asset) != ASSET_TOP_KEYS:
         raise RuntimeError("invalid fixed BI compatibility asset shape")
-    if asset.get("asset_schema") != "LCCODING_BI_COMPATIBILITY_V2":
+    if asset.get("asset_schema") != "LCCODING_BI_COMPATIBILITY_V3":
         raise RuntimeError("unsupported fixed BI compatibility asset schema")
     adapters = asset.get("status_adapters")
     if not isinstance(adapters, dict) or tuple(adapters) != tuple(ADAPTER_SPECS):
@@ -69,7 +89,7 @@ def _load_compatibility_layout():
     phase_orders = {}
     step_orders = {}
     phase_steps_by_schema = {}
-    for version, (status, minimum, phase3, counts) in ADAPTER_SPECS.items():
+    for version, (status, minimum, expected_phases, counts) in ADAPTER_SPECS.items():
         adapter = adapters[version]
         if not isinstance(adapter, dict) or tuple(adapter) != ADAPTER_FIELDS:
             raise RuntimeError("invalid fixed BI status adapter shape")
@@ -80,12 +100,6 @@ def _load_compatibility_layout():
         ):
             raise RuntimeError("invalid fixed BI status adapter identity")
         phase_steps = adapter.get("phase_steps")
-        expected_phases = (
-            "INITIAL",
-            "PRODUCT_FORMATION",
-            phase3,
-            "DELIVERY_PREPARATION",
-        )
         if not isinstance(phase_steps, dict) or tuple(phase_steps) != expected_phases:
             raise RuntimeError("invalid fixed BI phase identity")
         flattened = []
@@ -100,7 +114,7 @@ def _load_compatibility_layout():
                 raise RuntimeError("invalid fixed BI phase steps")
             normalized[phase_id] = tuple(steps)
             flattened.extend(steps)
-        if len(flattened) != 21 or len(set(flattened)) != 21:
+        if len(flattened) != sum(counts) or len(set(flattened)) != sum(counts):
             raise RuntimeError("invalid fixed BI step identity set")
         phase_orders[version] = expected_phases
         step_orders[version] = tuple(flattened)
@@ -109,6 +123,7 @@ def _load_compatibility_layout():
     legacy = phase_steps_by_schema["2.6.0"]
     current = phase_steps_by_schema["2.7.0"]
     prepared = phase_steps_by_schema["2.8.0"]
+    current_300 = phase_steps_by_schema["3.0.0"]
     if not (
         step_orders["2.6.0"] == step_orders["2.7.0"] == step_orders["2.8.0"]
         and legacy["INITIAL"] == current["INITIAL"] == prepared["INITIAL"]
@@ -120,6 +135,15 @@ def _load_compatibility_layout():
         and current["ENGINEERING_RUNS"] == legacy["ENGINEERING_RUNS"][2:]
         and prepared["PRODUCT_FORMATION"] == current["PRODUCT_FORMATION"]
         and prepared["REAL_PRODUCT_INTEGRATION"] == current["ENGINEERING_RUNS"]
+        and current_300["INITIAL"] == prepared["INITIAL"]
+        and current_300["PRODUCT_FORMATION"] == prepared["PRODUCT_FORMATION"]
+        and current_300["REAL_PRODUCT_INTEGRATION"] == prepared["REAL_PRODUCT_INTEGRATION"]
+        and current_300["DELIVERY_PREPARATION"] == prepared["DELIVERY_PREPARATION"]
+        and step_orders["3.0.0"] == (
+            step_orders["2.8.0"][:-6]
+            + current_300["REAL_USER_JOURNEY_ACCEPTANCE"]
+            + step_orders["2.8.0"][-6:]
+        )
     ):
         raise RuntimeError("inconsistent fixed BI status adapter layouts")
     return phase_orders, step_orders, phase_steps_by_schema
@@ -156,6 +180,7 @@ DONE_STATES = {
     "PASS",
     "PASSED",
     "POST_SECURITY_OWNER_ACCEPTED",
+    "REAL_USER_JOURNEY_ACCEPTED",
     "READY",
     "RECONSTRUCTED",
     "VERIFIED",
@@ -211,6 +236,14 @@ def _phase_fields(phase_id):
             "per_run_acceptances",
             "aggregate_exit_gate",
         }, "aggregate_exit_gate"
+    if phase_id == "REAL_USER_JOURNEY_ACCEPTANCE":
+        return {
+            "status",
+            "acceptance_record",
+            "defect_log",
+            "complete_rounds",
+            "exit_gate",
+        }, "exit_gate"
     return {"status", "exit_gate"}, "exit_gate"
 
 
@@ -297,6 +330,15 @@ def validate_phase_status(data):
             record.get("per_run_acceptances"), list
         ):
             errors.append("per_run_acceptances must be an array")
+        if phase_id == "REAL_USER_JOURNEY_ACCEPTANCE":
+            if not isinstance(record.get("acceptance_record"), str):
+                errors.append("acceptance_record must be a string")
+            if not isinstance(record.get("defect_log"), str):
+                errors.append("defect_log must be a string")
+            if not isinstance(record.get("complete_rounds"), int) or isinstance(
+                record.get("complete_rounds"), bool
+            ) or record.get("complete_rounds", -1) < 0:
+                errors.append("complete_rounds must be a non-negative integer")
 
     formation = phases.get("PRODUCT_FORMATION", {})
     if isinstance(formation, dict) and "exit_gate" in formation:

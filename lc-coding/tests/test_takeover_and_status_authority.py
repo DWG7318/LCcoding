@@ -50,8 +50,8 @@ assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
 assert health.get("record_role") == "ASSESSMENT_EVIDENCE"
-assert status.get("status_schema_version") == "2.8.0"
-assert phase_status.get("status_schema_version") == "2.8.0"
+assert status.get("status_schema_version") == "3.0.0"
+assert phase_status.get("status_schema_version") == "3.0.0"
 assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
 assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
 assert status.get("product_baseline") == "PENDING"
@@ -82,8 +82,15 @@ def legacy_phase_view(current_view):
     return view
 
 
+def remove_300_status_fields(record):
+    assert record["real_user_journey_acceptance"]["state"] == "UNPROVED"
+    record.pop("real_user_journey_acceptance")
+    assert record["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
+
+
 # Exact 2.7 schema remains readable with its legacy phase identity.
 legacy_status_270 = copy.deepcopy(status)
+remove_300_status_fields(legacy_status_270)
 assert legacy_status_270["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
 legacy_status_270.pop("agent_slice_integration")
 assert (
@@ -234,6 +241,7 @@ engineering_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "ACTIVE"
 assert module.validate_status_authority(engineering_status, engineering_view, health) == []
 
 legacy_engineering_status = copy.deepcopy(engineering_status)
+remove_300_status_fields(legacy_engineering_status)
 assert legacy_engineering_status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
 legacy_engineering_status.pop("agent_slice_integration")
 assert (
@@ -248,19 +256,33 @@ assert module.validate_status_authority(
     legacy_engineering_status, legacy_engineering_view, health
 ) == []
 
-# The aggregate boundary keeps its exact authoritative raw value and
-# normalizes to completed when Delivery Preparation begins.
-delivery_status = copy.deepcopy(engineering_status)
-delivery_view = copy.deepcopy(engineering_view)
-delivery_status["current_phase"] = "DELIVERY_PREPARATION"
-delivery_status["phase_gates"][
+# The aggregate boundary keeps its exact authoritative raw value and admits
+# the new journey-acceptance phase before Delivery Preparation.
+acceptance_status = copy.deepcopy(engineering_status)
+acceptance_view = copy.deepcopy(engineering_view)
+acceptance_status["current_phase"] = "REAL_USER_JOURNEY_ACCEPTANCE"
+acceptance_status["phase_gates"][
     "ALL_REQUIRED_RUNS_ACCEPTED"
 ] = "ALL_REQUIRED_RUNS_ACCEPTED"
-delivery_view["current_phase"] = "DELIVERY_PREPARATION"
-delivery_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "COMPLETE"
-delivery_view["phases"]["REAL_PRODUCT_INTEGRATION"][
+acceptance_view["current_phase"] = "REAL_USER_JOURNEY_ACCEPTANCE"
+acceptance_view["phases"]["REAL_PRODUCT_INTEGRATION"]["status"] = "COMPLETE"
+acceptance_view["phases"]["REAL_PRODUCT_INTEGRATION"][
     "aggregate_exit_gate"
 ] = "ALL_REQUIRED_RUNS_ACCEPTED"
+acceptance_view["phases"]["REAL_USER_JOURNEY_ACCEPTANCE"]["status"] = "ACTIVE"
+assert module.validate_status_authority(acceptance_status, acceptance_view, health) == []
+
+delivery_status = copy.deepcopy(acceptance_status)
+delivery_view = copy.deepcopy(acceptance_view)
+delivery_status["current_phase"] = "DELIVERY_PREPARATION"
+delivery_status["phase_gates"]["REAL_USER_JOURNEY_ACCEPTED"] = (
+    "REAL_USER_JOURNEY_ACCEPTED"
+)
+delivery_view["current_phase"] = "DELIVERY_PREPARATION"
+delivery_view["phases"]["REAL_USER_JOURNEY_ACCEPTANCE"]["status"] = "COMPLETE"
+delivery_view["phases"]["REAL_USER_JOURNEY_ACCEPTANCE"]["exit_gate"] = (
+    "REAL_USER_JOURNEY_ACCEPTED"
+)
 delivery_view["phases"]["DELIVERY_PREPARATION"]["status"] = "ACTIVE"
 assert module.validate_status_authority(delivery_status, delivery_view, health) == []
 

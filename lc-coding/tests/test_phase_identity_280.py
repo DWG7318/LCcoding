@@ -13,12 +13,13 @@ spec = importlib.util.spec_from_file_location("phase_identity_280", validator_pa
 validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
 
-CURRENT_SCHEMA = "2.8.0"
+CURRENT_SCHEMA = "3.0.0"
 LEGACY_SCHEMAS = ("2.6.0", "2.7.0")
 CURRENT_PHASES = (
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 )
 LEGACY_PHASES = (
@@ -36,6 +37,7 @@ MAINLINE = [
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
     "FEATURE_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "FINAL_VERIFICATION",
     "OWNER_ACCEPTANCE",
     "DELIVERY",
@@ -45,6 +47,7 @@ GATES = {
     "CALABASH_UPGRADE_READY",
     "LOOP_OWNER_ACCEPTANCE_READY",
     "ALL_REQUIRED_RUNS_ACCEPTED",
+    "REAL_USER_JOURNEY_ACCEPTED",
     "CENTRALIZED_VULNERABILITY_AUDIT",
     "SECURITY_REMEDIATION",
     "INDEPENDENT_SECURITY_REAUDIT",
@@ -61,27 +64,36 @@ def load_json(relative: str) -> dict:
 
 
 def phase_view(schema: str, phase3_id: str) -> dict:
+    phases = {
+        "INITIAL": {"status": "ACTIVE", "exit_gate": "PENDING"},
+        "PRODUCT_FORMATION": {
+            "status": "PENDING",
+            "exit_evidence": "PENDING",
+        },
+        phase3_id: {
+            "status": "PENDING",
+            "per_run_acceptances": [],
+            "aggregate_exit_gate": "PENDING",
+        },
+    }
+    if schema == "3.0.0":
+        phases["REAL_USER_JOURNEY_ACCEPTANCE"] = {
+            "status": "PENDING",
+            "acceptance_record": "NOT_APPLICABLE",
+            "defect_log": "NOT_APPLICABLE",
+            "complete_rounds": 0,
+            "exit_gate": "PENDING",
+        }
+    phases["DELIVERY_PREPARATION"] = {
+        "status": "PENDING",
+        "exit_gate": "PENDING",
+    }
     return {
         "record_role": "DERIVED_VIEW",
         "status_schema_version": schema,
         "derived_from": "status.json",
         "current_phase": "INITIAL",
-        "phases": {
-            "INITIAL": {"status": "ACTIVE", "exit_gate": "PENDING"},
-            "PRODUCT_FORMATION": {
-                "status": "PENDING",
-                "exit_evidence": "PENDING",
-            },
-            phase3_id: {
-                "status": "PENDING",
-                "per_run_acceptances": [],
-                "aggregate_exit_gate": "PENDING",
-            },
-            "DELIVERY_PREPARATION": {
-                "status": "PENDING",
-                "exit_gate": "PENDING",
-            },
-        },
+        "phases": phases,
         "updated_at": "",
         "evidence": [],
         "blockers": [],
@@ -135,9 +147,10 @@ assert "ENGINEERING_RUNS" not in json.dumps(
 phase_by_id = {phase["id"]: phase for phase in phases_contract["phases"]}
 formation = phase_by_id["PRODUCT_FORMATION"]
 integration = phase_by_id["REAL_PRODUCT_INTEGRATION"]
+journey = phase_by_id["REAL_USER_JOURNEY_ACCEPTANCE"]
 delivery = phase_by_id["DELIVERY_PREPARATION"]
 assert lifecycle_contract["mainline"] == MAINLINE
-assert phases_contract["mainline_unchanged"] is True
+assert phases_contract["mainline_unchanged"] is False
 assert formation["start"] == "CALABASH_DRAFT"
 assert formation["end_after"] == "PRODUCT_BASELINE"
 assert "exit_gate" not in formation
@@ -153,6 +166,7 @@ actual_gates = {
     formation["internal_readiness"]["id"],
     integration["per_run_exit_gate"],
     integration["aggregate_exit_gate"],
+    journey["exit_gate"],
     *delivery["required_subgates"],
     delivery["exit_gate"],
 }
@@ -163,6 +177,7 @@ current = phase_view(CURRENT_SCHEMA, "REAL_PRODUCT_INTEGRATION")
 assert validator.validate_phase_status(current) == []
 for schema in LEGACY_SCHEMAS:
     assert validator.validate_phase_status(phase_view(schema, "ENGINEERING_RUNS")) == []
+assert validator.validate_phase_status(phase_view("2.8.0", "REAL_PRODUCT_INTEGRATION")) == []
 
 cross_current = phase_view(CURRENT_SCHEMA, "ENGINEERING_RUNS")
 assert_rejected(cross_current, "phase identity does not match schema")
@@ -200,6 +215,7 @@ wrong_order["phases"] = {
         "INITIAL",
         "REAL_PRODUCT_INTEGRATION",
         "PRODUCT_FORMATION",
+        "REAL_USER_JOURNEY_ACCEPTANCE",
         "DELIVERY_PREPARATION",
     )
 }
@@ -219,8 +235,8 @@ assert valid_result.returncode == 0, valid_result.stdout + valid_result.stderr
 assert valid_result.stdout.strip() == "PASS"
 
 duplicate_text = valid_text.replace(
-    '"status_schema_version":"2.8.0"',
-    '"status_schema_version":"2.8.0","status_schema_version":"2.8.0"',
+    '"status_schema_version":"3.0.0"',
+    '"status_schema_version":"3.0.0","status_schema_version":"3.0.0"',
     1,
 )
 duplicate_result = run_cli(duplicate_text)
@@ -233,4 +249,4 @@ cross_result = run_cli(json.dumps(cross_current, separators=(",", ":")))
 assert cross_result.returncode != 0
 assert "phase identity does not match schema" in cross_result.stdout
 
-print("PASS: exact schema selects one closed four-phase identity without new gates")
+print("PASS: exact schema selects legacy four-phase or current five-phase identity")

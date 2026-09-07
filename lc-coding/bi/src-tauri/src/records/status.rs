@@ -31,6 +31,7 @@ pub fn normalize_state(value: &str) -> Option<NormalizedState> {
         | "PASS"
         | "PASSED"
         | "POST_SECURITY_OWNER_ACCEPTED"
+        | "REAL_USER_JOURNEY_ACCEPTED"
         | "READY"
         | "RECONSTRUCTED"
         | "VERIFIED"
@@ -39,7 +40,7 @@ pub fn normalize_state(value: &str) -> Option<NormalizedState> {
             Some(NormalizedState::Active)
         }
         "PENDING" => Some(NormalizedState::Pending),
-        "BLOCKED" | "ERROR" | "FAIL" | "FAILED" | "INVALID" | "NOT_CONTINUING" | "REJECTED" => {
+        "BLOCKED" | "ERROR" | "FAIL" | "FAILED" | "INVALID" | "INVALIDATED" | "NOT_CONTINUING" | "REJECTED" => {
             Some(NormalizedState::Error)
         }
         _ => None,
@@ -210,8 +211,34 @@ pub struct PhaseGates {
     pub calabash_upgrade_ready: String,
     #[serde(rename = "ALL_REQUIRED_RUNS_ACCEPTED")]
     pub all_required_runs_accepted: String,
+    #[serde(default, rename = "REAL_USER_JOURNEY_ACCEPTED")]
+    real_user_journey_accepted: Present<String>,
     #[serde(rename = "DELIVERY_READY")]
     pub delivery_ready: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RealUserJourneyAcceptance {
+    pub state: String,
+    pub candidate_id: String,
+    pub candidate_hash: String,
+    pub coverage_state: String,
+    pub acceptance_environment_state: String,
+    pub current_round: u64,
+    pub complete_round_count: u64,
+    pub required_journey_count: u64,
+    pub passed_journey_count: u64,
+    pub failed_journey_count: u64,
+    pub not_applicable_journey_count: u64,
+    pub open_defect_ids: Vec<u64>,
+    pub fixed_verified_defect_ids: Vec<u64>,
+    pub exempted_defect_ids: Vec<u64>,
+    pub deferred_defect_ids: Vec<u64>,
+    pub reopened_defect_ids: Vec<u64>,
+    pub acceptance_record_reference: String,
+    pub defect_log_reference: String,
+    pub owner_result: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -256,6 +283,8 @@ pub struct StatusRecord {
     agent_product_formation: Present<AgentProductFormation>,
     #[serde(default)]
     agent_slice_integration: Present<AgentSliceIntegration>,
+    #[serde(default)]
+    real_user_journey_acceptance: Present<RealUserJourneyAcceptance>,
     pub proposal: String,
     pub initialization: String,
     pub calabash_draft: String,
@@ -289,6 +318,16 @@ impl StatusRecord {
 
     pub fn agent_slice_integration(&self) -> Option<&AgentSliceIntegration> {
         self.agent_slice_integration.value()
+    }
+
+    pub fn real_user_journey_acceptance(&self) -> Option<&RealUserJourneyAcceptance> {
+        self.real_user_journey_acceptance.value()
+    }
+}
+
+impl PhaseGates {
+    pub fn real_user_journey_accepted(&self) -> Option<&str> {
+        self.real_user_journey_accepted.value().map(String::as_str)
     }
 }
 
@@ -342,6 +381,7 @@ fn validate(status: &StatusRecord) -> Result<(), RecordError> {
     }
     validate_candidate(&status.canonical_candidate, &status.status_schema_version)?;
     validate_agent_state(status)?;
+    validate_journey_state(status)?;
     match &status.vulnerability_closure {
         VulnerabilityClosure::Legacy(_) if status.status_schema_version == "2.6.0" => {}
         VulnerabilityClosure::Current(value) => validate_security_identity(value)?,
@@ -423,7 +463,7 @@ fn validate_agent_state(status: &StatusRecord) -> Result<(), RecordError> {
                 return Err(RecordError::Invalid);
             }
         }
-        "2.8.0" => {
+        "2.8.0" | "3.0.0" => {
             let formation = status
                 .agent_product_formation()
                 .ok_or(RecordError::Invalid)?;
@@ -436,6 +476,90 @@ fn validate_agent_state(status: &StatusRecord) -> Result<(), RecordError> {
         _ => return Err(RecordError::UnsupportedVersion),
     }
     Ok(())
+}
+
+fn validate_journey_state(status: &StatusRecord) -> Result<(), RecordError> {
+    let gate = status.phase_gates.real_user_journey_accepted.value();
+    let journey = status.real_user_journey_acceptance();
+    if status.status_schema_version != "3.0.0" {
+        return if gate.is_none() && journey.is_none() {
+            Ok(())
+        } else {
+            Err(RecordError::Invalid)
+        };
+    }
+    let gate = gate.ok_or(RecordError::Invalid)?;
+    let journey = journey.ok_or(RecordError::Invalid)?;
+    if normalize_state(gate).is_none()
+        || !unique_defect_ids(&journey.open_defect_ids)
+        || !unique_defect_ids(&journey.fixed_verified_defect_ids)
+        || !unique_defect_ids(&journey.exempted_defect_ids)
+        || !unique_defect_ids(&journey.deferred_defect_ids)
+        || !unique_defect_ids(&journey.reopened_defect_ids)
+    {
+        return Err(RecordError::Invalid);
+    }
+    if journey.state == "UNPROVED" {
+        return if gate == "PENDING"
+            && journey.candidate_id == "NOT_APPLICABLE"
+            && journey.candidate_hash == "NOT_APPLICABLE"
+            && journey.coverage_state == "UNPROVED"
+            && journey.acceptance_environment_state == "UNPROVED"
+            && journey.current_round == 0
+            && journey.complete_round_count == 0
+            && journey.required_journey_count == 0
+            && journey.passed_journey_count == 0
+            && journey.failed_journey_count == 0
+            && journey.not_applicable_journey_count == 0
+            && journey.open_defect_ids.is_empty()
+            && journey.fixed_verified_defect_ids.is_empty()
+            && journey.exempted_defect_ids.is_empty()
+            && journey.deferred_defect_ids.is_empty()
+            && journey.reopened_defect_ids.is_empty()
+            && journey.acceptance_record_reference == "NOT_APPLICABLE"
+            && journey.defect_log_reference == "NOT_APPLICABLE"
+            && journey.owner_result == "PENDING"
+        {
+            Ok(())
+        } else {
+            Err(RecordError::Invalid)
+        };
+    }
+    if journey.candidate_id != status.canonical_candidate.candidate_id().unwrap_or("")
+        || journey.candidate_hash != status.canonical_candidate.candidate_hash().unwrap_or("")
+        || !safe_ref(&journey.acceptance_record_reference)
+        || !safe_ref(&journey.defect_log_reference)
+        || journey.current_round == 0
+        || journey.complete_round_count > journey.current_round
+    {
+        return Err(RecordError::Invalid);
+    }
+    if journey.state == "REAL_USER_JOURNEY_ACCEPTED"
+        && (gate != "REAL_USER_JOURNEY_ACCEPTED"
+            || journey.coverage_state != "COMPLETE"
+            || journey.acceptance_environment_state != "VERIFIED"
+            || journey.failed_journey_count != 0
+            || !journey.open_defect_ids.is_empty()
+            || !journey.deferred_defect_ids.is_empty()
+            || !journey.reopened_defect_ids.is_empty()
+            || journey.owner_result != "REAL_USER_JOURNEY_ACCEPTED"
+            || journey.passed_journey_count + journey.not_applicable_journey_count
+                != journey.required_journey_count)
+    {
+        return Err(RecordError::Invalid);
+    }
+    if !matches!(
+        journey.state.as_str(),
+        "ACTIVE" | "REWORK" | "DEFERRED" | "INVALIDATED" | "REAL_USER_JOURNEY_ACCEPTED"
+    ) {
+        return Err(RecordError::Invalid);
+    }
+    Ok(())
+}
+
+fn unique_defect_ids(ids: &[u64]) -> bool {
+    ids.iter().all(|value| *value >= 40_001)
+        && ids.windows(2).all(|window| window[0] < window[1])
 }
 
 fn validate_agent_product_formation(value: &AgentProductFormation) -> Result<(), RecordError> {

@@ -252,6 +252,7 @@ assert [phase["id"] for phase in phases["phases"]] == [
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
 framework = json.dumps((lifecycle, phases, status)).upper()

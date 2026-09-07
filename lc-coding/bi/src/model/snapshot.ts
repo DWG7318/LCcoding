@@ -3,13 +3,15 @@ export type ViewState = "done" | "active" | "pending" | "error";
 export type SnapshotSchema =
   | "LCCoding 2.6.0 derived BI"
   | "LCCoding 2.7.0 derived BI"
-  | "LCCoding 2.8.0 derived BI";
+  | "LCCoding 2.8.0 derived BI"
+  | "LCCoding 3.0.0 derived BI";
 
 export type PhaseId =
   | "INITIAL"
   | "PRODUCT_FORMATION"
   | "ENGINEERING_RUNS"
   | "REAL_PRODUCT_INTEGRATION"
+  | "REAL_USER_JOURNEY_ACCEPTANCE"
   | "DELIVERY_PREPARATION";
 
 export type PhaseValue = PhaseId | "UNKNOWN";
@@ -22,7 +24,8 @@ export type ReportId =
   | "workflow"
   | "ui"
   | "baseline"
-  | "loop_governance";
+  | "loop_governance"
+  | "journey_acceptance";
 
 export type StepId =
   | "PROPOSAL_READINESS"
@@ -40,6 +43,11 @@ export type StepId =
   | "LOOP_RUN_D0_D3"
   | "LOOP_OWNER_ACCEPTANCE"
   | "ALL_REQUIRED_RUNS_ACCEPTED"
+  | "JOURNEY_COVERAGE_READY"
+  | "ACCEPTANCE_ENVIRONMENT_READY"
+  | "REAL_USER_JOURNEY_ROUND"
+  | "JOURNEY_DEFECT_CLOSURE"
+  | "REAL_USER_JOURNEY_OWNER_ACCEPTANCE"
   | "CENTRALIZED_VULNERABILITY_AUDIT"
   | "SECURITY_REMEDIATION"
   | "SECURITY_REAUDIT_VULNERABILITY_CLOSURE"
@@ -81,7 +89,14 @@ export type RowKey =
   | "row.runtime_adapter"
   | "row.dual_agent_isolation"
   | "row.product_slice_progress"
-  | "row.operations_slice_progress";
+  | "row.operations_slice_progress"
+  | "row.journey_coverage"
+  | "row.acceptance_environment"
+  | "row.complete_rounds"
+  | "row.journey_results"
+  | "row.open_defects"
+  | "row.fixed_verified_defects"
+  | "row.owner_journey_result";
 
 export type LockValue = "LOCKED" | "PENDING" | "UNKNOWN";
 export type RecordValue =
@@ -92,7 +107,15 @@ export type RecordValue =
   | "UNKNOWN"
   | "UNPROVED"
   | "ACCEPTED"
-  | "VERIFIED";
+  | "VERIFIED"
+  | "ACTIVE"
+  | "REWORK"
+  | "DEFERRED"
+  | "INVALIDATED"
+  | "COMPLETE"
+  | "REAL_USER_JOURNEY_ACCEPTED"
+  | "REAL_USER_JOURNEY_REWORK"
+  | "REAL_USER_JOURNEY_DEFERRED";
 export type MetricStatus =
   | "COMPLIANT"
   | "ACTIVE"
@@ -100,7 +123,16 @@ export type MetricStatus =
   | "UNKNOWN"
   | "NOT_RECORDED"
   | "UNPROVED"
-  | "ACCEPTED";
+  | "ACCEPTED"
+  | "COMPLETE"
+  | "VERIFIED"
+  | "REWORK"
+  | "DEFERRED"
+  | "INVALIDATED"
+  | "REAL_USER_JOURNEY_ACCEPTED"
+  | "CLEAR"
+  | "OPEN"
+  | "RECORDED";
 export type AgentApplicability =
   | "UNPROVED"
   | "NOT_APPLICABLE"
@@ -157,7 +189,7 @@ export type Snapshot = Readonly<{
   health: Health;
   project: string;
   current_phase: PhaseValue;
-  phases: readonly [PhaseView, PhaseView, PhaseView, PhaseView];
+  phases: readonly PhaseView[];
   reports: Readonly<{
     proposal: ReportView;
     candidate: ReportView;
@@ -167,15 +199,25 @@ export type Snapshot = Readonly<{
     ui: ReportView;
     baseline: ReportView;
     loop_governance: ReportView;
+    journey_acceptance?: ReportView;
   }>;
 }>;
 
 const VIEW_STATES = ["done", "active", "pending", "error"] as const;
 const LOCK_VALUES = ["LOCKED", "PENDING", "UNKNOWN"] as const;
 const RECORD_VALUES = ["RECORDED", "PRESENT", "PENDING", "NOT_RECORDED", "UNKNOWN"] as const;
+const JOURNEY_RECORD_VALUES = [
+  "UNPROVED", "PENDING", "ACTIVE", "REWORK", "DEFERRED", "INVALIDATED",
+  "COMPLETE", "VERIFIED", "REAL_USER_JOURNEY_ACCEPTED",
+  "REAL_USER_JOURNEY_REWORK", "REAL_USER_JOURNEY_DEFERRED",
+] as const;
 const AGENT_INTEGRATION_RECORD_VALUES = ["UNPROVED", "ACCEPTED"] as const;
 const ISOLATION_RECORD_VALUES = ["UNPROVED", "VERIFIED"] as const;
 const METRIC_STATUSES = ["COMPLIANT", "ACTIVE", "VIOLATION", "UNKNOWN", "NOT_RECORDED"] as const;
+const JOURNEY_METRIC_STATUSES = [
+  "UNPROVED", "ACTIVE", "REWORK", "DEFERRED", "INVALIDATED", "COMPLETE",
+  "VERIFIED", "REAL_USER_JOURNEY_ACCEPTED", "CLEAR", "OPEN", "RECORDED",
+] as const;
 const AGENT_SLICE_METRIC_STATUSES = ["UNPROVED", "ACCEPTED"] as const;
 const AGENT_APPLICABILITIES = [
   "UNPROVED",
@@ -184,7 +226,7 @@ const AGENT_APPLICABILITIES = [
   "APPLICABLE_CORE",
 ] as const;
 const AGENT_INTEGRATIONS = ["UNPROVED", "NOT_APPLICABLE", "ACCEPTED"] as const;
-const REPORT_IDS = [
+const REPORT_IDS_260_280 = [
   "proposal",
   "candidate",
   "calabash",
@@ -194,6 +236,7 @@ const REPORT_IDS = [
   "baseline",
   "loop_governance",
 ] as const;
+const REPORT_IDS_300 = [...REPORT_IDS_260_280, "journey_acceptance"] as const;
 
 type StepLayout = readonly [id: StepId, report: ReportId | null];
 type PhaseLayout = Readonly<{ id: PhaseId; steps: readonly StepLayout[] }>;
@@ -268,22 +311,39 @@ const PHASE_LAYOUT_280: readonly PhaseLayout[] = [
   PHASE_LAYOUT_270[3]!,
 ] as const;
 
+const PHASE_LAYOUT_300: readonly PhaseLayout[] = [
+  ...PHASE_LAYOUT_280.slice(0, 3),
+  {
+    id: "REAL_USER_JOURNEY_ACCEPTANCE",
+    steps: [
+      ["JOURNEY_COVERAGE_READY", "journey_acceptance"],
+      ["ACCEPTANCE_ENVIRONMENT_READY", "journey_acceptance"],
+      ["REAL_USER_JOURNEY_ROUND", "journey_acceptance"],
+      ["JOURNEY_DEFECT_CLOSURE", "journey_acceptance"],
+      ["REAL_USER_JOURNEY_OWNER_ACCEPTANCE", "journey_acceptance"],
+    ],
+  },
+  PHASE_LAYOUT_280[3]!,
+] as const;
+
 const SNAPSHOT_SCHEMAS = [
   "LCCoding 2.6.0 derived BI",
   "LCCoding 2.7.0 derived BI",
   "LCCoding 2.8.0 derived BI",
+  "LCCoding 3.0.0 derived BI",
 ] as const;
 
 const PHASE_LAYOUTS: Readonly<Record<SnapshotSchema, readonly PhaseLayout[]>> = {
   "LCCoding 2.6.0 derived BI": PHASE_LAYOUT_260,
   "LCCoding 2.7.0 derived BI": PHASE_LAYOUT_270,
   "LCCoding 2.8.0 derived BI": PHASE_LAYOUT_280,
+  "LCCoding 3.0.0 derived BI": PHASE_LAYOUT_300,
 };
 
 type RowKind = RowValue["kind"];
 type RowLayout = readonly [key: RowKey, kind: RowKind];
 
-type ReportRows = Readonly<Record<ReportId, readonly RowLayout[]>>;
+type ReportRows = Readonly<Partial<Record<ReportId, readonly RowLayout[]>>>;
 
 const REPORT_ROWS_260_270: ReportRows = {
   proposal: [
@@ -338,7 +398,7 @@ const REPORT_ROWS_260_270: ReportRows = {
 const REPORT_ROWS_280: ReportRows = {
   ...REPORT_ROWS_260_270,
   candidate: [
-    ...REPORT_ROWS_260_270.candidate,
+    ...REPORT_ROWS_260_270.candidate!,
     ["row.operations_agent_integration", "record"],
     ["row.product_agent_integration", "agent_status"],
     ["row.runtime_adapter", "safe_identity"],
@@ -348,10 +408,24 @@ const REPORT_ROWS_280: ReportRows = {
   ],
 };
 
+const REPORT_ROWS_300: ReportRows = {
+  ...REPORT_ROWS_280,
+  journey_acceptance: [
+    ["row.journey_coverage", "metric"],
+    ["row.acceptance_environment", "record"],
+    ["row.complete_rounds", "metric"],
+    ["row.journey_results", "metric"],
+    ["row.open_defects", "metric"],
+    ["row.fixed_verified_defects", "metric"],
+    ["row.owner_journey_result", "record"],
+  ],
+};
+
 const REPORT_ROWS: Readonly<Record<SnapshotSchema, ReportRows>> = {
   "LCCoding 2.6.0 derived BI": REPORT_ROWS_260_270,
   "LCCoding 2.7.0 derived BI": REPORT_ROWS_260_270,
   "LCCoding 2.8.0 derived BI": REPORT_ROWS_280,
+  "LCCoding 3.0.0 derived BI": REPORT_ROWS_300,
 };
 
 const SNAPSHOT_KEYS = [
@@ -453,11 +527,13 @@ function metricInterval(value: unknown): 10 | 15 | 30 | null {
   return invalid();
 }
 
-function parseMetric(input: unknown, agentSlice: boolean): MetricValue {
+function parseMetric(input: unknown, category: "standard" | "agent" | "journey"): MetricValue {
   const value = exactObject(input, ["kind", "status", "completed", "total", "interval_minutes"]);
-  const status = agentSlice
+  const status = category === "agent"
     ? exactEnum(value.status, AGENT_SLICE_METRIC_STATUSES)
-    : exactEnum(value.status, METRIC_STATUSES);
+    : category === "journey"
+      ? exactEnum(value.status, JOURNEY_METRIC_STATUSES)
+      : exactEnum(value.status, METRIC_STATUSES);
   const completed = metricCount(value.completed);
   const total = metricCount(value.total);
   const intervalMinutes = metricInterval(value.interval_minutes);
@@ -471,7 +547,7 @@ function parseMetric(input: unknown, agentSlice: boolean): MetricValue {
   if (total !== null && completed === null) invalid();
   if (completed !== null && total !== null && completed > total) invalid();
   if (
-    agentSlice &&
+    category === "agent" &&
     (completed === null || total !== null || intervalMinutes !== null ||
       (status === "UNPROVED" && completed !== 0) ||
       (status === "ACCEPTED" && completed === 0))
@@ -552,9 +628,15 @@ function parseRowValue(
   phaseValues: readonly PhaseValue[],
 ): RowValue {
   if (kind === "metric") {
+    const agentSlice =
+      key === "row.product_slice_progress" || key === "row.operations_slice_progress";
+    const journey = [
+      "row.journey_coverage", "row.complete_rounds", "row.journey_results",
+      "row.open_defects", "row.fixed_verified_defects",
+    ].includes(key);
     return parseMetric(
       input,
-      key === "row.product_slice_progress" || key === "row.operations_slice_progress",
+      agentSlice ? "agent" : journey ? "journey" : "standard",
     );
   }
   if (kind === "safe_identity") return parseSafeIdentity(input);
@@ -569,6 +651,9 @@ function parseRowValue(
     case "lock":
       return { kind, value: exactEnum(value.value, LOCK_VALUES) };
     case "record":
+      if (key === "row.acceptance_environment" || key === "row.owner_journey_result") {
+        return { kind, value: exactEnum(value.value, JOURNEY_RECORD_VALUES) };
+      }
       if (key === "row.operations_agent_integration") {
         return { kind, value: exactEnum(value.value, AGENT_INTEGRATION_RECORD_VALUES) };
       }
@@ -634,6 +719,27 @@ function validateAgentCandidateRows(rows: readonly ReportRow[]): void {
   if (!unproved && !accepted) invalid();
 }
 
+function validateJourneyRows(rows: readonly ReportRow[], reportState: ViewState): void {
+  const coverage = rows[0]?.value;
+  const environment = rows[1]?.value;
+  const rounds = rows[2]?.value;
+  const results = rows[3]?.value;
+  const open = rows[4]?.value;
+  const fixed = rows[5]?.value;
+  const owner = rows[6]?.value;
+  if (
+    coverage?.kind !== "metric" || environment?.kind !== "record" ||
+    rounds?.kind !== "metric" || results?.kind !== "metric" ||
+    open?.kind !== "metric" || fixed?.kind !== "metric" || owner?.kind !== "record"
+  ) invalid();
+  if (
+    owner.value === "REAL_USER_JOURNEY_ACCEPTED" &&
+    (reportState !== "done" || coverage.completed !== coverage.total ||
+      open.total !== 0 || results.completed === null || results.total === null ||
+      results.completed > results.total)
+  ) invalid();
+}
+
 function parseReport(
   input: unknown,
   id: ReportId,
@@ -642,6 +748,7 @@ function parseReport(
 ): ReportView {
   const value = exactObject(input, ["id", "state", "version", "rows"]);
   const rowLayout = REPORT_ROWS[schema][id];
+  if (rowLayout === undefined) invalid();
   const rowInputs = exactArray(value.rows, rowLayout.length);
   const rows: ReportRow[] = [];
   for (let index = 0; index < rowLayout.length; index += 1) {
@@ -654,8 +761,14 @@ function parseReport(
     version: mayHaveVersion ? safeVersion(value.version, true) : exactLiteral(value.version, null),
     rows,
   };
-  if (schema === "LCCoding 2.8.0 derived BI" && id === "candidate") {
+  if (
+    (schema === "LCCoding 2.8.0 derived BI" || schema === "LCCoding 3.0.0 derived BI") &&
+    id === "candidate"
+  ) {
     validateAgentCandidateRows(rows);
+  }
+  if (schema === "LCCoding 3.0.0 derived BI" && id === "journey_acceptance") {
+    validateJourneyRows(rows, report.state);
   }
   return report;
 }
@@ -679,8 +792,9 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
     phases[index] = parsePhase(phasesInput[index], phaseLayout[index]!);
   }
 
-  const reportsInput = exactObject(value.reports, REPORT_IDS);
-  if (Object.keys(reportsInput).some((key, index) => key !== REPORT_IDS[index])) invalid();
+  const reportIds = schema === "LCCoding 3.0.0 derived BI" ? REPORT_IDS_300 : REPORT_IDS_260_280;
+  const reportsInput = exactObject(value.reports, reportIds);
+  if (Object.keys(reportsInput).some((key, index) => key !== reportIds[index])) invalid();
   const reports = {
     proposal: parseReport(reportsInput.proposal, "proposal", schema, phaseValues),
     candidate: parseReport(reportsInput.candidate, "candidate", schema, phaseValues),
@@ -695,11 +809,21 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
       schema,
       phaseValues,
     ),
+    ...(schema === "LCCoding 3.0.0 derived BI"
+      ? {
+          journey_acceptance: parseReport(
+            reportsInput.journey_acceptance,
+            "journey_acceptance",
+            schema,
+            phaseValues,
+          ),
+        }
+      : {}),
   };
 
   for (const phase of phases) {
     for (const step of phase.steps) {
-      if (step.report !== null && reports[step.report].state !== step.state) invalid();
+      if (step.report !== null && reports[step.report]?.state !== step.state) invalid();
     }
   }
 

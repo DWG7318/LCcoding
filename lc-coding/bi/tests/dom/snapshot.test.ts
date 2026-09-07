@@ -23,6 +23,7 @@ const REPORT_IDS = [
   "baseline",
   "loop_governance",
 ] as const;
+const REPORT_IDS_300 = [...REPORT_IDS, "journey_acceptance"] as const;
 
 const REPORT_STATE_BINDINGS = [
   ["proposal", 0, 0, "pending"],
@@ -438,6 +439,37 @@ function legacy270Fixture(): JsonObject {
   return draft;
 }
 
+function current300Fixture(): JsonObject {
+  const draft = structuredClone(successFixture) as JsonObject;
+  draft.schema = "LCCoding 3.0.0 derived BI";
+  array(draft.phases).splice(3, 0, {
+    id: "REAL_USER_JOURNEY_ACCEPTANCE",
+    state: "pending",
+    steps: [
+      { id: "JOURNEY_COVERAGE_READY", state: "pending", report: "journey_acceptance" },
+      { id: "ACCEPTANCE_ENVIRONMENT_READY", state: "pending", report: "journey_acceptance" },
+      { id: "REAL_USER_JOURNEY_ROUND", state: "pending", report: "journey_acceptance" },
+      { id: "JOURNEY_DEFECT_CLOSURE", state: "pending", report: "journey_acceptance" },
+      { id: "REAL_USER_JOURNEY_OWNER_ACCEPTANCE", state: "pending", report: "journey_acceptance" },
+    ],
+  });
+  object(draft.reports).journey_acceptance = {
+    id: "journey_acceptance",
+    state: "pending",
+    version: null,
+    rows: [
+      { key: "row.journey_coverage", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.acceptance_environment", value: { kind: "record", value: "UNPROVED" } },
+      { key: "row.complete_rounds", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.journey_results", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.open_defects", value: { kind: "metric", status: "CLEAR", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.fixed_verified_defects", value: { kind: "metric", status: "RECORDED", completed: 0, total: null, interval_minutes: null } },
+      { key: "row.owner_journey_result", value: { kind: "record", value: "PENDING" } },
+    ],
+  };
+  return draft;
+}
+
 function expectDeepFrozen(value: unknown): void {
   if (value === null || typeof value !== "object") {
     return;
@@ -501,6 +533,10 @@ describe("parseSnapshot", () => {
     const legacy270 = legacy270Fixture();
     expect(parseSnapshot(legacy270)).toEqual(legacy270);
 
+    const current300 = current300Fixture();
+    expect(Object.keys(object(current300.reports))).toEqual(REPORT_IDS_300);
+    expect(parseSnapshot(current300)).toEqual(current300);
+
     expect(() =>
       parseSnapshot(mutated((draft) => {
         draft.schema = "LCCoding 2.6.0 derived BI";
@@ -526,6 +562,33 @@ describe("parseSnapshot", () => {
         engineering.unshift(formation.pop()!);
       })),
     ).toThrow(TypeError);
+  });
+
+  it("accepts a closed 3.0 journey report and rejects accepted/open contradictions", () => {
+    const accepted = current300Fixture();
+    phase(accepted, 3).state = "done";
+    for (const item of array(phase(accepted, 3).steps)) object(item).state = "done";
+    report(accepted, "journey_acceptance").state = "done";
+    Object.assign(rowValue(accepted, "journey_acceptance", 0), {
+      status: "COMPLETE", completed: 8, total: 8,
+    });
+    rowValue(accepted, "journey_acceptance", 1).value = "VERIFIED";
+    Object.assign(rowValue(accepted, "journey_acceptance", 2), {
+      status: "REAL_USER_JOURNEY_ACCEPTED", completed: 2, total: 2,
+    });
+    Object.assign(rowValue(accepted, "journey_acceptance", 3), {
+      status: "REAL_USER_JOURNEY_ACCEPTED", completed: 7, total: 8,
+    });
+    rowValue(accepted, "journey_acceptance", 6).value = "REAL_USER_JOURNEY_ACCEPTED";
+    expect(parseSnapshot(accepted).reports.journey_acceptance?.rows).toHaveLength(7);
+
+    const open = structuredClone(accepted) as JsonObject;
+    Object.assign(rowValue(open, "journey_acceptance", 4), { status: "OPEN", total: 1 });
+    expect(() => parseSnapshot(open)).toThrow(TypeError);
+
+    const negative = current300Fixture();
+    rowValue(negative, "journey_acceptance", 5).completed = -1;
+    expect(() => parseSnapshot(negative)).toThrow(TypeError);
   });
 
   it.each(REPORT_STATE_BINDINGS)(

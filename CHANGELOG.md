@@ -1,8 +1,12 @@
 # Changelog
 
+## Unreleased - 3.0.0 candidate
+
+- The five-phase lifecycle and built-in BI are prepared for 3.0.0, inserting screenshot-backed Real User Journey Acceptance before Delivery Preparation. The copy-on-write 2.8-to-3.0 migration preserves prior evidence as historical and leaves the new journey acceptance explicitly unproved. This candidate is not a formal release, creates no tag or GitHub Release, and does not deploy the global installed Skill.
+
 ## 2.8.0
 
-- The current repository and BI release carriers are finalized for 2.8.0 following independently accepted preflight evidence. The copy-on-write 2.7-to-2.8 project migration preserves prior evidence as historical and leaves all new Agent-native conditions explicitly unproved; no formal tag or GitHub Release exists yet, and global installed Skill deployment remains a separate post-release action, performed only after the formal release is independently accepted.
+- The current repository and BI release carriers were finalized for 2.8.0 following independently accepted evidence. The copy-on-write 2.7-to-2.8 project migration preserves prior evidence as historical and leaves all new Agent-native conditions explicitly unproved. The formal `v2.8.0` tag and GitHub Release were accepted before the global installed Skill was deployed.
 
 ## 2.7.0
 

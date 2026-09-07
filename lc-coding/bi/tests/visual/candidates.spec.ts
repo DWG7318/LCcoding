@@ -22,12 +22,44 @@ const AGENT_CANDIDATE_ROWS = [
   "row.product_slice_progress",
   "row.operations_slice_progress",
 ] as const;
-if (VISUAL_CASES.length + 1 !== 33) {
-  throw new Error("visual target contract must remain exactly 33 targets");
+if (VISUAL_CASES.length + 1 !== 37) {
+  throw new Error("visual target contract must remain exactly 37 targets");
+}
+
+function journeySnapshot(): unknown {
+  const snapshot = structuredClone(successSnapshot) as Record<string, any>;
+  snapshot.schema = "LCCoding 3.0.0 derived BI";
+  snapshot.phases.splice(3, 0, {
+    id: "REAL_USER_JOURNEY_ACCEPTANCE",
+    state: "pending",
+    steps: [
+      { id: "JOURNEY_COVERAGE_READY", state: "pending", report: "journey_acceptance" },
+      { id: "ACCEPTANCE_ENVIRONMENT_READY", state: "pending", report: "journey_acceptance" },
+      { id: "REAL_USER_JOURNEY_ROUND", state: "pending", report: "journey_acceptance" },
+      { id: "JOURNEY_DEFECT_CLOSURE", state: "pending", report: "journey_acceptance" },
+      { id: "REAL_USER_JOURNEY_OWNER_ACCEPTANCE", state: "pending", report: "journey_acceptance" },
+    ],
+  });
+  snapshot.reports.journey_acceptance = {
+    id: "journey_acceptance",
+    state: "pending",
+    version: null,
+    rows: [
+      { key: "row.journey_coverage", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.acceptance_environment", value: { kind: "record", value: "UNPROVED" } },
+      { key: "row.complete_rounds", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.journey_results", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.open_defects", value: { kind: "metric", status: "CLEAR", completed: 0, total: 0, interval_minutes: null } },
+      { key: "row.fixed_verified_defects", value: { kind: "metric", status: "RECORDED", completed: 0, total: null, interval_minutes: null } },
+      { key: "row.owner_journey_result", value: { kind: "record", value: "PENDING" } },
+    ],
+  };
+  return snapshot;
 }
 
 function snapshotFor(candidate: VisualCase): unknown {
   if (candidate.preview === "error") return errorSnapshot;
+  if (candidate.preview === "journey") return journeySnapshot();
   if (candidate.preview === "max-en") return { ...successSnapshot, project: "A".repeat(80) };
   if (candidate.preview === "max-zh") return { ...successSnapshot, project: "工程".repeat(40) };
   return successSnapshot;
@@ -70,6 +102,10 @@ const REPORT_STEP: Readonly<
     step: "WORKFLOW_CAPABILITY_END",
   },
   ui: { phase: "PRODUCT_FORMATION", step: "UI_PRODUCT_SURFACE_END" },
+  journey_acceptance: {
+    phase: "REAL_USER_JOURNEY_ACCEPTANCE",
+    step: "JOURNEY_COVERAGE_READY",
+  },
 });
 
 async function waitForPreview(page: Page): Promise<void> {
@@ -365,7 +401,7 @@ for (const candidate of VISUAL_CASES) {
   });
 }
 
-test("2.7.0 protected reports stay inside the fixed scrollable client area", async ({ page }) => {
+test("protected reports stay inside the fixed scrollable client area", async ({ page }) => {
   await installTestOnlyTauriBridge(page, VISUAL_CASES[0]!);
   await page.goto("/", { waitUntil: "networkidle" });
   await waitForPreview(page);

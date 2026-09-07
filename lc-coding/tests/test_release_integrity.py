@@ -26,7 +26,10 @@ actual_files = {
     and path.name != "FILE_HASHES.json"
 }
 
-assert set(hash_manifest) == actual_files
+assert set(hash_manifest) == actual_files, {
+    "missing_from_manifest": sorted(actual_files - set(hash_manifest)),
+    "missing_from_tree": sorted(set(hash_manifest) - actual_files),
+}
 for relative_path, expected_hash in hash_manifest.items():
     actual_hash = hashlib.sha256((root / relative_path).read_bytes()).hexdigest()
     assert actual_hash == expected_hash, relative_path

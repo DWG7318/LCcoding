@@ -45,6 +45,8 @@ pub struct Reports {
     pub ui: ReportView,
     pub baseline: ReportView,
     pub loop_governance: ReportView,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub journey_acceptance: Option<ReportView>,
 }
 
 #[derive(Clone, Debug, Serialize)]

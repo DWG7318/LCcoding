@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 2.6.0
+# Built-in Project BI — LCCoding 3.0.0
 
-This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 2.6.0: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
+This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 3.0.0: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
 
 ## 1. Product boundary
 
@@ -13,7 +13,7 @@ Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
 
-LCCoding 2.6.0 installs one reusable current-user tool. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 3.0.0 installs one reusable current-user tool. Its current projection has five phases, a 26-step lifecycle, and nine report joins; exact legacy adapters remain schema-selected. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 
@@ -193,7 +193,7 @@ No Open or Back action creates an anchor, navigation request, download, file rea
 
 Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#lc-bi-002)
 
-LCCoding 2.6.0 and 2.7.0 keep the Candidate report at exactly the original identity and integrity rows. The prepared `LCCoding 2.8.0 derived BI` schema appends exactly six sanitized rows inside that same report: Operations Agent integration; Product Agent applicability / integration; safe Runtime Adapter ID/version; dual-Agent isolation; Product Slice count; and Operations Slice count. The two Slice counts remain independent. This changes neither the report catalog nor its navigation: there are still exactly eight protected reports, with no Agent-specific report or visual target.
+LCCoding 2.6.0 and 2.7.0 keep the Candidate report at exactly the original identity and integrity rows. The legacy `LCCoding 2.8.0 derived BI` and current `LCCoding 3.0.0 derived BI` schemas append exactly six sanitized rows inside that same report: Operations Agent integration; Product Agent applicability / integration; safe Runtime Adapter ID/version; dual-Agent isolation; Product Slice count; and Operations Slice count. The two Slice counts remain independent. The 3.0 schema adds one read-only Real User Journey Acceptance report, so the current catalog contains exactly nine protected reports; it remains without an Agent-specific report or Agent control surface.
 
 The projection exposes only normalized status enums, bounded counts, and the allowlisted Adapter identity/version pair. It excludes every `candidate ID`, `configuration ID`, `topology ID`, `attestation ID`, `Slice ID`, `hash`, `evidence body`, `path`, `prompt`, `memory`, `credential`, and `typed event body`. It cannot open a project source file or any original evidence, and it never infers one Agent's status or Slice count from the other.
 
@@ -301,7 +301,7 @@ Rust `serde` structs with `deny_unknown_fields` are the executable wire source. 
 
 The sanitized visual `snapshot-ok.json` is a deterministic 2.8 Snapshot: project `Example Project`; current phase `PRODUCT_FORMATION`; Initial done; Calabash and Simulation done; Workflow active; UI error; Product Formation exit pending; all later steps pending; Candidate version `v1.11.6`; Calabash version `v2.4.0`; and the six Agent-native Candidate rows in their exact unproved form. It contains no repository, commit, path, evidence, URL, date, or raw text. Chinese mode keeps `Example Project` unchanged. The second fixture remains the exact compatible error Snapshot defined below.
 
-For record/schema/truth errors, `get_snapshot()` returns the exact error Snapshot: `health="error"`, project `Unnamed project`, `current_phase="UNKNOWN"`, all four phases and every fixed step `error`, all eight reports `error`, versions `null`, legacy rows fail closed, and metric rows use `UNKNOWN` with no numeric claim. Startup argument failure emits only a fixed path-free code. No raw error is serialized or printed. Topmost failures use internal code `BI_PIN_UNAVAILABLE`; this diagnostic code is never rendered as user-facing text.
+For record/schema/truth errors, `get_snapshot()` returns the exact schema-selected error Snapshot: `health="error"`, project `Unnamed project`, `current_phase="UNKNOWN"`, every applicable phase, fixed step, and report `error`, versions `null`, legacy rows fail closed, and metric rows use `UNKNOWN` with no numeric claim. Startup argument failure emits only a fixed path-free code. No raw error is serialized or printed. Topmost failures use internal code `BI_PIN_UNAVAILABLE`; this diagnostic code is never rendered as user-facing text.
 
 When `health="error"`, the frontend renders catalog key `app.unnamed_project` rather than treating the sentinel as Owner text. When `health="ok"`, a valid real project literally named `Unnamed project` remains Owner text and is displayed unchanged.
 
@@ -432,13 +432,13 @@ The native titlebar owns close/minimize behavior. No frontend permission is gran
 - If a report is open when input fails, replace it with the protected error body. Do not retain stale report values under an error banner.
 - Open, Back, language, phase fold, scroll, Pin, refresh, and close never write or touch project records. Refresh may read only the fixed Rust-held root.
 - Main-view fold and scroll positions survive Open/Back and language switching when the current Snapshot remains valid.
-- Use native `<button type="button">` controls. Phase toggles expose `aria-expanded` and `aria-controls`; the four phases use an ordered-list landmark; the active phase uses `aria-current="step"`; decorative spinner glyphs are `aria-hidden`; the adjacent state text remains readable by assistive technology.
+- Use native `<button type="button">` controls. Phase toggles expose `aria-expanded` and `aria-controls`; the schema-selected phase set uses an ordered-list landmark; the active phase uses `aria-current="step"`; decorative spinner glyphs are `aria-hidden`; the adjacent state text remains readable by assistive technology.
 - Main-view keyboard order is language, Pin, then phase toggles and their visible Open buttons from top to bottom, then Refresh. Report-view order is language, Pin, Back, then Refresh. Opening a report moves focus to Back; Back restores focus to the originating Open button. Folding never traps or discards focus.
 - Successful refresh text uses `role="status" aria-live="polite"`; the input failure uses `role="alert"`. Language and Pin controls expose their current value in accessible name/state as well as visible text. No focus outline is clipped by the fixed client boundary.
 
 ## 8. Verification and visual acceptance
 
-The acceptance boundary covers the exact DTO, four-phase/21-step order, all eight report joins, bilingual and keyboard behavior, `300 × 480` visual contract, protected navigation, fail-closed error/recovery, packaging safety, and project-byte immutability. Owner visual acceptance remains required for visual-contract change. Detailed commands and harness locations remain implementation navigation, not product authority; see the [BI subtree README](../bi/README.md).
+The acceptance boundary covers the exact DTO, legacy four-phase/21-step and current five-phase/26-step order, all schema-selected report joins, bilingual and keyboard behavior, `300 × 480` visual contract, protected navigation, fail-closed error/recovery, packaging safety, and project-byte immutability. Owner visual acceptance remains required for visual-contract change. Detailed commands and harness locations remain implementation navigation, not product authority; see the [BI subtree README](../bi/README.md).
 
 ## 9. Non-goals
 

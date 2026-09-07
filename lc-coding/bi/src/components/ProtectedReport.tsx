@@ -19,6 +19,14 @@ const VALUE_KEYS = {
   UNPROVED: "value.unproved",
   ACCEPTED: "value.accepted",
   VERIFIED: "value.verified",
+  ACTIVE: "value.active",
+  REWORK: "value.rework",
+  DEFERRED: "value.deferred",
+  INVALIDATED: "value.invalidated",
+  COMPLETE: "value.complete",
+  REAL_USER_JOURNEY_ACCEPTED: "value.journey_accepted",
+  REAL_USER_JOURNEY_REWORK: "value.journey_rework",
+  REAL_USER_JOURNEY_DEFERRED: "value.journey_deferred",
 } as const satisfies Readonly<Record<string, MessageKey>>;
 
 const METRIC_KEYS = {
@@ -29,6 +37,15 @@ const METRIC_KEYS = {
   NOT_RECORDED: "metric.not_recorded",
   UNPROVED: "metric.unproved",
   ACCEPTED: "metric.accepted",
+  COMPLETE: "value.complete",
+  VERIFIED: "value.verified",
+  REWORK: "value.rework",
+  DEFERRED: "value.deferred",
+  INVALIDATED: "value.invalidated",
+  REAL_USER_JOURNEY_ACCEPTED: "value.journey_accepted",
+  CLEAR: "metric.clear",
+  OPEN: "metric.open",
+  RECORDED: "metric.recorded",
 } as const satisfies Readonly<Record<MetricStatus, MessageKey>>;
 
 const METRIC_STATES = {
@@ -39,6 +56,15 @@ const METRIC_STATES = {
   NOT_RECORDED: "pending",
   UNPROVED: "pending",
   ACCEPTED: "done",
+  COMPLETE: "done",
+  VERIFIED: "done",
+  REWORK: "active",
+  DEFERRED: "error",
+  INVALIDATED: "error",
+  REAL_USER_JOURNEY_ACCEPTED: "done",
+  CLEAR: "done",
+  OPEN: "error",
+  RECORDED: "done",
 } as const satisfies Readonly<Record<MetricStatus, ViewState>>;
 
 const AGENT_APPLICABILITY_KEYS = {

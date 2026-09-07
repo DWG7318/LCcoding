@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-release_current = "2.8.0"
+release_current = "3.0.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == release_current
 release_manifest = json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))
@@ -31,6 +31,7 @@ assert current_phase_ids == [
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
 assert release_manifest["phase_overlay"] == current_phase_ids
@@ -82,14 +83,15 @@ projection_schema_mapping = '''schema: match status.status_schema_version.as_str
             "2.6.0" => "LCCoding 2.6.0 derived BI",
             "2.7.0" => "LCCoding 2.7.0 derived BI",
             "2.8.0" => "LCCoding 2.8.0 derived BI",
+            "3.0.0" => "LCCoding 3.0.0 derived BI",
             _ => return Err(ProjectionError::Inconsistent),
         }'''
 assert projection.count(projection_schema_mapping) == 1
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-final_heading = "## 2.8.0"
-release_heading = "## 2.7.0"
-next_heading = "## 2.6.0"
+final_heading = "## Unreleased - 3.0.0 candidate"
+release_heading = "## 2.8.0"
+next_heading = "## 2.7.0"
 assert changelog.startswith("# Changelog\n\n" + final_heading + "\n")
 assert changelog.count(final_heading) == 1
 assert changelog.count("\n" + release_heading + "\n") == 1
@@ -101,57 +103,52 @@ assert final_start < release_start < release_end
 final_section = changelog[final_start:release_start]
 for marker in [
     "copy-on-write",
-    "current repository and BI release carriers are finalized for 2.8.0",
-    "no formal tag or GitHub Release exists yet",
-    "global installed Skill deployment remains a separate post-release action",
-    "only after the formal release is independently accepted",
+    "five-phase lifecycle and built-in BI are prepared for 3.0.0",
+    "not a formal release",
+    "creates no tag or GitHub Release",
+    "does not deploy the global installed Skill",
 ]:
     assert marker in final_section
 for stale_claim in [
-    "candidate",
-    "not a release",
-    "prepared for 2.8.0",
-    "does not change VERSION",
-    "does not change the current BI release",
-    "2.8.0 has been released",
+    "current repository and BI release carriers are finalized for 3.0.0",
+    "3.0.0 has been released",
     "formal release is complete",
 ]:
     assert stale_claim not in final_section
 release_section = changelog[release_start:release_end]
 for marker in [
     "copy-on-write",
-    "current repository and BI release carriers are finalized for 2.7.0",
-    "global installed Skill deployment remains a separate post-release action",
-    "only after the formal release is independently accepted",
+    "current repository and BI release carriers were finalized for 2.8.0",
+    "formal `v2.8.0` tag and GitHub Release were accepted",
+    "global installed Skill was deployed",
 ]:
     assert marker in release_section
 for stale_claim in [
-    "Unreleased - 2.7.0 candidate",
-    "not a release",
-    "no formal tag or GitHub Release exists yet",
-    "prepared for 2.7.0",
+    "Unreleased - 2.8.0 candidate",
+    "prepared for 2.8.0",
     "does not change VERSION, BI",
 ]:
     assert stale_claim not in release_section
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
-assert 'schema = "LCCoding 2.8.0 installer provenance"' in package_driver
-assert '$releaseInstallerName = "LCCoding-BI_2.8.0_x64-setup.exe"' in package_driver
+assert 'schema = "LCCoding 3.0.0 installer provenance"' in package_driver
+assert '$releaseInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"' in package_driver
 workflow = (root / ".github/workflows/release-bi.yml").read_text(encoding="utf-8")
-assert 'VERSION -Raw).Trim() -ne "2.8.0"' in workflow
-assert "LCCoding-BI_2.8.0_x64-setup.exe" in workflow
+assert 'VERSION -Raw).Trim() -ne "3.0.0"' in workflow
+assert "LCCoding-BI_3.0.0_x64-setup.exe" in workflow
 
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
 )
-assert loop_identities["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V2"
+assert loop_identities["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V3"
 assert set(loop_identities) == {"asset_schema", "status_adapters", "execution_methods"}
-assert set(loop_identities["status_adapters"]) == {"2.6.0", "2.7.0", "2.8.0"}
+assert set(loop_identities["status_adapters"]) == {"2.6.0", "2.7.0", "2.8.0", "3.0.0"}
 assert loop_identities["status_adapters"]["2.6.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
 assert loop_identities["status_adapters"]["2.7.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
-assert loop_identities["status_adapters"]["2.8.0"]["compatibility_status"] == "CURRENT"
-assert loop_identities["status_adapters"]["2.8.0"]["minimum_bi_version"] == release_current
-assert list(loop_identities["status_adapters"]["2.8.0"]["phase_steps"]) == current_phase_ids
+assert loop_identities["status_adapters"]["2.8.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
+assert loop_identities["status_adapters"]["3.0.0"]["compatibility_status"] == "CURRENT"
+assert loop_identities["status_adapters"]["3.0.0"]["minimum_bi_version"] == release_current
+assert list(loop_identities["status_adapters"]["3.0.0"]["phase_steps"]) == current_phase_ids
 methods = loop_identities["execution_methods"]
 assert set(methods) == {"slk", "clk", "glk"}
 assert methods["slk"]["version"] == "2.6.0"
@@ -175,4 +172,4 @@ assert "calabash" not in release_verifier.lower()
 for powershell7_only in ["Text.Json", "HashData", "ToHexString"]:
     assert powershell7_only not in release_verifier
 
-print("PASS: LCCoding 2.8 release carriers and method schema are consistent")
+print("PASS: LCCoding 3.0 release carriers and method schema are consistent")

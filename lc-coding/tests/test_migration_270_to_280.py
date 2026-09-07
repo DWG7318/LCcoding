@@ -185,6 +185,8 @@ def make_source(project):
         + "\n",
     )
     status = strict_json(TEMPLATES / "STATUS.json")
+    assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
+    assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     assert status.pop(AGENT_PRODUCT_FORMATION_FIELD) == UNPROVED_AGENT_PRODUCT_FORMATION
     assert status.pop(AGENT_SLICE_INTEGRATION_FIELD) == UNPROVED_AGENT_SLICE_INTEGRATION
     status["status_schema_version"] = "2.7.0"
@@ -273,14 +275,13 @@ for forbidden_claim in (
     assert forbidden_claim not in contract
 
 changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-assert changelog.startswith("# Changelog\n\n## 2.8.0\n")
-final_section = changelog.split("\n## 2.7.0", 1)[0]
+assert "\n## 2.8.0\n" in changelog
+final_section = changelog.split("\n## 2.8.0\n", 1)[1].split("\n## 2.7.0", 1)[0]
 for marker in (
     "copy-on-write",
-    "current repository and BI release carriers are finalized for 2.8.0",
-    "no formal tag or GitHub Release exists yet",
-    "global installed Skill deployment remains a separate post-release action",
-    "only after the formal release is independently accepted",
+    "current repository and BI release carriers were finalized for 2.8.0",
+    "formal `v2.8.0` tag and GitHub Release were accepted",
+    "global installed Skill was deployed",
 ):
     assert marker in final_section
 for stale_claim in (
@@ -289,7 +290,6 @@ for stale_claim in (
     "prepared for 2.8.0",
     "does not change VERSION",
     "does not change the current BI release",
-    "2.8.0 has been released",
     "formal release is complete",
 ):
     assert stale_claim not in final_section

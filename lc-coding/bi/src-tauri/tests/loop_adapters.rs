@@ -157,6 +157,13 @@ fn v2_compatibility_asset() -> Value {
         assert!(asset["status_adapters"].get("2.8.0").is_some());
         return asset;
     }
+    if asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V3" {
+        asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V2".into());
+        asset["status_adapters"].as_object_mut().unwrap().remove("3.0.0");
+        asset["status_adapters"]["2.8.0"]["compatibility_status"] =
+            Value::String("CURRENT".into());
+        return asset;
+    }
     assert_eq!(asset["asset_schema"], "LCCODING_BI_COMPATIBILITY_V1");
     asset["asset_schema"] = Value::String("LCCODING_BI_COMPATIBILITY_V2".into());
     asset["status_adapters"]["2.7.0"]["compatibility_status"] =
@@ -182,6 +189,10 @@ fn v1_compatibility_asset() -> Value {
         .as_object_mut()
         .unwrap()
         .remove("2.8.0");
+    asset["status_adapters"]
+        .as_object_mut()
+        .unwrap()
+        .remove("3.0.0");
     asset["status_adapters"]["2.7.0"]["compatibility_status"] = Value::String("CURRENT".into());
     asset
 }
@@ -228,7 +239,7 @@ fn embedded_execution_method_identities_match_the_single_asset() {
         "pin_policy",
     ];
 
-    assert_eq!(raw["asset_schema"], "LCCODING_BI_COMPATIBILITY_V2");
+    assert_eq!(raw["asset_schema"], "LCCODING_BI_COMPATIBILITY_V3");
     for method_id in ["slk", "clk", "glk"] {
         let expected = &raw["execution_methods"][method_id];
         let actual = parsed.execution_method(method_id).unwrap();
@@ -309,6 +320,23 @@ fn compatibility_asset_v2_is_strictly_current_in_memory_without_identity_drift()
         );
     }
     assert!(parsed.status_phase_steps("2.9.0").is_none());
+
+    let current = embedded_compatibility_asset().unwrap();
+    let current_phases = current.status_phase_steps("3.0.0").unwrap();
+    assert_eq!(
+        current_phases.iter().map(|phase| phase.phase_id).collect::<Vec<_>>(),
+        [
+            "INITIAL",
+            "PRODUCT_FORMATION",
+            "REAL_PRODUCT_INTEGRATION",
+            "REAL_USER_JOURNEY_ACCEPTANCE",
+            "DELIVERY_PREPARATION",
+        ]
+    );
+    assert_eq!(
+        current_phases.iter().map(|phase| phase.step_ids.len()).collect::<Vec<_>>(),
+        [3, 7, 5, 5, 6]
+    );
 
     rejects_v2_mutation(|asset| {
         asset["status_adapters"]
@@ -499,8 +527,8 @@ fn compatibility_asset_parser_rejects_shadow_or_malformed_identity_shapes() {
     });
     assert!(parse_compatibility_asset(&old_shape.to_string()).is_err());
     let duplicate = include_str!("../../release/loop-contract-identities.json").replacen(
-        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
-        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V2\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V3\",",
+        "\"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V3\",\n  \"asset_schema\": \"LCCODING_BI_COMPATIBILITY_V3\",",
         1,
     );
     assert!(parse_compatibility_asset(&duplicate).is_err());
@@ -624,6 +652,9 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
     let mut status: Value = serde_json::from_str(&status).unwrap();
     assert!(status.get("agent_product_formation").is_some());
     assert!(status.get("agent_slice_integration").is_some());
+    assert!(status.get("real_user_journey_acceptance").is_some());
+    status.as_object_mut().unwrap().remove("real_user_journey_acceptance");
+    status["phase_gates"].as_object_mut().unwrap().remove("REAL_USER_JOURNEY_ACCEPTED");
     assert!(
         status
             .as_object_mut()

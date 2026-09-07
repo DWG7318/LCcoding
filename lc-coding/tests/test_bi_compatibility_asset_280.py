@@ -9,7 +9,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET = ROOT / "lc-coding/bi/release/loop-contract-identities.json"
-ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V2"
+ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V3"
 EXECUTION_METHODS_FRAGMENT_SHA256 = (
     "904a0f8ce8eea72e5d1774b95acaa5239d9a4f1a5b39214eb1c5f91c3b7d054b"
 )
@@ -43,6 +43,13 @@ PREPARED_PHASES = (
     "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 )
+CURRENT_PHASES = (
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
+    "DELIVERY_PREPARATION",
+)
 INITIAL = ["PROPOSAL_READINESS", "PROJECT_INITIALIZATION", "INITIAL_READY"]
 DELIVERY = [
     "CENTRALIZED_VULNERABILITY_AUDIT",
@@ -70,6 +77,13 @@ INTEGRATION_260 = [
 ]
 FORMATION_270 = FORMATION_260 + ["MANDATORY_CALABASH_UPGRADE", "PRODUCT_BASELINE"]
 INTEGRATION_270 = INTEGRATION_260[2:]
+JOURNEY_300 = [
+    "JOURNEY_COVERAGE_READY",
+    "ACCEPTANCE_ENVIRONMENT_READY",
+    "REAL_USER_JOURNEY_ROUND",
+    "JOURNEY_DEFECT_CLOSURE",
+    "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
+]
 EXPECTED_ADAPTERS = {
     "2.6.0": {
         "status_schema_version": "2.6.0",
@@ -89,12 +103,23 @@ EXPECTED_ADAPTERS = {
     },
     "2.8.0": {
         "status_schema_version": "2.8.0",
-        "compatibility_status": "CURRENT",
+        "compatibility_status": "SUPPORTED_LEGACY",
         "minimum_bi_version": "2.8.0",
         "phase_steps": dict(
             zip(
                 PREPARED_PHASES,
                 (INITIAL, FORMATION_270, INTEGRATION_270, DELIVERY),
+            )
+        ),
+    },
+    "3.0.0": {
+        "status_schema_version": "3.0.0",
+        "compatibility_status": "CURRENT",
+        "minimum_bi_version": "3.0.0",
+        "phase_steps": dict(
+            zip(
+                CURRENT_PHASES,
+                (INITIAL, FORMATION_270, INTEGRATION_270, JOURNEY_300, DELIVERY),
             )
         ),
     },
@@ -159,7 +184,8 @@ def validate_asset(asset):
                 errors.append(f"{version} phases")
                 continue
             steps = [step for phase in expected_phases for step in phase_steps[phase]]
-            if len(steps) != 21 or len(set(steps)) != 21:
+            expected_count = 26 if version == "3.0.0" else 21
+            if len(steps) != expected_count or len(set(steps)) != expected_count:
                 errors.append(f"{version} steps")
     methods = asset["execution_methods"]
     if not isinstance(methods, dict) or set(methods) != set(METHOD_IDENTITIES):
@@ -255,7 +281,7 @@ mutation(lambda x: x["status_adapters"]["2.6.0"].__setitem__("compatibility_stat
 mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("minimum_bi_version", "2.6.0"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("status_schema_version", "2.7.0"))
 mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("compatibility_status", "CURRENT"))
-mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "PREPARED"))
+mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "CURRENT"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("minimum_bi_version", "2.7.0"))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_FORMATION", FORMATION_260))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_INTEGRATION", x["status_adapters"]["2.7.0"]["phase_steps"].pop("ENGINEERING_RUNS")))
@@ -276,9 +302,9 @@ mutation(lambda x: x["execution_methods"]["slk"].__setitem__("normalization_mapp
 mutation(lambda x: x.update({"slk": copy.deepcopy(x["execution_methods"]["slk"])}))
 
 duplicate = asset_raw.decode("utf-8").replace(
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",\n'
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V2",',
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",',
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",\n'
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",',
     1,
 )
 try:
@@ -346,10 +372,10 @@ production_loader_rejects(duplicate)
 for mutator in [
     lambda x: x["status_adapters"].pop("2.8.0"),
     lambda x: x["status_adapters"].update(
-        {"2.9.0": copy.deepcopy(x["status_adapters"]["2.8.0"])}
+        {"3.1.0": copy.deepcopy(x["status_adapters"]["3.0.0"])}
     ),
     lambda x: x["status_adapters"]["2.8.0"].__setitem__(
-        "compatibility_status", "PREPARED"
+        "compatibility_status", "CURRENT"
     ),
     lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__(
         "ENGINEERING_RUNS",

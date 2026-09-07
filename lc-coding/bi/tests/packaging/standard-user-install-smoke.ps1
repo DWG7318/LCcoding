@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $ExpectedInstallSmokeSha256 = "012f256f33f5ca089b6e269879e7568d6691a67576eb37f1a92e4b1c994ae132"
-$ExpectedInstallerName = "LCCoding-BI_2.8.0_x64-setup.exe"
+$ExpectedInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"
 $InstallRoot = "D:\LCcoding\.codex\.tmp\lccoding-260-install-smoke\installed-current-user"
 $BaselineMarker = "TASK22_WIN_CI_BASELINE_PATH"
 $BaselinePath = 'C:\Task22\Alpha;;%USERPROFILE%\Task22Bin;C:\Task22\MixedCase;'
@@ -219,7 +219,7 @@ try {
 
   $installer = Join-Path $localPackage $ExpectedInstallerName
   $smokeOutput = @(
-    & $smokeScript -Installer $installer -ExpectedVersion "2.8.0" 2>&1 |
+    & $smokeScript -Installer $installer -ExpectedVersion "3.0.0" 2>&1 |
       ForEach-Object { [string]$_ }
   )
   $result.smoke_output = $smokeOutput

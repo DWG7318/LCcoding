@@ -207,20 +207,65 @@ const EXPECTED_CATALOG = {
   },
 } as const;
 
+const EXPECTED_300_CATALOG = {
+  "value.active": { en: "Active", zh_CN: "进行中" },
+  "value.rework": { en: "Rework", zh_CN: "返工" },
+  "value.deferred": { en: "Deferred", zh_CN: "已延期" },
+  "value.invalidated": { en: "Invalidated", zh_CN: "已失效" },
+  "value.complete": { en: "Complete", zh_CN: "已完成" },
+  "value.journey_accepted": { en: "Journey accepted", zh_CN: "用户旅程已验收" },
+  "value.journey_rework": { en: "Journey rework", zh_CN: "用户旅程需返工" },
+  "value.journey_deferred": { en: "Journey deferred", zh_CN: "用户旅程已延期" },
+  "metric.clear": { en: "Clear", zh_CN: "已清零" },
+  "metric.open": { en: "Open", zh_CN: "未关闭" },
+  "metric.recorded": { en: "Recorded", zh_CN: "已记录" },
+  "phase.REAL_USER_JOURNEY_ACCEPTANCE": {
+    en: "Real User Journey Acceptance",
+    zh_CN: "真实用户旅程验收",
+  },
+  "report.journey_acceptance": {
+    en: "Real User Journey Acceptance",
+    zh_CN: "真实用户旅程验收",
+  },
+  "row.journey_coverage": { en: "Journey coverage", zh_CN: "旅程覆盖" },
+  "row.acceptance_environment": { en: "Acceptance environment", zh_CN: "验收环境" },
+  "row.complete_rounds": { en: "Complete rounds", zh_CN: "完整验收轮次" },
+  "row.journey_results": { en: "Journey results", zh_CN: "旅程结果" },
+  "row.open_defects": { en: "Open defects", zh_CN: "未关闭缺陷" },
+  "row.fixed_verified_defects": {
+    en: "Fixed and verified defects",
+    zh_CN: "已修复并复验缺陷",
+  },
+  "row.owner_journey_result": { en: "Owner journey result", zh_CN: "Owner 旅程验收结论" },
+  "step.JOURNEY_COVERAGE_READY": { en: "Journey Coverage Ready", zh_CN: "旅程覆盖就绪" },
+  "step.ACCEPTANCE_ENVIRONMENT_READY": {
+    en: "Acceptance Environment Ready",
+    zh_CN: "验收环境就绪",
+  },
+  "step.REAL_USER_JOURNEY_ROUND": { en: "Real User Journey Round", zh_CN: "真实用户旅程轮次" },
+  "step.JOURNEY_DEFECT_CLOSURE": { en: "Journey Defect Closure", zh_CN: "旅程缺陷闭合" },
+  "step.REAL_USER_JOURNEY_OWNER_ACCEPTANCE": {
+    en: "Real User Journey Owner Acceptance",
+    zh_CN: "真实用户旅程 Owner 验收",
+  },
+} as const;
+
+const EXPECTED_ALL_CATALOG = { ...EXPECTED_CATALOG, ...EXPECTED_300_CATALOG } as const;
+
 describe("closed bilingual catalog", () => {
-  it("has the exact 115-key catalog with schema-specific four-phase tuples and 21 steps", () => {
-    expect(CATALOG).toEqual(EXPECTED_CATALOG);
-    expect(Object.keys(CATALOG)).toHaveLength(115);
-    expect(Object.keys(CATALOG).filter((key) => key.startsWith("phase."))).toHaveLength(5);
-    expect(Object.keys(CATALOG).filter((key) => key.startsWith("step."))).toHaveLength(21);
+  it("has the exact 140-key catalog with legacy and five-phase 3.0 tuples", () => {
+    expect(CATALOG).toEqual(EXPECTED_ALL_CATALOG);
+    expect(Object.keys(CATALOG)).toHaveLength(140);
+    expect(Object.keys(CATALOG).filter((key) => key.startsWith("phase."))).toHaveLength(6);
+    expect(Object.keys(CATALOG).filter((key) => key.startsWith("step."))).toHaveLength(26);
   });
 
   it("keeps identical complete language sets and never falls back in Chinese", () => {
     expect(DEFAULT_LANGUAGE).toBe("en");
-    for (const key of Object.keys(EXPECTED_CATALOG) as (keyof typeof EXPECTED_CATALOG)[]) {
+    for (const key of Object.keys(EXPECTED_ALL_CATALOG) as (keyof typeof EXPECTED_ALL_CATALOG)[]) {
       expect(Object.keys(CATALOG[key])).toEqual(["en", "zh_CN"]);
-      expect(message(key, "en")).toBe(EXPECTED_CATALOG[key].en);
-      expect(message(key, "zh_CN")).toBe(EXPECTED_CATALOG[key].zh_CN);
+      expect(message(key, "en")).toBe(EXPECTED_ALL_CATALOG[key].en);
+      expect(message(key, "zh_CN")).toBe(EXPECTED_ALL_CATALOG[key].zh_CN);
       expect(message(key, "zh_CN")).not.toBe("");
     }
   });

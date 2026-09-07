@@ -1,6 +1,6 @@
 {
   "name": "LCCoding",
-  "version": "2.8.0",
+  "version": "3.0.0",
   "skill": "lc-coding",
   "invocation": "$lc-coding",
   "mainline": [
@@ -12,6 +12,7 @@
     "Product Baseline",
     "Feature Slice",
     "UI-locked Real Product Integration",
+    "Real User Journey Acceptance",
     "Layered Verification",
     "Owner Acceptance",
     "Delivery"
@@ -58,6 +59,7 @@
       "INITIAL",
       "PRODUCT_FORMATION",
       "REAL_PRODUCT_INTEGRATION",
+      "REAL_USER_JOURNEY_ACCEPTANCE",
       "DELIVERY_PREPARATION"
     ],
     "selection_scope": "PER_RUN",
@@ -106,6 +108,7 @@
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION"
   ],
   "sole_human_acceptance": "Owner Acceptance",
@@ -115,11 +118,12 @@
   "recommended_runtime": "Ubuntu",
   "acceptance_model": {
     "normal_runs": "LOOP_OWNER_ACCEPTANCE_PER_RUN",
+    "journey_final": "REAL_USER_JOURNEY_ACCEPTANCE",
     "security_final": "POST_SECURITY_OWNER_ACCEPTANCE"
   },
   "security_model": {
     "mode": "CENTRALIZED",
-    "position": "AFTER_ALL_REQUIRED_RUNS_ACCEPTED",
+    "position": "AFTER_REAL_USER_JOURNEY_ACCEPTED",
     "auditor": "INDEPENDENT"
   }
 }

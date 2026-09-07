@@ -86,12 +86,12 @@ with tempfile.TemporaryDirectory(prefix="lccoding-checkout-policy-") as temporar
     assert "i/lf" in eol and "w/lf" in eol and "attr/text=auto eol=lf" in eol, eol
     governed_hash = hashlib.sha256((governed_clone / workflow_relative).read_bytes()).hexdigest()
     assert governed_hash == expected_hash
-    subprocess.run(
+    integrity = subprocess.run(
         [sys.executable, "lc-coding/tests/test_release_integrity.py"],
         cwd=governed_clone,
-        check=True,
         capture_output=True,
         text=True,
     )
+    assert integrity.returncode == 0, integrity.stdout + integrity.stderr
 
 print("PASS: LF checkout policy preserves protected bytes with core.autocrlf=true")

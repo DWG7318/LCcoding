@@ -1,4 +1,4 @@
-# LCCoding Constitution 2.8.0
+# LCCoding Constitution 3.0.0
 
 ## Principle Zero
 

@@ -14,6 +14,13 @@ _completed_evidence=_PHASE_VALIDATOR.completed_evidence
 _normalize_lifecycle_state=_PHASE_VALIDATOR.normalize_lifecycle_state
 validate_phase_status_record=_PHASE_VALIDATOR.validate_phase_status
 
+_JOURNEY_VALIDATOR_PATH=Path(__file__).with_name('validate_real_user_journey.py')
+_JOURNEY_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
+    'lccoding_validate_real_user_journey',_JOURNEY_VALIDATOR_PATH
+)
+_JOURNEY_VALIDATOR=importlib.util.module_from_spec(_JOURNEY_VALIDATOR_SPEC)
+_JOURNEY_VALIDATOR_SPEC.loader.exec_module(_JOURNEY_VALIDATOR)
+
 def normalize_lifecycle_state(value):
     if isinstance(value,dict) and set(value).issuperset({'state'}): value=value.get('state')
     return _normalize_lifecycle_state(value)
@@ -53,7 +60,7 @@ PRODUCTION_EXECUTION_TOPOLOGY_NAME='PRODUCTION-EXECUTION-TOPOLOGY.json'
 RUNTIME_ADAPTER_ATTESTATION_NAME='RUNTIME-ADAPTER-ATTESTATION.json'
 
 def validate_agent_native_artifacts(lc,status):
-    if status.get('status_schema_version')!='2.8.0': return []
+    if status.get('status_schema_version') not in {'2.8.0','3.0.0'}: return []
     errors=validate_agent_slice_status(lc,status)
     path=lc/AGENT_CONFIGURATION_BASELINE_NAME
     if not path.exists() and not path.is_symlink(): return errors
@@ -124,7 +131,7 @@ RECEIPT_REQUIRED_FIELDS={
     'Accepted at',
 }
 PHASE_IDS_BY_SCHEMA=_PHASE_VALIDATOR.SCHEMA_PHASE_ORDERS
-PHASE_IDS=set(PHASE_IDS_BY_SCHEMA['2.8.0'])
+PHASE_IDS=set(PHASE_IDS_BY_SCHEMA['3.0.0'])
 LEGACY_METHOD_INTERFACES={
     'SLK':'LEGACY_SLK_RUN_CONTRACT',
     'CLK':'LEGACY_CLK_RUN_CONTRACT',
@@ -243,6 +250,15 @@ STATUS_FIELDS_270={
     'last_material_change','next_action','evidence_pointers','blockers',
 }
 STATUS_FIELDS_280=STATUS_FIELDS_270|{'agent_product_formation','agent_slice_integration'}
+JOURNEY_ACCEPTANCE_STATUS_FIELDS={
+    'state','candidate_id','candidate_hash','coverage_state',
+    'acceptance_environment_state','current_round','complete_round_count',
+    'required_journey_count','passed_journey_count','failed_journey_count',
+    'not_applicable_journey_count','open_defect_ids','fixed_verified_defect_ids',
+    'exempted_defect_ids','deferred_defect_ids','reopened_defect_ids',
+    'acceptance_record_reference','defect_log_reference','owner_result',
+}
+STATUS_FIELDS_300=STATUS_FIELDS_280|{'real_user_journey_acceptance'}
 AGENT_SLICE_INTEGRATION_FIELDS={
     'state','candidate_id','candidate_hash','product_baseline_id','product_baseline_hash',
     'configuration_baseline_id','configuration_baseline_hash',
@@ -467,7 +483,7 @@ def validate_security_status_shape(status):
         return ['current security status cannot mix scalar and structured authority']
     schema=status.get('status_schema_version')
     expected_fields=(
-        STATUS_FIELDS_280 if schema=='2.8.0' else STATUS_FIELDS_270
+        STATUS_FIELDS_300 if schema=='3.0.0' else STATUS_FIELDS_280 if schema=='2.8.0' else STATUS_FIELDS_270
         if schema in {'2.6.0','2.7.0'} else None
     )
     if expected_fields is None:
@@ -477,9 +493,18 @@ def validate_security_status_shape(status):
         errors.append('current security status missing closed fields '+', '.join(sorted(missing)))
     if unknown:
         errors.append('current security status has unknown or second-authority fields '+', '.join(sorted(unknown)))
-    if schema=='2.8.0':
+    if schema in {'2.8.0','3.0.0'}:
         errors.extend(_AGENT_NATIVE.validate_product_formation_status(status.get('agent_product_formation')))
         errors.extend(_agent_slice_status_shape(status))
+    if schema=='3.0.0':
+        journey=status.get('real_user_journey_acceptance')
+        if not isinstance(journey,dict):
+            errors.append('real_user_journey_acceptance must be a closed object')
+        else:
+            missing=JOURNEY_ACCEPTANCE_STATUS_FIELDS-set(journey)
+            unknown=set(journey)-JOURNEY_ACCEPTANCE_STATUS_FIELDS
+            if missing: errors.append('real_user_journey_acceptance missing fields '+', '.join(sorted(missing)))
+            if unknown: errors.append('real_user_journey_acceptance unknown fields '+', '.join(sorted(unknown)))
     for record,required,label in [
         (closure,VULNERABILITY_STATUS_FIELDS,'vulnerability_closure'),
         (acceptance,POST_SECURITY_STATUS_FIELDS,'post_security_owner_acceptance'),
@@ -605,6 +630,8 @@ def validate_status_authority(status,phase_status,health):
         'DELIVERY_PREPARATION':('exit_gate','DELIVERY_READY'),
     }
     if phase3: gate_map[phase3]=('aggregate_exit_gate','ALL_REQUIRED_RUNS_ACCEPTED')
+    if phase_order and 'REAL_USER_JOURNEY_ACCEPTANCE' in phase_order:
+        gate_map['REAL_USER_JOURNEY_ACCEPTANCE']=('exit_gate','REAL_USER_JOURNEY_ACCEPTED')
     for phase,(field,gate) in gate_map.items():
         derived=phase_status.get('phases',{}).get(phase,{}).get(field)
         authoritative=status.get('phase_gates',{}).get(gate)
@@ -627,7 +654,7 @@ def validate_status_authority(status,phase_status,health):
         errors.append('derived Product Formation completion is pending despite accepted Product Baseline')
     if not authoritative_complete and formation.get('status') in COMPLETED_PHASE_STATES:
         errors.append('derived Product Formation completion lacks accepted Product Baseline')
-    if phase3 and status.get('current_phase') in {phase3,'DELIVERY_PREPARATION'}:
+    if phase3 and phase_order and status.get('current_phase') in set(phase_order[2:]):
         if not authoritative_complete:
             errors.append(phase3+' requires accepted Product Baseline')
         if not derived_complete or formation.get('status') not in COMPLETED_PHASE_STATES:
@@ -2790,7 +2817,7 @@ def validate_post_security_receipt(
 def _expected_agent_security_binding(lc,status):
     fields=VULNERABILITY_CONTRACT['agent_security_binding_fields']
     not_applicable={field:'NOT_APPLICABLE' for field in fields}
-    if not isinstance(status,dict) or status.get('status_schema_version')!='2.8.0':
+    if not isinstance(status,dict) or status.get('status_schema_version') not in {'2.8.0','3.0.0'}:
         return not_applicable,[]
     agent_slice=status.get('agent_slice_integration')
     if not isinstance(agent_slice,dict) or agent_slice.get('state')!='AGENT_SLICES_ACCEPTED':
@@ -3001,6 +3028,15 @@ def validate_security_invalidation(lc,status):
             errors.append(
                 'material security change must invalidate closure, Post-Security acceptance, and DELIVERY_READY'
             )
+        journey=status.get('real_user_journey_acceptance')
+        if status.get('status_schema_version')=='3.0.0' and isinstance(journey,dict) and (
+            isinstance(journey.get('complete_round_count'),int)
+            and journey.get('complete_round_count')>0
+        ) and (
+            journey.get('state')!='INVALIDATED'
+            or status.get('phase_gates',{}).get('REAL_USER_JOURNEY_ACCEPTED')!='INVALID'
+        ):
+            errors.append('material change affecting an accepted journey must invalidate Phase-4 acceptance')
         errors.extend(_status_reference_matches(
             closure,'superseded_receipt_id','superseded_receipt_reference',prior_closure,
             'superseded Vulnerability Closure receipt'
@@ -3202,7 +3238,7 @@ def validate_run_start_record(path,fields,eligible_methods,manifest,lock,expecte
     phase=fields.get('LCCoding phase scope')
     if not phase_order or phase not in phase_order: errors.append(prefix+' has invalid phase for Status schema version')
     phase3=phase_order[2] if phase_order else None
-    expected_phase3_fields=(PHASE3_START_FIELDS if schema=='2.8.0' else LEGACY_PHASE3_START_FIELDS)
+    expected_phase3_fields=(PHASE3_START_FIELDS if schema in {'2.8.0','3.0.0'} else LEGACY_PHASE3_START_FIELDS)
     all_phase3_fields=PHASE3_START_FIELDS|LEGACY_PHASE3_START_FIELDS
     phase3_fields=all_phase3_fields&set(fields)
     if phase==phase3:
@@ -3564,6 +3600,10 @@ def main():
     if (lc/'PROJECT-HEALTH.json').exists(): health=json.loads((lc/'PROJECT-HEALTH.json').read_text(encoding='utf-8'))
     if status and phase_status and health:
         errors.extend(validate_status_authority(status,phase_status,health))
+        if status.get('status_schema_version')=='3.0.0':
+            errors.extend(_JOURNEY_VALIDATOR.validate_real_user_journey(
+                Path(args.project),status,phase_status
+            ))
     if status:
         errors.extend(validate_agent_native_artifacts(lc,status))
     if start and status and health:

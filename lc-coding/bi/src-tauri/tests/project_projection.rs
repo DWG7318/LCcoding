@@ -71,7 +71,11 @@ fn baseline_complete_status() -> String {
 
 fn status_version(body: &str, version: &str) -> String {
     let mut value: Value = serde_json::from_str(body).unwrap();
-    if version == "2.8.0" {
+    if version != "3.0.0" {
+        assert!(value.as_object_mut().unwrap().remove("real_user_journey_acceptance").is_some());
+        assert!(value["phase_gates"].as_object_mut().unwrap().remove("REAL_USER_JOURNEY_ACCEPTED").is_some());
+    }
+    if matches!(version, "2.8.0" | "3.0.0") {
         assert!(value.get("agent_product_formation").is_some());
         assert!(value.get("agent_slice_integration").is_some());
     } else {
@@ -209,7 +213,7 @@ fn git(root: &std::path::Path, arguments: &[&str]) -> String {
 }
 
 #[test]
-fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
+fn strict_status_projects_five_phases_twenty_six_steps_and_nine_reports() {
     let status = parse_status(&product_formation_status()).unwrap();
     let snapshot = snapshot_from_status(&status, None).unwrap();
     let value = serde_json::to_value(snapshot).unwrap();
@@ -217,7 +221,7 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
     assert_eq!(value["health"], "ok");
     assert_eq!(value["project"], "示例 Project");
     assert_eq!(value["current_phase"], "PRODUCT_FORMATION");
-    assert_eq!(value["phases"].as_array().unwrap().len(), 4);
+    assert_eq!(value["phases"].as_array().unwrap().len(), 5);
     assert_eq!(
         value["phases"]
             .as_array()
@@ -225,11 +229,13 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
             .iter()
             .map(|phase| phase["steps"].as_array().unwrap().len())
             .sum::<usize>(),
-        21,
+        26,
     );
-    assert_eq!(value["reports"].as_object().unwrap().len(), 8);
-    assert_eq!(value["schema"], "LCCoding 2.8.0 derived BI");
+    assert_eq!(value["reports"].as_object().unwrap().len(), 9);
+    assert_eq!(value["schema"], "LCCoding 3.0.0 derived BI");
     assert_eq!(value["phases"][2]["id"], "REAL_PRODUCT_INTEGRATION");
+    assert_eq!(value["phases"][3]["id"], "REAL_USER_JOURNEY_ACCEPTANCE");
+    assert_eq!(value["phases"][4]["id"], "DELIVERY_PREPARATION");
 
     for phase in value["phases"].as_array().unwrap() {
         for step in phase["steps"].as_array().unwrap() {
@@ -238,6 +244,60 @@ fn strict_status_projects_four_phases_twenty_one_steps_and_eight_reports() {
             }
         }
     }
+}
+
+#[test]
+fn accepted_journey_projects_only_sanitized_phase_four_counts_and_state() {
+    let mut value: Value = serde_json::from_str(&baseline_complete_status()).unwrap();
+    let candidate_hash = format!("sha256:{}", "a".repeat(64));
+    value["canonical_candidate"] = serde_json::json!({
+        "repository": "https://example.invalid/repository",
+        "version": "3.0.0",
+        "commit": "c".repeat(40),
+        "candidate_id": "CANDIDATE-300",
+        "candidate_hash": candidate_hash,
+    });
+    value["current_phase"] = Value::String("DELIVERY_PREPARATION".into());
+    value["integration_baseline"] = Value::String("INTEGRATION-BASELINE-1".into());
+    value["loop_owner_acceptances"] = serde_json::json!(["OA-1"]);
+    value["all_required_runs_accepted"] = Value::String("ALL_REQUIRED_RUNS_ACCEPTED".into());
+    value["phase_gates"]["ALL_REQUIRED_RUNS_ACCEPTED"] =
+        Value::String("ALL_REQUIRED_RUNS_ACCEPTED".into());
+    value["phase_gates"]["REAL_USER_JOURNEY_ACCEPTED"] =
+        Value::String("REAL_USER_JOURNEY_ACCEPTED".into());
+    value["real_user_journey_acceptance"] = serde_json::json!({
+        "state": "REAL_USER_JOURNEY_ACCEPTED",
+        "candidate_id": "CANDIDATE-300",
+        "candidate_hash": candidate_hash,
+        "coverage_state": "COMPLETE",
+        "acceptance_environment_state": "VERIFIED",
+        "current_round": 2,
+        "complete_round_count": 2,
+        "required_journey_count": 8,
+        "passed_journey_count": 7,
+        "failed_journey_count": 0,
+        "not_applicable_journey_count": 1,
+        "open_defect_ids": [],
+        "fixed_verified_defect_ids": [40001, 40002],
+        "exempted_defect_ids": [],
+        "deferred_defect_ids": [],
+        "reopened_defect_ids": [],
+        "acceptance_record_reference": "REAL-USER-JOURNEY-ACCEPTANCE.md",
+        "defect_log_reference": "REAL-USER-JOURNEY-DEFECT-LOG.md",
+        "owner_result": "REAL_USER_JOURNEY_ACCEPTED",
+    });
+    let status = parse_status(&value.to_string()).unwrap();
+    let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+    assert_eq!(snapshot["schema"], "LCCoding 3.0.0 derived BI");
+    assert_eq!(snapshot["phases"][3]["id"], "REAL_USER_JOURNEY_ACCEPTANCE");
+    assert_eq!(snapshot["phases"][3]["state"], "done");
+    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][0]["value"]["completed"], 8);
+    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][4]["value"]["total"], 0);
+    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][5]["value"]["completed"], 2);
+    let wire = snapshot.to_string();
+    assert!(!wire.contains("REAL-USER-JOURNEY-ACCEPTANCE.md"));
+    assert!(!wire.contains("40001"));
+    assert!(!wire.contains("CANDIDATE-300"));
 }
 
 #[test]
@@ -410,12 +470,13 @@ fn agent_native_status_is_schema_exact_and_identity_bound() {
 }
 
 #[test]
-fn status_adapters_drive_exact_260_270_and_280_phase_layouts() {
+fn status_adapters_drive_exact_260_270_280_and_300_phase_layouts() {
     let compatibility = embedded_compatibility_asset().unwrap();
     let expected_counts = [
         ("2.6.0", vec![3, 5, 7, 6]),
         ("2.7.0", vec![3, 7, 5, 6]),
         ("2.8.0", vec![3, 7, 5, 6]),
+        ("3.0.0", vec![3, 7, 5, 5, 6]),
     ];
     for (version, counts) in expected_counts {
         let status = parse_status(&status_version(&initial_status(), version)).unwrap();
@@ -445,7 +506,10 @@ fn status_adapters_drive_exact_260_270_and_280_phase_layouts() {
                 })
                 .collect::<Vec<_>>()
         );
-        assert_eq!(snapshot["reports"].as_object().unwrap().len(), 8);
+        assert_eq!(
+            snapshot["reports"].as_object().unwrap().len(),
+            if version == "3.0.0" { 9 } else { 8 }
+        );
         assert!(
             !snapshot
                 .to_string()
@@ -466,6 +530,9 @@ fn status_adapters_drive_exact_260_270_and_280_phase_layouts() {
     let current_280 = compatibility.status_phase_steps("2.8.0").unwrap();
     assert_eq!(current_280[2].phase_id, "REAL_PRODUCT_INTEGRATION");
     assert_eq!(current_280[2].step_ids, legacy_270[2].step_ids);
+    let current_300 = compatibility.status_phase_steps("3.0.0").unwrap();
+    assert_eq!(current_300[3].phase_id, "REAL_USER_JOURNEY_ACCEPTANCE");
+    assert_eq!(current_300[3].step_ids.len(), 5);
 }
 
 #[test]
@@ -559,6 +626,8 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     assert!(parse_status(&explicit_empty).is_ok());
 
     let mut legacy: Value = serde_json::from_str(&status_text).unwrap();
+    assert!(legacy.as_object_mut().unwrap().remove("real_user_journey_acceptance").is_some());
+    assert!(legacy["phase_gates"].as_object_mut().unwrap().remove("REAL_USER_JOURNEY_ACCEPTED").is_some());
     assert!(
         legacy
             .as_object_mut()
@@ -716,7 +785,7 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
         1,
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
-    let unsupported = valid.replace("\"2.8.0\"", "\"2.3.0\"");
+    let unsupported = valid.replacen("\"status_schema_version\": \"3.0.0\"", "\"status_schema_version\": \"2.3.0\"", 1);
 
     for malformed in [duplicate, unknown, unsafe_name] {
         let error = parse_status(&malformed).unwrap_err();
@@ -795,7 +864,7 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replace("\"2.8.0\"", "\"2.4.1\"");
+    let mismatched = manifest_text.replacen("\"version\": \"3.0.0\"", "\"version\": \"2.4.1\"", 1);
     let manifest = parse_manifest(&mismatched).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))

@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $ExpectedRepository = "DWG7318/LCcoding"
-$ExpectedInstallerName = "LCCoding-BI_2.8.0_x64-setup.exe"
+$ExpectedInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"
 $ExpectedChildSha256 = "f78032b7b309b62e2f8e95da82270e44c3aeb8a17e280422a143670bad47013a"
 $ChildRelativePath = "lc-coding/bi/tests/packaging/standard-user-install-smoke.ps1"
 $SmokeParent = "D:\LCcoding\.codex\.tmp"
@@ -83,7 +83,7 @@ function Get-PackageIdentity {
 }
 
 $result = [ordered]@{
-  schema = "LCCoding BI standard-user smoke orchestration evidence 2.8.0"
+  schema = "LCCoding BI standard-user smoke orchestration evidence 3.0.0"
   status = "PENDING"
   repository = [string]$env:GITHUB_REPOSITORY
   commit = $ExpectedCommit

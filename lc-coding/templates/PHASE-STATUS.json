@@ -1,6 +1,6 @@
 {
   "record_role": "DERIVED_VIEW",
-  "status_schema_version": "2.8.0",
+  "status_schema_version": "3.0.0",
   "derived_from": "status.json",
   "current_phase": "INITIAL",
   "phases": {
@@ -16,6 +16,13 @@
       "status": "PENDING",
       "per_run_acceptances": [],
       "aggregate_exit_gate": "PENDING"
+    },
+    "REAL_USER_JOURNEY_ACCEPTANCE": {
+      "status": "PENDING",
+      "acceptance_record": "NOT_APPLICABLE",
+      "defect_log": "NOT_APPLICABLE",
+      "complete_rounds": 0,
+      "exit_gate": "PENDING"
     },
     "DELIVERY_PREPARATION": {
       "status": "PENDING",

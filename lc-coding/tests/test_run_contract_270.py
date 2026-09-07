@@ -39,6 +39,13 @@ SCHEMA_PHASES = {
         "REAL_PRODUCT_INTEGRATION",
         "DELIVERY_PREPARATION",
     ),
+    "3.0.0": (
+        "INITIAL",
+        "PRODUCT_FORMATION",
+        "REAL_PRODUCT_INTEGRATION",
+        "REAL_USER_JOURNEY_ACCEPTANCE",
+        "DELIVERY_PREPARATION",
+    ),
 }
 UNPROVED_AGENT_PRODUCT_FORMATION = {
     "state": "UNPROVED",
@@ -232,7 +239,7 @@ def validate_start(fields):
         errors.append("BLOCKED requires blocker evidence")
     phase3_id = phases[2] if phases else None
     expected_phase3 = (
-        CURRENT_PHASE3_INPUTS if schema == "2.8.0" else LEGACY_PHASE3_INPUTS
+        CURRENT_PHASE3_INPUTS if schema in {"2.8.0", "3.0.0"} else LEGACY_PHASE3_INPUTS
     )
     phase3_present = ALL_PHASE3_INPUTS.intersection(fields)
     if fields.get("LCCoding phase scope") == phase3_id:
@@ -335,7 +342,7 @@ def valid_start(phase, schema="2.8.0"):
     }
     phase3_id = SCHEMA_PHASES[schema][2]
     if phase == phase3_id:
-        suffix = "REAL_PRODUCT_INTEGRATION" if schema == "2.8.0" else "ENGINEERING_RUNS"
+        suffix = "REAL_PRODUCT_INTEGRATION" if schema in {"2.8.0", "3.0.0"} else "ENGINEERING_RUNS"
         fields.update(
             {
                 f"Product Baseline trace ({suffix} only)": "PB-1",
@@ -388,13 +395,13 @@ def valid_receipt(start):
 start_template = parse_fields(start_path.read_text(encoding="utf-8"))
 receipt_template = parse_fields(receipt_path.read_text(encoding="utf-8"))
 assert start_template.get("Artifact role") == START_ROLE
-assert start_template.get("Status schema version") == "2.8.0"
+assert start_template.get("Status schema version") == "3.0.0"
 assert "REAL_PRODUCT_INTEGRATION" in start_template.get("LCCoding phase scope", "")
 assert "ENGINEERING_RUNS" not in start_template.get("LCCoding phase scope", "")
 assert START_REQUIRED.union(CURRENT_PHASE3_INPUTS).issubset(start_template)
 assert not START_FORBIDDEN.intersection(start_template)
 assert receipt_template.get("Artifact role") == RECEIPT_ROLE
-assert receipt_template.get("Status schema version") == "2.8.0"
+assert receipt_template.get("Status schema version") == "3.0.0"
 assert "REAL_PRODUCT_INTEGRATION" in receipt_template.get("LCCoding phase scope", "")
 assert "ENGINEERING_RUNS" not in receipt_template.get("LCCoding phase scope", "")
 assert RECEIPT_REQUIRED.issubset(receipt_template)
@@ -799,6 +806,10 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
     write_manifest_and_lock(project, manifest_record())
 
     status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
+    if schema != "3.0.0":
+        assert status["real_user_journey_acceptance"]["state"] == "UNPROVED"
+        status.pop("real_user_journey_acceptance")
+        assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     if schema in {"2.6.0", "2.7.0"}:
         assert status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
         status.pop("agent_slice_integration")
@@ -820,6 +831,8 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
     phases = json.loads((root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8"))
     phases["status_schema_version"] = schema
     phase3_id = SCHEMA_PHASES[schema][2]
+    if schema != "3.0.0":
+        phases["phases"].pop("REAL_USER_JOURNEY_ACCEPTANCE")
     if schema in {"2.6.0", "2.7.0"}:
         records = phases["phases"]
         phases["phases"] = {
@@ -853,7 +866,7 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
         start["Selected execution method canonical interface / contract reference"] = METHOD["canonical_contract_reference"]
         start["Evidence return target in calling phase"] = "FS-1 / accepted integration evidence"
         if phase == phase3_id:
-            suffix = "REAL_PRODUCT_INTEGRATION" if schema == "2.8.0" else "ENGINEERING_RUNS"
+            suffix = "REAL_PRODUCT_INTEGRATION" if schema in {"2.8.0", "3.0.0"} else "ENGINEERING_RUNS"
             start[f"Product Baseline trace ({suffix} only)"] = "PB-1"
             start[f"Feature Slice ID / version ({suffix} only)"] = "FS-1 / 1.0.0"
             start[f"Applicable UI / Integration Baseline ({suffix} only)"] = "UI-1 / IB-1"

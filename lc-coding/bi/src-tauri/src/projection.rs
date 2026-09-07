@@ -927,6 +927,157 @@ fn agent_summary_rows(status: &StatusRecord) -> Result<Vec<ReportRow>, Projectio
     ])
 }
 
+fn journey_value_state(value: &str) -> Result<ViewState, ProjectionError> {
+    match value {
+        "UNPROVED" | "PENDING" => Ok(ViewState::Pending),
+        "ACTIVE" | "REWORK" | "REAL_USER_JOURNEY_REWORK" => Ok(ViewState::Active),
+        "COMPLETE" | "VERIFIED" | "REAL_USER_JOURNEY_ACCEPTED" => Ok(ViewState::Done),
+        "BLOCKED" | "DEFERRED" | "REAL_USER_JOURNEY_DEFERRED" | "INVALID" | "INVALIDATED" => Ok(ViewState::Error),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn journey_state<F>(status: &StatusRecord, select: F) -> Result<ViewState, ProjectionError>
+where
+    F: FnOnce(&crate::records::status::RealUserJourneyAcceptance) -> &String,
+{
+    let journey = status
+        .real_user_journey_acceptance()
+        .ok_or(ProjectionError::Inconsistent)?;
+    journey_value_state(select(journey))
+}
+
+fn journey_round_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    let journey = status
+        .real_user_journey_acceptance()
+        .ok_or(ProjectionError::Inconsistent)?;
+    if journey.current_round == 0 {
+        Ok(ViewState::Pending)
+    } else if journey.complete_round_count == journey.current_round {
+        Ok(ViewState::Done)
+    } else if journey.complete_round_count < journey.current_round {
+        Ok(ViewState::Active)
+    } else {
+        Err(ProjectionError::Inconsistent)
+    }
+}
+
+fn journey_defect_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    let journey = status
+        .real_user_journey_acceptance()
+        .ok_or(ProjectionError::Inconsistent)?;
+    if !journey.open_defect_ids.is_empty()
+        || !journey.deferred_defect_ids.is_empty()
+        || !journey.reopened_defect_ids.is_empty()
+    {
+        Ok(ViewState::Error)
+    } else if journey.current_round == 0 {
+        Ok(ViewState::Pending)
+    } else {
+        Ok(ViewState::Done)
+    }
+}
+
+fn journey_owner_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    journey_state(status, |journey| &journey.owner_result)
+}
+
+fn u64_count(value: u64) -> Result<u32, ProjectionError> {
+    u32::try_from(value).map_err(|_| ProjectionError::Inconsistent)
+}
+
+fn journey_record_value(value: &str) -> Result<&'static str, ProjectionError> {
+    match value {
+        "UNPROVED" => Ok("UNPROVED"),
+        "PENDING" => Ok("PENDING"),
+        "ACTIVE" => Ok("ACTIVE"),
+        "REWORK" => Ok("REWORK"),
+        "DEFERRED" => Ok("DEFERRED"),
+        "INVALIDATED" => Ok("INVALIDATED"),
+        "COMPLETE" => Ok("COMPLETE"),
+        "VERIFIED" => Ok("VERIFIED"),
+        "REAL_USER_JOURNEY_ACCEPTED" => Ok("REAL_USER_JOURNEY_ACCEPTED"),
+        "REAL_USER_JOURNEY_REWORK" => Ok("REAL_USER_JOURNEY_REWORK"),
+        "REAL_USER_JOURNEY_DEFERRED" => Ok("REAL_USER_JOURNEY_DEFERRED"),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn journey_report(status: &StatusRecord) -> Result<Option<ReportView>, ProjectionError> {
+    if status.status_schema_version != "3.0.0" {
+        return Ok(None);
+    }
+    let journey = status
+        .real_user_journey_acceptance()
+        .ok_or(ProjectionError::Inconsistent)?;
+    Ok(Some(report(
+        "journey_acceptance",
+        journey_owner_state(status)?,
+        None,
+        vec![
+            ReportRow {
+                key: "row.journey_coverage",
+                value: RowValue::Metric {
+                    status: journey_record_value(&journey.coverage_state)?,
+                    completed: Some(u64_count(
+                        journey.passed_journey_count + journey.not_applicable_journey_count,
+                    )?),
+                    total: Some(u64_count(journey.required_journey_count)?),
+                    interval_minutes: None,
+                },
+            },
+            ReportRow {
+                key: "row.acceptance_environment",
+                value: RowValue::Record {
+                    value: journey_record_value(&journey.acceptance_environment_state)?,
+                },
+            },
+            ReportRow {
+                key: "row.complete_rounds",
+                value: RowValue::Metric {
+                    status: journey_record_value(&journey.state)?,
+                    completed: Some(u64_count(journey.complete_round_count)?),
+                    total: Some(u64_count(journey.current_round)?),
+                    interval_minutes: None,
+                },
+            },
+            ReportRow {
+                key: "row.journey_results",
+                value: RowValue::Metric {
+                    status: journey_record_value(&journey.state)?,
+                    completed: Some(u64_count(journey.passed_journey_count)?),
+                    total: Some(u64_count(journey.required_journey_count)?),
+                    interval_minutes: None,
+                },
+            },
+            ReportRow {
+                key: "row.open_defects",
+                value: RowValue::Metric {
+                    status: if journey.open_defect_ids.is_empty() { "CLEAR" } else { "OPEN" },
+                    completed: Some(0),
+                    total: Some(count(journey.open_defect_ids.len())),
+                    interval_minutes: None,
+                },
+            },
+            ReportRow {
+                key: "row.fixed_verified_defects",
+                value: RowValue::Metric {
+                    status: "RECORDED",
+                    completed: Some(count(journey.fixed_verified_defect_ids.len())),
+                    total: None,
+                    interval_minutes: None,
+                },
+            },
+            ReportRow {
+                key: "row.owner_journey_result",
+                value: RowValue::Record {
+                    value: journey_record_value(&journey.owner_result)?,
+                },
+            },
+        ],
+    )))
+}
+
 pub fn snapshot_from_status(
     status: &StatusRecord,
     manifest: Option<&CanonicalManifest>,
@@ -935,6 +1086,7 @@ pub fn snapshot_from_status(
         "2.6.0" => "2.6.0",
         "2.7.0" => "2.7.0",
         "2.8.0" => "2.8.0",
+        "3.0.0" => "3.0.0",
         _ => return Err(ProjectionError::Inconsistent),
     };
     if manifest.is_some_and(|manifest| manifest.lccoding.version != manifest_schema) {
@@ -1049,7 +1201,7 @@ pub fn snapshot_from_status(
             },
         },
     ];
-    if status.status_schema_version == "2.8.0" {
+    if matches!(status.status_schema_version.as_str(), "2.8.0" | "3.0.0") {
         candidate_rows.extend(agent_summary_rows(status)?);
     }
     let reports = Reports {
@@ -1141,6 +1293,7 @@ pub fn snapshot_from_status(
                 "row.pin_policy",
             ],
         ),
+        journey_acceptance: journey_report(status)?,
     };
 
     Ok(Snapshot {
@@ -1148,6 +1301,7 @@ pub fn snapshot_from_status(
             "2.6.0" => "LCCoding 2.6.0 derived BI",
             "2.7.0" => "LCCoding 2.7.0 derived BI",
             "2.8.0" => "LCCoding 2.8.0 derived BI",
+            "3.0.0" => "LCCoding 3.0.0 derived BI",
             _ => return Err(ProjectionError::Inconsistent),
         },
         authoritative: false,
@@ -1224,6 +1378,31 @@ fn projected_step(
         "LOOP_RUN_D0_D3" => ("LOOP_RUN_D0_D3", run, Some("loop_governance")),
         "LOOP_OWNER_ACCEPTANCE" => ("LOOP_OWNER_ACCEPTANCE", acceptance, None),
         "ALL_REQUIRED_RUNS_ACCEPTED" => ("ALL_REQUIRED_RUNS_ACCEPTED", aggregate, None),
+        "JOURNEY_COVERAGE_READY" => (
+            "JOURNEY_COVERAGE_READY",
+            journey_state(status, |journey| &journey.coverage_state)?,
+            Some("journey_acceptance"),
+        ),
+        "ACCEPTANCE_ENVIRONMENT_READY" => (
+            "ACCEPTANCE_ENVIRONMENT_READY",
+            journey_state(status, |journey| &journey.acceptance_environment_state)?,
+            Some("journey_acceptance"),
+        ),
+        "REAL_USER_JOURNEY_ROUND" => (
+            "REAL_USER_JOURNEY_ROUND",
+            journey_round_state(status)?,
+            Some("journey_acceptance"),
+        ),
+        "JOURNEY_DEFECT_CLOSURE" => (
+            "JOURNEY_DEFECT_CLOSURE",
+            journey_defect_state(status)?,
+            Some("journey_acceptance"),
+        ),
+        "REAL_USER_JOURNEY_OWNER_ACCEPTANCE" => (
+            "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
+            journey_owner_state(status)?,
+            Some("journey_acceptance"),
+        ),
         "CENTRALIZED_VULNERABILITY_AUDIT" => (
             "CENTRALIZED_VULNERABILITY_AUDIT",
             state(&status.centralized_security_audit)?,

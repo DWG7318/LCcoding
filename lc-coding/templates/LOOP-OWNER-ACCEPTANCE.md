@@ -5,8 +5,8 @@
 - Run ID:
 - Run-start contract ID:
 - Run-start contract SHA-256:
-- Status schema version: 2.8.0
-- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / REAL_PRODUCT_INTEGRATION / DELIVERY_PREPARATION
+- Status schema version: 3.0.0
+- LCCoding phase scope: INITIAL / PRODUCT_FORMATION / REAL_PRODUCT_INTEGRATION / REAL_USER_JOURNEY_ACCEPTANCE / DELIVERY_PREPARATION
 - Phase-owned objective:
 - Candidate ID / hash:
 - D3 Receipt:

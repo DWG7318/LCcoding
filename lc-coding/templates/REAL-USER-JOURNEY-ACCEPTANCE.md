@@ -1,0 +1,62 @@
+# Real User Journey Acceptance
+
+## Candidate identity
+
+- Acceptance ID: <RUJA-ID>
+- Project ID: <PROJECT-ID>
+- Candidate ID: <CANDIDATE-ID>
+- Candidate SHA-256: <lowercase-sha256>
+- Repository / commit: <repository> / <40-char-lowercase-commit>
+- Status schema version: 3.0.0
+
+## Acceptance environment and viewport
+
+- Environment ID / version: <ENVIRONMENT-ID> / <version>
+- Product entry URL or location: <HOME-PAGE-OR-PRODUCT-ENTRY>
+- Browser / surface: <BROWSER-OR-VISIBLE-SURFACE>
+- Viewport width × height / DPR: <width> × <height> / <dpr>
+- Owner viewport-only assistance: NOT_REQUIRED / RIGHT_PANEL_FULL_WIDTH_AND_F11
+- Test actor and safe-data set: <ACTOR-ID> / <SAFE-DATA-ID>
+
+## Journey coverage
+
+| Journey ID | Actor / permission | Start | Preconditions / safe data | Ordered visible actions | Expected visible results / outcome | Exception / recovery routes | Calabash / Simulation / Workflow / UI / Slice / Run trace | Applicability |
+|---|---|---|---|---|---|---|---|---|
+| JOURNEY-001 | <actor / permission> | <home page or product entry> | <preconditions / data> | <Step IDs> | <results / outcome> | <routes> | <trace> | REQUIRED / NOT_APPLICABLE |
+
+## Acceptance rounds
+
+| Round | Candidate ID / SHA-256 | Started from home entry | Required / passed / failed / N/A | First and last evidence | Defect IDs | Result |
+|---|---|---|---|---|---|---|
+| 1 | <candidate-id> / <sha256> | YES | <n> / <n> / <n> / <n> | <evidence refs> | NONE / 40001,... | PASS / REWORK / BLOCKED |
+
+Every post-repair round starts again from the home page or defined product entry and executes the complete required journey graph. Earlier-round screenshots remain history and are not current-round PASS evidence.
+
+## Evidence digests
+
+| Round | Journey ID | Step ID | Action | Expected / observed visible result | Visible location | Viewport | Screenshot path | Screenshot SHA-256 | Result |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | JOURNEY-001 | STEP-001 | <meaningful visible action> | <expected / observed> | <URL or visible location> | <width>x<height>@<dpr> | .lccoding/evidence/real-user-journey/round-001/JOURNEY-001/STEP-001.png | <lowercase-sha256> | PASS / DEFECT / BLOCKED_BY_DEFECT / NOT_APPLICABLE |
+
+## Defect pointers
+
+- Defect log reference: REAL-USER-JOURNEY-DEFECT-LOG.md
+- Open defect IDs: NONE
+- Fixed and verified defect IDs: NONE
+- Owner-exempted defect IDs: NONE
+- Deferred defect IDs: NONE
+- Reopened defect IDs: NONE
+
+## Recommendation and Owner result
+
+- Agent recommendation: ACCEPT / REWORK / DEFER
+- Recommendation evidence: <round and defect summary>
+- Owner result: REAL_USER_JOURNEY_ACCEPTED / REAL_USER_JOURNEY_REWORK / REAL_USER_JOURNEY_DEFERRED / PENDING
+- Owner decision evidence: <OWNER-EVIDENCE-ID>
+- Accepted candidate ID / SHA-256: <candidate-id> / <sha256>
+
+## Invalidation history
+
+| Event ID | Changed candidate / surface | Impact result | Reused journeys | Rerun journeys | Complete-round required | Current acceptance state |
+|---|---|---|---|---|---|---|
+| <EVENT-ID> | <candidate / surface> | UNAFFECTED / AFFECTED / BROAD_OR_UNKNOWN | <Journey IDs> | <Journey IDs> | YES / NO | CURRENT / INVALIDATED |

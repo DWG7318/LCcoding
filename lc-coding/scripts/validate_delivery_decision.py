@@ -352,7 +352,14 @@ def validate_decision(path):
         errors.append("Delivery Decision requires current POST_SECURITY_OWNER_ACCEPTED")
     if status.get("delivery_method_qa") != "DELIVERY_METHOD_CONFIRMED":
         errors.append("authoritative Delivery Method Q&A is not confirmed")
-    if status.get("status_schema_version") == "2.8.0":
+    if status.get("status_schema_version") == "3.0.0" and (
+        status.get("phase_gates", {}).get("REAL_USER_JOURNEY_ACCEPTED")
+        != "REAL_USER_JOURNEY_ACCEPTED"
+        or status.get("real_user_journey_acceptance", {}).get("state")
+        != "REAL_USER_JOURNEY_ACCEPTED"
+    ):
+        errors.append("LCCoding 3.0 Delivery requires current Real User Journey Acceptance")
+    if status.get("status_schema_version") in {"2.8.0", "3.0.0"}:
         errors.extend(PROJECT_VALIDATOR.validate_agent_native_artifacts(lc, status))
         agent_slice = status.get("agent_slice_integration")
         if not isinstance(agent_slice, dict) or agent_slice.get("state") != "AGENT_SLICES_ACCEPTED":

@@ -12,7 +12,7 @@ workflow_text = (root / ".github/workflows/release-bi.yml").read_text(
     encoding="utf-8"
 )
 
-safe_basename = "LCCoding-BI_2.8.0_x64-setup.exe"
+safe_basename = "LCCoding-BI_3.0.0_x64-setup.exe"
 safe_pattern = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 

@@ -14,12 +14,6 @@ current_ids = [
     "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
-release_ids = [
-    "INITIAL",
-    "PRODUCT_FORMATION",
-    "REAL_PRODUCT_INTEGRATION",
-    "DELIVERY_PREPARATION",
-]
 legacy_ids = [
     "INITIAL",
     "PRODUCT_FORMATION",
@@ -27,12 +21,11 @@ legacy_ids = [
     "DELIVERY_PREPARATION",
 ]
 
-assert phase_contract["version"] == "2.8.0"
+assert phase_contract["version"] == "3.0.0"
 assert canonical_ids == current_ids
-assert manifest["version"] == "2.8.0"
-assert manifest["phase_overlay"] == release_ids
-assert manifest["execution_method_overlay"]["available_in_phases"] == release_ids
-assert manifest["phase_overlay"] != canonical_ids
+assert manifest["version"] == "3.0.0"
+assert manifest["phase_overlay"] == canonical_ids
+assert manifest["execution_method_overlay"]["available_in_phases"] == canonical_ids
 assert phase_contract["execution_methods"]["phase_ids"] == canonical_ids
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
 assert phase_contract["execution_methods"]["method_completion_advances_phase"] is False

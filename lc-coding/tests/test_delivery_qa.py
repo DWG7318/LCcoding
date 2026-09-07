@@ -230,6 +230,8 @@ def current_status(status_id, status_hash, receipt_id, receipt_hash, impact=None
     )
     assert status["agent_product_formation"]["state"] == "UNPROVED"
     assert status["agent_slice_integration"]["state"] == "UNPROVED"
+    assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
+    assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     status.pop("agent_product_formation")
     status.pop("agent_slice_integration")
     status["status_schema_version"] = "2.7.0"
@@ -370,6 +372,9 @@ def build_agent_delivery_project(project, applicability="APPLICABLE_CORE"):
     lc, status = agent_fixtures.build_agent_slice_status_project(
         Path(project), applicability
     )
+    status["status_schema_version"] = "2.8.0"
+    assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
+    assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     status["current_phase"] = "DELIVERY_PREPARATION"
     status["phase_gates"]["DELIVERY_READY"] = "DELIVERY_READY"
     status["delivery_method_qa"] = "DELIVERY_METHOD_CONFIRMED"

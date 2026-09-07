@@ -38,18 +38,12 @@ current_phases = [
     "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
-release_phases = [
-    "INITIAL",
-    "PRODUCT_FORMATION",
-    "REAL_PRODUCT_INTEGRATION",
-    "DELIVERY_PREPARATION",
-]
-assert manifest["version"] == "2.8.0"
-assert manifest["phase_overlay"] == release_phases
-assert manifest["execution_method_overlay"]["available_in_phases"] == release_phases
+assert manifest["version"] == "3.0.0"
+assert manifest["phase_overlay"] == current_phases
+assert manifest["execution_method_overlay"]["available_in_phases"] == current_phases
 
 phase_contract = json.loads(text("lc-coding/contracts/phases.json"))
-assert phase_contract["version"] == "2.8.0"
+assert phase_contract["version"] == "3.0.0"
 assert [phase["id"] for phase in phase_contract["phases"]] == current_phases
 assert phase_contract["execution_methods"]["phase_ids"] == current_phases
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
@@ -116,7 +110,7 @@ require(
 require(
     "lc-coding/templates/RUN-HANDOFF.md",
     "Artifact role: RUN_START_CONTRACT",
-    "Status schema version: 2.8.0",
+    "Status schema version: 3.0.0",
     "Start Contract ID",
     "Start Contract SHA-256",
     "LCCoding phase scope",
@@ -133,7 +127,7 @@ require(
 require(
     "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
     "Artifact role: LOOP_OWNER_ACCEPTANCE_RECEIPT",
-    "Status schema version: 2.8.0",
+    "Status schema version: 3.0.0",
     "Run-start contract ID",
     "Run-start contract SHA-256",
     "LCCoding phase scope",

@@ -16,31 +16,39 @@ PROJECT_VALIDATOR_PATH = SCRIPT_DIR / "validate_project.py"
 PHASE_VALIDATOR_PATH = SCRIPT_DIR / "validate_phase_status.py"
 STATUS_TEMPLATE_PATH = SCRIPT_DIR.parent / "templates/STATUS.json"
 PHASE_SPEC = importlib.util.spec_from_file_location(
-    "lccoding_migration_phase_validation", PHASE_VALIDATOR_PATH
+    "lccoding_migration_300_phase_validation", PHASE_VALIDATOR_PATH
 )
 PHASE_VALIDATOR = importlib.util.module_from_spec(PHASE_SPEC)
 PHASE_SPEC.loader.exec_module(PHASE_VALIDATOR)
 
-SOURCE_SCHEMA = "2.7.0"
-TARGET_SCHEMA = "2.8.0"
+SOURCE_SCHEMA = "2.8.0"
+TARGET_SCHEMA = "3.0.0"
 SOURCE_PHASES = (
     "INITIAL",
     "PRODUCT_FORMATION",
-    "ENGINEERING_RUNS",
+    "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 )
 TARGET_PHASES = (
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 )
-PHASE_GATES = {
+SOURCE_GATES = {
     "INITIAL_READY",
     "CALABASH_UPGRADE_READY",
     "ALL_REQUIRED_RUNS_ACCEPTED",
     "DELIVERY_READY",
 }
+TARGET_GATES = (
+    "INITIAL_READY",
+    "CALABASH_UPGRADE_READY",
+    "ALL_REQUIRED_RUNS_ACCEPTED",
+    "REAL_USER_JOURNEY_ACCEPTED",
+    "DELIVERY_READY",
+)
 GENERATED_COMPONENTS = {
     "gen",
     "node_modules",
@@ -49,49 +57,10 @@ GENERATED_COMPONENTS = {
     "test-results",
     "playwright-report",
 }
-HISTORICAL_DIRECTORIES = ("runs", "reviews")
-HISTORICAL_RECEIPTS = (
-    "VULNERABILITY-CLOSURE.json",
-    "POST-SECURITY-OWNER-ACCEPTANCE.md",
-)
-HISTORY_ROOT = Path("history/2.7.0")
-REPORT_REFERENCE = "MIGRATION-2.7.0-TO-2.8.0.json"
-AGENT_PRODUCT_FORMATION_FIELD = "agent_product_formation"
-AGENT_SLICE_INTEGRATION_FIELD = "agent_slice_integration"
-BLOCKERS = [
-    "AGENT_CONFIGURATION_BASELINE_UNPROVED",
-    "AGENT_SECURITY_EVIDENCE_UNPROVED",
-    "OPERATIONS_AGENT_INTEGRATION_UNPROVED",
-    "PRODUCT_OPERATIONS_AGENT_ISOLATION_UNPROVED",
-    "PRODUCTION_EXECUTION_TOPOLOGY_UNPROVED",
-    "RUNTIME_ADAPTER_ATTESTATION_UNPROVED",
-]
-MIGRATION_REPORT = {
-    "artifact_role": "LCCODING_2_8_MIGRATION_EVIDENCE",
-    "source_status_schema": SOURCE_SCHEMA,
-    "target_status_schema": TARGET_SCHEMA,
-    "phase_identity": {
-        "source": "ENGINEERING_RUNS",
-        "target": "REAL_PRODUCT_INTEGRATION",
-        "result": "MAPPED_WITHOUT_COMPLETION",
-    },
-    "required_evidence": {
-        "agent_configuration_baseline": "UNPROVED",
-        "agent_security_evidence": "UNPROVED",
-        "operations_agent_integration": "UNPROVED",
-        "product_operations_agent_isolation": "UNPROVED",
-        "production_execution_topology": "UNPROVED",
-        "runtime_adapter_attestation": "UNPROVED",
-    },
-    "topology_dispositions": ["SELECT", "COMPOSE", "FEDERATE", "RETIRE"],
-    "historical_evidence": {
-        "root": ".lccoding/history/2.7.0",
-        "treatment": "HISTORICAL_ONLY_NOT_CURRENT",
-    },
-    "new_lifecycle_gates": [],
-    "new_lifecycle_steps": [],
-    "result": "MIGRATED_CANDIDATE_REQUIRES_REPROOF",
-}
+HISTORY_ROOT = Path("history/2.8.0")
+REPORT_REFERENCE = "MIGRATION-2.8.0-TO-3.0.0.json"
+JOURNEY_FIELD = "real_user_journey_acceptance"
+JOURNEY_BLOCKER = "REAL_USER_JOURNEY_ACCEPTANCE_UNPROVED"
 REPARSE_POINT = 0x400
 
 
@@ -115,7 +84,7 @@ def no_duplicate_object(pairs):
 def read_json(path):
     try:
         return json.loads(
-            path.read_text(encoding="utf-8"),
+            Path(path).read_text(encoding="utf-8"),
             object_pairs_hook=no_duplicate_object,
             parse_constant=reject_constant,
         )
@@ -126,7 +95,7 @@ def read_json(path):
 
 
 def write_json(path, value):
-    path.write_text(
+    Path(path).write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
         newline="\n",
@@ -135,10 +104,10 @@ def write_json(path, value):
 
 def is_reparse(path):
     try:
-        status = path.lstat()
+        status = Path(path).lstat()
     except OSError:
         return False
-    return path.is_symlink() or bool(
+    return Path(path).is_symlink() or bool(
         getattr(status, "st_file_attributes", 0) & REPARSE_POINT
     )
 
@@ -159,9 +128,8 @@ def reject_ambiguous_components(path, label):
 
 
 def reject_ambiguous_or_generated_tree(root):
-    for component in root.parts:
-        if component.casefold() in GENERATED_COMPONENTS:
-            raise MigrationError("generated output cannot be a migration input")
+    if any(part.casefold() in GENERATED_COMPONENTS for part in root.parts):
+        raise MigrationError("generated output cannot be a migration input")
     pending = [root]
     while pending:
         directory = pending.pop()
@@ -196,10 +164,9 @@ def resolve_paths(source_argument, destination_argument):
         raise MigrationError("source must be an existing project directory")
     source = source_raw.resolve(strict=True)
     destination = destination_raw.resolve(strict=False)
-    destination_parent = destination.parent
-    if not destination_parent.exists() or not destination_parent.is_dir():
+    if not destination.parent.exists() or not destination.parent.is_dir():
         raise MigrationError("destination parent must be an existing directory")
-    destination_parent = destination_parent.resolve(strict=True)
+    destination_parent = destination.parent.resolve(strict=True)
     if source == destination or is_within(destination, source) or is_within(source, destination):
         raise MigrationError("source and destination must be distinct non-overlapping trees")
     if destination.exists() or destination.is_symlink():
@@ -221,14 +188,29 @@ def run_phase_validator(project):
         [
             sys.executable,
             str(PHASE_VALIDATOR_PATH),
-            str(project / ".lccoding/PHASE-STATUS.json"),
+            str(Path(project) / ".lccoding/PHASE-STATUS.json"),
         ],
         capture_output=True,
         text=True,
     )
 
 
-def validate_source(source):
+def choose_target_phase(status, reopen_delivery_preparation=False):
+    current = status.get("current_phase")
+    if current == "DELIVERY_PREPARATION":
+        if not reopen_delivery_preparation:
+            raise MigrationError(
+                "Delivery Preparation source requires explicit Phase-4 reopening"
+            )
+        return "REAL_USER_JOURNEY_ACCEPTANCE"
+    if current == "REAL_PRODUCT_INTEGRATION" and PHASE_VALIDATOR.completed_evidence(
+        status.get("phase_gates", {}).get("ALL_REQUIRED_RUNS_ACCEPTED")
+    ):
+        return "REAL_USER_JOURNEY_ACCEPTANCE"
+    return current
+
+
+def validate_source(source, reopen_delivery_preparation=False):
     lc = source / ".lccoding"
     status_path = lc / "status.json"
     phase_path = lc / "PHASE-STATUS.json"
@@ -236,38 +218,22 @@ def validate_source(source):
         raise MigrationError("source lacks authoritative status records")
     status = read_json(status_path)
     phase_status = read_json(phase_path)
-    target_template = read_json(STATUS_TEMPLATE_PATH)
-    if target_template.get("status_schema_version") == "3.0.0":
-        target_template = copy.deepcopy(target_template)
-        target_template["status_schema_version"] = TARGET_SCHEMA
-        target_template.pop("real_user_journey_acceptance", None)
-        target_template.get("phase_gates", {}).pop(
-            "REAL_USER_JOURNEY_ACCEPTED", None
-        )
-    if target_template.get("status_schema_version") != TARGET_SCHEMA:
-        raise MigrationError("installed status template cannot derive exact 2.8.0")
-    agent_default = target_template.get(AGENT_PRODUCT_FORMATION_FIELD)
-    if not isinstance(agent_default, dict) or agent_default.get("state") != "UNPROVED":
-        raise MigrationError("installed target status template lacks unproved Agent state")
-    slice_default = target_template.get(AGENT_SLICE_INTEGRATION_FIELD)
-    if not isinstance(slice_default, dict) or slice_default.get("state") != "UNPROVED":
-        raise MigrationError("installed target status template lacks unproved Agent Slice state")
-    source_fields = set(target_template) - {
-        AGENT_PRODUCT_FORMATION_FIELD,
-        AGENT_SLICE_INTEGRATION_FIELD,
-    }
+    template = read_json(STATUS_TEMPLATE_PATH)
+    if template.get("status_schema_version") != TARGET_SCHEMA:
+        raise MigrationError("installed target status template is not 3.0.0")
+    source_fields = set(template) - {JOURNEY_FIELD}
     if set(status) != source_fields:
-        raise MigrationError("source status does not use the closed 2.7 status shape")
+        raise MigrationError("source status does not use the closed 2.8 status shape")
     if status.get("record_role") != "AUTHORITATIVE_PROJECT_STATUS":
         raise MigrationError("source status is not authoritative")
     if status.get("status_schema_version") != SOURCE_SCHEMA:
-        raise MigrationError("source status schema must be exact 2.7.0")
+        raise MigrationError("source status schema must be exact 2.8.0")
     if status.get("current_phase") not in SOURCE_PHASES:
-        raise MigrationError("source current phase is not a 2.7 phase identity")
-    if set(status.get("phase_gates", {})) != PHASE_GATES:
+        raise MigrationError("source current phase is not a 2.8 phase identity")
+    if set(status.get("phase_gates", {})) != SOURCE_GATES:
         raise MigrationError("source phase gate set is not closed")
     if phase_status.get("status_schema_version") != SOURCE_SCHEMA:
-        raise MigrationError("source derived phase schema must be exact 2.7.0")
+        raise MigrationError("source derived phase schema must be exact 2.8.0")
     if phase_status.get("record_role") != "DERIVED_VIEW" or phase_status.get(
         "derived_from"
     ) != "status.json":
@@ -277,116 +243,118 @@ def validate_source(source):
     if tuple(phase_status.get("phases", {})) != SOURCE_PHASES:
         raise MigrationError("source phase identity is mixed, inferred, or unknown")
     if (lc / HISTORY_ROOT).exists():
-        raise MigrationError("source already contains a 2.7 migration history target")
+        raise MigrationError("source already contains a 2.8 migration history target")
+    choose_target_phase(status, reopen_delivery_preparation)
     validation = run_project_validator(source)
     if validation.returncode:
         raise MigrationError("source fails complete project validation")
-    return status, phase_status, target_template
+    return status, phase_status, template
 
 
-def archive_historical_evidence(stage):
-    lc = stage / ".lccoding"
-    history = lc / HISTORY_ROOT
-    history.mkdir(parents=True)
-    shutil.copy2(lc / "status.json", history / "status.json")
-    shutil.copy2(lc / "PHASE-STATUS.json", history / "PHASE-STATUS.json")
-    for name in HISTORICAL_DIRECTORIES:
-        source = lc / name
-        if source.exists():
-            shutil.move(str(source), str(history / name))
-    for name in HISTORICAL_RECEIPTS:
-        source = lc / name
-        if source.exists():
-            shutil.move(str(source), str(history / name))
-
-
-def migrated_status(source, target_template):
-    status = copy.deepcopy(source)
+def migrated_status(source, template, reopen_delivery_preparation=False):
+    status = copy.deepcopy(template)
+    for field, value in source.items():
+        status[field] = copy.deepcopy(value)
     status["status_schema_version"] = TARGET_SCHEMA
-    status[AGENT_PRODUCT_FORMATION_FIELD] = copy.deepcopy(
-        target_template[AGENT_PRODUCT_FORMATION_FIELD]
-    )
-    status[AGENT_SLICE_INTEGRATION_FIELD] = copy.deepcopy(
-        target_template[AGENT_SLICE_INTEGRATION_FIELD]
-    )
-    initial_complete = PHASE_VALIDATOR.completed_evidence(
-        source["phase_gates"]["INITIAL_READY"]
-    )
-    status["current_phase"] = "PRODUCT_FORMATION" if initial_complete else "INITIAL"
-    status["product_baseline"] = "PENDING"
-    status["active_slice"] = None
-    status["integration_baseline"] = None
-    status["active_runs"] = []
-    status["loop_owner_acceptances"] = []
-    status["open_owner_gaps"] = []
-    status["phase_gates"]["ALL_REQUIRED_RUNS_ACCEPTED"] = "PENDING"
-    status["phase_gates"]["DELIVERY_READY"] = "PENDING"
-    status["all_required_runs_accepted"] = "PENDING"
+    status["current_phase"] = choose_target_phase(source, reopen_delivery_preparation)
+    source_gates = source["phase_gates"]
+    status["phase_gates"] = {
+        gate: (
+            "PENDING"
+            if gate in {"REAL_USER_JOURNEY_ACCEPTED", "DELIVERY_READY"}
+            else copy.deepcopy(source_gates[gate])
+        )
+        for gate in TARGET_GATES
+    }
+    status[JOURNEY_FIELD] = copy.deepcopy(template[JOURNEY_FIELD])
     status["centralized_security_audit"] = "PENDING"
     status["security_remediation"] = "PENDING"
-    status["vulnerability_closure"] = copy.deepcopy(
-        target_template["vulnerability_closure"]
-    )
+    status["vulnerability_closure"] = copy.deepcopy(template["vulnerability_closure"])
     status["post_security_owner_acceptance"] = copy.deepcopy(
-        target_template["post_security_owner_acceptance"]
+        template["post_security_owner_acceptance"]
     )
     status["delivery_method_qa"] = "PENDING"
     status["delivery"] = "PENDING"
     status["last_material_change"] = ""
-    status["next_action"] = "PROVE_2_8_AGENT_NATIVE_REQUIREMENTS"
-    status["evidence_pointers"] = [REPORT_REFERENCE]
-    status["blockers"] = list(BLOCKERS)
-    if set(status) != set(target_template):
-        raise MigrationError("target status does not use the closed 2.8 status shape")
+    status["next_action"] = "RUN_REAL_USER_JOURNEY_ACCEPTANCE"
+    status["evidence_pointers"] = list(dict.fromkeys(
+        [*source.get("evidence_pointers", []), REPORT_REFERENCE]
+    ))
+    status["blockers"] = list(dict.fromkeys(
+        [*source.get("blockers", []), JOURNEY_BLOCKER]
+    ))
+    if set(status) != set(template):
+        raise MigrationError("target status does not use the closed 3.0 status shape")
     return status
 
 
 def migrated_phase_status(status, source_phase_status):
     current = status["current_phase"]
-    initial_status = "ACTIVE" if current == "INITIAL" else "COMPLETE"
-    formation_status = "PENDING" if current == "INITIAL" else "ACTIVE"
+    phases = copy.deepcopy(source_phase_status["phases"])
+    if current == "REAL_USER_JOURNEY_ACCEPTANCE":
+        phases["REAL_PRODUCT_INTEGRATION"]["status"] = "COMPLETE"
+    journey = {
+        "status": "ACTIVE" if current == "REAL_USER_JOURNEY_ACCEPTANCE" else "PENDING",
+        "acceptance_record": "NOT_APPLICABLE",
+        "defect_log": "NOT_APPLICABLE",
+        "complete_rounds": 0,
+        "exit_gate": "PENDING",
+    }
+    delivery = copy.deepcopy(phases["DELIVERY_PREPARATION"])
+    delivery["status"] = "PENDING"
+    delivery["exit_gate"] = "PENDING"
+    ordered = {
+        "INITIAL": phases["INITIAL"],
+        "PRODUCT_FORMATION": phases["PRODUCT_FORMATION"],
+        "REAL_PRODUCT_INTEGRATION": phases["REAL_PRODUCT_INTEGRATION"],
+        "REAL_USER_JOURNEY_ACCEPTANCE": journey,
+        "DELIVERY_PREPARATION": delivery,
+    }
     return {
         "record_role": "DERIVED_VIEW",
         "status_schema_version": TARGET_SCHEMA,
         "derived_from": "status.json",
         "current_phase": current,
-        "phases": {
-            "INITIAL": {
-                "status": initial_status,
-                "exit_gate": status["phase_gates"]["INITIAL_READY"],
-            },
-            "PRODUCT_FORMATION": {
-                "status": formation_status,
-                "exit_evidence": status["product_baseline"],
-            },
-            "REAL_PRODUCT_INTEGRATION": {
-                "status": "PENDING",
-                "per_run_acceptances": [],
-                "aggregate_exit_gate": "PENDING",
-            },
-            "DELIVERY_PREPARATION": {
-                "status": "PENDING",
-                "exit_gate": "PENDING",
-            },
-        },
+        "phases": ordered,
         "updated_at": source_phase_status.get("updated_at", ""),
-        "evidence": [REPORT_REFERENCE],
-        "blockers": list(BLOCKERS),
+        "evidence": list(dict.fromkeys(
+            [*source_phase_status.get("evidence", []), REPORT_REFERENCE]
+        )),
+        "blockers": list(dict.fromkeys(
+            [*source_phase_status.get("blockers", []), JOURNEY_BLOCKER]
+        )),
     }
 
 
-def transform(stage, source_status, source_phase_status, target_template):
+def migration_report(reopened):
+    return {
+        "artifact_role": "LCCODING_3_0_MIGRATION_EVIDENCE",
+        "source_status_schema": SOURCE_SCHEMA,
+        "target_status_schema": TARGET_SCHEMA,
+        "phase_inserted": "REAL_USER_JOURNEY_ACCEPTANCE",
+        "journey_evidence_state": "UNPROVED",
+        "source_delivery_preparation_reopened": reopened,
+        "historical_evidence": {
+            "root": ".lccoding/history/2.8.0",
+            "treatment": "HISTORICAL_ONLY_NOT_PHASE_4_PROOF",
+        },
+        "result": "MIGRATED_CANDIDATE_REQUIRES_REAL_USER_JOURNEY_ACCEPTANCE",
+    }
+
+
+def transform(stage, source_status, source_phase_status, template, reopened):
     lc = stage / ".lccoding"
-    archive_historical_evidence(stage)
-    status = migrated_status(source_status, target_template)
+    history = lc / HISTORY_ROOT
+    history.mkdir(parents=True)
+    shutil.copy2(lc / "status.json", history / "status.json")
+    shutil.copy2(lc / "PHASE-STATUS.json", history / "PHASE-STATUS.json")
+    status = migrated_status(source_status, template, reopened)
     phase_status = migrated_phase_status(status, source_phase_status)
     write_json(lc / "status.json", status)
     write_json(lc / "PHASE-STATUS.json", phase_status)
-    write_json(lc / REPORT_REFERENCE, MIGRATION_REPORT)
-    if read_json(lc / REPORT_REFERENCE) != MIGRATION_REPORT:
-        raise MigrationError("migration evidence record is not closed")
+    write_json(lc / REPORT_REFERENCE, migration_report(reopened))
     if tuple(phase_status["phases"]) != TARGET_PHASES:
-        raise MigrationError("target phase identity is not exact 2.8.0")
+        raise MigrationError("target phase identity is not exact 3.0.0")
 
 
 def safe_cleanup(stage, destination_parent, destination_name):
@@ -404,24 +372,26 @@ def safe_cleanup(stage, destination_parent, destination_name):
     shutil.rmtree(resolved, onerror=remove_readonly)
 
 
-def migrate(source_argument, destination_argument):
+def migrate(source_argument, destination_argument, reopen_delivery_preparation=False):
     source, destination, destination_parent = resolve_paths(
         source_argument, destination_argument
     )
-    source_status, source_phase_status, target_template = validate_source(source)
-    stage = destination_parent / (
-        f".{destination.name}.lccoding-migrate-{uuid.uuid4().hex}"
+    source_status, source_phase_status, template = validate_source(
+        source, reopen_delivery_preparation
     )
-    if stage.exists():
-        raise MigrationError("migration stage already exists")
+    stage = destination_parent / f".{destination.name}.lccoding-migrate-{uuid.uuid4().hex}"
     try:
         shutil.copytree(source, stage, copy_function=shutil.copy2)
-        transform(stage, source_status, source_phase_status, target_template)
-        phase_validation = run_phase_validator(stage)
-        if phase_validation.returncode:
+        transform(
+            stage,
+            source_status,
+            source_phase_status,
+            template,
+            reopen_delivery_preparation,
+        )
+        if run_phase_validator(stage).returncode:
             raise MigrationError("target phase view fails complete validation")
-        project_validation = run_project_validator(stage)
-        if project_validation.returncode:
+        if run_project_validator(stage).returncode:
             raise MigrationError("target project fails complete validation")
         stage.rename(destination)
     except Exception:
@@ -431,13 +401,18 @@ def migrate(source_argument, destination_argument):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Copy an exact LCCoding 2.7 project into a conservative 2.8 candidate."
+        description="Copy an exact LCCoding 2.8 project into a conservative 3.0 candidate."
     )
     parser.add_argument("--project", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--reopen-delivery-preparation", action="store_true")
     arguments = parser.parse_args()
     try:
-        migrate(arguments.project, arguments.output)
+        migrate(
+            arguments.project,
+            arguments.output,
+            arguments.reopen_delivery_preparation,
+        )
     except MigrationError as error:
         print("FAIL")
         print(str(error))

@@ -160,6 +160,9 @@ unknown_current = copy.deepcopy(status_template)
 unknown_current["unknown_status_authority"] = "PENDING"
 assert project_validator.validate_security_status_shape(unknown_current)
 legacy_status = copy.deepcopy(status_template)
+assert legacy_status["real_user_journey_acceptance"]["state"] == "UNPROVED"
+legacy_status.pop("real_user_journey_acceptance")
+assert legacy_status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
 assert legacy_status["agent_slice_integration"] == UNPROVED_AGENT_SLICE_INTEGRATION
 legacy_status.pop("agent_slice_integration")
 legacy_status["status_schema_version"] = "2.7.0"
@@ -404,8 +407,8 @@ with tempfile.TemporaryDirectory(prefix="agent-product-formation-280-") as tempo
     }
     status_path.write_text(
         status_path.read_text(encoding="utf-8").replace(
-            '  "status_schema_version": "2.8.0",',
-            '  "status_schema_version": "2.8.0",\n  "status_schema_version": "2.8.0",',
+            '  "status_schema_version": "3.0.0",',
+            '  "status_schema_version": "3.0.0",\n  "status_schema_version": "3.0.0",',
             1,
         ),
         encoding="utf-8",

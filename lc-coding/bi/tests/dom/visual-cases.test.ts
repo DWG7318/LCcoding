@@ -38,15 +38,19 @@ const EXPECTED_SLUGS = [
   "candidate--error--main--zh--reduced",
   "candidate--max-en--main--en--reduced",
   "candidate--max-zh--main--zh--reduced",
+  "candidate--journey--main--en--reduced",
+  "candidate--journey--main--zh--reduced",
+  "candidate--journey--report--en--reduced",
+  "candidate--journey--report--zh--reduced",
 ] as const;
 
 describe("fixed BI visual candidate matrix", () => {
-  it("enumerates exactly 32 unique ordered candidate slugs", () => {
+  it("enumerates exactly 36 unique ordered candidate slugs", () => {
     const slugs = VISUAL_CASES.map(({ slug }) => slug);
 
     expect(slugs).toEqual(EXPECTED_SLUGS);
-    expect(slugs).toHaveLength(32);
-    expect(new Set(slugs).size).toBe(32);
+    expect(slugs).toHaveLength(36);
+    expect(new Set(slugs).size).toBe(36);
     expect(slugs.every((slug) => slug.startsWith("candidate--"))).toBe(true);
   });
 
@@ -104,7 +108,7 @@ describe("fixed BI visual candidate matrix", () => {
     );
   });
 
-  it("keeps the 28-case success core and four reduced-motion boundaries closed", () => {
+  it("keeps the 28-case legacy core and eight reduced-motion boundaries closed", () => {
     const core = VISUAL_CASES.filter(({ preview }) => preview === "ok");
     const boundaries = VISUAL_CASES.filter(({ preview }) => preview !== "ok");
 
@@ -146,6 +150,34 @@ describe("fixed BI visual candidate matrix", () => {
         slug: "candidate--max-zh--main--zh--reduced",
         preview: "max-zh",
         view: "main",
+        language: "zh",
+        motion: "reduced",
+      },
+      {
+        slug: "candidate--journey--main--en--reduced",
+        preview: "journey",
+        view: "main",
+        language: "en",
+        motion: "reduced",
+      },
+      {
+        slug: "candidate--journey--main--zh--reduced",
+        preview: "journey",
+        view: "main",
+        language: "zh",
+        motion: "reduced",
+      },
+      {
+        slug: "candidate--journey--report--en--reduced",
+        preview: "journey",
+        view: "journey_acceptance",
+        language: "en",
+        motion: "reduced",
+      },
+      {
+        slug: "candidate--journey--report--zh--reduced",
+        preview: "journey",
+        view: "journey_acceptance",
         language: "zh",
         motion: "reduced",
       },
