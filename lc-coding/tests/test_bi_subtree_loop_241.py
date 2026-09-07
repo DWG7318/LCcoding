@@ -195,7 +195,7 @@ release_paths = {
     "lc-coding/bi/scripts/package-release.ps1": "05e22544c1fbe626f6cb1e3c81987e675c44e28d8e0cce3a238776bb316882a1",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "2673874828f0de95461132451fdf05695c7c9245fd7d7e1e22e5e588ddb0b7b7",
     "lc-coding/bi/tests/packaging/nsis-contract.ps1": "0b121cb6315e685fe18f2a523b0b101b9d2d682d810d39a559d0a0c6aec0a78b",
-    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "1de78c8e55221281f8a10a548f288c5a93e4e810fc8db440616ba51b7a5de07b",
+    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "52ced3798bddb1e52f7252677f31b43f6e85072db90e15a1a02afb12f6608093",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash

@@ -113,7 +113,7 @@
   "lc-coding/bi/tests/fixtures/snapshot-ok.json": "eab0738d6d4dca3bf344ec8ee0aefef6082c4aec04e84edfa4dcb5455aeb7dd7",
   "lc-coding/bi/tests/packaging/install-smoke.ps1": "f99bc3509b5dea8fbc45ff8cd8f670dcb681a31433941b08921ace50048b3ffe",
   "lc-coding/bi/tests/packaging/nsis-contract.ps1": "0b121cb6315e685fe18f2a523b0b101b9d2d682d810d39a559d0a0c6aec0a78b",
-  "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "1de78c8e55221281f8a10a548f288c5a93e4e810fc8db440616ba51b7a5de07b",
+  "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "52ced3798bddb1e52f7252677f31b43f6e85072db90e15a1a02afb12f6608093",
   "lc-coding/bi/tests/packaging/standard-user-install-smoke.ps1": "628a97f07583894c495979028177b52ba7f9c6a6abc06f5f8782497a09230a12",
   "lc-coding/bi/tests/visual/candidates.spec.ts": "42c8b5865792586e5a86a74ede55dac36d3d0ff54700a8e23ddebc157405bfde",
   "lc-coding/bi/tests/visual/cases.ts": "e0ccd1d16103e651f66b2955330e39101ae1c1ca9b98c98eab3eb07a0a1006f7",
@@ -234,7 +234,7 @@
   "lc-coding/tests/test_bi_desktop_boundary.py": "184784b6f0be8f4d2705e2d59f179f609e83f69b51f26926583115ee6378ac2c",
   "lc-coding/tests/test_bi_release_asset_name_251.py": "7a56c98d2e5144b97c963b983725f3289b8d11ce49028fe248025e43091a4732",
   "lc-coding/tests/test_bi_release_workflow_251.py": "e95f7f402c0ec06c071cf7b1a36b7686b1cc8cb6bffbdd4b0218e2ce7ce53899",
-  "lc-coding/tests/test_bi_subtree_loop_241.py": "53553232c662ddd3d059159fd5867cc8f35136276e0c7c689dc0b9bcdc754c3b",
+  "lc-coding/tests/test_bi_subtree_loop_241.py": "a00cab640ea6f06fcc0e957df22b2c62ff8efda7df7ce3deb77740c16b366b49",
   "lc-coding/tests/test_bootstrap.py": "ebdbb0fb5a70554f7feac8a4314ba9a3e39b47e8edcaedc09f57e1aee8ffa98b",
   "lc-coding/tests/test_calabash_boundary_270.py": "2108a085b1ba2f4f4823286691bb2cdabc55d64c271780bad745a5768e826f1a",
   "lc-coding/tests/test_checkout_lf_policy.py": "a020da6344b02664717b149864455ca19d57ecea62ee2a1c41ad738c4748ed9c",
@@ -284,5 +284,5 @@
   "lc-coding/tests/test_version_consistency_300.py": "6727c2529763a5e59e0a111ca91da6633dd91ff1da6a15f3973b9f368dc9fc4c",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "ac00be68015f3c07d9ebd6a06a87fd843689753e81913e7a108b4e1a89653ac9",
-  "lc-coding/tests/test_windows_ci_path_roundtrip_280.py": "14f1f3281962daa6ffd688ccfa44a5c911688f398aa313b7717a7f7a3cc47e73"
+  "lc-coding/tests/test_windows_ci_path_roundtrip_280.py": "a8943f6a3ece3e2e1093a42810ebe15d6f894b1193b66641b80cc727ca9a1e22"
 }

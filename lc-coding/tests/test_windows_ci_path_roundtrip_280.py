@@ -1,4 +1,5 @@
 from pathlib import Path
+import hashlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +17,9 @@ workflow = VALIDATE_WORKFLOW.read_text(encoding="utf-8")
 release_workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 parent = PARENT.read_text(encoding="utf-8")
 child = CHILD.read_text(encoding="utf-8")
+child_sha256 = hashlib.sha256(CHILD.read_bytes()).hexdigest()
+
+assert f'$ExpectedChildSha256 = "{child_sha256}"' in parent
 
 assert "on: [push, pull_request]" in workflow
 assert "runs-on: ubuntu-latest" in workflow
