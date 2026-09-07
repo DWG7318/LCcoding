@@ -1,7 +1,7 @@
 {
   ".gitattributes": "d60f352d0db1404c70afb4bb8b2ca3fd1c610572aa40720e8a0b7baa7885418c",
   ".gitignore": "4d86f9e7408711781d624b6f9fa51acef2d9529108bab46ea833a6e0a910a21a",
-  "CHANGELOG.md": "296ed85a08e904cb754545f9142023bbfedb6202f0d1477be8db5bace4ee6f63",
+  "CHANGELOG.md": "c37d188b231e6d17f56e568f403a0b7dcdc1c8e4d013b06b74b0de8d7417c4d7",
   "CONSTITUTION.md": "8b1b4a215820478756672e7b838c40e18a2be1612dce29c4ad72e63e963e824b",
   "LICENSE": "5927db6a7b043c9f7c63044682996cd59bbd3d1697b05ca0782df898d879cb8a",
   "MANIFEST.json": "f77af93cd5bf578f85ef6abfb979112c72d06622d59ed7e84f957478ad74d395",
@@ -280,7 +280,7 @@
   "lc-coding/tests/test_takeover_and_status_authority.py": "3b124ec6dec77d6b9dd2f1ebbc09282bbd54fc666dc7102aa346a5c05072688a",
   "lc-coding/tests/test_ui_subtree_baseline_240.py": "67e31f4c6f056c9c77c2ceb342624391934e381800e6a9ef2c0009829799f501",
   "lc-coding/tests/test_verification_reuse.py": "056ef52a988c223ec4b5e6a3419d562a91045b4ac589ac54f8d99c03ce931e98",
-  "lc-coding/tests/test_version_consistency_280.py": "bdc91e1d9a49af094f73dc0fc542d29f84d64f80cc348845442a078723976668",
+  "lc-coding/tests/test_version_consistency_280.py": "0b52b8c893ebb17dab42740e96137c54c2ebb06aeb63ae1e9b15f03d2102ceb5",
   "lc-coding/tests/test_version_consistency_300.py": "6727c2529763a5e59e0a111ca91da6633dd91ff1da6a15f3973b9f368dc9fc4c",
   "lc-coding/tests/test_version_guard.py": "66971cec9f24238d9be87ec01b6120591c0eed29a1373cc6f603e84e7b485b3a",
   "lc-coding/tests/test_vulnerability_closure.py": "ac00be68015f3c07d9ebd6a06a87fd843689753e81913e7a108b4e1a89653ac9",

@@ -89,7 +89,7 @@ projection_schema_mapping = '''schema: match status.status_schema_version.as_str
 assert projection.count(projection_schema_mapping) == 1
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-final_heading = "## Unreleased - 3.0.0 candidate"
+final_heading = "## 3.0.0"
 release_heading = "## 2.8.0"
 next_heading = "## 2.7.0"
 assert changelog.startswith("# Changelog\n\n" + final_heading + "\n")
@@ -103,14 +103,16 @@ assert final_start < release_start < release_end
 final_section = changelog[final_start:release_start]
 for marker in [
     "copy-on-write",
-    "five-phase lifecycle and built-in BI are prepared for 3.0.0",
-    "not a formal release",
-    "creates no tag or GitHub Release",
-    "does not deploy the global installed Skill",
+    "five-phase lifecycle and built-in BI are finalized for 3.0.0",
+    "no formal tag or GitHub Release exists yet",
+    "global installed Skill deployment remains a separate post-release action",
+    "only after the formal release is independently accepted",
 ]:
     assert marker in final_section
 for stale_claim in [
-    "current repository and BI release carriers are finalized for 3.0.0",
+    "candidate",
+    "not a formal release",
+    "prepared for 3.0.0",
     "3.0.0 has been released",
     "formal release is complete",
 ]:
