@@ -12,7 +12,7 @@ Source clauses: [LC-AUTH-001](SPEC.md#lc-auth-001), [LC-AUTH-002](SPEC.md#lc-aut
 
 LCCoding is an Owner-led, AI-executed, Agent-platform-independent enterprise product-development method. `SPEC.md` is its sole complete semantic authority; this Constitution retains only immutable principles, Owner rights, and the method/runtime boundary.
 
-LCCoding coordinates product definition, formation, Real Product Integration, verification, acceptance, and protected delivery. It does not own an Agent kernel, session/runtime control, or a second project-status authority.
+LCCoding coordinates product definition, formation, Real Product Integration, real-user journey acceptance, verification, and protected delivery. It does not own an Agent kernel, session/runtime control, or a second project-status authority.
 
 ## Owner rights
 
@@ -22,7 +22,7 @@ The Owner has final authority over product meaning, value, Workflow intent, UI/U
 
 ## Frozen mainline
 
-Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-FORM-001](SPEC.md#lc-form-001), [LC-INTEG-001](SPEC.md#lc-integ-001)
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-PHASE-005](SPEC.md#lc-phase-005), [LC-FORM-001](SPEC.md#lc-form-001), [LC-INTEG-001](SPEC.md#lc-integ-001), [LC-JOURNEY-001](SPEC.md#lc-journey-001)
 
 ```text
 Owner Proposal
@@ -34,18 +34,20 @@ Owner Proposal
 → Product Baseline
 → Feature Slice
 → UI-locked Real Product Integration
-→ Independent layered Verification
-→ Owner Acceptance
+→ Per-Run Independent layered Verification and Owner Acceptance
+→ Real User Journey Acceptance
+→ Centralized Security Closure and Post-Security Owner Acceptance
+→ Delivery Preparation
 → Delivery
 ```
 
 The compatible compact expression is `Calabash Draft → [Simulation foundation first → Workflow ∥ UI] → Mandatory Calabash Upgrade → Product Baseline`. The bracket is formation inside the existing lifecycle, not a new node.
 
-## Four phases and the execution axis
+## Five phases and the execution axis
 
-Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003), [LC-COMPAT-001](SPEC.md#lc-compat-001)
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-PHASE-005](SPEC.md#lc-phase-005), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003), [LC-COMPAT-001](SPEC.md#lc-compat-001)
 
-The four human phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration (compatibility status ID `ENGINEERING_RUNS`), and Delivery Preparation (`DELIVERY_PREPARATION`). The compatibility ID explains persisted state; it is not the human phase name.
+The five human phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration, Real User Journey Acceptance (`REAL_USER_JOURNEY_ACCEPTANCE`), and Delivery Preparation (`DELIVERY_PREPARATION`). The legacy compatibility ID `ENGINEERING_RUNS` explains persisted third-phase state; it is not the human phase name.
 
 SLK, CLK, GLK, and another registered method form a cross-phase execution axis. It is not a lifecycle node: bounded work in any phase may use a compatible method and return evidence to its calling phase without advancing that phase.
 

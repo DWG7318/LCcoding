@@ -88,7 +88,8 @@ EXPECTED_TITLES = {
     "LC-PHASE-001": "Initial",
     "LC-PHASE-002": "Product Formation",
     "LC-PHASE-003": "Real Product Integration",
-    "LC-PHASE-004": "Delivery Preparation",
+    "LC-PHASE-004": "Real User Journey Acceptance",
+    "LC-PHASE-005": "Delivery Preparation",
     "LC-FORM-001": "Calabash and Simulation-first formation",
     "LC-FORM-002": "Workflow, UI, and Simulation product units",
     "LC-FORM-003": "Product Baseline and primary product mainline",
@@ -99,6 +100,9 @@ EXPECTED_TITLES = {
     "LC-INTEG-002": "One-way UI lock",
     "LC-INTEG-003": "Impact, mutability, and evidence reuse",
     "LC-INTEG-004": "Agent-native topology and Slice proof",
+    "LC-JOURNEY-001": "Bounded real-user journey coverage and visible evidence",
+    "LC-JOURNEY-002": "Defect identity, correction order, and complete-round restart",
+    "LC-JOURNEY-003": "Owner verdict, exemption, and later invalidation",
     "LC-RUN-001": "Cross-phase Run call contract",
     "LC-RUN-002": "Run start and terminal receipt",
     "LC-RUN-003": "Execution-method selection and aggregate scope",
@@ -118,7 +122,7 @@ EXPECTED_TITLES = {
 EXPECTED = set(EXPECTED_TITLES)
 
 heading_re = re.compile(
-    r"(?m)^### (LC-(?:AUTH|PHASE|FORM|AGENT|INTEG|RUN|VERIFY|ACCEPT|SEC|DELIVERY|BI|COMPAT)-\d{3}) — (.+)$"
+    r"(?m)^### (LC-(?:AUTH|PHASE|FORM|AGENT|INTEG|JOURNEY|RUN|VERIFY|ACCEPT|SEC|DELIVERY|BI|COMPAT)-\d{3}) — (.+)$"
 )
 headings = heading_re.findall(spec)
 found_ids = [clause_id for clause_id, _ in headings]
@@ -237,6 +241,13 @@ required_semantics = {
         "`ALL_REQUIRED_RUNS_ACCEPTED`",
     ),
     "LC-PHASE-004": (
+        "`REAL_USER_JOURNEY_ACCEPTANCE`",
+        "real rendered feedback",
+        "`40001+`",
+        "restart from the home page",
+        "`REAL_USER_JOURNEY_ACCEPTED`",
+    ),
+    "LC-PHASE-005": (
         "`DELIVERY_PREPARATION`",
         "centralized vulnerability",
         "Post-Security Owner Acceptance",
@@ -305,6 +316,25 @@ required_semantics = {
         "`FEDERATE`",
         "`RETIRE`",
         "Slice class is exactly one of {`PRODUCT`, `OPERATIONS`}",
+    ),
+    "LC-JOURNEY-001": (
+        "directed journey graph",
+        "visible browser surface",
+        "captures a screenshot",
+        "real rendered feedback",
+        "`F11`",
+    ),
+    "LC-JOURNEY-002": (
+        "`40001`",
+        "UI → Workflow → Backend/Core",
+        "restart from the home page",
+        "never reuses an earlier-round screenshot",
+    ),
+    "LC-JOURNEY-003": (
+        "`REAL_USER_JOURNEY_ACCEPTED`",
+        "without repeating the user journey manually",
+        "exemption",
+        "broad or unknown impact",
     ),
     "LC-RUN-001": (
         "calling phase",
@@ -812,4 +842,4 @@ for projection in PROJECTIONS:
     assert "cross-phase execution axis" in text.casefold()
     assert "not a lifecycle node" in text.casefold()
 
-print("PASS: SPEC exposes one closed 31-clause semantic authority graph")
+print("PASS: SPEC exposes one closed 35-clause semantic authority graph")

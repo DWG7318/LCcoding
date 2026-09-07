@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/lifecycle.json').read_text())
-expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
+expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','REAL_USER_JOURNEY_ACCEPTANCE','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
 assert contract['mainline']==expected
 assert contract['required_transitions']==dict(zip(expected,expected[1:]))
 con=(root/'CONSTITUTION.md').read_text(encoding='utf-8')
@@ -10,9 +10,9 @@ for x in ['Workflow capability end','UI product-surface end','Simulation World',
     assert x in con
 
 phases=json.loads((root/'lc-coding/contracts/phases.json').read_text())
-assert phases['mainline_unchanged'] is True
+assert phases['mainline_unchanged'] is False
 phase_by_id={phase['id']:phase for phase in phases['phases']}
-assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION','DELIVERY_PREPARATION']
+assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION','REAL_USER_JOURNEY_ACCEPTANCE','DELIVERY_PREPARATION']
 formation=phase_by_id['PRODUCT_FORMATION']
 assert formation['start']=='CALABASH_DRAFT'
 assert formation['end_after']=='PRODUCT_BASELINE'
@@ -25,6 +25,10 @@ assert integration['start']=='FEATURE_SLICE'
 assert 'entry_gate' not in integration
 assert integration['slice_run_admission']['phase_entry'] is False
 assert integration['aggregate_exit_scope']=='REQUIRED_PHASE_3_INTEGRATION_RUNS'
+journey=phase_by_id['REAL_USER_JOURNEY_ACCEPTANCE']
+assert journey['start_after']=='ALL_REQUIRED_RUNS_ACCEPTED'
+assert journey['exit_gate']=='REAL_USER_JOURNEY_ACCEPTED'
+assert phase_by_id['DELIVERY_PREPARATION']['start_after']=='REAL_USER_JOURNEY_ACCEPTED'
 assert phase_by_id['DELIVERY_PREPARATION']['exit_gate']=='DELIVERY_READY'
 
 spec=(root/'SPEC.md').read_text(encoding='utf-8')

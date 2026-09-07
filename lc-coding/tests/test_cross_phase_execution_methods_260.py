@@ -35,11 +35,18 @@ current_phases = [
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
+    "DELIVERY_PREPARATION",
+]
+release_phases = [
+    "INITIAL",
+    "PRODUCT_FORMATION",
+    "REAL_PRODUCT_INTEGRATION",
     "DELIVERY_PREPARATION",
 ]
 assert manifest["version"] == "2.8.0"
-assert manifest["phase_overlay"] == current_phases
-assert manifest["execution_method_overlay"]["available_in_phases"] == current_phases
+assert manifest["phase_overlay"] == release_phases
+assert manifest["execution_method_overlay"]["available_in_phases"] == release_phases
 
 phase_contract = json.loads(text("lc-coding/contracts/phases.json"))
 assert phase_contract["version"] == "2.8.0"
@@ -77,6 +84,7 @@ for relative in ["README.md", "README.zh-CN.md", "SPEC.md", "lc-coding/SKILL.md"
         "INITIAL",
         "PRODUCT_FORMATION",
         "ENGINEERING_RUNS",
+        "REAL_USER_JOURNEY_ACCEPTANCE",
         "DELIVERY_PREPARATION",
     )
 

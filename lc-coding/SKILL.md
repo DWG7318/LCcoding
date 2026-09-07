@@ -1,13 +1,13 @@
 ---
 name: lc-coding
-description: Use when an Owner wants AI to develop or admit an enterprise product through four lifecycle phases and bounded cross-phase execution methods.
+description: Use when an Owner wants AI to develop or admit an enterprise product through five lifecycle phases and bounded cross-phase execution methods.
 ---
 
 # LCCoding 2.8.0
 
 ## Canonical mainline
 
-Source clauses: [LC-PHASE-001](../SPEC.md#lc-phase-001), [LC-PHASE-002](../SPEC.md#lc-phase-002), [LC-PHASE-003](../SPEC.md#lc-phase-003), [LC-PHASE-004](../SPEC.md#lc-phase-004)
+Source clauses: [LC-PHASE-001](../SPEC.md#lc-phase-001), [LC-PHASE-002](../SPEC.md#lc-phase-002), [LC-PHASE-003](../SPEC.md#lc-phase-003), [LC-PHASE-004](../SPEC.md#lc-phase-004), [LC-PHASE-005](../SPEC.md#lc-phase-005)
 
 ```text
 Owner Proposal
@@ -19,14 +19,16 @@ Owner Proposal
 → Product Baseline
 → Feature Slice
 → UI-locked Real Product Integration
-→ Independent layered Verification
-→ Owner Acceptance
+→ Per-Run Independent layered Verification and Owner Acceptance
+→ Real User Journey Acceptance
+→ Centralized Security Closure and Post-Security Owner Acceptance
+→ Delivery Preparation
 → Delivery
 ```
 
 Operational meaning:
 
-The lifecycle axis identifies the product condition of each phase. The execution-method axis organizes bounded work in any LCCoding phase. The four phases are `INITIAL`, `PRODUCT_FORMATION`, the Real Product Integration phase (compatibility ID `ENGINEERING_RUNS`), and `DELIVERY_PREPARATION`.
+The lifecycle axis identifies the product condition of each phase. The execution-method axis organizes bounded work in any LCCoding phase. The five phases are `INITIAL`, `PRODUCT_FORMATION`, the Real Product Integration phase (`REAL_PRODUCT_INTEGRATION`), `REAL_USER_JOURNEY_ACCEPTANCE`, and `DELIVERY_PREPARATION`; `ENGINEERING_RUNS` remains a legacy compatibility ID for the third phase only.
 
 ## Principle Zero and Owner authority
 
@@ -69,6 +71,12 @@ Each Slice proves a real UI operation through a real API/MCP-backed Workflow to 
 Source clauses: [LC-AGENT-001](../SPEC.md#lc-agent-001), [LC-AGENT-002](../SPEC.md#lc-agent-002), [LC-AGENT-003](../SPEC.md#lc-agent-003), [LC-INTEG-004](../SPEC.md#lc-integ-004), [LC-SEC-003](../SPEC.md#lc-sec-003)
 
 For 2.8 Agent-native work, use the focused [Agent-native integration guidance](references/agent-native-integration.md) to navigate class boundaries, configuration authority, private isolation and typed events, production topology and Slice proof, and security/degradation evidence. `SPEC.md` remains the complete semantic authority.
+
+## Real User Journey Acceptance entry
+
+Source clauses: [LC-PHASE-004](../SPEC.md#lc-phase-004), [LC-JOURNEY-001](../SPEC.md#lc-journey-001), [LC-JOURNEY-002](../SPEC.md#lc-journey-002), [LC-JOURNEY-003](../SPEC.md#lc-journey-003)
+
+After current required integration Runs are accepted, operate the exact running candidate from its home page through the bounded required journey graph. Judge real rendered feedback, capture a screenshot after each meaningful visible action, assign stable `40001+` defect IDs, correct in `UI → Workflow → Backend/Core` priority, and restart the next complete round from the home page. D3 remains bounded engineering Verification and does not replace this product-wide visible acceptance. Owner assistance may prepare the Codex full-width/F11 viewport but does not perform or judge the journey.
 
 ## Cross-phase execution axis
 

@@ -1,6 +1,6 @@
 {
   "version": "2.8.0",
-  "mainline_unchanged": true,
+  "mainline_unchanged": false,
   "phases": [
     {
       "id": "INITIAL",
@@ -46,6 +46,7 @@
       "aggregate_excludes": [
         "INITIAL_RUNS",
         "PRODUCT_FORMATION_RUNS",
+        "REAL_USER_JOURNEY_ACCEPTANCE_RUNS",
         "DELIVERY_PREPARATION_RUNS",
         "OPTIONAL_RUNS",
         "SUPERSEDED_RUNS",
@@ -54,8 +55,26 @@
       "aggregate_blocker": "OPEN_BLOCKING_OWNER_GAP"
     },
     {
-      "id": "DELIVERY_PREPARATION",
+      "id": "REAL_USER_JOURNEY_ACCEPTANCE",
       "start_after": "ALL_REQUIRED_RUNS_ACCEPTED",
+      "candidate_bound": true,
+      "visible_product_operation": true,
+      "complete_round_starts_at": "HOME_PAGE_OR_PRODUCT_ENTRY",
+      "repair_priority": [
+        "UI",
+        "WORKFLOW",
+        "BACKEND_CORE"
+      ],
+      "owner_results": [
+        "REAL_USER_JOURNEY_ACCEPTED",
+        "REAL_USER_JOURNEY_REWORK",
+        "REAL_USER_JOURNEY_DEFERRED"
+      ],
+      "exit_gate": "REAL_USER_JOURNEY_ACCEPTED"
+    },
+    {
+      "id": "DELIVERY_PREPARATION",
+      "start_after": "REAL_USER_JOURNEY_ACCEPTED",
       "end_before": "DELIVERY",
       "required_subgates": [
         "CENTRALIZED_VULNERABILITY_AUDIT",
@@ -75,6 +94,7 @@
       "INITIAL",
       "PRODUCT_FORMATION",
       "REAL_PRODUCT_INTEGRATION",
+      "REAL_USER_JOURNEY_ACCEPTANCE",
       "DELIVERY_PREPARATION"
     ],
     "selection_scope": "PER_RUN",

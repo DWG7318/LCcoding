@@ -11,7 +11,8 @@ This document is the complete normative specification for LCCoding. Stable claus
 | [LC-PHASE-001](#lc-phase-001) | Initial |
 | [LC-PHASE-002](#lc-phase-002) | Product Formation |
 | [LC-PHASE-003](#lc-phase-003) | Real Product Integration |
-| [LC-PHASE-004](#lc-phase-004) | Delivery Preparation |
+| [LC-PHASE-004](#lc-phase-004) | Real User Journey Acceptance |
+| [LC-PHASE-005](#lc-phase-005) | Delivery Preparation |
 | [LC-FORM-001](#lc-form-001) | Calabash and Simulation-first formation |
 | [LC-FORM-002](#lc-form-002) | Workflow, UI, and Simulation product units |
 | [LC-FORM-003](#lc-form-003) | Product Baseline and primary product mainline |
@@ -22,6 +23,9 @@ This document is the complete normative specification for LCCoding. Stable claus
 | [LC-INTEG-002](#lc-integ-002) | One-way UI lock |
 | [LC-INTEG-003](#lc-integ-003) | Impact, mutability, and evidence reuse |
 | [LC-INTEG-004](#lc-integ-004) | Agent-native topology and Slice proof |
+| [LC-JOURNEY-001](#lc-journey-001) | Bounded real-user journey coverage and visible evidence |
+| [LC-JOURNEY-002](#lc-journey-002) | Defect identity, correction order, and complete-round restart |
+| [LC-JOURNEY-003](#lc-journey-003) | Owner verdict, exemption, and later invalidation |
 | [LC-RUN-001](#lc-run-001) | Cross-phase Run call contract |
 | [LC-RUN-002](#lc-run-002) | Run start and terminal receipt |
 | [LC-RUN-003](#lc-run-003) | Execution-method selection and aggregate scope |
@@ -60,7 +64,7 @@ Every project locks exact LCCoding, Calabash, and selected execution-method iden
 
 All mandatory lifecycle work remains. Depth is proportional to product uncertainty, coupling, real risk, irreversibility, and novelty. `UNKNOWN` requires conservative depth and evidence; it is not a sufficient final judgment. Existing sufficient evidence is cited and reused. Friction reduction never authorizes missing work, repeated Owner interviews, shallow risk treatment, or empty completion artifacts.
 
-## Four-phase lifecycle
+## Five-phase lifecycle
 
 <a id="lc-phase-001"></a>
 ### LC-PHASE-001 — Initial
@@ -102,16 +106,23 @@ The phase organizes separately realized Workflow, UI, and Simulation into a true
 
 For 2.8 it also freezes the final production execution topology, resolves every relevant Product Formation backend through `SELECT`, `COMPOSE`, `FEDERATE`, or `RETIRE`, integrates the required Operations Agent through an authorized Runtime Adapter, integrates any applicable Product Agent without merging the two logical Agents, and proves the required `PRODUCT` and `OPERATIONS` Slices. These conditions add no lifecycle gate and do not make an execution method or Runtime a phase.
 
-`ALL_REQUIRED_RUNS_ACCEPTED` is a compatibility aggregate only for required Real Product Integration Runs on the accepted integration candidate. It does not include Runs called by Initial, Product Formation, or Delivery Preparation and does not make an execution method a lifecycle node.
+`ALL_REQUIRED_RUNS_ACCEPTED` is a compatibility aggregate only for required Real Product Integration Runs on the accepted integration candidate. It does not include Runs called by Initial, Product Formation, Real User Journey Acceptance, or Delivery Preparation and does not make an execution method a lifecycle node.
 
 <a id="lc-phase-004"></a>
-### LC-PHASE-004 — Delivery Preparation
+### LC-PHASE-004 — Real User Journey Acceptance
 
-`DELIVERY_PREPARATION` begins only after `ALL_REQUIRED_RUNS_ACCEPTED` for the required Phase-3 integration set. It contains centralized vulnerability audit, remediation, independent re-audit, vulnerability closure, Post-Security Owner Acceptance, customer-specific Delivery Method Q&A, runtime/license/package checks, and protected packaging.
+`REAL_USER_JOURNEY_ACCEPTANCE` begins only after `ALL_REQUIRED_RUNS_ACCEPTED` is current for one exact Real Product Integration candidate. It operates that running product through its visible UI from the home page or defined product entry, covers every required applicable user journey, captures candidate-bound evidence after each meaningful visible action, and judges real rendered feedback rather than substituting source, DOM, API, log, or prior automated-test evidence.
 
-The existing `DELIVERY_READY` gate is the only exit. It requires current candidate-bound security closure, current Post-Security Owner Acceptance, confirmed delivery decisions, and package protection. Any later product/security-surface change follows the invalidation rule in the security clauses before Delivery may proceed.
+Every discovered defect receives a stable `40001+` identity and correction history. After correction and affected engineering re-verification, the next acceptance round must restart from the home page and rerun the complete required journey graph on the new exact candidate. The Owner receives one concise evidence-backed conclusion and chooses `REAL_USER_JOURNEY_ACCEPTED`, `REAL_USER_JOURNEY_REWORK`, or `REAL_USER_JOURNEY_DEFERRED` without having to repeat the product test manually.
 
-For 2.8, the same centralized closure and existing `DELIVERY_READY` gate additionally require current Agent-specific isolation, prompt/tool/memory/privilege/model/Runtime/fallback/Kill-Switch/audit evidence and customer-specific Runtime/credential/recovery decisions. No Agent-specific phase or Delivery gate is introduced.
+<a id="lc-phase-005"></a>
+### LC-PHASE-005 — Delivery Preparation
+
+`DELIVERY_PREPARATION` begins only after current `REAL_USER_JOURNEY_ACCEPTED` for the exact candidate. It contains centralized vulnerability audit, remediation, independent re-audit, vulnerability closure, Post-Security Owner Acceptance, customer-specific Delivery Method Q&A, runtime/license/package checks, and protected packaging.
+
+The existing `DELIVERY_READY` gate is the only exit. It requires current candidate-bound Real User Journey Acceptance, security closure, Post-Security Owner Acceptance, confirmed delivery decisions, and package protection. Any later product/security-surface change follows the invalidation rules in the journey and security clauses before Delivery may proceed.
+
+The same centralized closure and existing `DELIVERY_READY` gate additionally require current Agent-specific isolation, prompt/tool/memory/privilege/model/Runtime/fallback/Kill-Switch/audit evidence and customer-specific Runtime/credential/recovery decisions. No Agent-specific phase or Delivery gate is introduced.
 
 ## Product Formation
 
@@ -273,14 +284,43 @@ The existing UI one-way Owner lock, Workflow controlled mutability, Simulation v
 
 Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#topology-slices-and-shared-baseline).
 
+## Real User Journey Acceptance
+
+<a id="lc-journey-001"></a>
+### LC-JOURNEY-001 — Bounded real-user journey coverage and visible evidence
+
+Phase 4 derives one candidate-bound directed journey graph from Calabash, Simulation scenarios, Product Baseline, Workflow/UI maps, Feature Slices, and accepted integration evidence. Each required journey identifies its actor and permission, home-page or product-entry start, preconditions and safe test data, ordered visible actions, expected visible results, final business outcome, applicable exception/recovery/empty/invalid/permission routes, and source trace. It includes every delivered CORE journey and every delivered EXTRA journey represented as product capability; it is bounded coverage, not random or unbounded crawling.
+
+The operator uses the real running product through a visible browser surface. After each meaningful navigation, completed input, click, submit, selection, upload, confirmation, or equivalent state-changing action, the operator waits for the normal visible result, captures a screenshot, and records the exact candidate, round, Journey/Step identity, actor, viewport, action, expected result, observed result, visible location, screenshot path, and lowercase SHA-256. Typing is one completed input action rather than one action per keystroke. Test identities and safe data prevent secrets or personal data entering evidence.
+
+The Phase-4 verdict comes from real rendered feedback. Source, DOM, API, database, console, log, and automated-test evidence may diagnose an already recorded defect, but cannot replace the visible acceptance proof. When Codex's outer chrome cannot be automated, the Owner may assist only by expanding the in-app browser panel and pressing `F11`; the Agent records the viewport and continues all product operation and judgment.
+
+<a id="lc-journey-002"></a>
+### LC-JOURNEY-002 — Defect identity, correction order, and complete-round restart
+
+The first Phase-4 defect is `40001`; later IDs increase monotonically and are never recycled after rejection, merge, defer, exemption, reopening, or shared-root-cause discovery. The append-only defect history binds discovery candidate/round/Journey/Step, expected and observed behavior, screenshot digest, severity and reachability, visible layer, diagnosed root cause, affected surfaces, correction identity, affected engineering re-verification, retest round, final state, and any exemption authority, impact, and recovery condition.
+
+A defect blocks only its dependent route unless it prevents environment use, authentication, navigation, or all remaining journeys; independent reachable routes continue so one round can collect multiple facts. Correction work is normally ordered `UI → Workflow → Backend/Core` because acceptance is user-experience-led. When one root cause crosses layers, one coherent correction may change every necessary layer, and dependency evidence may justify performing the Backend/Core cause before the visible UI repair is complete.
+
+After any Phase-4 defect correction changes the candidate and affected engineering evidence is current, the next acceptance round must restart from the home page and execute the complete required journey graph. It never resumes halfway through the failed route and never reuses an earlier-round screenshot as current PASS evidence. Newly discovered meaningful routes enter the same graph and the next complete round.
+
+<a id="lc-journey-003"></a>
+### LC-JOURNEY-003 — Owner verdict, exemption, and later invalidation
+
+The Agent reports the exact candidate, complete-round count, required journey results, defect totals by state, material exemption impact, evidence locations, and one `ACCEPT`, `REWORK`, or `DEFER` recommendation. The Owner decides `REAL_USER_JOURNEY_ACCEPTED`, `REAL_USER_JOURNEY_REWORK`, or `REAL_USER_JOURNEY_DEFERRED` from that conclusion and may inspect the durable evidence without repeating the user journey manually.
+
+`REAL_USER_JOURNEY_ACCEPTED` binds the exact candidate, journey graph, final complete round, evidence digests, defect ledger, and explicit Owner exemptions. It is the normal entry to Delivery Preparation. An exemption cannot conceal an unusable required journey; its user impact and future recovery condition remain visible in the status summary and defect log.
+
+Later Delivery Preparation changes use Impact Analysis. A visible-behavior delta invalidates and reruns each affected journey from its home-page entry plus the existing critical smoke; a broad or unknown impact returns to a complete Phase-4 round. Unaffected journey evidence is reused rather than mechanically repeated.
+
 ## Runs, verification, and acceptance
 
 <a id="lc-run-001"></a>
 ### LC-RUN-001 — Cross-phase Run call contract
 
-Any bounded work item in `INITIAL`, `PRODUCT_FORMATION`, `ENGINEERING_RUNS`, or `DELIVERY_PREPARATION` may call a Run. Each Run-start record identifies the Run, calling phase, phase-owned objective, calling-phase authority/contract, frozen scope and exclusions, selected execution-method identity, phase-appropriate input evidence, evidence return target, acceptance condition, D0–D3/Owner-acceptance requirement, proportional depth, and readiness result.
+Any bounded work item in `INITIAL`, `PRODUCT_FORMATION`, `REAL_PRODUCT_INTEGRATION`, `REAL_USER_JOURNEY_ACCEPTANCE`, or `DELIVERY_PREPARATION` may call a Run. Exact 2.6/2.7 compatibility reads may still use `ENGINEERING_RUNS` for the third phase. Each Run-start record identifies the Run, calling phase, phase-owned objective, calling-phase authority/contract, frozen scope and exclusions, selected execution-method identity, phase-appropriate input evidence, evidence return target, acceptance condition, D0–D3/Owner-acceptance requirement, proportional depth, and readiness result.
 
-Initial supplies proposal/initialization authority; Product Formation supplies definition, scenario, or product-end authority; Real Product Integration supplies the Slice, Product/Integration identities and Required Run scope; Delivery Preparation supplies the accepted candidate, security finding, delivery decision, or package contract. A phase supplies only applicable evidence and never fabricates a Feature Slice or Calabash basis.
+Initial supplies proposal/initialization authority; Product Formation supplies definition, scenario, or product-end authority; Real Product Integration supplies the Slice, Product/Integration identities and Required Run scope; Real User Journey Acceptance supplies the exact candidate, journey/defect identity, visible evidence, and correction objective; Delivery Preparation supplies the accepted candidate, security finding, delivery decision, or package contract. A phase supplies only applicable evidence and never fabricates a Feature Slice, Calabash basis, screenshot, or acceptance verdict.
 
 The method returns evidence to the calling phase and evidence return target. Run completion does not advance a phase; only the calling phase evaluates its own acceptance condition and gate against returned evidence.
 
@@ -300,7 +340,7 @@ LCCoding chooses the lightest truthful topology: SLK for one serial stream, CLK 
 
 The existing Canonical Manifest supplies the minimal registry source. A compatible execution-method entry provides exact identity/hash, supported topology, Run-start mapping, evidence/D0–D3 mapping, Loop Owner Acceptance mapping, and runtime-attestation/compatibility status. This is a small interface, not a new registry system.
 
-Execution methods are a cross-phase axis, not a lifecycle node and not confined to Phase 3. `ALL_REQUIRED_RUNS_ACCEPTED` means all required Real Product Integration Runs for the accepted candidate are accepted. It excludes Initial, Product Formation, Delivery Preparation, optional, superseded, and invalidated Runs.
+Execution methods are a cross-phase axis, not a lifecycle node and not confined to Phase 3. `ALL_REQUIRED_RUNS_ACCEPTED` means all required Real Product Integration Runs for the accepted candidate are accepted. It excludes Initial, Product Formation, Real User Journey Acceptance, Delivery Preparation, optional, superseded, and invalidated Runs.
 
 <a id="lc-verify-001"></a>
 ### LC-VERIFY-001 — Layered independent verification
@@ -308,7 +348,7 @@ Execution methods are a cross-phase axis, not a lifecycle node and not confined 
 - D0 is Worker self-check and feedback, never acceptance.
 - D1 is independent Checker CELL acceptance of an immutable local candidate and contract.
 - D2 is independent GO outcome Verification that composes D0/D1 evidence; Worker, Checker, and Run Supervisor cannot author it.
-- D3 is a fresh independent Stage/Run/Final composition Verification that adds only seam, end-to-end, locked-UI, invisible-system, and final-candidate evidence.
+- D3 is a fresh independent Stage/Run/Final composition Verification that adds only seam, end-to-end, locked-UI, invisible-system, and final-candidate evidence for its bounded engineering claim. It is not the product-wide Phase-4 real-user journey round.
 
 Higher layers reuse valid lower receipts rather than rerunning identical work. If one Run D3 covers the exact Slice claim, candidate, UI baseline, and scenarios, LCCoding promotes it after identity/coverage checks. A multi-Run Slice verifies only seams, uncovered claims, and the integrated actor journey. Verification independence and evidence identity are mandatory at every depth.
 
@@ -342,7 +382,7 @@ Focused explanation: [Owner terminal decision guidance](lc-coding/references/loo
 <a id="lc-sec-001"></a>
 ### LC-SEC-001 — Centralized vulnerability closure
 
-Immediately after the required Phase-3 Run aggregate, freeze the accepted candidate and appoint a fresh independent Security Auditor in an isolated context/workspace. The auditor must not have served as Worker, Checker, Verifier, Run Supervisor, acceptance preparer, or remediation implementer for that candidate.
+Immediately after current `REAL_USER_JOURNEY_ACCEPTED`, freeze the accepted candidate and appoint a fresh independent Security Auditor in an isolated context/workspace. The auditor must not have served as Worker, Checker, Verifier, Run Supervisor, journey-acceptance operator, acceptance preparer, or remediation implementer for that candidate.
 
 The centralized audit builds complete attack-surface coverage, reuses valid identical local security evidence, executes missing checks, issues the report/finding ledger, routes remediation to separate engineering roles, and independently re-audits affected surfaces. D0–D3 security assertions do not replace this centralized verdict. `VULNERABILITY_CLOSED` requires complete coverage and no open Critical/High issue, secret exposure, authentication bypass, privilege escalation, cross-customer leakage, or independence violation.
 
@@ -388,7 +428,7 @@ Focused explanation: [Protected delivery guidance](lc-coding/references/delivery
 <a id="lc-bi-001"></a>
 ### LC-BI-001 — Built-in BI method boundary
 
-LCCoding may ship one built-in BI as a read-only Owner-visible projection. One installation serves projects; a project does not generate or maintain BI source. The BI may show four phases, fine milestones, states, artifacts, and protected reports but cannot write project data, control Agents/Runs/runtime, open raw evidence, or become a second status authority. `status.json` remains authoritative.
+LCCoding may ship one built-in BI as a read-only Owner-visible projection. One installation serves projects; a project does not generate or maintain BI source. Schema selects an exact four-phase legacy or five-phase current projection. The BI may show phases, fine milestones, states, sanitized journey totals, artifacts, and protected reports but cannot write project data, control Agents/Runs/runtime, open raw screenshots/evidence, or become a second status authority. `status.json` remains authoritative.
 
 The compact desktop keeps the 300×480 logical content baseline, English default, complete Chinese fixed-text switch, internal scrolling, same-window Open/Back, Refresh, and native Pin. Pin controls only BI Window Always-on-top and must confirm host state; it is not Task Pin authority.
 

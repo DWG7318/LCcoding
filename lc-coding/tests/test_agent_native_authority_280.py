@@ -12,13 +12,17 @@ BASE_TITLES = {
     "LC-PHASE-001": "Initial",
     "LC-PHASE-002": "Product Formation",
     "LC-PHASE-003": "Real Product Integration",
-    "LC-PHASE-004": "Delivery Preparation",
+    "LC-PHASE-004": "Real User Journey Acceptance",
+    "LC-PHASE-005": "Delivery Preparation",
     "LC-FORM-001": "Calabash and Simulation-first formation",
     "LC-FORM-002": "Workflow, UI, and Simulation product units",
     "LC-FORM-003": "Product Baseline and primary product mainline",
     "LC-INTEG-001": "Feature Slice and real integration proof",
     "LC-INTEG-002": "One-way UI lock",
     "LC-INTEG-003": "Impact, mutability, and evidence reuse",
+    "LC-JOURNEY-001": "Bounded real-user journey coverage and visible evidence",
+    "LC-JOURNEY-002": "Defect identity, correction order, and complete-round restart",
+    "LC-JOURNEY-003": "Owner verdict, exemption, and later invalidation",
     "LC-RUN-001": "Cross-phase Run call contract",
     "LC-RUN-002": "Run start and terminal receipt",
     "LC-RUN-003": "Execution-method selection and aggregate scope",
@@ -242,9 +246,9 @@ require_all(
     "LC-PHASE-003",
 )
 require_all(
-    sections["LC-PHASE-004"],
+    sections["LC-PHASE-005"],
     ("Agent-specific", "existing `DELIVERY_READY` gate"),
-    "LC-PHASE-004",
+    "LC-PHASE-005",
 )
 require_all(
     sections["LC-BI-001"],
@@ -278,4 +282,4 @@ assert "Agent phase" not in agent_native_text
 assert "new lifecycle gate" not in agent_native_text
 assert "LCCoding implements the Runtime" not in agent_native_text
 
-print("PASS: SPEC exposes a closed 31-clause Agent-native authority graph")
+print("PASS: SPEC exposes a closed 35-clause Agent-native authority graph")

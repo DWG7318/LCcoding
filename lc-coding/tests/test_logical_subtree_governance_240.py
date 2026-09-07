@@ -313,12 +313,13 @@ expected = [
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
     "FEATURE_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "FINAL_VERIFICATION",
     "OWNER_ACCEPTANCE",
     "DELIVERY",
 ]
 assert lifecycle["mainline"] == expected
-assert phases["mainline_unchanged"] is True
+assert phases["mainline_unchanged"] is False
 manifest = json.loads(read("MANIFEST.json"))
 assert manifest["product_subtree_governance"] == {
     "repository_default": "ONE_TOTAL_PROJECT_REPOSITORY",

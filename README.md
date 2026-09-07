@@ -4,7 +4,7 @@ Owner-led, AI-executed enterprise product development with visible incremental a
 
 ## Method at a glance
 
-Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004)
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-PHASE-005](SPEC.md#lc-phase-005)
 
 ```text
 Proposal Readiness
@@ -15,18 +15,22 @@ Proposal Readiness
 → Product Baseline
 → Feature Slice
 → UI-locked Real Product Integration
-→ Independent layered Verification
-→ Owner Acceptance
+→ Per-Run Independent layered Verification and Owner Acceptance
+→ Real User Journey Acceptance
+→ Centralized Security Closure and Post-Security Owner Acceptance
+→ Delivery Preparation
 → Delivery
 ```
 
-The four phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration (compatibility state ID `ENGINEERING_RUNS`), and Delivery Preparation (`DELIVERY_PREPARATION`). `ENGINEERING_RUNS` preserves machine compatibility and is not the human phase name.
+The five phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration, Real User Journey Acceptance (`REAL_USER_JOURNEY_ACCEPTANCE`), and Delivery Preparation (`DELIVERY_PREPARATION`). Exact 2.6/2.7 compatibility may read `ENGINEERING_RUNS` for the third phase; it is not the human phase name.
 
 ## Product and execution summary
 
 Source clauses: [LC-FORM-001](SPEC.md#lc-form-001), [LC-FORM-002](SPEC.md#lc-form-002), [LC-FORM-003](SPEC.md#lc-form-003), [LC-INTEG-001](SPEC.md#lc-integ-001), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003)
 
 A minimal, real, runnable, versioned Simulation World foundation comes first. Workflow and UI then advance independently as real product ends; Feature Slice and UI-locked Integration own the later cross-layer connection and proof.
+
+After integration Runs are accepted, Phase 4 operates the real product from its home page through a bounded user-journey graph. It judges rendered feedback, captures screenshots after meaningful actions, records `40001+` defects, and restarts a complete round after repairs before Delivery Preparation may begin.
 
 SLK, CLK, GLK, and compatible registered methods form a cross-phase execution axis, not a lifecycle node or an exhaustive method list. A Run returns evidence to its calling phase; lifecycle meaning remains in the specification.
 

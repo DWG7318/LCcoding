@@ -20,6 +20,7 @@ EXPECTED_MAINLINE = [
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
     "FEATURE_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "FINAL_VERIFICATION",
     "OWNER_ACCEPTANCE",
     "DELIVERY",
@@ -28,17 +29,20 @@ EXPECTED_MAINLINE_BYTES = (
     b'["PROPOSAL_READINESS","PROJECT_INITIALIZATION","CALABASH_DRAFT",'
     b'"WORKFLOW_UI_SIMULATION","MANDATORY_CALABASH_UPGRADE",'
     b'"PRODUCT_BASELINE","FEATURE_SLICE","FEATURE_INTEGRATION",'
+    b'"REAL_USER_JOURNEY_ACCEPTANCE",'
     b'"FINAL_VERIFICATION","OWNER_ACCEPTANCE","DELIVERY"]'
 )
 EXPECTED_PHASE_IDS = [
     "INITIAL",
     "PRODUCT_FORMATION",
     "REAL_PRODUCT_INTEGRATION",
+    "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
 EXPECTED_AGGREGATE_EXCLUDES = {
     "INITIAL_RUNS",
     "PRODUCT_FORMATION_RUNS",
+    "REAL_USER_JOURNEY_ACCEPTANCE_RUNS",
     "DELIVERY_PREPARATION_RUNS",
     "OPTIONAL_RUNS",
     "SUPERSEDED_RUNS",
@@ -73,8 +77,8 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
     phase_ids = [phase.get("id") for phase in current_phases.get("phases", [])]
     if phase_ids != EXPECTED_PHASE_IDS:
         errors.add("PHASE_IDS_CHANGED")
-    if current_phases.get("mainline_unchanged") is not True:
-        errors.add("MAINLINE_NOT_DECLARED_UNCHANGED")
+    if current_phases.get("mainline_unchanged") is not False:
+        errors.add("MAINLINE_CHANGE_NOT_DECLARED")
 
     serialized = json.dumps(
         {"lifecycle": current_lifecycle, "phases": current_phases},
@@ -132,6 +136,19 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
     if set(integration.get("aggregate_excludes", [])) != EXPECTED_AGGREGATE_EXCLUDES:
         errors.add("PHASE_3_AGGREGATE_EXCLUSIONS_WRONG")
 
+    journey = phase_by_id(current_phases, "REAL_USER_JOURNEY_ACCEPTANCE")
+    if journey.get("start_after") != "ALL_REQUIRED_RUNS_ACCEPTED":
+        errors.add("PHASE_4_START_WRONG")
+    if journey.get("complete_round_starts_at") != "HOME_PAGE_OR_PRODUCT_ENTRY":
+        errors.add("PHASE_4_ROUND_START_WRONG")
+    if journey.get("repair_priority") != ["UI", "WORKFLOW", "BACKEND_CORE"]:
+        errors.add("PHASE_4_REPAIR_PRIORITY_WRONG")
+    if journey.get("exit_gate") != "REAL_USER_JOURNEY_ACCEPTED":
+        errors.add("PHASE_4_EXIT_WRONG")
+    delivery_phase = phase_by_id(current_phases, "DELIVERY_PREPARATION")
+    if delivery_phase.get("start_after") != "REAL_USER_JOURNEY_ACCEPTED":
+        errors.add("PHASE_5_START_WRONG")
+
     bindings = current_lifecycle.get("semantic_bindings", {})
     if "CALABASH_UPGRADE_READY_IS_INTERNAL_READINESS_TO_BEGIN" not in bindings.get(
         "MANDATORY_CALABASH_UPGRADE", []
@@ -150,6 +167,17 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
         "FEATURE_INTEGRATION", []
     ):
         errors.add("LIFECYCLE_AGGREGATE_SCOPE_RELATION_MISSING")
+    for relation in (
+        "BOUNDED_REQUIRED_JOURNEY_GRAPH",
+        "REAL_VISIBLE_BROWSER_OPERATION",
+        "SCREENSHOT_AFTER_MEANINGFUL_VISIBLE_ACTION",
+        "DEFECT_IDENTITY_40001_PLUS",
+        "UI_WORKFLOW_BACKEND_CORE_CORRECTION_PRIORITY",
+        "COMPLETE_ROUND_RESTARTS_FROM_HOME_PAGE",
+        "REAL_USER_JOURNEY_ACCEPTED",
+    ):
+        if relation not in bindings.get("REAL_USER_JOURNEY_ACCEPTANCE", []):
+            errors.add(f"JOURNEY_RELATION_MISSING:{relation}")
 
     delivery_preparation = bindings.get("DELIVERY_PREPARATION", [])
     for relation in (
@@ -248,6 +276,24 @@ assert_mutation_rejected(
     ),
 )
 assert_mutation_rejected(
+    "PHASE_4_ROUND_START_WRONG",
+    lambda _, phases: phase_by_id(phases, "REAL_USER_JOURNEY_ACCEPTANCE").update(
+        {"complete_round_starts_at": "FAILED_STEP"}
+    ),
+)
+assert_mutation_rejected(
+    "PHASE_4_REPAIR_PRIORITY_WRONG",
+    lambda _, phases: phase_by_id(phases, "REAL_USER_JOURNEY_ACCEPTANCE").update(
+        {"repair_priority": ["BACKEND_CORE", "WORKFLOW", "UI"]}
+    ),
+)
+assert_mutation_rejected(
+    "PHASE_5_START_WRONG",
+    lambda _, phases: phase_by_id(phases, "DELIVERY_PREPARATION").update(
+        {"start_after": "ALL_REQUIRED_RUNS_ACCEPTED"}
+    ),
+)
+assert_mutation_rejected(
     "MAINLINE_ORDER_CHANGED",
     lambda life, _: life["mainline"].reverse(),
 )
@@ -277,4 +323,4 @@ assert_mutation_rejected(
     omit_post_gate_delivery,
 )
 
-print("PASS: four-phase lifecycle relationships reject boundary and aggregate drift")
+print("PASS: five-phase lifecycle relationships reject boundary and aggregate drift")

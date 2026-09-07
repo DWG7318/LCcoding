@@ -4,7 +4,7 @@
 
 ## 方法概览
 
-Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004)
+Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-PHASE-005](SPEC.md#lc-phase-005)
 
 ```text
 Proposal Readiness
@@ -15,18 +15,22 @@ Proposal Readiness
 → Product Baseline
 → Feature Slice
 → 锁定 UI 的 Real Product Integration（真实产品集成）
-→ 独立分层 Verification
-→ Owner Acceptance
+→ 每个 Run 的 Independent layered Verification 与 Owner Acceptance
+→ Real User Journey Acceptance（真实用户旅程验收）
+→ 集中安全闭环与安全后 Owner 验收
+→ Delivery Preparation
 → Delivery
 ```
 
-四个人类阶段是 Initial（`INITIAL`）、Product Formation（`PRODUCT_FORMATION`）、Real Product Integration / 真实产品集成（兼容状态 ID `ENGINEERING_RUNS`）和 Delivery Preparation（`DELIVERY_PREPARATION`）。`ENGINEERING_RUNS` 只解释机器兼容状态，不是人类阶段名。
+五个人类阶段是 Initial（`INITIAL`）、Product Formation（`PRODUCT_FORMATION`）、Real Product Integration（真实产品集成）、Real User Journey Acceptance（`REAL_USER_JOURNEY_ACCEPTANCE`，真实用户旅程验收）和 Delivery Preparation（`DELIVERY_PREPARATION`）。精确 2.6/2.7 兼容读取仍可使用第三阶段 ID `ENGINEERING_RUNS`，但它不是人类阶段名。
 
 ## 产品与执行摘要
 
 Source clauses: [LC-FORM-001](SPEC.md#lc-form-001), [LC-FORM-002](SPEC.md#lc-form-002), [LC-FORM-003](SPEC.md#lc-form-003), [LC-INTEG-001](SPEC.md#lc-integ-001), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003)
 
 Product Formation 先建立至少一个最小、真实可运行、带版本的 Simulation World foundation；之后 Workflow 与 UI 才作为同等产品端分别独立向前建设。跨层连接与贯通证明仍由后续 Feature Slice 和 UI-locked Integration 负责。
+
+集成 Runs 被接受后，第四阶段从产品主页出发，沿有边界的真实用户旅程图操作真实界面；它依据渲染结果判断、在有意义的操作后截图、登记 `40001+` 缺陷，并在修复后从主页重新执行完整一轮，随后才能进入交付准备。
 
 SLK、CLK、GLK 与其他已登记兼容方法组成 cross-phase execution axis（跨阶段执行轴），not a lifecycle node（不是生命周期节点），也不是方法全集。Run 只把证据交回调用阶段，详细含义由 SPEC 定义。
 
