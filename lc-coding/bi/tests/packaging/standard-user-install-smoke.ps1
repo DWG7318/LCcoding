@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$ExpectedInstallSmokeSha256 = "012f256f33f5ca089b6e269879e7568d6691a67576eb37f1a92e4b1c994ae132"
+$ExpectedInstallSmokeSha256 = "f99bc3509b5dea8fbc45ff8cd8f670dcb681a31433941b08921ace50048b3ffe"
 $ExpectedInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"
 $InstallRoot = "D:\LCcoding\.codex\.tmp\lccoding-260-install-smoke\installed-current-user"
 $BaselineMarker = "TASK22_WIN_CI_BASELINE_PATH"

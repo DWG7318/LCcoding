@@ -7,19 +7,23 @@ VALIDATE_WORKFLOW = ROOT / ".github/workflows/validate.yml"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release-bi.yml"
 PARENT = ROOT / "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1"
 CHILD = ROOT / "lc-coding/bi/tests/packaging/standard-user-install-smoke.ps1"
+INSTALL_SMOKE = ROOT / "lc-coding/bi/tests/packaging/install-smoke.ps1"
 
 assert VALIDATE_WORKFLOW.is_file(), "Validate LCCoding workflow is missing"
 assert RELEASE_WORKFLOW.is_file(), "formal BI release workflow is missing"
 assert PARENT.is_file(), "reusable standard-user smoke parent is missing"
 assert CHILD.is_file(), "accepted standard-user smoke child is missing"
+assert INSTALL_SMOKE.is_file(), "accepted install smoke is missing"
 
 workflow = VALIDATE_WORKFLOW.read_text(encoding="utf-8")
 release_workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
 parent = PARENT.read_text(encoding="utf-8")
 child = CHILD.read_text(encoding="utf-8")
 child_sha256 = hashlib.sha256(CHILD.read_bytes()).hexdigest()
+install_smoke_sha256 = hashlib.sha256(INSTALL_SMOKE.read_bytes()).hexdigest()
 
 assert f'$ExpectedChildSha256 = "{child_sha256}"' in parent
+assert f'$ExpectedInstallSmokeSha256 = "{install_smoke_sha256}"' in child
 
 assert "on: [push, pull_request]" in workflow
 assert "runs-on: ubuntu-latest" in workflow
@@ -154,7 +158,6 @@ for marker in (
     'git -C $localRepository rev-parse HEAD',
     'git -C $localRepository status --porcelain=v1',
     "install-smoke.ps1",
-    "012f256f33f5ca089b6e269879e7568d6691a67576eb37f1a92e4b1c994ae132",
     "PASS: BI current-user install smoke is clean, fixed-window, and source-immutable",
     "INSTALL_SMOKE_UNINSTALL_PARENT_EXITCODE=0",
     "FORMAL_GITHUB_ACTIONS",

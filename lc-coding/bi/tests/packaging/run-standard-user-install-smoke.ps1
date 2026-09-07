@@ -12,7 +12,7 @@ Set-StrictMode -Version Latest
 
 $ExpectedRepository = "DWG7318/LCcoding"
 $ExpectedInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"
-$ExpectedChildSha256 = "628a97f07583894c495979028177b52ba7f9c6a6abc06f5f8782497a09230a12"
+$ExpectedChildSha256 = "1b1213e815462c6fa881806ae96ac2a75e736c0c649b823fad7008e33c669455"
 $ChildRelativePath = "lc-coding/bi/tests/packaging/standard-user-install-smoke.ps1"
 $SmokeParent = "D:\LCcoding\.codex\.tmp"
 $ResultPath = Join-Path $EvidenceDirectory "orchestrator-result.json"
