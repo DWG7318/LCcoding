@@ -24,6 +24,31 @@
 - Feature Slice reference: slices/<Slice ID>.md
 - Integration Route ID:
 - Integration candidate ID / exact hash:
+- Service topology schema version: 4.0.0 / NOT_APPLICABLE_FOR_3.0.0
+- Service Route Map ID / exact hash:
+- Service Route ID:
+- Route kind: DIRECT_PRODUCT / PERSONAL_AGENT / SERVICE_CENTER
+- Promised real entry:
+- Promised real entry evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Actor ID:
+- Authority action ID:
+- Authority resource ID:
+- Delegation basis ID: NOT_APPLICABLE / <Delegation ID>
+- Actor / authority evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Route adapter / product surface ID:
+- Route adapter / product surface evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Shared Workflow capability ID:
+- Shared Workflow capability evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Authoritative state / data / side-effect evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Route result evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Human-observable outcome:
+- Human-observable outcome evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Audit event IDs: NONE / <closed IDs>
+- Audit lineage evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Route proof basis: REAL_ROUTE_EXECUTION
+- Non-production / simulated / mocked / manually staged evidence used as route proof: NO
+- Locked UI touch: YES / NO
+- One-way UI lock evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Integration candidate provenance: PROJECT_COMMIT:<exact frozen commit>; EVIDENCE:<candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Product Baseline identity / frozen commit:
 - Primary product mainline ID:

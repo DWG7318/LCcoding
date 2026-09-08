@@ -11,7 +11,11 @@ A Feature Slice is the canonical product claim for one increment. Start from the
 
 Execution Coverage Preflight covers the product chain—Baseline, Workflow/UI/Simulation, state/data/permissions, exceptions/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance—without defining GO, CELL, retries, or other Loop internals. `HIGH`/`UNKNOWN` requires deeper evidence or a smaller Run. If wiring is unproved, first run the thinnest production-quality E2E path and halt expansion on failure.
 
-Real integration follows actor intent through a real UI, integration boundary, real API/MCP-backed Workflow capability, real state/data/side effect, and visible UI result. Static images, mocks, stubs, simulation-only output, or manually staged state are demonstrations and cannot prove third-phase integration.
+For a `3.0.0` project, real integration retains the exact direct-product path through a real UI, integration boundary, real API/MCP-backed Workflow capability, real state/data/side effect, and visible UI result. Static images, mocks, stubs, simulation-only output, or manually staged state are demonstrations and cannot prove third-phase integration.
+
+For a `4.0.0` project, each required service route has its own route-bound Slice. It proves one ordered real chain: promised real entry → authenticated actor and valid authority → applicable product surface or route adapter → the adopted shared Workflow capability → authoritative state/data/side effect → route result → human-observable business outcome. A Direct Product PASS cannot prove a Personal Agent or Service Center route, and one route's evidence cannot be relabeled for another. API or MCP presence alone, Simulation output, mocks, stubs, manually staged state, and an Agent log without the final human-observable outcome are not real integration evidence.
+
+The Slice, Integration Baseline, and Final Feature Verification repeat the exact Service Route Map ID/hash, route identity, candidate identity, actor/authority, adapter or surface, shared capability, and outcome identity. Personal Agent and Service Center routes retain attributable delegation; Service Center evidence retains adopted audit lineage. D0–D3 and Owner Acceptance semantics do not change. When any route touches locked UI, the existing one-way UI lock and Baseline Change Request path remain mandatory; an Agent-service or assisted-service surface never grants permission to change locked UI.
 
 <a id="one-way-ui-lock-and-recoverable-identity"></a>
 ## One-way UI lock and recoverable identity
