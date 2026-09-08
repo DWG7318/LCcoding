@@ -1,0 +1,32 @@
+{
+  "schema_version": "4.0.0",
+  "artifact_role": "SERVICE_TOPOLOGY_CONTRACT",
+  "map_fields": ["record_role", "service_topology_schema_version", "map_id", "project_id", "state", "primary_strategy", "required_coexisting_strategies", "service_center_applicability", "journeys"],
+  "journey_fields": ["journey_id", "journey_class", "delivery_state", "business_capability_id", "shared_capability_implementation_id", "routes"],
+  "route_fields": ["route_id", "route_kind", "support_state", "delivery_state", "human_beneficiary_id", "actor_id", "actor_kind", "capability_id", "capability_implementation_id", "promised_entry", "human_observable_outcome", "authority", "consent", "adapter_or_surface_id", "acceptance_evidence_ids", "audit_event_ids"],
+  "authority_fields": ["action_id", "resource_id", "delegation_basis_id"],
+  "consent_fields": ["requirement", "policy_id"],
+  "map_states": ["PENDING", "DRAFT", "ADOPTED"],
+  "primary_strategies": ["PLATFORM_COMPLETION", "AGENT_COLLABORATIVE"],
+  "route_kinds": ["DIRECT_PRODUCT", "PERSONAL_AGENT", "SERVICE_CENTER"],
+  "route_actor_kinds": {
+    "DIRECT_PRODUCT": ["HUMAN_PRINCIPAL"],
+    "PERSONAL_AGENT": ["PERSONAL_AGENT"],
+    "SERVICE_CENTER": ["SERVICE_CENTER_ACTOR"]
+  },
+  "external_actor_kinds": ["HUMAN_PRINCIPAL", "PERSONAL_AGENT", "SERVICE_CENTER_ACTOR"],
+  "internal_actor_kinds": ["PRODUCT_AGENT", "OPERATIONS_AGENT"],
+  "service_center_applicability_values": ["PENDING", "APPLICABLE", "NOT_APPLICABLE"],
+  "journey_classes": ["CORE", "EXTRA"],
+  "journey_delivery_states": ["PLANNED", "DELIVERED"],
+  "route_support_states": ["REQUIRED", "UNSUPPORTED", "FUTURE"],
+  "route_delivery_states": ["UNPROVED", "DELIVERED", "NOT_CLAIMED"],
+  "consent_requirements": ["NOT_REQUIRED", "REQUIRED", "HUMAN_CONFIRMATION_REQUIRED"],
+  "status_summary_fields": ["lccoding_applicability", "product_service_strategy", "service_route_map"],
+  "status_summary_initial": {
+    "lccoding_applicability": "PENDING",
+    "product_service_strategy": "PENDING",
+    "service_route_map": "PENDING"
+  },
+  "shared_capability_system": "WORKFLOW_BACKEND_CORE"
+}

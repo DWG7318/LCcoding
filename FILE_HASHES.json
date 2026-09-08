@@ -157,7 +157,7 @@
   "lc-coding/references/verification-de-duplication.md": "8a0d5b41cc76e95de1fee5a4ad03c59d36748eed15a3916e87d3c0c61c271b61",
   "lc-coding/references/version-governance.md": "4df3ccd08f742987505e2acdfd8e2fdacf04a675d3bf4b256a3b4916ec643bd0",
   "lc-coding/references/vulnerability-closure.md": "d9ff91bbb9f56b1cfa20c0cf0f89c6f9226ef823a99a02613b29f46e2f012f6d",
-  "lc-coding/scripts/bootstrap_lccoding.py": "aa7ec7ac10f45be64ebbd7251155e7cbf902737c801dc542fb39094e45fdbb5e",
+  "lc-coding/scripts/bootstrap_lccoding.py": "4596b839efc55172143113f7254bf0fc617366c9e80332f1af643d56410674ea",
   "lc-coding/scripts/canonical_lock.py": "e1e3149c05d75c704cd50e9ebce60c3391f217464307aa0086137ae1e24290ad",
   "lc-coding/scripts/delivery_guard.py": "59b2b4ebc84dd44a071129a0b99256384d1d1727c58c1f4c5f0f1b2224fd9966",
   "lc-coding/scripts/migrate_project_260_to_270.py": "2e72f4d468661177bb5e5ce879bc1402f9e95f3ca0306dc2cc04cd96a91205a9",
@@ -169,7 +169,7 @@
   "lc-coding/scripts/validate_delivery_decision.py": "83d4651a88bcb40d3f1724f76c829530ea83f91407bbc4ef19d99b41c6dc0d67",
   "lc-coding/scripts/validate_method_baseline.py": "19ba2744334c57ad6b1c22c222fb7c9971e3ccd42a37c0497ae2e893b12e4d4c",
   "lc-coding/scripts/validate_phase_status.py": "55c606718300b27a025c6e2b4eab829c6b5285a1acdae81458a0c900d2963a97",
-  "lc-coding/scripts/validate_project.py": "31b4c93d9beb950fd623c4e439e4e02110c85dbd771a20c25db03151eb3fcabc",
+  "lc-coding/scripts/validate_project.py": "cd49d9c46ba5827828318a46c45d2a2d81eb4ccba8eba7208803046a08edcad5",
   "lc-coding/scripts/validate_real_user_journey.py": "bd39760c3ab5fa3648abede577f414800e9d13ad4931a8e0360e72a6ed88d901",
   "lc-coding/scripts/validate_repository.py": "60b3a2bfe169db727aa61a8bde41c5812760a05381a0c1744f201f4a1ce15adb",
   "lc-coding/scripts/validate_verification.py": "6eab2a7b818f8ce9a772f8d2f9bd457811c82530a2f0657f5ab6759c95ba35ba",
@@ -289,5 +289,9 @@
   "lc-coding/tests/test_vulnerability_closure.py": "ac00be68015f3c07d9ebd6a06a87fd843689753e81913e7a108b4e1a89653ac9",
   "lc-coding/tests/test_windows_ci_path_roundtrip_280.py": "00b836a59289380f4cd6b1c4d0c422f6ad61a6df9e2b1480ef7a6622ba9dd47d",
   "lc-coding/references/service-topology.md": "6a5ef25633de17d7b165b7124748285f5903218aeef82122efad3087535885d2",
-  "lc-coding/tests/test_applicability_assessment_400.py": "9f945c5ce8fa22d1b63320a153ed5a27e7a12e198414132c366947e172878331"
+  "lc-coding/tests/test_applicability_assessment_400.py": "9f945c5ce8fa22d1b63320a153ed5a27e7a12e198414132c366947e172878331",
+  "lc-coding/contracts/service-topology.json": "56da14610a4c253696daa9955bc63460b9a2c086a8bb6323028c42e90cbc37d9",
+  "lc-coding/scripts/validate_service_topology.py": "eb4fb7f0a86a0821ff3507d44ed66abe357b6b9187677b319c617ade24c36c83",
+  "lc-coding/templates/SERVICE-ROUTE-MAP.json": "4fac42e5a4b93af9343016c96170d40cef92e3bde90db37942c949705e4ece70",
+  "lc-coding/tests/test_service_route_map_400.py": "c7de4bed27a5fcee804020f354cfd57b9fc5a4a3edf879671f0fa5b35164512b"
 }

@@ -3,6 +3,17 @@ from pathlib import Path
 import argparse, json, shutil, datetime, subprocess
 
 ROOT_DIRS = ['slices','impact','evidence','reviews','release','runs','security','delivery']
+SERVICE_TOPOLOGY_STATUS_DEFAULTS = {
+    'lccoding_applicability': 'PENDING',
+    'product_service_strategy': 'PENDING',
+    'service_route_map': 'PENDING',
+}
+
+def service_topology_status_defaults(data):
+    if data.get('status_schema_version') == '4.0.0':
+        for field, value in SERVICE_TOPOLOGY_STATUS_DEFAULTS.items():
+            data.setdefault(field, value)
+    return data
 
 def copy_template(src_root, name, dst):
     src = src_root / 'templates' / name
@@ -72,10 +83,17 @@ def main():
         'AGENT-RULE.md':'AGENT-RULE.md', 'CANONICAL-MANIFEST.json':'CANONICAL-MANIFEST.json',
         'INTERPRETATION-LOCK.json':'INTERPRETATION-LOCK.json', 'PROPOSAL-READINESS.md':'PROPOSAL-READINESS.md',
         'WORKING-CONTRACT.md':'WORKING-CONTRACT.md','WORKFLOW-MAP.md':'WORKFLOW-MAP.md',
-        'UI-MAP.md':'UI-MAP.md','SIMULATION-WORLD.md':'SIMULATION-WORLD.md','STATUS.json':'status.json','PHASE-STATUS.json':'PHASE-STATUS.json'
+        'UI-MAP.md':'UI-MAP.md','SIMULATION-WORLD.md':'SIMULATION-WORLD.md',
+        'SERVICE-ROUTE-MAP.json':'SERVICE-ROUTE-MAP.json',
+        'STATUS.json':'status.json','PHASE-STATUS.json':'PHASE-STATUS.json'
     }
     for src, dst in mappings.items():
         copy_template(skill_root, src, lc/dst)
+    status_path = lc/'status.json'
+    status_data = json.loads(status_path.read_text(encoding='utf-8'))
+    updated_status = service_topology_status_defaults(status_data)
+    if updated_status != json.loads(status_path.read_text(encoding='utf-8')):
+        status_path.write_text(json.dumps(updated_status, indent=2), encoding='utf-8')
 
     start = {
         'project_id': project.name,

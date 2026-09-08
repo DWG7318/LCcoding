@@ -1,0 +1,11 @@
+{
+  "record_role": "CALABASH_SERVICE_ROUTE_MAP",
+  "service_topology_schema_version": "4.0.0",
+  "map_id": "",
+  "project_id": "",
+  "state": "PENDING",
+  "primary_strategy": "PENDING",
+  "required_coexisting_strategies": [],
+  "service_center_applicability": "PENDING",
+  "journeys": []
+}

@@ -21,6 +21,18 @@ _JOURNEY_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
 _JOURNEY_VALIDATOR=importlib.util.module_from_spec(_JOURNEY_VALIDATOR_SPEC)
 _JOURNEY_VALIDATOR_SPEC.loader.exec_module(_JOURNEY_VALIDATOR)
 
+_SERVICE_TOPOLOGY_VALIDATOR_PATH=Path(__file__).with_name('validate_service_topology.py')
+_SERVICE_TOPOLOGY_VALIDATOR_SPEC=importlib.util.spec_from_file_location(
+    'lccoding_validate_service_topology',_SERVICE_TOPOLOGY_VALIDATOR_PATH
+)
+_SERVICE_TOPOLOGY_VALIDATOR=importlib.util.module_from_spec(_SERVICE_TOPOLOGY_VALIDATOR_SPEC)
+_SERVICE_TOPOLOGY_VALIDATOR_SPEC.loader.exec_module(_SERVICE_TOPOLOGY_VALIDATOR)
+validate_service_route_map=_SERVICE_TOPOLOGY_VALIDATOR.validate_service_route_map
+
+def validate_service_topology_for_schema(project_root,status):
+    if status.get('status_schema_version')!='4.0.0': return []
+    return validate_service_route_map(project_root,status)
+
 def normalize_lifecycle_state(value):
     if isinstance(value,dict) and set(value).issuperset({'state'}): value=value.get('state')
     return _normalize_lifecycle_state(value)
@@ -3605,6 +3617,7 @@ def main():
                 Path(args.project),status,phase_status
             ))
     if status:
+        errors.extend(validate_service_topology_for_schema(Path(args.project),status))
         errors.extend(validate_agent_native_artifacts(lc,status))
     if start and status and health:
         errors.extend(validate_takeover_readiness(start,status,health))
