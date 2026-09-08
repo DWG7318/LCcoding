@@ -60,6 +60,11 @@ ADAPTER_SPECS = {
         (5, 8, 5, 5, 6),
     ),
 }
+V4_INSERTED_MILESTONES = (
+    ("INITIAL", 0, "LCCODING_APPLICABILITY_ASSESSMENT"),
+    ("INITIAL", 2, "PRODUCT_SERVICE_STRATEGY"),
+    ("PRODUCT_FORMATION", 1, "SERVICE_ROUTE_MAP_READY"),
+)
 MACHINE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,95}$")
 
 
@@ -162,6 +167,10 @@ def _load_compatibility_layout():
             current_400["PRODUCT_FORMATION"][:1]
             + current_400["PRODUCT_FORMATION"][2:]
             == legacy_300["PRODUCT_FORMATION"]
+        )
+        and all(
+            current_400[phase_id][index] == milestone
+            for phase_id, index, milestone in V4_INSERTED_MILESTONES
         )
         and current_400["REAL_PRODUCT_INTEGRATION"]
         == legacy_300["REAL_PRODUCT_INTEGRATION"]

@@ -3,6 +3,7 @@ import importlib.util
 import json
 from copy import deepcopy
 from pathlib import Path
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -135,6 +136,11 @@ assert tuple(phase_template["phases"]) == PHASES
 spec = importlib.util.spec_from_file_location("phase_status_400", VALIDATOR_PATH)
 validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
+assert validator.V4_INSERTED_MILESTONES == (
+    ("INITIAL", 0, "LCCODING_APPLICABILITY_ASSESSMENT"),
+    ("INITIAL", 2, "PRODUCT_SERVICE_STRATEGY"),
+    ("PRODUCT_FORMATION", 1, "SERVICE_ROUTE_MAP_READY"),
+)
 assert validator.SCHEMA_PHASE_ORDERS["4.0.0"] == PHASES
 assert validator.SCHEMA_PHASE_STEPS["4.0.0"] == {
     phase_id: tuple(steps) for phase_id, steps in EXPECTED_400.items()
@@ -143,6 +149,35 @@ assert validator.validate_phase_status(phase_template) == []
 projected_phase_status = deepcopy(phase_template)
 projected_phase_status["status_schema_version"] = "4.0.0"
 assert validator.validate_phase_status(projected_phase_status) == []
+
+
+def production_loader_rejects(changed_asset):
+    original = validator.COMPATIBILITY_ASSET_PATH
+    try:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "loop-contract-identities.json"
+            path.write_text(json.dumps(changed_asset), encoding="utf-8", newline="\n")
+            validator.COMPATIBILITY_ASSET_PATH = path
+            try:
+                validator._load_compatibility_layout()
+            except RuntimeError:
+                return True
+            return False
+    finally:
+        validator.COMPATIBILITY_ASSET_PATH = original
+
+
+accepted_replacements = []
+for phase_id, index, replacement in (
+    ("INITIAL", 0, "UNKNOWN_APPLICABILITY_MILESTONE"),
+    ("INITIAL", 2, "UNKNOWN_SERVICE_STRATEGY_MILESTONE"),
+    ("PRODUCT_FORMATION", 1, "UNKNOWN_ROUTE_MAP_MILESTONE"),
+):
+    changed = deepcopy(asset)
+    changed["status_adapters"]["4.0.0"]["phase_steps"][phase_id][index] = replacement
+    if not production_loader_rejects(changed):
+        accepted_replacements.append(replacement)
+assert not accepted_replacements, accepted_replacements
 
 # Task 8 is projection-only: release and authoritative STATUS carriers remain 3.0.
 assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "3.0.0"
