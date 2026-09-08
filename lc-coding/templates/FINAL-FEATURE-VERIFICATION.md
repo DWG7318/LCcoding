@@ -30,26 +30,28 @@
 - Service Route ID:
 - Route kind: DIRECT_PRODUCT / PERSONAL_AGENT / SERVICE_CENTER
 - Promised real entry:
-- Promised real entry evidence: CANDIDATE:<candidate ID / exact hash>; ENTRY:<adopted promised entry>; SURFACE:<adopted surface ID>; TRIGGER:<realized Workflow trigger>; SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; PATH:<scenario path>
+- Promised real entry evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
 - Actor ID:
 - Authority action ID:
 - Authority resource ID:
 - Delegation basis ID: NOT_APPLICABLE / <Delegation ID>
-- Actor / authority evidence: CANDIDATE:<candidate ID / exact hash>; ACTOR:<adopted actor ID>; ACTION:<authority action ID>; RESOURCE:<authority resource ID>; DELEGATION:<delegation basis ID>; SCENARIO:<Scenario ID>
+- Actor / authority evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
 - Route adapter / product surface ID:
-- Route adapter / product surface evidence: CANDIDATE:<candidate ID / exact hash>; ROUTE:<Service Route ID>; SURFACE:<service-surface trace ID>; KIND:<service-surface kind>; CAPABILITY:<shared Workflow capability ID>
+- Route adapter / product surface evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
 - Shared Workflow capability ID:
-- Shared Workflow capability evidence: CANDIDATE:<candidate ID / exact hash>; ROUTE:<Service Route ID>; WORKFLOW:<Workflow ID>; CAPABILITY:<shared capability ID>; ATTESTATION:<Workflow evidence/attestation>
-- Authoritative state / data / side-effect evidence: CANDIDATE:<candidate ID / exact hash>; WORKFLOW:<Workflow ID>; TRACE:<realized rules/state/side-effect trace>; ATTESTATION:<Workflow evidence/attestation>
-- Route result evidence: CANDIDATE:<candidate ID / exact hash>; SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; RESULT:<scenario evidence>; USAGE:<exact Slice usage>
+- Shared Workflow capability evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
+- Authoritative state / data / side-effect evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
+- Route result evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
 - Human-observable outcome:
-- Human-observable outcome evidence: CANDIDATE:<candidate ID / exact hash>; SURFACE:<human outcome surface ID>; OUTCOME:<adopted human outcome>; FEEDBACK:<realized feedback/result>; ATTESTATION:<surface/scenario attestation>
+- Human-observable outcome evidence: <Acceptance ID> / sha256:<exact receipt bytes> / reviews/<receipt>.md
 - Audit event IDs: NONE / <closed IDs>
 - Audit lineage evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Route proof basis: REAL_ROUTE_EXECUTION
 - Non-production / simulated / mocked / manually staged evidence used as route proof: NO
 - Locked UI touch: YES / NO
 - One-way UI lock evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
+
+For `4.0.0`, each of the seven route-chain evidence fields above is an existing exact evidence citation: stable Acceptance ID, SHA-256 of the resolved bytes, and the contained canonical `reviews/...` receipt path. It resolves to the candidate-bound `LOOP_OWNER_ACCEPTANCE_RECEIPT` named by the adopted route. Simulation output or an operations log is not the actual route result and cannot prove the human-observable outcome.
 - Product Baseline identity / frozen commit:
 - Primary product mainline ID:
 - Applicable UI identity: ID:<UI ID>; PATH:<subtree path>; VERSION:<component semver>; HASH:<sha256>

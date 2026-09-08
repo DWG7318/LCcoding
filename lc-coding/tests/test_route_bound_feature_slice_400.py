@@ -114,6 +114,11 @@ STATUS_400 = {
     "status_schema_version": "4.0.0",
     "project_id": "PROJECT-1",
     "service_route_map": "ADOPTED",
+    "loop_owner_acceptances": [
+        "ACCEPTANCE-ROUTE-DIRECT",
+        "ACCEPTANCE-ROUTE-AGENT",
+        "ACCEPTANCE-ROUTE-CENTER",
+    ],
 }
 
 CANDIDATE = "CANDIDATE-1 / sha256:" + "a" * 64
@@ -263,11 +268,18 @@ def bound(route_id, evidence_id):
     return "CANDIDATE-1~sha256:" + "a" * 64 + "~" + route_id + "~" + evidence_id
 
 
-def closed_record(**values):
-    return "; ".join(key + ":" + value for key, value in values.items())
+ROUTE_EXECUTION_EVIDENCE_FIELDS = (
+    "Promised real entry evidence",
+    "Actor / authority evidence",
+    "Route adapter / product surface evidence",
+    "Shared Workflow capability evidence",
+    "Authoritative state / data / side-effect evidence",
+    "Route result evidence",
+    "Human-observable outcome evidence",
+)
 
 
-def route_fields(route_row, map_hash):
+def route_fields(route_row, map_hash, execution_reference):
     route_id = route_row["route_id"]
     suffix = route_id.removeprefix("ROUTE-")
     audits = [item for item in route_row["audit_event_ids"] if isinstance(item, str)]
@@ -294,64 +306,20 @@ def route_fields(route_row, map_hash):
         "Service Route ID": route_id,
         "Route kind": route_row["route_kind"],
         "Promised real entry": route_row["promised_entry"],
-        "Promised real entry evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            ENTRY=route_row["promised_entry"],
-            SURFACE=route_row["adapter_or_surface_id"],
-            TRIGGER=WORKFLOWS[0]["Trigger"],
-            SIMULATION=scenario["Simulation ID"],
-            SCENARIO=scenario["Scenario ID"],
-            PATH=scenario["Path"],
-        ),
+        "Promised real entry evidence": execution_reference,
         "Actor ID": route_row["actor_id"],
         "Authority action ID": route_row["authority"]["action_id"],
         "Authority resource ID": route_row["authority"]["resource_id"],
         "Delegation basis ID": route_row["authority"]["delegation_basis_id"],
-        "Actor / authority evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            ACTOR=route_row["actor_id"],
-            ACTION=route_row["authority"]["action_id"],
-            RESOURCE=route_row["authority"]["resource_id"],
-            DELEGATION=route_row["authority"]["delegation_basis_id"],
-            SCENARIO=scenario["Scenario ID"],
-        ),
+        "Actor / authority evidence": execution_reference,
         "Route adapter / product surface ID": route_row["adapter_or_surface_id"],
-        "Route adapter / product surface evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            ROUTE=route_id,
-            SURFACE=adapter["Service Surface ID"],
-            KIND=adapter["Service Surface Kind"],
-            CAPABILITY=adapter["Workflow Capability ID"],
-        ),
+        "Route adapter / product surface evidence": execution_reference,
         "Shared Workflow capability ID": route_row["capability_implementation_id"],
-        "Shared Workflow capability evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            ROUTE=route_id,
-            WORKFLOW=WORKFLOWS[0]["Workflow ID"],
-            CAPABILITY=WORKFLOWS[0]["Workflow Capability ID"],
-            ATTESTATION=WORKFLOWS[0]["Evidence / attestation"],
-        ),
-        "Authoritative state / data / side-effect evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            WORKFLOW=WORKFLOWS[0]["Workflow ID"],
-            TRACE=WORKFLOWS[0]["Rules / state / side-effect trace"],
-            ATTESTATION=WORKFLOWS[0]["Evidence / attestation"],
-        ),
-        "Route result evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            SIMULATION=scenario["Simulation ID"],
-            SCENARIO=scenario["Scenario ID"],
-            RESULT=scenario["Visible / invisible evidence"],
-            USAGE=scenario["Used by Slice/Run/Acceptance"],
-        ),
+        "Shared Workflow capability evidence": execution_reference,
+        "Authoritative state / data / side-effect evidence": execution_reference,
+        "Route result evidence": execution_reference,
         "Human-observable outcome": route_row["human_observable_outcome"],
-        "Human-observable outcome evidence": closed_record(
-            CANDIDATE=CANDIDATE,
-            SURFACE=(route_ui or adapter)["UI ID" if route_ui else "Service Surface ID"],
-            OUTCOME=route_row["human_observable_outcome"],
-            FEEDBACK=(route_ui or scenario)["Actions / feedback" if route_ui else "Visible / invisible evidence"],
-            ATTESTATION=(route_ui or scenario)["Evidence / attestation" if route_ui else "Visible / invisible evidence"],
-        ),
+        "Human-observable outcome evidence": execution_reference,
         "Audit event IDs": ", ".join(audits) if audits else "NONE",
         "Audit lineage evidence": bound(route_id, "AUDIT") if audits else "NOT_APPLICABLE",
         "Route proof basis": "REAL_ROUTE_EXECUTION",
@@ -374,7 +342,101 @@ def write_record(path, title, fields):
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
-def validate_fixture(route_index, mutate=None, mutate_inputs=None, mutate_map=None):
+def route_run_start_fields(route_row):
+    suffix = route_row["route_id"].removeprefix("ROUTE-")
+    return {
+        "Artifact role": "RUN_START_CONTRACT",
+        "Start Contract ID": "START-" + suffix,
+        "Start Contract SHA-256": "PENDING",
+        "Run ID": "RUN-" + suffix,
+        "Status schema version": "4.0.0",
+        "LCCoding phase scope": "REAL_PRODUCT_INTEGRATION",
+        "Phase-owned objective": route_row["human_observable_outcome"],
+        "Evidence return target in calling phase": "FS-" + suffix,
+        "Product Baseline trace (REAL_PRODUCT_INTEGRATION only)": "PB-1",
+        "Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)": (
+            "FS-" + suffix + " / 4.0.0"
+        ),
+        "Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)": (
+            route_row["route_id"] + " / IB-" + suffix
+        ),
+    }
+
+
+def route_receipt_fields(route_row, run_start_hash):
+    suffix = route_row["route_id"].removeprefix("ROUTE-")
+    scenario_id = "SCENARIO-" + suffix
+    required_steps = [
+        route_row["route_id"],
+        route_row["actor_id"],
+        route_row["authority"]["action_id"],
+        route_row["authority"]["resource_id"],
+    ]
+    delegation = route_row["authority"]["delegation_basis_id"]
+    if delegation != "NOT_APPLICABLE":
+        required_steps.append(delegation)
+    required_steps.extend(
+        (
+            route_row["adapter_or_surface_id"],
+            "WF-APPLICATION",
+            route_row["capability_implementation_id"],
+            scenario_id,
+            "D3-" + suffix,
+            "ACCEPTANCE-" + route_row["route_id"],
+        )
+    )
+    return {
+        "Artifact role": "LOOP_OWNER_ACCEPTANCE_RECEIPT",
+        "Acceptance ID": "ACCEPTANCE-" + route_row["route_id"],
+        "Run ID": "RUN-" + suffix,
+        "Run-start contract ID": "START-" + suffix,
+        "Run-start contract SHA-256": run_start_hash,
+        "Status schema version": "4.0.0",
+        "LCCoding phase scope": "REAL_PRODUCT_INTEGRATION",
+        "Phase-owned objective": route_row["human_observable_outcome"],
+        "Candidate ID / hash": CANDIDATE,
+        "D3 Receipt": "D3-" + suffix,
+        "Entry / role / account": " / ".join(
+            (route_row["promised_entry"], route_row["actor_id"], route_row["authority"]["resource_id"])
+        ),
+        "Scenario IDs": scenario_id,
+        "Acceptance steps": ", ".join(required_steps),
+        "Product questions": "NONE",
+        "Prior accepted dependencies reused": "NONE",
+        "Invisible risks already verified": "D3-" + suffix,
+        "Known limits": "NONE",
+        "Evidence return target in the calling phase": "FS-" + suffix,
+        "Calling phase gate remains independently evaluated": "YES",
+        "Owner result": "LOOP_OWNER_ACCEPTED",
+        "Owner Gap ID (blank when accepted)": "",
+        "Gap source Acceptance ID": "",
+        "Gap source candidate / scenario": "",
+        "Gap route": "",
+        "Impact / definition reference": "",
+        "Correction Run IDs": "",
+        "Affected D0-D3 receipts": "",
+        "Delta re-verification receipt": "",
+        "Delta Owner re-acceptance receipt": "",
+        "Gap status": "",
+        "Product learning / route (may be blank; only consequential learning that changes a future decision, constraint, check, template, or reuse rule; update one existing canonical artifact)": "",
+        "Accepted at": "2026-09-08T00:00:00Z",
+    }
+
+
+def evidence_reference(path, evidence_id):
+    lc = next(parent for parent in path.parents if parent.name == ".lccoding")
+    return (
+        evidence_id
+        + " / sha256:"
+        + hashlib.sha256(path.read_bytes()).hexdigest()
+        + " / "
+        + path.relative_to(lc).as_posix()
+    )
+
+
+def validate_fixture(
+    route_index, mutate=None, mutate_inputs=None, mutate_map=None, mutate_evidence=None
+):
     with tempfile.TemporaryDirectory(prefix="route-slice-400-") as temporary:
         root = Path(temporary)
         lc = root / ".lccoding"
@@ -388,9 +450,30 @@ def validate_fixture(route_index, mutate=None, mutate_inputs=None, mutate_map=No
         )
         map_hash = "sha256:" + hashlib.sha256(map_path.read_bytes()).hexdigest()
         route_row = route_map["journeys"][0]["routes"][route_index]
-        common = route_fields(route_row, map_hash)
         route_id = route_row["route_id"]
         suffix = route_id.removeprefix("ROUTE-")
+        evidence_paths = {}
+        evidence_references = {}
+        for evidence_route in route_map["journeys"][0]["routes"]:
+            evidence_suffix = evidence_route["route_id"].removeprefix("ROUTE-")
+            run_path = lc / "runs" / ("RUN-" + evidence_suffix) / "RUN-HANDOFF.md"
+            run_fields = route_run_start_fields(evidence_route)
+            write_record(run_path, "Run Handoff", run_fields)
+            run_fields["Start Contract SHA-256"] = validator.canonical_run_start_hash(
+                run_path.read_text(encoding="utf-8")
+            )
+            write_record(run_path, "Run Handoff", run_fields)
+            evidence_path = lc / "reviews" / ("OA-" + evidence_suffix + ".md")
+            write_record(
+                evidence_path,
+                "Loop Owner Acceptance Receipt",
+                route_receipt_fields(evidence_route, run_fields["Start Contract SHA-256"]),
+            )
+            evidence_paths[evidence_route["route_id"]] = evidence_path
+            evidence_references[evidence_route["route_id"]] = evidence_reference(
+                evidence_path, "ACCEPTANCE-" + evidence_route["route_id"]
+            )
+        common = route_fields(route_row, map_hash, evidence_references[route_id])
         slice_path = lc / "slices" / ("FS-" + suffix + ".md")
         baseline_path = lc / ("INTEGRATION-BASELINE-" + suffix + ".md")
         final_path = lc / ("FINAL-FEATURE-VERIFICATION-" + suffix + ".md")
@@ -399,10 +482,12 @@ def validate_fixture(route_index, mutate=None, mutate_inputs=None, mutate_map=No
             "Slice ID / version": "FS-" + suffix + " / 4.0.0",
             "Integration Route ID": route_id,
             "Integration candidate ID / exact hash": CANDIDATE,
+            "Product Baseline trace": "PB-1",
             "Integration Baseline ID": "IB-" + suffix,
             "Integration Baseline reference": baseline_path.name,
             "Final Feature Verification reference": final_path.name,
             "Required Run IDs": "RUN-" + suffix,
+            "Accepted integration candidate / baseline identity": CANDIDATE,
             "D0-D3 evidence plan": bound(route_id, "D0-D3-PLAN"),
             "Normal Loop Owner Acceptance route(s)": bound(route_id, "OWNER-ROUTE"),
             **copy.deepcopy(common),
@@ -476,6 +561,8 @@ def validate_fixture(route_index, mutate=None, mutate_inputs=None, mutate_map=No
         }
         if mutate_inputs:
             mutate_inputs(inputs)
+        if mutate_evidence:
+            mutate_evidence(lc, records, evidence_paths, evidence_references)
         write_record(slice_path, "Feature Slice", slice_fields)
         write_record(baseline_path, "Integration Baseline", baseline_fields)
         write_record(final_path, "Final Feature Verification", final_fields)
@@ -519,14 +606,16 @@ def expect_input_error(route_index, mutation, marker):
     assert any(marker in error for error in errors), (marker, errors)
 
 
+def expect_evidence_error(route_index, mutation, marker):
+    errors = validate_fixture(route_index, mutate_evidence=mutation)
+    assert any(marker in error for error in errors), (marker, errors)
+
+
 def use_other_route_evidence(other_route_index, field):
-    def mutate(records):
-        map_hash = records["slice"]["Service Route Map ID / exact hash"].split(" / ", 1)[1]
-        other = route_fields(
-            SERVICE_MAP["journeys"][0]["routes"][other_route_index], map_hash
-        )[field]
+    def mutate(lc, records, paths, references):
+        other_route_id = SERVICE_MAP["journeys"][0]["routes"][other_route_index]["route_id"]
         for record in records.values():
-            record[field] = other
+            record[field] = references[other_route_id]
     return mutate
 
 
@@ -535,10 +624,10 @@ expect_error(
     lambda records: [record.__setitem__("Route kind", "DIRECT_PRODUCT") for record in records.values()],
     "Route kind mismatch",
 )
-expect_error(
+expect_evidence_error(
     1,
     use_other_route_evidence(0, "Human-observable outcome evidence"),
-    "human-observable outcome join",
+    "route execution receipt does not belong to the adopted route",
 )
 expect_error(
     1,
@@ -548,17 +637,25 @@ expect_error(
 expect_error(
     1,
     lambda records: [record.__setitem__("Human-observable outcome evidence", "") for record in records.values()],
-    "human-observable outcome",
+    "Human-observable outcome",
+)
+expect_error(
+    1,
+    lambda records: [
+        [record.__setitem__(field, "") for field in ROUTE_EXECUTION_EVIDENCE_FIELDS]
+        for record in records.values()
+    ],
+    "route execution evidence collection must contain resolved runtime results",
 )
 expect_error(
     1,
     lambda records: [record.__setitem__("Shared Workflow capability ID", "CAP-DIFFERENT") for record in records.values()],
     "same shared Workflow capability",
 )
-expect_error(
+expect_evidence_error(
     2,
     use_other_route_evidence(1, "Route result evidence"),
-    "route result join",
+    "route execution receipt does not belong to the adopted route",
 )
 expect_error(
     1,
@@ -632,7 +729,7 @@ expect_error(
         record.__setitem__("Actor / authority evidence", WORKFLOWS[0]["API contract / evidence"])
         for record in records.values()
     ],
-    "structured actor/authority join",
+    "exact evidence ID / SHA-256 / contained path",
 )
 expect_error(
     1,
@@ -640,7 +737,100 @@ expect_error(
         record.__setitem__("Human-observable outcome evidence", "operations log only")
         for record in records.values()
     ],
-    "human-observable outcome join",
+    "exact evidence ID / SHA-256 / contained path",
+)
+
+
+def substitute_nonexecution_record(role, evidence_id, field):
+    def mutate(lc, records, paths, references):
+        path = lc / "reviews" / (evidence_id + ".md")
+        write_record(
+            path,
+            role.replace("_", " ").title(),
+            {
+                "Artifact role": role,
+                "Evidence ID": evidence_id,
+                "Candidate ID / hash": CANDIDATE,
+                "Result": "PASS",
+            },
+        )
+        reference = evidence_reference(path, evidence_id)
+        for record in records.values():
+            record[field] = reference
+    return mutate
+
+
+expect_evidence_error(
+    1,
+    substitute_nonexecution_record(
+        "AGENT_FAILURE_SIMULATION_EVIDENCE", "SIMULATION-OUTPUT-ONLY", "Route result evidence"
+    ),
+    "Simulation output is expected behavior, not actual route execution evidence",
+)
+expect_evidence_error(
+    1,
+    substitute_nonexecution_record(
+        "OPERATIONS_LOG", "OPERATIONS-LOG-ONLY", "Human-observable outcome evidence"
+    ),
+    "human-observable outcome requires an accepted runtime result record",
+)
+
+
+def missing_evidence_path(lc, records, paths, references):
+    missing = "ACCEPTANCE-ROUTE-AGENT / sha256:" + "f" * 64
+    missing += " / reviews/missing.md"
+    for record in records.values():
+        record["Route result evidence"] = missing
+
+
+expect_evidence_error(1, missing_evidence_path, "route execution evidence path is missing or unreadable")
+
+
+def mismatched_evidence_hash(lc, records, paths, references):
+    stale = references["ROUTE-AGENT"].split(" / ")
+    stale[1] = "sha256:" + "0" * 64
+    for record in records.values():
+        record["Authoritative state / data / side-effect evidence"] = " / ".join(stale)
+
+
+expect_evidence_error(1, mismatched_evidence_hash, "route execution evidence hash does not match bytes")
+
+
+def mismatched_record_identity(lc, records, paths, references):
+    wrong_id = references["ROUTE-AGENT"].split(" / ")
+    wrong_id[0] = "ACCEPTANCE-DIFFERENT"
+    for record in records.values():
+        record["Promised real entry evidence"] = " / ".join(wrong_id)
+
+
+expect_evidence_error(1, mismatched_record_identity, "route execution evidence record identity mismatch")
+
+
+def remove_route_run_start(lc, records, paths, references):
+    run_path = lc / "runs" / "RUN-AGENT" / "RUN-HANDOFF.md"
+    run_path.unlink()
+
+
+expect_evidence_error(
+    1, remove_route_run_start, "route execution receipt must resolve exactly one canonical Run start"
+)
+
+
+def reorder_route_steps(lc, records, paths, references):
+    path = paths["ROUTE-AGENT"]
+    fields = validator.parse_markdown_fields_strict(path)[0]
+    steps = [item.strip() for item in fields["Acceptance steps"].split(",")]
+    steps[0], steps[1] = steps[1], steps[0]
+    fields["Acceptance steps"] = ", ".join(steps)
+    write_record(path, "Loop Owner Acceptance Receipt", fields)
+    reference = evidence_reference(path, fields["Acceptance ID"])
+    for record in records.values():
+        for field in ROUTE_EXECUTION_EVIDENCE_FIELDS:
+            record[field] = reference
+
+
+expect_evidence_error(
+    1, reorder_route_steps, "route execution receipt does not join the ordered route identities"
 )
 expect_error(
     1,
@@ -687,6 +877,8 @@ run_slice_400 = {
     "Slice ID / version": "FS-AGENT / 4.0.0",
     "Product Baseline trace": "PB-1",
     "Service Route ID": "ROUTE-AGENT",
+    "Integration candidate ID / exact hash": CANDIDATE,
+    "Accepted integration candidate / baseline identity": CANDIDATE,
     "Integration Baseline ID": "IB-AGENT",
 }
 run_start_400 = {
@@ -699,6 +891,26 @@ run_start_400 = {
 assert validator.validate_phase3_run_slice_binding(
     "4.0.0", run_start_400, run_slice_400
 ) == []
+candidate_b_drift = copy.deepcopy(run_slice_400)
+candidate_b_drift["Accepted integration candidate / baseline identity"] = (
+    "CANDIDATE-B / sha256:" + "b" * 64
+)
+assert any(
+    "accepted integration candidate disagrees" in error
+    for error in validator.validate_phase3_run_slice_binding(
+        "4.0.0", run_start_400, candidate_b_drift
+    )
+)
+baseline_b_drift = copy.deepcopy(run_start_400)
+baseline_b_drift["Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)"] = (
+    "ROUTE-AGENT / IB-B"
+)
+assert any(
+    "Integration Baseline disagree" in error
+    for error in validator.validate_phase3_run_slice_binding(
+        "4.0.0", baseline_b_drift, run_slice_400
+    )
+)
 ui_inventing_start = copy.deepcopy(run_start_400)
 ui_inventing_start.pop("Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)")
 ui_inventing_start["Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)"] = (

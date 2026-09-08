@@ -1574,6 +1574,47 @@ def parse_exact_record_values(value,keys,label):
     if set(record)!=set(keys): errors.append(label+' must contain exactly '+', '.join(keys))
     return record,errors
 
+def route_execution_reference(value):
+    if not isinstance(value,str): return None
+    parts=[part.strip() for part in value.split(' / ',2)]
+    if len(parts)!=3 or not stable_id(parts[0]) or not EXACT_HASH_RE.fullmatch(parts[1]):
+        return None
+    path=Path(parts[2])
+    if (
+        '\\' in parts[2] or '://' in parts[2] or path.is_absolute()
+        or len(path.parts)<2 or path.parts[0]!='reviews'
+        or any(part in {'','.','..'} or ':' in part for part in path.parts)
+    ): return None
+    return tuple(parts)
+
+def resolve_route_execution_record(lc,value,label):
+    """Resolve one existing exact-hash evidence citation to a terminal runtime result."""
+    reference=route_execution_reference(value)
+    if reference is None:
+        return None,{},[label+' requires exact evidence ID / SHA-256 / contained path']
+    resolved=_resolve_agent_slice_reference(lc,reference[2])
+    if resolved is None:
+        return reference,{},[label+' route execution evidence path is missing or unreadable']
+    try: actual=_agent_file_hash(resolved)
+    except OSError as error:
+        return reference,{},[label+' route execution evidence path is unreadable: '+str(error)]
+    if actual!=reference[1]:
+        return reference,{},[label+' route execution evidence hash does not match bytes']
+    fields,field_errors=parse_markdown_fields_strict(resolved)
+    errors=list(field_errors); role=fields.get('Artifact role')
+    if role=='AGENT_FAILURE_SIMULATION_EVIDENCE':
+        errors.append('Simulation output is expected behavior, not actual route execution evidence')
+    elif role!='LOOP_OWNER_ACCEPTANCE_RECEIPT':
+        if label=='Human-observable outcome evidence':
+            errors.append('human-observable outcome requires an accepted runtime result record')
+        else:
+            errors.append(label+' requires an authoritative runtime result record')
+    else:
+        errors.extend(validate_terminal_receipt(resolved,fields,'4.0.0'))
+        if fields.get('Acceptance ID')!=reference[0]:
+            errors.append(label+' route execution evidence record identity mismatch')
+    return reference,fields,errors
+
 def parse_slice_identity(value,label='Slice identity'):
     match=re.fullmatch(r'([A-Za-z0-9][A-Za-z0-9._-]{0,127}) / (\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)',str(value or '').strip())
     if not match or not stable_id(match.group(1)) or not SEMVER_RE.fullmatch(match.group(2)):
@@ -2009,6 +2050,7 @@ def validate_route_bound_feature_slice(
             'Artifact role','Slice ID / version','Integration Route ID',
             'Integration candidate ID / exact hash','Integration Baseline ID',
             'Integration Baseline reference','Final Feature Verification reference',
+            'Accepted integration candidate / baseline identity',
             'Required Run IDs','D0-D3 evidence plan','Normal Loop Owner Acceptance route(s)',
             *ROUTE_BOUND_FIELDS_400,
         },
@@ -2049,6 +2091,11 @@ def validate_route_bound_feature_slice(
     candidate=candidates[0]
     if any(item!=candidate for item in candidates[1:]):
         errors.append('route-bound candidate identity/hash drift across Slice, Baseline, and Final records')
+    accepted_candidate=exact_id_hash(
+        slice_fields.get('Accepted integration candidate / baseline identity')
+    )
+    if accepted_candidate!=candidate:
+        errors.append('accepted integration candidate disagrees with the route-bound Slice candidate')
     route_id=str(slice_fields.get('Service Route ID','')).strip()
     if not stable_id(route_id): errors.append('4.0 Feature Slice requires a safe Service Route ID')
     for label,fields in records:
@@ -2184,117 +2231,147 @@ def validate_route_bound_feature_slice(
     ):
         errors.append('Product Baseline route trace must exactly join capability, surfaces, and scenarios')
 
-    def evidence_record(field,keys,expected,label):
-        record,record_errors=parse_exact_record_values(slice_fields.get(field),keys,label)
-        errors.extend(record_errors)
-        if record!=expected: errors.append(label+' does not join authoritative route evidence')
-        return record
-
-    candidate_text=str(slice_fields.get('Integration candidate ID / exact hash','')).strip()
-    entry_record,_=parse_exact_record_values(
-        slice_fields.get('Promised real entry evidence'),
-        ('CANDIDATE','ENTRY','SURFACE','TRIGGER','SIMULATION','SCENARIO','PATH'),
-        'promised real entry join'
+    execution_fields=(
+        'Promised real entry evidence','Actor / authority evidence',
+        'Route adapter / product surface evidence','Shared Workflow capability evidence',
+        'Authoritative state / data / side-effect evidence','Route result evidence',
+        'Human-observable outcome evidence',
     )
-    selected_scenario_id=entry_record.get('SCENARIO')
-    scenario_matches=[
-        row for row in scenario_rows
-        if isinstance(row,dict) and row.get('Simulation ID')==simulation_id
-        and row.get('Scenario ID')==selected_scenario_id
+    resolved_execution={}; unique_receipts={}
+    for field in execution_fields:
+        reference,receipt,reference_errors=resolve_route_execution_record(
+            lc,slice_fields.get(field),field
+        ); errors.extend(reference_errors)
+        if reference and receipt.get('Artifact role')=='LOOP_OWNER_ACCEPTANCE_RECEIPT':
+            resolved_execution[field]=(reference,receipt)
+            unique_receipts[(reference[1],reference[2])]=(reference,receipt)
+    if not resolved_execution:
+        errors.append('route execution evidence collection must contain resolved runtime results')
+
+    acceptance_ids=adopted.get('acceptance_evidence_ids')
+    if (
+        not isinstance(acceptance_ids,list) or not acceptance_ids
+        or any(not isinstance(item,str) or not stable_id(item) for item in acceptance_ids)
+        or len(acceptance_ids)!=len(set(acceptance_ids))
+    ):
+        errors.append('adopted route acceptance_evidence_ids must be a non-empty stable ID list')
+        acceptance_ids=[]
+    required_runs,required_run_errors=parse_closed_id_list(
+        slice_fields.get('Required Run IDs'),'route-bound Slice Required Run IDs'
+    ); errors.extend(required_run_errors)
+    expected_step_prefix=[
+        route_id,str(adopted.get('actor_id','')),str(authority.get('action_id','')),
+        str(authority.get('resource_id','')),
     ]
-    scenario=scenario_matches[0] if len(scenario_matches)==1 else {}
-    if selected_scenario_id not in scenario_ids or len(scenario_matches)!=1:
-        errors.append('authoritative route evidence join requires one adopted Simulation scenario')
-    used_by,used_by_errors=parse_closed_id_list(
-        scenario.get('Used by Slice/Run/Acceptance'),'route-bound Scenario usage'
-    ); errors.extend(used_by_errors)
-    if not slice_identity or slice_identity[0] not in used_by:
-        errors.append('adopted Simulation scenario must be used by the exact Feature Slice')
-    scenario_actors,scenario_actor_errors=parse_closed_id_list(
-        scenario.get('Actors'),'route-bound Scenario actors'
-    ); errors.extend(scenario_actor_errors)
-    if adopted.get('actor_id') not in scenario_actors:
-        errors.append('adopted Simulation scenario must exercise the exact route actor')
+    delegation=str(authority.get('delegation_basis_id','')).strip()
+    if delegation!='NOT_APPLICABLE': expected_step_prefix.append(delegation)
+    expected_step_prefix.extend((adapter_id,workflow_id,capability,*sorted(scenario_ids)))
+    expected_entry=' / '.join((
+        str(adopted.get('promised_entry','')),str(adopted.get('actor_id','')),
+        str(authority.get('resource_id','')),
+    ))
+    slice_id=slice_identity[0] if slice_identity else None
+    indexed_acceptances=status.get('loop_owner_acceptances')
+    if not isinstance(indexed_acceptances,list):
+        errors.append('route execution evidence requires the authoritative acceptance index')
+        indexed_acceptances=[]
+    run_starts={}
+    runs_root=lc/'runs'
+    if runs_root.is_dir():
+        for run_path in runs_root.rglob('*.md'):
+            run_fields,run_errors=parse_markdown_fields_strict(run_path)
+            if run_fields.get('Artifact role')=='RUN_START_CONTRACT':
+                run_starts.setdefault(run_fields.get('Run ID'),[]).append(
+                    (run_path,run_fields,run_errors)
+                )
+    for reference,receipt in unique_receipts.values():
+        if reference[0] not in acceptance_ids:
+            errors.append('route execution receipt does not belong to the adopted route')
+        if reference[0] not in indexed_acceptances:
+            errors.append('route execution receipt is absent from the authoritative acceptance index')
+        receipt_candidate=exact_id_hash(receipt.get('Candidate ID / hash'))
+        if receipt_candidate!=candidate:
+            errors.append('route execution receipt candidate identity mismatch')
+        if receipt.get('LCCoding phase scope')!='REAL_PRODUCT_INTEGRATION':
+            errors.append('route execution receipt must be a REAL_PRODUCT_INTEGRATION result')
+        if receipt.get('Owner result')!='LOOP_OWNER_ACCEPTED':
+            errors.append('route execution receipt is not an accepted actual result')
+        if receipt.get('Phase-owned objective')!=adopted.get('human_observable_outcome'):
+            errors.append('route execution receipt does not prove the promised human outcome')
+        if receipt.get('Entry / role / account')!=expected_entry:
+            errors.append('route execution receipt entry, actor, or authority mismatch')
+        receipt_scenarios,receipt_scenario_errors=parse_closed_id_list(
+            receipt.get('Scenario IDs'),'route execution receipt Scenario IDs'
+        ); errors.extend(receipt_scenario_errors)
+        if receipt_scenarios!=scenario_ids:
+            errors.append('route execution receipt Scenario IDs disagree with the adopted route')
+        _,receipt_step_errors=parse_closed_id_list(
+            receipt.get('Acceptance steps'),'route execution receipt Acceptance steps'
+        ); errors.extend(receipt_step_errors)
+        receipt_steps=[
+            item.strip() for item in str(receipt.get('Acceptance steps','')).split(',')
+            if item.strip()
+        ]
+        d3=str(receipt.get('D3 Receipt','')).strip()
+        if receipt_steps!=expected_step_prefix+[d3,reference[0]]:
+            errors.append('route execution receipt does not join the ordered route identities')
+        if receipt.get('Run ID') not in required_runs:
+            errors.append('route execution receipt Run ID is absent from the Slice required Runs')
+        if slice_id and receipt.get('Evidence return target in the calling phase')!=slice_id:
+            errors.append('route execution receipt does not return to the exact Feature Slice')
+        if not stable_id(d3) or receipt.get('Invisible risks already verified')!=d3:
+            errors.append('route execution receipt lacks exact D3 state/effect verification')
+        run_matches=run_starts.get(receipt.get('Run ID'),[])
+        if len(run_matches)!=1:
+            errors.append('route execution receipt must resolve exactly one canonical Run start')
+        else:
+            run_path,run_fields,run_errors=run_matches[0]; errors.extend(run_errors)
+            actual_start_hash=None
+            try:
+                actual_start_hash=canonical_run_start_hash(
+                    run_path.read_bytes().decode('utf-8')
+                )
+            except (OSError,UnicodeError): pass
+            if (
+                actual_start_hash!=receipt.get('Run-start contract SHA-256')
+                or actual_start_hash!=run_fields.get('Start Contract SHA-256')
+            ):
+                errors.append('route execution receipt Run-start hash does not match canonical bytes')
+            for receipt_field,start_field in {
+                'Run-start contract ID':'Start Contract ID',
+                'Status schema version':'Status schema version',
+                'LCCoding phase scope':'LCCoding phase scope',
+                'Phase-owned objective':'Phase-owned objective',
+                'Evidence return target in the calling phase':'Evidence return target in calling phase',
+            }.items():
+                if receipt.get(receipt_field)!=run_fields.get(start_field):
+                    errors.append('route execution receipt/Run start mismatch: '+receipt_field)
+            errors.extend(validate_phase3_run_slice_binding('4.0.0',run_fields,slice_fields))
 
-    semantic_sources={
+    scenario_matches=[
+        row for row in scenario_rows if isinstance(row,dict)
+        and row.get('Simulation ID')==simulation_id and row.get('Scenario ID') in scenario_ids
+    ]
+    if len(scenario_matches)!=len(scenario_ids):
+        errors.append('authoritative route design requires every adopted Simulation scenario')
+    for scenario in scenario_matches:
+        used_by,used_by_errors=parse_closed_id_list(
+            scenario.get('Used by Slice/Run/Acceptance'),'route-bound Scenario usage'
+        ); errors.extend(used_by_errors)
+        if not slice_identity or slice_identity[0] not in used_by:
+            errors.append('adopted Simulation scenario must be used by the exact Feature Slice')
+        scenario_actors,scenario_actor_errors=parse_closed_id_list(
+            scenario.get('Actors'),'route-bound Scenario actors'
+        ); errors.extend(scenario_actor_errors)
+        if adopted.get('actor_id') not in scenario_actors:
+            errors.append('adopted Simulation scenario must exercise the exact route actor')
+        if not semantic_present(scenario.get('Path')):
+            errors.append('Simulation expected path is required for the route design join')
+    for label,value in {
         'Workflow trigger':workflow.get('Trigger'),
-        'Workflow state/effect trace':workflow.get('Rules / state / side-effect trace'),
-        'Workflow attestation':workflow.get('Evidence / attestation'),
-        'Simulation path':scenario.get('Path'),
-        'Simulation result':scenario.get('Visible / invisible evidence'),
-    }
-    for label,value in semantic_sources.items():
-        if not semantic_present(value): errors.append(label+' is required for the real route evidence join')
-    contract_values={
-        str(workflow.get(field,'')).strip()
-        for field in ('API contract / evidence','MCP contract / evidence')
-        if semantic_present(workflow.get(field))
-    }
-    if any(str(value or '').strip() in contract_values for value in semantic_sources.values()):
-        errors.append('API/MCP contract presence cannot substitute for semantic route execution evidence')
-
-    evidence_record(
-        'Promised real entry evidence',
-        ('CANDIDATE','ENTRY','SURFACE','TRIGGER','SIMULATION','SCENARIO','PATH'),
-        {
-            'CANDIDATE':candidate_text,'ENTRY':str(adopted.get('promised_entry','')),
-            'SURFACE':adapter_id,'TRIGGER':str(workflow.get('Trigger','')),
-            'SIMULATION':simulation_id,'SCENARIO':selected_scenario_id,
-            'PATH':str(scenario.get('Path','')),
-        },
-        'promised real entry join',
-    )
-    evidence_record(
-        'Actor / authority evidence',
-        ('CANDIDATE','ACTOR','ACTION','RESOURCE','DELEGATION','SCENARIO'),
-        {
-            'CANDIDATE':candidate_text,'ACTOR':str(adopted.get('actor_id','')),
-            'ACTION':str(authority.get('action_id','')),
-            'RESOURCE':str(authority.get('resource_id','')),
-            'DELEGATION':str(authority.get('delegation_basis_id','')),
-            'SCENARIO':selected_scenario_id,
-        },
-        'structured actor/authority join',
-    )
-    evidence_record(
-        'Route adapter / product surface evidence',
-        ('CANDIDATE','ROUTE','SURFACE','KIND','CAPABILITY'),
-        {
-            'CANDIDATE':candidate_text,'ROUTE':route_id,'SURFACE':adapter_id,
-            'KIND':str(adapter.get('Service Surface Kind','')),'CAPABILITY':capability,
-        },
-        'route adapter/surface join',
-    )
-    evidence_record(
-        'Shared Workflow capability evidence',
-        ('CANDIDATE','ROUTE','WORKFLOW','CAPABILITY','ATTESTATION'),
-        {
-            'CANDIDATE':candidate_text,'ROUTE':route_id,'WORKFLOW':workflow_id,
-            'CAPABILITY':capability,'ATTESTATION':str(workflow.get('Evidence / attestation','')),
-        },
-        'shared Workflow capability join',
-    )
-    evidence_record(
-        'Authoritative state / data / side-effect evidence',
-        ('CANDIDATE','WORKFLOW','TRACE','ATTESTATION'),
-        {
-            'CANDIDATE':candidate_text,'WORKFLOW':workflow_id,
-            'TRACE':str(workflow.get('Rules / state / side-effect trace','')),
-            'ATTESTATION':str(workflow.get('Evidence / attestation','')),
-        },
-        'authoritative state/data/side-effect join',
-    )
-    evidence_record(
-        'Route result evidence',
-        ('CANDIDATE','SIMULATION','SCENARIO','RESULT','USAGE'),
-        {
-            'CANDIDATE':candidate_text,'SIMULATION':simulation_id,
-            'SCENARIO':selected_scenario_id,
-            'RESULT':str(scenario.get('Visible / invisible evidence','')),
-            'USAGE':str(scenario.get('Used by Slice/Run/Acceptance','')),
-        },
-        'route result join',
-    )
+        'Workflow state/effect design trace':workflow.get('Rules / state / side-effect trace'),
+    }.items():
+        if not semantic_present(value): errors.append(label+' is required for the route design join')
     if slice_fields.get('Route proof basis')!='REAL_ROUTE_EXECUTION':
         errors.append("API/MCP presence or another route's UI PASS cannot prove this route")
     if slice_fields.get(
@@ -2366,28 +2443,6 @@ def validate_route_bound_feature_slice(
         errors.append('route that does not touch locked UI must use NOT_APPLICABLE UI lock evidence')
     elif locked_ui=='NO' and semantic_present(slice_fields.get('Applicable UI identity')):
         errors.append('route without a realized UI surface must not invent an Applicable UI identity')
-
-    human_surface=str(human_ui.get('UI ID') or adapter_id)
-    human_feedback=str(
-        human_ui.get('Actions / feedback')
-        or scenario.get('Visible / invisible evidence','')
-    )
-    human_attestation=str(
-        human_ui.get('Evidence / attestation')
-        or scenario.get('Visible / invisible evidence','')
-    )
-    if not semantic_present(human_feedback) or not semantic_present(human_attestation):
-        errors.append('human-observable outcome requires realized feedback and attestation')
-    evidence_record(
-        'Human-observable outcome evidence',
-        ('CANDIDATE','SURFACE','OUTCOME','FEEDBACK','ATTESTATION'),
-        {
-            'CANDIDATE':candidate_text,'SURFACE':human_surface,
-            'OUTCOME':str(adopted.get('human_observable_outcome','')),
-            'FEEDBACK':human_feedback,'ATTESTATION':human_attestation,
-        },
-        'human-observable outcome join',
-    )
 
     if candidate:
         for field in ('D0-D3 evidence plan','Normal Loop Owner Acceptance route(s)'):
@@ -3955,6 +4010,15 @@ def validate_phase3_run_slice_binding(status_schema,start,slice_fields):
         errors.append('required Run start Product Baseline disagrees with active Slice')
     if start.get(slice_field)!=slice_fields.get('Slice ID / version'):
         errors.append('required Run start Feature Slice identity disagrees with active Slice')
+    if status_schema=='4.0.0':
+        integration_candidate=exact_id_hash(
+            slice_fields.get('Integration candidate ID / exact hash')
+        )
+        accepted_candidate=exact_id_hash(
+            slice_fields.get('Accepted integration candidate / baseline identity')
+        )
+        if not integration_candidate or accepted_candidate!=integration_candidate:
+            errors.append('accepted integration candidate disagrees with active route-bound Slice')
     start_entry=exact_ui_integration_identity(start.get(entry_field))
     expected_entry=(
         str(slice_fields.get('Service Route ID','')).strip()
@@ -4160,6 +4224,11 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
         candidate=str(slice_fields.get('Accepted integration candidate / baseline identity','')).strip()
         candidate_identity=exact_id_hash(candidate)
         if not candidate_identity: errors.append('accepted integration candidate requires exact ID / sha256 identity')
+        integration_candidate=str(slice_fields.get('Integration candidate ID / exact hash','')).strip()
+        if status_schema=='4.0.0' and (
+            not exact_id_hash(integration_candidate) or candidate!=integration_candidate
+        ):
+            errors.append('Phase-3 aggregate accepted candidate disagrees with route-bound Slice candidate')
         integration=str(slice_fields.get('Integration Baseline ID','')).strip()
         if not stable_id(integration):
             errors.append('active Slice requires stable Integration Baseline ID')
