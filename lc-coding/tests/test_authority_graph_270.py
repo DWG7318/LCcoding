@@ -87,6 +87,7 @@ for relative, expected_hash in HISTORICAL_RECORD_HASHES.items():
 EXPECTED_TITLES = {
     "LC-AUTH-001": "Owner authority and method boundary",
     "LC-AUTH-002": "Single semantic authority and project truth",
+    "LC-AUTH-003": "LCCoding applicability and product service strategy",
     "LC-PHASE-001": "Initial",
     "LC-PHASE-002": "Product Formation",
     "LC-PHASE-003": "Real Product Integration",
@@ -102,6 +103,7 @@ EXPECTED_TITLES = {
     "LC-INTEG-002": "One-way UI lock",
     "LC-INTEG-003": "Impact, mutability, and evidence reuse",
     "LC-INTEG-004": "Agent-native topology and Slice proof",
+    "LC-INTEG-005": "Service topology and route-faithful lifecycle proof",
     "LC-JOURNEY-001": "Bounded real-user journey coverage and visible evidence",
     "LC-JOURNEY-002": "Defect identity, correction order, and complete-round restart",
     "LC-JOURNEY-003": "Owner verdict, exemption, and later invalidation",
@@ -224,6 +226,15 @@ required_semantics = {
         "`status.json` is the single authoritative project-status record",
         "non-authoritative projection",
     ),
+    "LC-AUTH-003": (
+        "`WHOLE_PRODUCT_FIT`",
+        "`BOUNDED_PRODUCT_FIT`",
+        "`OTHER_METHOD_RECOMMENDED`",
+        "`PLATFORM_COMPLETION`",
+        "`AGENT_COLLABORATIVE`",
+        "`MIXED`",
+        "Calabash owns product meaning and the Service Route Map",
+    ),
     "LC-PHASE-001": (
         "`INITIAL`",
         "Proposal Readiness",
@@ -244,9 +255,11 @@ required_semantics = {
     ),
     "LC-PHASE-004": (
         "`REAL_USER_JOURNEY_ACCEPTANCE`",
-        "real rendered feedback",
+        "actual external entry",
+        "nonvisual Agent steps",
+        "final human outcome",
         "`40001+`",
-        "restart from the home page",
+        "restart from each actual route entry",
         "`REAL_USER_JOURNEY_ACCEPTED`",
     ),
     "LC-PHASE-005": (
@@ -319,17 +332,33 @@ required_semantics = {
         "`RETIRE`",
         "Slice class is exactly one of {`PRODUCT`, `OPERATIONS`}",
     ),
+    "LC-INTEG-005": (
+        "`DIRECT_PRODUCT`",
+        "`PERSONAL_AGENT`",
+        "`SERVICE_CENTER`",
+        "one shared Workflow/Backend/Core",
+        "Human Principal",
+        "Personal Agent",
+        "Product Agent",
+        "Operations Agent",
+        "distinct internal delivered Agents",
+        "Service Center actor",
+        "selected per delivered journey",
+        "`USER_SERVICE_BOUNDARY`",
+        "accepted 3.0 direct-product evidence remains readable",
+    ),
     "LC-JOURNEY-001": (
         "directed journey graph",
-        "visible browser surface",
+        "actual external route entry",
         "captures a screenshot",
-        "real rendered feedback",
+        "first-hand route evidence",
+        "final human-observable outcome",
         "`F11`",
     ),
     "LC-JOURNEY-002": (
         "`40001`",
-        "UI → Workflow → Backend/Core",
-        "restart from the home page",
+        "`USER_SERVICE_BOUNDARY` → `WORKFLOW_ORCHESTRATION` → `BACKEND_CORE`",
+        "restart from each actual required route entry",
         "never reuses an earlier-round screenshot",
     ),
     "LC-JOURNEY-003": (
@@ -844,4 +873,4 @@ for projection in PROJECTIONS:
     assert "cross-phase execution axis" in text.casefold()
     assert "not a lifecycle node" in text.casefold()
 
-print("PASS: SPEC exposes one closed 35-clause semantic authority graph")
+print("PASS: SPEC exposes one closed 37-clause semantic authority graph")

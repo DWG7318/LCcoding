@@ -8,6 +8,7 @@ This document is the complete normative specification for LCCoding. Stable claus
 |---|---|
 | [LC-AUTH-001](#lc-auth-001) | Owner authority and method boundary |
 | [LC-AUTH-002](#lc-auth-002) | Single semantic authority and project truth |
+| [LC-AUTH-003](#lc-auth-003) | LCCoding applicability and product service strategy |
 | [LC-PHASE-001](#lc-phase-001) | Initial |
 | [LC-PHASE-002](#lc-phase-002) | Product Formation |
 | [LC-PHASE-003](#lc-phase-003) | Real Product Integration |
@@ -23,6 +24,7 @@ This document is the complete normative specification for LCCoding. Stable claus
 | [LC-INTEG-002](#lc-integ-002) | One-way UI lock |
 | [LC-INTEG-003](#lc-integ-003) | Impact, mutability, and evidence reuse |
 | [LC-INTEG-004](#lc-integ-004) | Agent-native topology and Slice proof |
+| [LC-INTEG-005](#lc-integ-005) | Service topology and route-faithful lifecycle proof |
 | [LC-JOURNEY-001](#lc-journey-001) | Bounded real-user journey coverage and visible evidence |
 | [LC-JOURNEY-002](#lc-journey-002) | Defect identity, correction order, and complete-round restart |
 | [LC-JOURNEY-003](#lc-journey-003) | Owner verdict, exemption, and later invalidation |
@@ -64,12 +66,21 @@ Every project locks exact LCCoding, Calabash, and selected execution-method iden
 
 All mandatory lifecycle work remains. Depth is proportional to product uncertainty, coupling, real risk, irreversibility, and novelty. `UNKNOWN` requires conservative depth and evidence; it is not a sufficient final judgment. Existing sufficient evidence is cited and reused. Friction reduction never authorizes missing work, repeated Owner interviews, shallow risk treatment, or empty completion artifacts.
 
+<a id="lc-auth-003"></a>
+### LC-AUTH-003 — LCCoding applicability and product service strategy
+
+Initial begins with `LCCODING_APPLICABILITY_ASSESSMENT`, followed by `PROPOSAL_READINESS`, `PRODUCT_SERVICE_STRATEGY`, and `PROJECT_INITIALIZATION`, and then exits through the unchanged `INITIAL_READY` gate. The assessment judges whether the full LCCoding lifecycle fits the proposed engineering object; it does not judge the project's value or technical merit. Its result is exactly `WHOLE_PRODUCT_FIT`, `BOUNDED_PRODUCT_FIT`, or `OTHER_METHOD_RECOMMENDED`. A bounded result identifies one complete product-facing scope. An other-method recommendation rejects only use of the full LCCoding method for the assessed scope and does not reject or stop the underlying project. When facts are insufficient, the result remains proposal incompleteness under Proposal Readiness rather than an automatic negative applicability judgment.
+
+After a whole-product or bounded-product fit, LCCoding explains and recommends between exactly two primary product service strategies: `PLATFORM_COMPLETION`, where a person uses the product surface and the platform performs the principal business work, and `AGENT_COLLABORATIVE`, where the person's external Personal Agent performs permitted edge work and collaborates with the platform. `MIXED` means both primary strategies coexist in one product; it is not a third architecture. The discussion includes intended user groups, feasibility, cost, security, operations, user experience, material uncertainties, and whether an online or offline Service Center is applicable. It records an initial direction for Calabash rather than granting every route or action.
+
+The Owner retains product meaning, commercial authority, material scope and trade-off authority, release, acceptance, and delivery rights. AI supplies a recommendation and concrete consequences without asking the Owner to invent the technical solution. Calabash owns product meaning and the Service Route Map; LCCoding owns the timing of applicability and strategy work, adoption of the Calabash result, impact handling, and lifecycle progression.
+
 ## Five-phase lifecycle
 
 <a id="lc-phase-001"></a>
 ### LC-PHASE-001 — Initial
 
-`INITIAL` contains Proposal Readiness and Project Initialization and exits through the existing `INITIAL_READY` gate. Proposal Readiness reads supplied material once, builds one completeness view, asks only blocking or materially risky unresolved questions, offers a recommended answer with concise alternatives, persists each answer, and returns only `PROPOSAL_READY` or `PROPOSAL_INCOMPLETE`.
+`INITIAL` contains, in order, LCCoding Applicability Assessment, Proposal Readiness, Product Service Strategy, and Project Initialization, and exits through the existing `INITIAL_READY` gate. These are fine milestones, not phases or gates. Proposal Readiness reads supplied material once, builds one completeness view, asks only blocking or materially risky unresolved questions, offers a recommended answer with concise alternatives, persists each answer, and returns only `PROPOSAL_READY` or `PROPOSAL_INCOMPLETE`.
 
 Project Initialization uses `NEW` or `EXISTING` mode. NEW establishes one project Git/GitHub repository, Owner-decided visibility, initial version `0.0.1`, platform Agents Rule, required method identities, capabilities, Canonical Manifest, Interpretation Lock, Profile, Fingerprint, Health, and authoritative status. It does not pre-create empty UI, Workflow, or Simulation directories.
 
@@ -82,10 +93,11 @@ For a 2.8 project, Initial also records Agent responsibilities, permissions, pro
 <a id="lc-phase-002"></a>
 ### LC-PHASE-002 — Product Formation
 
-`PRODUCT_FORMATION` starts after `INITIAL_READY` and contains, in order of dependency, Calabash Draft, a Simulation-first foundation, separately real and runnable Workflow/UI/peer Simulation product ends, Mandatory Calabash Upgrade, and Product Baseline:
+`PRODUCT_FORMATION` starts after `INITIAL_READY` and contains, in order of dependency, Calabash Draft, the Calabash-owned Service Route Map, a Simulation-first foundation, separately real and runnable Workflow and applicable direct-product, Agent-service, assisted-service, UI, and peer Simulation product ends, Mandatory Calabash Upgrade, and Product Baseline:
 
 ```text
 Calabash Draft
+→ Service Route Map
 → [Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
 → Mandatory Calabash Upgrade
 → Product Baseline
@@ -102,7 +114,7 @@ For 2.8, Calabash determines Product Agent applicability, capability, authority,
 
 The exact 2.8 new-write machine ID is `REAL_PRODUCT_INTEGRATION`. Exact 2.6/2.7 schemas read only the compatibility machine ID `ENGINEERING_RUNS`; that old ID is not the human meaning and is never written by a 2.8 project. Schema selects one closed ID and a mixed or inferred identity is invalid. Feature Slice is the first lifecycle work in this phase. Admission is the mechanically valid and accepted Product Baseline Handoff, after which a Slice defines an actor-visible claim and its Execution Coverage Preflight admits bounded integration Runs.
 
-The phase organizes separately realized Workflow, UI, and Simulation into a true product path. It proves UI action through a real API/MCP-backed Workflow, real state/data/side effects, and a visible UI result, with the applicable Simulation covering the same capability and exception behavior. It includes UI-locked integration, first proving work when connections are unproved, layered integration evidence, and per-Run Owner receipts.
+The phase organizes separately realized Workflow, route adapters or product surfaces, UI where applicable, and Simulation into a true product path. Each Feature Slice proves a promised real entry through actor authority, a real route adapter or product surface, the shared Workflow and Backend/Core effects, a route result, and a human-observable outcome. A direct-product Slice preserves the existing real UI action and visible UI result proof. It includes the existing one-way UI lock for human-visible UI, first proving work when connections are unproved, layered integration evidence, and per-Run Owner receipts.
 
 For 2.8 it also freezes the final production execution topology, resolves every relevant Product Formation backend through `SELECT`, `COMPOSE`, `FEDERATE`, or `RETIRE`, integrates the required Operations Agent through an authorized Runtime Adapter, integrates any applicable Product Agent without merging the two logical Agents, and proves the required `PRODUCT` and `OPERATIONS` Slices. These conditions add no lifecycle gate and do not make an execution method or Runtime a phase.
 
@@ -111,9 +123,9 @@ For 2.8 it also freezes the final production execution topology, resolves every 
 <a id="lc-phase-004"></a>
 ### LC-PHASE-004 — Real User Journey Acceptance
 
-`REAL_USER_JOURNEY_ACCEPTANCE` begins only after `ALL_REQUIRED_RUNS_ACCEPTED` is current for one exact Real Product Integration candidate. It operates that running product through its visible UI from the home page or defined product entry, covers every required applicable user journey, captures candidate-bound evidence after each meaningful visible action, and judges real rendered feedback rather than substituting source, DOM, API, log, or prior automated-test evidence.
+`REAL_USER_JOURNEY_ACCEPTANCE` begins only after `ALL_REQUIRED_RUNS_ACCEPTED` is current for one exact Real Product Integration candidate. It follows every required delivered route from its actual external entry to a human-observable business outcome. Screenshots remain required after meaningful visible actions. Candidate-bound messages, task transitions, artifacts, authorization decisions, and audit events are first-hand evidence for nonvisual Agent steps; source, DOM, API, database, console, log, or prior automated-test evidence cannot substitute for the required route evidence or final human outcome.
 
-Every discovered defect receives a stable `40001+` identity and correction history. After correction and affected engineering re-verification, the next acceptance round must restart from the home page and rerun the complete required journey graph on the new exact candidate. The Owner receives one concise evidence-backed conclusion and chooses `REAL_USER_JOURNEY_ACCEPTED`, `REAL_USER_JOURNEY_REWORK`, or `REAL_USER_JOURNEY_DEFERRED` without having to repeat the product test manually.
+Every discovered defect receives a stable `40001+` identity and correction history. After correction and affected engineering re-verification, the next acceptance round must restart from each actual route entry and rerun the complete required journey graph on the new exact candidate. The Owner receives one concise evidence-backed conclusion and chooses `REAL_USER_JOURNEY_ACCEPTED`, `REAL_USER_JOURNEY_REWORK`, or `REAL_USER_JOURNEY_DEFERRED` without having to repeat the product test manually.
 
 <a id="lc-phase-005"></a>
 ### LC-PHASE-005 — Delivery Preparation
@@ -220,21 +232,21 @@ Focused explanation: [Agent-native integration guidance](lc-coding/references/ag
 <a id="lc-integ-001"></a>
 ### LC-INTEG-001 — Feature Slice and real integration proof
 
-Feature Slice is the product-progress unit and the entry to Real Product Integration. It identifies all already implemented and verified Workflow capabilities across CORE and EXTRA and must inherit and reuse them wherever possible. It begins from the Owner-confirmed Primary product mainline unless impact evidence selects another governed route. Because it covers UI, integration, state, data, permissions, exceptions, recovery, and actor-visible results, it may supplement, adjust, and improve Workflow under Impact Analysis and `CONTROLLED_MUTABLE` rules.
+Feature Slice is the product-progress unit and the entry to Real Product Integration. It identifies all already implemented and verified Workflow capabilities across CORE and EXTRA and must inherit and reuse them wherever possible. It begins from a promised real entry on the Owner-confirmed Primary product mainline unless impact evidence selects another governed route. Because it covers the applicable product surface or route adapter, UI where present, integration, state, data, permissions, exceptions, recovery, and actor-visible results, it may supplement, adjust, and improve Workflow under Impact Analysis and `CONTROLLED_MUTABLE` rules.
 
 A valid Slice proves this same capability chain:
 
 ```text
-actor intent
-→ real UI operation
-→ integration boundary
-→ API/MCP-backed Workflow
-→ real state/data/side effect
-→ visible UI result
-→ evidence and acceptance
+promised real entry
+→ authenticated actor and valid authority
+→ real route adapter or product surface
+→ real Workflow and Backend/Core effects
+→ authoritative state/data/side effect
+→ route result
+→ human-observable business outcome
 ```
 
-Simulation covers the same capability, state, scenarios, exceptions, and recovery; it need not be the production backend. Static UI, mock, stub, simulation-only output, or manually staged state cannot prove third-phase integration. A component, API, table, refactor, or test group alone is not a Slice.
+For `DIRECT_PRODUCT`, the chain includes the existing real UI operation, API/MCP-backed Workflow where applicable, real state/data/side effect, and visible UI result. For `PERSONAL_AGENT` and `SERVICE_CENTER`, the chain additionally proves the route-specific actor, delegation or authorization boundary, adapter or assisted surface, result delivery, and audit lineage. Simulation covers the same capability, state, scenarios, exceptions, and recovery; it need not be the production backend. Static UI, mock, stub, simulation-only output, manually staged state, API/MCP presence alone, or another route's PASS cannot prove third-phase integration. A component, API, table, refactor, or test group alone is not a Slice.
 
 Execution Coverage Preflight runs after the Slice exists and before a bounded integration Run. It covers actor outcome, Product Baseline, Workflow/UI/Simulation, state/data/permissions, exception/recovery, Impact Analysis, Integration Baseline, Required Runs, D0–D3, and Owner Acceptance. `HIGH`/`UNKNOWN` requires deeper evidence or smaller independently verifiable Runs. If cross-layer proof is missing, the first Required Run is the thinnest production-quality end-to-end proving path; failure blocks expansion. Sufficient existing proof may be cited instead.
 
@@ -284,25 +296,36 @@ The existing UI one-way Owner lock, Workflow controlled mutability, Simulation v
 
 Focused explanation: [Agent-native integration guidance](lc-coding/references/agent-native-integration.md#topology-slices-and-shared-baseline).
 
+<a id="lc-integ-005"></a>
+### LC-INTEG-005 — Service topology and route-faithful lifecycle proof
+
+The product has one capability system. `DIRECT_PRODUCT`, `PERSONAL_AGENT`, and `SERVICE_CENTER` routes may use different surfaces or adapters, but they converge on one shared Workflow/Backend/Core, authoritative business rules, state, side effects, and outcome identity. Personal Agent is an external customer-controlled representative; it is not a Product Agent. Product Agent and Operations Agent are distinct internal delivered Agents. The five distinct actor classes are Human Principal, Personal Agent, Product Agent, Operations Agent, and Service Center actor. A Service Center actor is an attributable authorized staff member or Service Center Agent assisting a Human Principal; no route, token, prompt, or shared memory namespace alone proves delegation.
+
+After `CALABASH_DRAFT`, Product Formation adopts one Calabash-owned `SERVICE_ROUTE_MAP`. For every delivered CORE journey and delivered EXTRA journey represented as product capability, the map identifies the human beneficiary, required route kinds, actual entry and outcome, authority and confirmation boundary, shared capability, route-specific surface or adapter, and acceptance evidence. Required support is selected per delivered journey; a project-level strategy never grants every action to every route. Unsupported or future routes remain unclaimed. LCCoding governs when the map is adopted, how lifecycle evidence returns to it, and how later impact is handled, without redefining Calabash product meaning.
+
+Phase 3 proves each required route through the Feature Slice chain from promised real entry to human-observable outcome. Unaffected shared Workflow/Backend/Core evidence may be reused across routes, but route-specific adapter, authority, result, and human-outcome evidence cannot be inferred from another route's PASS. Phase 4 remains `REAL_USER_JOURNEY_ACCEPTANCE` and derives its candidate-bound graph from the adopted Service Route Map. Screenshots prove meaningful visible actions; candidate-bound message, task, artifact, authorization, and audit evidence proves nonvisual Agent steps. Every accepted route still ends in a result the Human Principal can observe and understand.
+
+The normal correction order is `USER_SERVICE_BOUNDARY` → `WORKFLOW_ORCHESTRATION` → `BACKEND_CORE`. `USER_SERVICE_BOUNDARY` resolves to UI for a direct route, capability/request/authorization/task/result or final human-facing Agent behavior for a Personal Agent route, and assisted-surface or user-communication behavior for a Service Center route. Root-cause evidence may justify one coherent cross-layer correction. The one-way Owner UI lock remains unchanged for human-visible UI. This clause adds no phase, gate, second Workflow/Backend/Core, Runtime, protocol mandate, or BI redesign; accepted 3.0 direct-product evidence remains readable while implementation contracts migrate conservatively in later work.
+
 ## Real User Journey Acceptance
 
 <a id="lc-journey-001"></a>
 ### LC-JOURNEY-001 — Bounded real-user journey coverage and visible evidence
 
-Phase 4 derives one candidate-bound directed journey graph from Calabash, Simulation scenarios, Product Baseline, Workflow/UI maps, Feature Slices, and accepted integration evidence. Each required journey identifies its actor and permission, home-page or product-entry start, preconditions and safe test data, ordered visible actions, expected visible results, final business outcome, applicable exception/recovery/empty/invalid/permission routes, and source trace. It includes every delivered CORE journey and every delivered EXTRA journey represented as product capability; it is bounded coverage, not random or unbounded crawling.
+Phase 4 derives one candidate-bound directed journey graph from the adopted Service Route Map, Calabash, Simulation scenarios, Product Baseline, Workflow/UI maps, Feature Slices, and accepted integration evidence. Each required journey identifies its human beneficiary, actor and authority, actual external route entry, preconditions and safe test data, ordered visible and nonvisual steps, expected route results, final human-observable business outcome, applicable exception/recovery/empty/invalid/permission routes, and source trace. It includes every required delivered route for every delivered CORE journey and every delivered EXTRA journey represented as product capability; it is bounded coverage, not random or unbounded crawling.
 
-The operator uses the real running product through a visible browser surface. After each meaningful navigation, completed input, click, submit, selection, upload, confirmation, or equivalent state-changing action, the operator waits for the normal visible result, captures a screenshot, and records the exact candidate, round, Journey/Step identity, actor, viewport, action, expected result, observed result, visible location, screenshot path, and lowercase SHA-256. Typing is one completed input action rather than one action per keystroke. Test identities and safe data prevent secrets or personal data entering evidence.
+For a direct visible route, the operator uses the real running product through its visible browser or other promised surface. After each meaningful navigation, completed input, click, submit, selection, upload, confirmation, or equivalent visible state-changing action, the operator waits for the normal visible result, captures a screenshot, and records the exact candidate, round, Journey/Step identity, actor, viewport, action, expected result, observed result, visible location, screenshot path, and lowercase SHA-256. Typing is one completed input action rather than one action per keystroke. Test identities and safe data prevent secrets or personal data entering evidence.
 
-The Phase-4 verdict comes from real rendered feedback. Source, DOM, API, database, console, log, and automated-test evidence may diagnose an already recorded defect, but cannot replace the visible acceptance proof. When Codex's outer chrome cannot be automated, the Owner may assist only by expanding the in-app browser panel and pressing `F11`; the Agent records the viewport and continues all product operation and judgment.
+For nonvisual Agent steps, exact-candidate messages, request/task transitions, artifacts, authorization decisions, platform effects, result delivery, and audit events are first-hand route evidence rather than diagnostic substitutes. The Phase-4 verdict comes from route-faithful evidence and the final human-observable outcome; source, DOM, API, database, console, generic logs, and automated-test evidence may diagnose an already recorded defect but cannot replace either. When Codex's outer chrome cannot be automated for a visible route, the Owner may assist only by expanding the in-app browser panel and pressing `F11`; the Agent records the viewport and continues all product operation and judgment.
 
 <a id="lc-journey-002"></a>
 ### LC-JOURNEY-002 — Defect identity, correction order, and complete-round restart
 
-The first Phase-4 defect is `40001`; later IDs increase monotonically and are never recycled after rejection, merge, defer, exemption, reopening, or shared-root-cause discovery. The append-only defect history binds discovery candidate/round/Journey/Step, expected and observed behavior, screenshot digest, severity and reachability, visible layer, diagnosed root cause, affected surfaces, correction identity, affected engineering re-verification, retest round, final state, and any exemption authority, impact, and recovery condition.
+The first Phase-4 defect is `40001`; later IDs increase monotonically and are never recycled after rejection, merge, defer, exemption, reopening, or shared-root-cause discovery. The append-only defect history binds discovery candidate/round/Journey/Step, expected and observed behavior, route-evidence digest, severity and reachability, service boundary, diagnosed root cause, affected surfaces, correction identity, affected engineering re-verification, retest round, final state, and any exemption authority, impact, and recovery condition.
 
-A defect blocks only its dependent route unless it prevents environment use, authentication, navigation, or all remaining journeys; independent reachable routes continue so one round can collect multiple facts. Correction work is normally ordered `UI → Workflow → Backend/Core` because acceptance is user-experience-led. When one root cause crosses layers, one coherent correction may change every necessary layer, and dependency evidence may justify performing the Backend/Core cause before the visible UI repair is complete.
+A defect blocks only its dependent route unless it prevents environment use, authentication, navigation, or all remaining journeys; independent reachable routes continue so one round can collect multiple facts. Correction work is normally ordered `USER_SERVICE_BOUNDARY` → `WORKFLOW_ORCHESTRATION` → `BACKEND_CORE` because acceptance is human-outcome-led. The user-service boundary resolves to UI, Agent service behavior, or assisted-service behavior for the actual route. When one root cause crosses layers, one coherent correction may change every necessary layer, and dependency evidence may justify performing the Backend/Core cause before the user-facing repair is complete.
 
-After any Phase-4 defect correction changes the candidate and affected engineering evidence is current, the next acceptance round must restart from the home page and execute the complete required journey graph. It never resumes halfway through the failed route and never reuses an earlier-round screenshot as current PASS evidence. Newly discovered meaningful routes enter the same graph and the next complete round.
+After any Phase-4 defect correction changes the candidate and affected engineering evidence is current, the next acceptance round must restart from each actual required route entry and execute the complete required journey graph. It never resumes halfway through the failed route and never reuses an earlier-round screenshot, message, task, artifact, authorization decision, or audit event as current PASS evidence. Newly discovered meaningful routes enter the same graph and the next complete round.
 
 <a id="lc-journey-003"></a>
 ### LC-JOURNEY-003 — Owner verdict, exemption, and later invalidation
@@ -311,7 +334,7 @@ The Agent reports the exact candidate, complete-round count, required journey re
 
 `REAL_USER_JOURNEY_ACCEPTED` binds the exact candidate, journey graph, final complete round, evidence digests, defect ledger, and explicit Owner exemptions. It is the normal entry to Delivery Preparation. An exemption cannot conceal an unusable required journey; its user impact and future recovery condition remain visible in the status summary and defect log.
 
-Later Delivery Preparation changes use Impact Analysis. A visible-behavior delta invalidates and reruns each affected journey from its home-page entry plus the existing critical smoke; a broad or unknown impact returns to a complete Phase-4 round. Unaffected journey evidence is reused rather than mechanically repeated.
+Later Delivery Preparation changes use Impact Analysis. A route-behavior delta invalidates and reruns each affected journey from its actual route entry plus the existing critical smoke; a broad or unknown impact returns to a complete Phase-4 round. Unaffected journey evidence is reused rather than mechanically repeated.
 
 ## Runs, verification, and acceptance
 

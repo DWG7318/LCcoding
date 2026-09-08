@@ -4,7 +4,23 @@
   "phases": [
     {
       "id": "INITIAL",
-      "start": "PROPOSAL_READINESS",
+      "start": "LCCODING_APPLICABILITY_ASSESSMENT",
+      "fine_milestones": [
+        "LCCODING_APPLICABILITY_ASSESSMENT",
+        "PROPOSAL_READINESS",
+        "PRODUCT_SERVICE_STRATEGY",
+        "PROJECT_INITIALIZATION"
+      ],
+      "applicability_outcomes": [
+        "WHOLE_PRODUCT_FIT",
+        "BOUNDED_PRODUCT_FIT",
+        "OTHER_METHOD_RECOMMENDED"
+      ],
+      "primary_product_service_strategies": [
+        "PLATFORM_COMPLETION",
+        "AGENT_COLLABORATIVE"
+      ],
+      "combined_product_service_strategy": "MIXED",
       "end_before": "CALABASH_DRAFT",
       "exit_gate": "INITIAL_READY",
       "existing_takeover_input": "READY"
@@ -12,6 +28,30 @@
     {
       "id": "PRODUCT_FORMATION",
       "start": "CALABASH_DRAFT",
+      "fine_milestones": [
+        "CALABASH_DRAFT",
+        "SERVICE_ROUTE_MAP",
+        "WORKFLOW_UI_SIMULATION",
+        "MANDATORY_CALABASH_UPGRADE",
+        "PRODUCT_BASELINE"
+      ],
+      "service_route_map": {
+        "authority": "CALABASH",
+        "route_kinds": [
+          "DIRECT_PRODUCT",
+          "PERSONAL_AGENT",
+          "SERVICE_CENTER"
+        ],
+        "actor_classes": {
+          "HUMAN_PRINCIPAL": "HUMAN_BENEFICIARY",
+          "PERSONAL_AGENT": "EXTERNAL_CUSTOMER_CONTROLLED",
+          "PRODUCT_AGENT": "INTERNAL_DELIVERED_PRODUCT_BEHAVIOR",
+          "OPERATIONS_AGENT": "INTERNAL_DELIVERED_OPERATIONS_BEHAVIOR",
+          "SERVICE_CENTER_ACTOR": "AUTHORIZED_ASSISTED_SERVICE"
+        },
+        "route_support_scope": "PER_DELIVERED_JOURNEY",
+        "shared_capability_system": "WORKFLOW_BACKEND_CORE"
+      },
       "end_after": "PRODUCT_BASELINE",
       "exit_evidence": {
         "artifact": "PRODUCT_BASELINE_HANDOFF",
@@ -29,6 +69,16 @@
       "id": "REAL_PRODUCT_INTEGRATION",
       "display_meaning": "REAL_PRODUCT_INTEGRATION",
       "start": "FEATURE_SLICE",
+      "feature_slice_chain": [
+        "PROMISED_REAL_ENTRY",
+        "AUTHENTICATED_ACTOR_AND_VALID_AUTHORITY",
+        "REAL_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+        "REAL_WORKFLOW_AND_BACKEND_CORE_EFFECTS",
+        "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+        "ROUTE_RESULT",
+        "HUMAN_OBSERVABLE_BUSINESS_OUTCOME"
+      ],
+      "required_route_evidence_scope": "PER_DELIVERED_JOURNEY_ROUTE",
       "repeatable": true,
       "slice_run_admission": {
         "relation": "FEATURE_SLICE_EXECUTION_COVERAGE_PASS",
@@ -58,11 +108,21 @@
       "id": "REAL_USER_JOURNEY_ACCEPTANCE",
       "start_after": "ALL_REQUIRED_RUNS_ACCEPTED",
       "candidate_bound": true,
+      "route_faithful": true,
       "visible_product_operation": true,
-      "complete_round_starts_at": "HOME_PAGE_OR_PRODUCT_ENTRY",
+      "visible_actions_require_screenshots": true,
+      "nonvisual_agent_first_hand_evidence": [
+        "MESSAGE",
+        "TASK_TRANSITION",
+        "ARTIFACT",
+        "AUTHORIZATION_DECISION",
+        "AUDIT_EVENT"
+      ],
+      "final_human_observable_outcome_required": true,
+      "complete_round_starts_at": "ACTUAL_REQUIRED_ROUTE_ENTRY",
       "repair_priority": [
-        "UI",
-        "WORKFLOW",
+        "USER_SERVICE_BOUNDARY",
+        "WORKFLOW_ORCHESTRATION",
         "BACKEND_CORE"
       ],
       "owner_results": [

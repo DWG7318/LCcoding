@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/lifecycle.json').read_text())
-expected=['PROPOSAL_READINESS','PROJECT_INITIALIZATION','CALABASH_DRAFT','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','REAL_USER_JOURNEY_ACCEPTANCE','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
+expected=['LCCODING_APPLICABILITY_ASSESSMENT','PROPOSAL_READINESS','PRODUCT_SERVICE_STRATEGY','PROJECT_INITIALIZATION','CALABASH_DRAFT','SERVICE_ROUTE_MAP','WORKFLOW_UI_SIMULATION','MANDATORY_CALABASH_UPGRADE','PRODUCT_BASELINE','FEATURE_SLICE','FEATURE_INTEGRATION','REAL_USER_JOURNEY_ACCEPTANCE','FINAL_VERIFICATION','OWNER_ACCEPTANCE','DELIVERY']
 assert contract['mainline']==expected
 assert contract['required_transitions']==dict(zip(expected,expected[1:]))
 con=(root/'CONSTITUTION.md').read_text(encoding='utf-8')
@@ -13,8 +13,26 @@ phases=json.loads((root/'lc-coding/contracts/phases.json').read_text())
 assert phases['mainline_unchanged'] is False
 phase_by_id={phase['id']:phase for phase in phases['phases']}
 assert list(phase_by_id)==['INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION','REAL_USER_JOURNEY_ACCEPTANCE','DELIVERY_PREPARATION']
+initial=phase_by_id['INITIAL']
+assert initial['start']=='LCCODING_APPLICABILITY_ASSESSMENT'
+assert initial['fine_milestones']==expected[:4]
+assert initial['applicability_outcomes']==['WHOLE_PRODUCT_FIT','BOUNDED_PRODUCT_FIT','OTHER_METHOD_RECOMMENDED']
+assert initial['primary_product_service_strategies']==['PLATFORM_COMPLETION','AGENT_COLLABORATIVE']
+assert initial['combined_product_service_strategy']=='MIXED'
 formation=phase_by_id['PRODUCT_FORMATION']
 assert formation['start']=='CALABASH_DRAFT'
+assert formation['fine_milestones']==expected[4:9]
+assert formation['service_route_map']['authority']=='CALABASH'
+assert formation['service_route_map']['route_kinds']==['DIRECT_PRODUCT','PERSONAL_AGENT','SERVICE_CENTER']
+assert formation['service_route_map']['actor_classes']=={
+    'HUMAN_PRINCIPAL':'HUMAN_BENEFICIARY',
+    'PERSONAL_AGENT':'EXTERNAL_CUSTOMER_CONTROLLED',
+    'PRODUCT_AGENT':'INTERNAL_DELIVERED_PRODUCT_BEHAVIOR',
+    'OPERATIONS_AGENT':'INTERNAL_DELIVERED_OPERATIONS_BEHAVIOR',
+    'SERVICE_CENTER_ACTOR':'AUTHORIZED_ASSISTED_SERVICE',
+}
+assert formation['service_route_map']['route_support_scope']=='PER_DELIVERED_JOURNEY'
+assert formation['service_route_map']['shared_capability_system']=='WORKFLOW_BACKEND_CORE'
 assert formation['end_after']=='PRODUCT_BASELINE'
 assert formation['exit_evidence']['artifact']=='PRODUCT_BASELINE_HANDOFF'
 assert 'exit_gate' not in formation
@@ -22,11 +40,24 @@ assert formation['internal_readiness']['phase_exit'] is False
 integration=phase_by_id['REAL_PRODUCT_INTEGRATION']
 assert integration['display_meaning']=='REAL_PRODUCT_INTEGRATION'
 assert integration['start']=='FEATURE_SLICE'
+assert integration['feature_slice_chain']==[
+    'PROMISED_REAL_ENTRY','AUTHENTICATED_ACTOR_AND_VALID_AUTHORITY',
+    'REAL_ROUTE_ADAPTER_OR_PRODUCT_SURFACE','REAL_WORKFLOW_AND_BACKEND_CORE_EFFECTS',
+    'AUTHORITATIVE_STATE_DATA_SIDE_EFFECT','ROUTE_RESULT',
+    'HUMAN_OBSERVABLE_BUSINESS_OUTCOME',
+]
+assert integration['required_route_evidence_scope']=='PER_DELIVERED_JOURNEY_ROUTE'
 assert 'entry_gate' not in integration
 assert integration['slice_run_admission']['phase_entry'] is False
 assert integration['aggregate_exit_scope']=='REQUIRED_PHASE_3_INTEGRATION_RUNS'
 journey=phase_by_id['REAL_USER_JOURNEY_ACCEPTANCE']
 assert journey['start_after']=='ALL_REQUIRED_RUNS_ACCEPTED'
+assert journey['route_faithful'] is True
+assert journey['visible_actions_require_screenshots'] is True
+assert journey['nonvisual_agent_first_hand_evidence']==['MESSAGE','TASK_TRANSITION','ARTIFACT','AUTHORIZATION_DECISION','AUDIT_EVENT']
+assert journey['final_human_observable_outcome_required'] is True
+assert journey['complete_round_starts_at']=='ACTUAL_REQUIRED_ROUTE_ENTRY'
+assert journey['repair_priority']==['USER_SERVICE_BOUNDARY','WORKFLOW_ORCHESTRATION','BACKEND_CORE']
 assert journey['exit_gate']=='REAL_USER_JOURNEY_ACCEPTED'
 assert phase_by_id['DELIVERY_PREPARATION']['start_after']=='REAL_USER_JOURNEY_ACCEPTED'
 assert phase_by_id['DELIVERY_PREPARATION']['exit_gate']=='DELIVERY_READY'
