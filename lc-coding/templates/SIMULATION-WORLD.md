@@ -16,6 +16,13 @@ Peer simulations do not nest inside any realized UI, Workflow, or other Simulati
 
 Reuse Scenario IDs; increase fidelity/version instead of copying the scenario.
 
+## 4.0 service route Simulation trace
+
+| Service Route ID | Simulation ID | Workflow Capability ID | Scenario IDs | Audit event IDs |
+|---|---|---|---|---|
+
+For an accepted 4.0 Product Baseline, every required route names real Scenario IDs from the registry. Use exact `NONE` only when the adopted route has no audit event IDs. An applicable Service Center route requires both Simulation scenarios and the attributable audit event IDs from the adopted Service Route Map.
+
 ## Agent failure simulation evidence
 
 ```json

@@ -1180,6 +1180,177 @@ def validate_product_subtree_baseline(
         ))
     return errors
 
+def validate_service_topology_product_formation(
+    project_root,status,handoff_fields,
+    workflow_rows,workflow_route_rows,ui_rows,service_surface_rows,
+    simulation_rows,scenario_rows,simulation_route_rows,handoff_route_rows,
+):
+    """Join an accepted 4.0 Product Baseline to its adopted service routes."""
+    if status.get('status_schema_version')!='4.0.0' or not completed_evidence(status.get('product_baseline')):
+        return []
+    errors=[]
+    map_path=Path(project_root)/'.lccoding/SERVICE-ROUTE-MAP.json'
+    try: route_map=strict_vulnerability_json(map_path)
+    except (OSError,UnicodeError,ValueError,json.JSONDecodeError) as error:
+        return ['accepted 4.0 Product Baseline requires a readable Service Route Map: '+str(error)]
+    if not isinstance(route_map,dict):
+        return ['accepted 4.0 Product Baseline requires an object Service Route Map']
+    if route_map.get('state')!='ADOPTED' or status.get('service_route_map')!='ADOPTED':
+        errors.append('accepted 4.0 Product Baseline requires an ADOPTED Service Route Map')
+    expected_map_identity=(route_map.get('map_id'),exact_artifact_hash(map_path))
+    if exact_id_hash(handoff_fields.get('Service Route Map ID / exact hash'))!=expected_map_identity:
+        errors.append('Product Baseline Service Route Map identity/hash mismatch')
+
+    all_routes={}; required_routes={}
+    journeys=route_map.get('journeys',[])
+    if not isinstance(journeys,list): journeys=[]
+    for journey in journeys:
+        if not isinstance(journey,dict): continue
+        routes=journey.get('routes',[])
+        if not isinstance(routes,list): continue
+        for route in routes:
+            if not isinstance(route,dict): continue
+            route_id=route.get('route_id')
+            if not isinstance(route_id,str): continue
+            all_routes[route_id]=route
+            if route.get('support_state')=='REQUIRED': required_routes[route_id]=route
+
+    workflow_by_id={
+        str(row.get('Workflow ID','')).strip():str(row.get('Workflow Capability ID','')).strip()
+        for row in workflow_rows
+    }
+    workflow_traces={}
+    for index,row in enumerate(workflow_route_rows):
+        route_id=str(row.get('Service Route ID','')).strip(); prefix=f'Workflow route trace row {index+1}'
+        if not stable_id(route_id): errors.append(prefix+' requires a safe Service Route ID'); continue
+        if route_id in workflow_traces: errors.append('duplicate Workflow route trace '+route_id); continue
+        workflow_traces[route_id]=row
+        route=all_routes.get(route_id)
+        if route_id not in required_routes:
+            if route: errors.append('unsupported or future route cannot enter Product Formation trace: '+route_id)
+            else: errors.append(prefix+' references unknown Service Route ID '+route_id)
+            continue
+        workflow_id=str(row.get('Workflow ID','')).strip()
+        capability=str(row.get('Workflow Capability ID','')).strip()
+        expected=str(route.get('capability_implementation_id','')).strip()
+        if workflow_by_id.get(workflow_id)!=capability or capability!=expected:
+            errors.append('required route '+route_id+' must bind the same Workflow capability')
+    for route_id in required_routes:
+        if route_id not in workflow_traces:
+            errors.append('required route '+route_id+' is missing its Workflow route trace')
+
+    ui_ids={str(row.get('UI ID','')).strip() for row in ui_rows}
+    surfaces={route_id:[] for route_id in required_routes}
+    seen_surface_pairs=set()
+    surface_kinds={'DIRECT_PRODUCT','AGENT_SERVICE','HUMAN_RESULT_CONSENT_EXCEPTION','SERVICE_CENTER_ASSISTED'}
+    for index,row in enumerate(service_surface_rows):
+        route_id=str(row.get('Service Route ID','')).strip(); prefix=f'Service surface trace row {index+1}'
+        surface_id=str(row.get('Service Surface ID','')).strip()
+        kind=str(row.get('Service Surface Kind','')).strip()
+        capability=str(row.get('Workflow Capability ID','')).strip()
+        if not stable_id(route_id): errors.append(prefix+' requires a safe Service Route ID'); continue
+        if route_id not in required_routes:
+            if route_id in all_routes: errors.append('unsupported or future route cannot enter Product Formation trace: '+route_id)
+            else: errors.append(prefix+' references unknown Service Route ID '+route_id)
+            continue
+        if not stable_id(surface_id): errors.append(prefix+' requires a safe Service Surface ID')
+        pair=(route_id,surface_id)
+        if pair in seen_surface_pairs: errors.append(prefix+' duplicates a route surface identity')
+        seen_surface_pairs.add(pair)
+        if kind not in surface_kinds: errors.append(prefix+' has invalid Service Surface Kind')
+        expected=str(required_routes[route_id].get('capability_implementation_id','')).strip()
+        if capability!=expected: errors.append(prefix+' must bind the same Workflow capability')
+        if kind in {'DIRECT_PRODUCT','HUMAN_RESULT_CONSENT_EXCEPTION'} and surface_id not in ui_ids:
+            errors.append(prefix+' human-visible service surface must cite a realized UI ID')
+        surfaces[route_id].append((surface_id,kind))
+    for route_id,route in required_routes.items():
+        route_surfaces=surfaces[route_id]
+        if not route_surfaces:
+            errors.append('required route '+route_id+' is missing a service surface trace')
+        adapter=str(route.get('adapter_or_surface_id','')).strip()
+        route_kind=route.get('route_kind')
+        expected_adapter_kind={
+            'DIRECT_PRODUCT':'DIRECT_PRODUCT',
+            'PERSONAL_AGENT':'AGENT_SERVICE',
+            'SERVICE_CENTER':'SERVICE_CENTER_ASSISTED',
+        }.get(route_kind)
+        if (adapter,expected_adapter_kind) not in route_surfaces:
+            if route_kind=='PERSONAL_AGENT': errors.append('required Personal Agent route '+route_id+' is missing its Agent service surface')
+            else: errors.append('required route '+route_id+' service surface does not match its adopted adapter identity')
+        if route_kind=='PERSONAL_AGENT' and not any(
+            kind=='HUMAN_RESULT_CONSENT_EXCEPTION' for _,kind in route_surfaces
+        ):
+            errors.append('required Personal Agent route '+route_id+' is missing its human result/consent/exception surface')
+
+    simulation_ids={str(row.get('Simulation ID','')).strip() for row in simulation_rows}
+    scenario_pairs={
+        (str(row.get('Simulation ID','')).strip(),str(row.get('Scenario ID','')).strip())
+        for row in scenario_rows
+    }
+    simulation_scenarios={route_id:set() for route_id in required_routes}
+    simulation_audits={route_id:set() for route_id in required_routes}
+    for index,row in enumerate(simulation_route_rows):
+        route_id=str(row.get('Service Route ID','')).strip(); prefix=f'Simulation route trace row {index+1}'
+        if not stable_id(route_id): errors.append(prefix+' requires a safe Service Route ID'); continue
+        if route_id not in required_routes:
+            if route_id in all_routes: errors.append('unsupported or future route cannot enter Product Formation trace: '+route_id)
+            else: errors.append(prefix+' references unknown Service Route ID '+route_id)
+            continue
+        simulation_id=str(row.get('Simulation ID','')).strip()
+        if simulation_id not in simulation_ids: errors.append(prefix+' references unknown Simulation ID '+simulation_id)
+        capability=str(row.get('Workflow Capability ID','')).strip()
+        expected=str(required_routes[route_id].get('capability_implementation_id','')).strip()
+        if capability!=expected: errors.append(prefix+' must bind the same Workflow capability')
+        scenario_ids,scenario_errors=parse_closed_id_list(row.get('Scenario IDs'),prefix+' Scenario IDs')
+        errors.extend(scenario_errors)
+        if not scenario_ids: errors.append(prefix+' requires real Simulation coverage')
+        for scenario_id in scenario_ids:
+            if (simulation_id,scenario_id) not in scenario_pairs:
+                errors.append(prefix+' references unknown Simulation scenario '+scenario_id)
+        audit_ids,audit_errors=parse_closed_id_list(row.get('Audit event IDs'),prefix+' Audit event IDs')
+        errors.extend(audit_errors)
+        simulation_scenarios[route_id].update(scenario_ids)
+        simulation_audits[route_id].update(audit_ids)
+    for route_id,route in required_routes.items():
+        route_kind=route.get('route_kind')
+        if not simulation_scenarios[route_id]:
+            if route_kind=='SERVICE_CENTER': errors.append('required Service Center Simulation coverage is missing for '+route_id)
+            else: errors.append('required route '+route_id+' is missing Simulation coverage')
+        expected_audits=set(route.get('audit_event_ids',[])) if isinstance(route.get('audit_event_ids'),list) else set()
+        if simulation_audits[route_id]!=expected_audits:
+            if route_kind=='SERVICE_CENTER': errors.append('required Service Center audit coverage disagrees with the adopted route '+route_id)
+            else: errors.append('route audit coverage disagrees with the adopted route '+route_id)
+
+    handoff_traces={}
+    for index,row in enumerate(handoff_route_rows):
+        route_id=str(row.get('Service Route ID','')).strip(); prefix=f'Product Baseline route trace row {index+1}'
+        if not stable_id(route_id): errors.append(prefix+' requires a safe Service Route ID'); continue
+        if route_id in handoff_traces: errors.append('duplicate Product Baseline route trace '+route_id); continue
+        handoff_traces[route_id]=row
+        if route_id not in required_routes:
+            if route_id in all_routes: errors.append('unsupported or future route cannot be claimed by Product Baseline: '+route_id)
+            else: errors.append(prefix+' references unknown Service Route ID '+route_id)
+            continue
+        expected_capability=str(required_routes[route_id].get('capability_implementation_id','')).strip()
+        if str(row.get('Workflow Capability ID','')).strip()!=expected_capability:
+            errors.append(prefix+' must bind the same Workflow capability')
+        handoff_surfaces,surface_errors=parse_closed_id_list(row.get('Service Surface IDs'),prefix+' Service Surface IDs')
+        handoff_scenarios,scenario_errors=parse_closed_id_list(row.get('Simulation Scenario IDs'),prefix+' Simulation Scenario IDs')
+        handoff_audits,audit_errors=parse_closed_id_list(row.get('Audit event IDs'),prefix+' Audit event IDs')
+        errors.extend(surface_errors+scenario_errors+audit_errors)
+        expected_surfaces={surface_id for surface_id,_ in surfaces[route_id]}
+        if handoff_surfaces!=expected_surfaces:
+            errors.append('Product Baseline handoff service surface identity mismatch for '+route_id)
+        if handoff_scenarios!=simulation_scenarios[route_id]:
+            errors.append('Product Baseline handoff Simulation identity mismatch for '+route_id)
+        expected_audits=set(required_routes[route_id].get('audit_event_ids',[]))
+        if handoff_audits!=expected_audits:
+            errors.append('Product Baseline handoff audit identity mismatch for '+route_id)
+    for route_id in required_routes:
+        if route_id not in handoff_traces:
+            errors.append('required route '+route_id+' is missing its Product Baseline route trace')
+    return errors
+
 def validate_ui_subtree_baseline_preflight(fields,product_repository=None):
     errors=[]
     repository_and_commit=str(fields.get('Project repository / exact baseline commit','')).strip()
@@ -3485,6 +3656,19 @@ HANDOFF_COLUMNS_270=(
     'Classification authority','Workflow Capability ID','API evidence','MCP evidence',
     'Primary mainline','Related subtree IDs',
 )
+WORKFLOW_ROUTE_COLUMNS_400=(
+    'Service Route ID','Workflow ID','Workflow Capability ID',
+)
+SERVICE_SURFACE_COLUMNS_400=(
+    'Service Route ID','Service Surface ID','Service Surface Kind','Workflow Capability ID',
+)
+SIMULATION_ROUTE_COLUMNS_400=(
+    'Service Route ID','Simulation ID','Workflow Capability ID','Scenario IDs','Audit event IDs',
+)
+HANDOFF_ROUTE_COLUMNS_400=(
+    'Service Route ID','Workflow Capability ID','Service Surface IDs',
+    'Simulation Scenario IDs','Audit event IDs',
+)
 
 def _markdown_pipe_cells(line):
     stripped=line.strip()
@@ -3626,6 +3810,7 @@ def main():
         fingerprint=json.loads((lc/'PROJECT-FINGERPRINT.json').read_text(encoding='utf-8'))
         errors.extend(validate_complexity_depth(fingerprint))
     workflow_rows=[]; ui_rows=[]; simulation_rows=[]; scenario_rows=[]
+    workflow_route_rows=[]; service_surface_rows=[]; simulation_route_rows=[]; handoff_route_rows=[]
     workflow_fields={}; ui_fields={}; simulation_fields={}; product_surface_errors=[]
     workflow_path=lc/'WORKFLOW-MAP.md'; ui_path=lc/'UI-MAP.md'; simulation_path=lc/'SIMULATION-WORLD.md'
     if workflow_path.exists():
@@ -3635,18 +3820,26 @@ def main():
             product_surface_errors.append('Workflow Map requires exactly one Primary product mainline ID')
         tables,table_errors=parse_closed_product_tables(
             workflow_path,
-            [('Workflow Map',(WORKFLOW_MAP_COLUMNS_260,WORKFLOW_MAP_COLUMNS_270))],
+            [
+                ('Workflow Map',(WORKFLOW_MAP_COLUMNS_260,WORKFLOW_MAP_COLUMNS_270)),
+                ('4.0 Workflow route trace',(WORKFLOW_ROUTE_COLUMNS_400,),False),
+            ],
         )
         workflow_rows=tables.get('Workflow Map',[]); product_surface_errors.extend(table_errors)
+        workflow_route_rows=tables.get('4.0 Workflow route trace',[])
     if ui_path.exists():
         ui_fields,field_errors=parse_markdown_fields_strict(ui_path)
         product_surface_errors.extend(field_errors)
         if 'Primary product mainline ID' not in ui_fields:
             product_surface_errors.append('UI Map requires exactly one Primary product mainline ID')
         tables,table_errors=parse_closed_product_tables(
-            ui_path,[('UI Map',(UI_MAP_COLUMNS_260,UI_MAP_COLUMNS_270))]
+            ui_path,[
+                ('UI Map',(UI_MAP_COLUMNS_260,UI_MAP_COLUMNS_270)),
+                ('4.0 service surface trace',(SERVICE_SURFACE_COLUMNS_400,),False),
+            ]
         )
         ui_rows=tables.get('UI Map',[]); product_surface_errors.extend(table_errors)
+        service_surface_rows=tables.get('4.0 service surface trace',[])
         product_surface_errors.extend(validate_ui_map_change_authority(ui_rows))
     if simulation_path.exists():
         simulation_fields,field_errors=parse_markdown_fields_strict(simulation_path)
@@ -3658,10 +3851,12 @@ def main():
             [
                 ('Simulation subtree registry',(SIMULATION_MAP_COLUMNS,)),
                 ('Scenario registry',(SCENARIO_COLUMNS,),False),
+                ('4.0 Simulation route trace',(SIMULATION_ROUTE_COLUMNS_400,),False),
             ],
         )
         simulation_rows=tables.get('Simulation subtree registry',[])
         scenario_rows=tables.get('Scenario registry',[])
+        simulation_route_rows=tables.get('4.0 Simulation route trace',[])
         product_surface_errors.extend(table_errors)
     calabash_handoff=lc/'CALABASH-UPGRADE-GATE.md'
     if calabash_handoff.exists():
@@ -3681,9 +3876,13 @@ def main():
         handoff_fields,handoff_field_errors=parse_markdown_fields_strict(handoff)
         handoff_errors.extend(handoff_field_errors)
         handoff_tables,handoff_table_errors=parse_closed_product_tables(
-            handoff,[('Product Baseline locked subtrees',(HANDOFF_COLUMNS_260,HANDOFF_COLUMNS_270))]
+            handoff,[
+                ('Product Baseline locked subtrees',(HANDOFF_COLUMNS_260,HANDOFF_COLUMNS_270)),
+                ('4.0 Product Baseline route trace',(HANDOFF_ROUTE_COLUMNS_400,),False),
+            ]
         )
         handoff_rows=handoff_tables.get('Product Baseline locked subtrees',[])
+        handoff_route_rows=handoff_tables.get('4.0 Product Baseline route trace',[])
         handoff_errors.extend(handoff_table_errors)
         handoff_status=str(handoff_fields.get('Handoff status','')).strip().upper()
         handoff_complete=handoff_status=='COMPLETE'
@@ -3714,6 +3913,11 @@ def main():
                     'UI':ui_fields.get('Primary product mainline ID'),
                     'Simulation':simulation_fields.get('Primary product mainline ID'),
                 },
+            ))
+            handoff_errors.extend(validate_service_topology_product_formation(
+                Path(args.project),status,handoff_fields,
+                workflow_rows,workflow_route_rows,ui_rows,service_surface_rows,
+                simulation_rows,scenario_rows,simulation_route_rows,handoff_route_rows,
             ))
     else:
         errors.extend(product_surface_errors)
