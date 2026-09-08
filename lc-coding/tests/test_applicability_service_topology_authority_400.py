@@ -35,4 +35,4 @@ assert [item["id"] for item in phases["phases"]] == [
     "DELIVERY_PREPARATION",
 ]
 
-print("PASS: LCCoding 3.1 applicability and service-topology authority")
+print("PASS: LCCoding 4.0 applicability and service-topology authority")

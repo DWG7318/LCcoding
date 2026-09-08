@@ -64,7 +64,7 @@ HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/plans/2026-08-15-lccoding-2.8.0-agent-native-integration-implementation-plan.md": "0880be98ca63c5ce937f4847b0cde36b74d19dc83c68ef52b3eac99d379d110b",
     "docs/superpowers/plans/2026-08-16-lccoding-bi-single-build-release-implementation-plan.md": "cc55e844eb226c52182e90587e6c43b478085ed7531ce85ada6d55909b6278c1",
     "docs/superpowers/plans/2026-09-07-lccoding-3.0.0-real-user-journey-acceptance-implementation-plan.md": "934e0ac0f5b4094ec78de3bc679966a58c5bcbe94abb191a5a8711dd8eb10db2",
-    "docs/superpowers/plans/2026-09-08-lccoding-3.1.0-applicability-and-service-topology-implementation-plan.md": "7c0c7410bf1df328cd665b60241f9aa568522c0f7109d259ad73bce0fcd7e559",
+    "docs/superpowers/plans/2026-09-08-lccoding-4.0.0-applicability-and-service-topology-implementation-plan.md": "236f025e91bf23689627a4a11383c8ca20130276fecae43ab6b2805257c45a68",
     "docs/superpowers/specs/2026-08-05-lccoding-bi-one-click-react-design.md": "d945eab23b20a977b906f8e38396b2ba0283284924df8ba77469ec3728af9db2",
     "docs/superpowers/specs/2026-08-06-lccoding-bi-github-windows-release-design.md": "2f1281949b527c2efbef99bf9a32b5b098aa2c04a8a9760bbfa7a865056e7f51",
     "docs/superpowers/specs/2026-08-10-cross-phase-execution-methods-design.md": "14c7460ee661c94df34d0ff8985e50b225799db57591649e3deb79ae82d92e51",
@@ -72,7 +72,7 @@ HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/specs/2026-08-15-lccoding-2.8.0-agent-native-integration-design.md": "c0799931ce2267a8aef64ecc71c30d9bc426741e4586c002db34e4385a0953d1",
     "docs/superpowers/specs/2026-08-16-lccoding-bi-single-build-release-design.md": "6c82ff29346f515f49e8fcf4300af6288b17fefd3cc6da890c9bb56059e7e32d",
     "docs/superpowers/specs/2026-09-07-lccoding-3.0.0-real-user-journey-acceptance-design.md": "5caadc3d7c076b5b5fd7ee64793be8f791461b715b421faeb2c76b0537a9b0c3",
-    "docs/superpowers/specs/2026-09-08-lccoding-3.1.0-applicability-and-service-topology-design.md": "f5f41a44f31f44454a75682d6cf8766958f28da6142ab08646b6c4751999336e",
+    "docs/superpowers/specs/2026-09-08-lccoding-4.0.0-applicability-and-service-topology-design.md": "64c32f84e392470167c4fb245bdf76c23be9509c70b6aee3f5a931daa33b33c6",
 }
 actual_historical_records = {
     path.relative_to(root).as_posix()
