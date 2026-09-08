@@ -16,7 +16,7 @@ defect_log = (TEMPLATES / "REAL-USER-JOURNEY-DEFECT-LOG.md").read_text(
     encoding="utf-8"
 )
 
-assert status["status_schema_version"] == "3.0.0"
+assert status["status_schema_version"] == "4.0.0"
 assert tuple(status["phase_gates"]) == (
     "INITIAL_READY",
     "CALABASH_UPGRADE_READY",
@@ -54,7 +54,7 @@ assert summary["complete_round_count"] == 0
 assert summary["open_defect_ids"] == []
 assert summary["owner_result"] == "PENDING"
 
-assert phase_status["status_schema_version"] == "3.0.0"
+assert phase_status["status_schema_version"] == "4.0.0"
 assert tuple(phase_status["phases"]) == (
     "INITIAL",
     "PRODUCT_FORMATION",
@@ -154,4 +154,4 @@ for token in (
 ):
     assert token in defect_log, token
 
-print("PASS: 3.0 journey acceptance templates are closed and unproved by default")
+print("PASS: current journey acceptance templates are closed and unproved by default")

@@ -1,5 +1,5 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
   "per_delivery_confirmation_required": true,
   "defaults_are_recommendations": true,
   "recommended_runtime": "Ubuntu",
@@ -126,7 +126,7 @@
   "delivery_metadata_contract": "meaningful non-generic IDs, existing three-part version format, and exact valid UTC confirmation timestamp",
   "required_current_security_relationship": [
     "status.canonical_candidate",
-    "status.phase_gates.REAL_USER_JOURNEY_ACCEPTED=REAL_USER_JOURNEY_ACCEPTED for 3.0.0",
+    "status.phase_gates.REAL_USER_JOURNEY_ACCEPTED=REAL_USER_JOURNEY_ACCEPTED for 3.0.0 or 4.0.0",
     "status.vulnerability_closure=VULNERABILITY_CLOSED",
     "status.post_security_owner_acceptance=POST_SECURITY_OWNER_ACCEPTED",
     "status.phase_gates.DELIVERY_READY=DELIVERY_READY"

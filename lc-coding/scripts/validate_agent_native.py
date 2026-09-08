@@ -965,7 +965,7 @@ def validate_product_formation(rule_text,handoff_text,status,configuration,confi
     missing=AGENT_HANDOFF_FIELDS-relevant_handoff; unknown=relevant_handoff-AGENT_HANDOFF_FIELDS
     if missing: errors.append('Product Baseline Handoff missing Agent fields '+', '.join(sorted(missing)))
     if unknown: errors.append('Product Baseline Handoff unknown Agent fields '+', '.join(sorted(unknown)))
-    if not isinstance(status,dict) or status.get('status_schema_version') not in {'2.8.0','3.0.0'}: errors.append('Product Formation Agent join requires exact 2.8 or 3.0 status'); status={}
+    if not isinstance(status,dict) or status.get('status_schema_version') not in {'2.8.0','3.0.0','4.0.0'}: errors.append('Product Formation Agent join requires exact 2.8, 3.0, or 4.0 status'); status={}
     candidate=status.get('canonical_candidate',{}) if isinstance(status.get('canonical_candidate',{}),dict) else {}
     errors.extend(validate_configuration(configuration,candidate.get('candidate_id'),candidate.get('candidate_hash')))
     config=configuration if isinstance(configuration,dict) else {}

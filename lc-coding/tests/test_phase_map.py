@@ -20,7 +20,7 @@ assert adapter_400['phase_steps']['INITIAL'][:4]==[
 assert adapter_400['phase_steps']['PRODUCT_FORMATION'][:2]==[
     'CALABASH_DRAFT','SERVICE_ROUTE_MAP_READY',
 ]
-assert phase_projection['status_schema_version']=='3.0.0'
+assert phase_projection['status_schema_version']=='4.0.0'
 assert list(phase_projection['phases'])==phase_ids
 phase_by_id={phase['id']:phase for phase in phases}
 assert phase_by_id['INITIAL']['end_before']=='CALABASH_DRAFT'

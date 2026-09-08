@@ -37,6 +37,18 @@ fn product_formation_status() -> String {
             "\"calabash_draft\": \"PENDING\"",
             "\"calabash_draft\": \"ACTIVE\"",
         )
+        .replace(
+            "\"lccoding_applicability\": \"PENDING\"",
+            "\"lccoding_applicability\": \"WHOLE_PRODUCT_FIT\"",
+        )
+        .replace(
+            "\"product_service_strategy\": \"PENDING\"",
+            "\"product_service_strategy\": \"PLATFORM_COMPLETION\"",
+        )
+        .replace(
+            "\"service_route_map\": \"PENDING\"",
+            "\"service_route_map\": \"DRAFT\"",
+        )
 }
 
 fn baseline_complete_status() -> String {
@@ -66,6 +78,10 @@ fn baseline_complete_status() -> String {
         .replace(
             "\"product_baseline\": \"PENDING\"",
             "\"product_baseline\": \"COMPLETE\"",
+        )
+        .replace(
+            "\"service_route_map\": \"DRAFT\"",
+            "\"service_route_map\": \"ADOPTED\"",
         )
 }
 
@@ -109,10 +125,14 @@ fn status_version(body: &str, version: &str) -> String {
             value["current_phase"] = Value::String("ENGINEERING_RUNS".into());
         }
     }
-    if version == "4.0.0" {
-        value["lccoding_applicability"] = Value::String("PENDING".into());
-        value["product_service_strategy"] = Value::String("PENDING".into());
-        value["service_route_map"] = Value::String("PENDING".into());
+    if version != "4.0.0" {
+        for field in [
+            "lccoding_applicability",
+            "product_service_strategy",
+            "service_route_map",
+        ] {
+            assert!(value.as_object_mut().unwrap().remove(field).is_some());
+        }
     }
     value["status_schema_version"] = Value::String(version.to_owned());
     serde_json::to_string_pretty(&value).unwrap()
@@ -231,7 +251,7 @@ fn git(root: &std::path::Path, arguments: &[&str]) -> String {
 
 #[test]
 fn strict_status_projects_five_phases_twenty_six_steps_and_nine_reports() {
-    let status = parse_status(&product_formation_status()).unwrap();
+    let status = parse_status(&status_version(&product_formation_status(), "3.0.0")).unwrap();
     let snapshot = snapshot_from_status(&status, None).unwrap();
     let value = serde_json::to_value(snapshot).unwrap();
 
@@ -265,7 +285,8 @@ fn strict_status_projects_five_phases_twenty_six_steps_and_nine_reports() {
 
 #[test]
 fn accepted_journey_projects_only_sanitized_phase_four_counts_and_state() {
-    let mut value: Value = serde_json::from_str(&baseline_complete_status()).unwrap();
+    let mut value: Value =
+        serde_json::from_str(&status_version(&baseline_complete_status(), "3.0.0")).unwrap();
     let candidate_hash = format!("sha256:{}", "a".repeat(64));
     value["canonical_candidate"] = serde_json::json!({
         "repository": "https://example.invalid/repository",
@@ -675,7 +696,8 @@ fn schema_400_status_summaries_are_exact_and_fail_closed() {
         );
     }
 
-    let mut legacy: Value = serde_json::from_str(&initial_status()).unwrap();
+    let mut legacy: Value =
+        serde_json::from_str(&status_version(&initial_status(), "3.0.0")).unwrap();
     legacy["lccoding_applicability"] = Value::String("WHOLE_PRODUCT_FIT".into());
     legacy["product_service_strategy"] = Value::String("MIXED".into());
     legacy["service_route_map"] = Value::String("ADOPTED".into());
@@ -801,6 +823,13 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
             .remove("agent_slice_integration")
             .is_some()
     );
+    for field in [
+        "lccoding_applicability",
+        "product_service_strategy",
+        "service_route_map",
+    ] {
+        assert!(legacy.as_object_mut().unwrap().remove(field).is_some());
+    }
     legacy["status_schema_version"] = Value::String("2.6.0".into());
     legacy["canonical_candidate"]
         .as_object_mut()
@@ -945,7 +974,7 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
     let unsupported = valid.replacen(
-        "\"status_schema_version\": \"3.0.0\"",
+        "\"status_schema_version\": \"4.0.0\"",
         "\"status_schema_version\": \"2.3.0\"",
         1,
     );
@@ -1027,7 +1056,7 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replacen("\"version\": \"3.0.0\"", "\"version\": \"2.4.1\"", 1);
+    let mismatched = manifest_text.replacen("\"version\": \"4.0.0\"", "\"version\": \"2.4.1\"", 1);
     let manifest = parse_manifest(&mismatched).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))

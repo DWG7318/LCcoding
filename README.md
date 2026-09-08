@@ -1,4 +1,4 @@
-# LCCoding 3.0.0
+# LCCoding 4.0.0
 
 Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.
 
@@ -7,16 +7,18 @@ Owner-led, AI-executed enterprise product development with visible incremental a
 Source clauses: [LC-PHASE-001](SPEC.md#lc-phase-001), [LC-PHASE-002](SPEC.md#lc-phase-002), [LC-PHASE-003](SPEC.md#lc-phase-003), [LC-PHASE-004](SPEC.md#lc-phase-004), [LC-PHASE-005](SPEC.md#lc-phase-005)
 
 ```text
-Proposal Readiness
+Owner Proposal
+→ LCCoding Applicability Assessment
+→ Proposal Readiness and Product Service Strategy
 → Project Initialization
 → Calabash Draft
-→ [Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
+→ Service Route Map
+→ [Simulation World foundation first → shared Workflow ∥ applicable route/service surface ∥ human-observable outcome]
 → Mandatory Calabash Upgrade
 → Product Baseline
-→ Feature Slice
-→ UI-locked Real Product Integration
+→ Route-bound Feature Slice and Real Product Integration
 → Per-Run Independent layered Verification and Owner Acceptance
-→ Real User Journey Acceptance
+→ route-faithful Real User Journey Acceptance
 → Centralized Security Closure and Post-Security Owner Acceptance
 → Delivery Preparation
 → Delivery
@@ -24,13 +26,19 @@ Proposal Readiness
 
 The five phases are Initial (`INITIAL`), Product Formation (`PRODUCT_FORMATION`), Real Product Integration, Real User Journey Acceptance (`REAL_USER_JOURNEY_ACCEPTANCE`), and Delivery Preparation (`DELIVERY_PREPARATION`). Exact 2.6/2.7 compatibility may read `ENGINEERING_RUNS` for the third phase; it is not the human phase name.
 
+Before lifecycle admission, LCCoding assesses whether the whole product or one complete bounded product fits the method; an unsuitable scope receives `OTHER_METHOD_RECOMMENDED` without rejecting the underlying engineering work. An admitted product records `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or both as `MIXED`, then lets Calabash define the required direct-product, Personal Agent, and Service Center routes in one Service Route Map.
+
+For exact 3.0 read compatibility, `[Simulation World foundation first → Workflow capability end ∥ UI product-surface end]` remains the direct-product formation description; it does not govern route-aware 4.0 writes.
+
 ## Product and execution summary
 
 Source clauses: [LC-FORM-001](SPEC.md#lc-form-001), [LC-FORM-002](SPEC.md#lc-form-002), [LC-FORM-003](SPEC.md#lc-form-003), [LC-INTEG-001](SPEC.md#lc-integ-001), [LC-RUN-001](SPEC.md#lc-run-001), [LC-RUN-003](SPEC.md#lc-run-003)
 
-A minimal, real, runnable, versioned Simulation World foundation comes first. Workflow and UI then advance independently as real product ends; Feature Slice and UI-locked Integration own the later cross-layer connection and proof.
+A minimal, real, runnable, versioned Simulation World foundation comes first. Shared Workflow and only the route/service surfaces promised by the adopted Service Route Map then advance independently as real product ends; a graphical UI is required only when the promised route needs one. Route-bound Feature Slices own the later cross-layer connection and prove each required route from its real entry to a human-observable business outcome while reusing unaffected shared Workflow/Backend/Core evidence.
 
-After integration Runs are accepted, Phase 4 operates the real product from its home page through a bounded user-journey graph. It judges rendered feedback, captures screenshots after meaningful actions, records `40001+` defects, and restarts a complete round after repairs before Delivery Preparation may begin.
+For the exact 3.0 direct-product formation route, Workflow and UI then advance independently, and Feature Slice and UI-locked Integration own the later cross-layer connection and proof. This retained read meaning does not force UI onto another 4.0 route.
+
+After integration Runs are accepted, Phase 4 follows each required route from its actual external entry through a bounded user-journey graph. Screenshots prove meaningful visible actions; candidate-bound messages, tasks, authorization events, artifacts, platform effects, result delivery, and audit events prove nonvisual Agent steps. Every accepted route still ends in a result the human beneficiary can observe and understand before Delivery Preparation may begin.
 
 SLK, CLK, GLK, and compatible registered methods form a cross-phase execution axis, not a lifecycle node or an exhaustive method list. A Run returns evidence to its calling phase; lifecycle meaning remains in the specification.
 

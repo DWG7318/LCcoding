@@ -750,6 +750,13 @@ fn active_run_safe_ref_reads_one_supported_index_and_projects_only_summary() {
             .remove("agent_slice_integration")
             .is_some()
     );
+    for field in [
+        "lccoding_applicability",
+        "product_service_strategy",
+        "service_route_map",
+    ] {
+        assert!(status.as_object_mut().unwrap().remove(field).is_some());
+    }
     status["status_schema_version"] = Value::String("2.6.0".into());
     status["canonical_candidate"]
         .as_object_mut()

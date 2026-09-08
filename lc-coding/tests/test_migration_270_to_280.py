@@ -189,6 +189,8 @@ def make_source(project):
     assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     assert status.pop(AGENT_PRODUCT_FORMATION_FIELD) == UNPROVED_AGENT_PRODUCT_FORMATION
     assert status.pop(AGENT_SLICE_INTEGRATION_FIELD) == UNPROVED_AGENT_SLICE_INTEGRATION
+    for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+        status.pop(field)
     status["status_schema_version"] = "2.7.0"
     status["project_id"] = "migration-270-fixture"
     status["initialization_mode"] = "NEW"

@@ -144,17 +144,15 @@ assert template == {
     "journeys": [],
 }
 
-# Task 3 prepares schema-selected 4.0 defaults without creating a 3.0 hybrid.
-legacy_status = json.loads(STATUS_TEMPLATE_PATH.read_text(encoding="utf-8"))
-assert legacy_status["status_schema_version"] == "3.0.0"
-assert not (set(STATUS_SUMMARY_FIELDS) & set(legacy_status))
-assert bootstrap.service_topology_status_defaults(copy.deepcopy(legacy_status)) == legacy_status
-future_status = bootstrap.service_topology_status_defaults(
-    {"status_schema_version": "4.0.0"}
-)
-assert {field: future_status[field] for field in STATUS_SUMMARY_FIELDS} == contract[
+# Task 10 activates the schema-selected 4.0 defaults without rewriting 3.0 reads.
+current_status = json.loads(STATUS_TEMPLATE_PATH.read_text(encoding="utf-8"))
+assert current_status["status_schema_version"] == "4.0.0"
+assert {field: current_status[field] for field in STATUS_SUMMARY_FIELDS} == contract[
     "status_summary_initial"
 ]
+assert bootstrap.service_topology_status_defaults(copy.deepcopy(current_status)) == current_status
+legacy_status = {"status_schema_version": "3.0.0"}
+assert bootstrap.service_topology_status_defaults(copy.deepcopy(legacy_status)) == legacy_status
 
 
 def authority(label, delegation="NOT_APPLICABLE"):
@@ -452,7 +450,9 @@ with tempfile.TemporaryDirectory() as temporary:
     bootstrapped_status = json.loads(
         (bootstrapped / "status.json").read_text(encoding="utf-8")
     )
-    assert bootstrapped_status["status_schema_version"] == "3.0.0"
-    assert not (set(STATUS_SUMMARY_FIELDS) & set(bootstrapped_status))
+    assert bootstrapped_status["status_schema_version"] == "4.0.0"
+    assert {
+        field: bootstrapped_status[field] for field in STATUS_SUMMARY_FIELDS
+    } == contract["status_summary_initial"]
 
 print("PASS: 4.0 Calabash Service Route Map contract and validation")

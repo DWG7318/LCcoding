@@ -234,6 +234,8 @@ def current_status(status_id, status_hash, receipt_id, receipt_hash, impact=None
     assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     status.pop("agent_product_formation")
     status.pop("agent_slice_integration")
+    for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+        status.pop(field)
     status["status_schema_version"] = "2.7.0"
     status["canonical_candidate"] = {
         "repository": "owner/project",
@@ -372,6 +374,8 @@ def build_agent_delivery_project(project, applicability="APPLICABLE_CORE"):
     lc, status = agent_fixtures.build_agent_slice_status_project(
         Path(project), applicability
     )
+    for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+        status.pop(field)
     status["status_schema_version"] = "2.8.0"
     assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
     assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"

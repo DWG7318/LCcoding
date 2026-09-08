@@ -1,6 +1,6 @@
 {
   "record_role": "DERIVED_VIEW",
-  "status_schema_version": "3.0.0",
+  "status_schema_version": "4.0.0",
   "derived_from": "status.json",
   "current_phase": "INITIAL",
   "phases": {

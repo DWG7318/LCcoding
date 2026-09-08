@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-release_current = "3.0.0"
+release_current = "4.0.0"
 phase_projection_current = "4.0.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == release_current
@@ -69,7 +69,6 @@ for relative in [
     "CONSTITUTION.md",
     "SPEC.md",
     "lc-coding/SKILL.md",
-    "VALIDATION-REPORT.md",
     "PUBLISH-TO-GITHUB.md",
     "lc-coding/scripts/validate_repository.py",
 ]:
@@ -91,9 +90,9 @@ projection_schema_mapping = '''schema: match status.status_schema_version.as_str
 assert projection.count(projection_schema_mapping) == 1
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-final_heading = "## 3.0.0"
-release_heading = "## 2.8.0"
-next_heading = "## 2.7.0"
+final_heading = "## Unreleased - 4.0.0 candidate"
+release_heading = "## 3.0.0"
+next_heading = "## 2.8.0"
 assert changelog.startswith("# Changelog\n\n" + final_heading + "\n")
 assert changelog.count(final_heading) == 1
 assert changelog.count("\n" + release_heading + "\n") == 1
@@ -105,41 +104,41 @@ assert final_start < release_start < release_end
 final_section = changelog[final_start:release_start]
 for marker in [
     "copy-on-write",
-    "five-phase lifecycle and built-in BI are finalized for 3.0.0",
-    "no formal tag or GitHub Release exists yet",
-    "global installed Skill deployment remains a separate post-release action",
-    "only after the formal release is independently accepted",
+    "LCCoding Applicability Assessment",
+    "Service Route Map",
+    "This candidate does not create a tag or GitHub Release",
+    "global Skill",
+    "persistent BI installation",
 ]:
     assert marker in final_section
 for stale_claim in [
-    "candidate",
-    "not a formal release",
-    "prepared for 3.0.0",
-    "3.0.0 has been released",
-    "formal release is complete",
+    "4.0.0 has been released",
+    "formal 4.0.0 release is complete",
+    "global 4.0.0 Skill was deployed",
+    "LCCoding BI 4.0.0 was persistently installed",
 ]:
     assert stale_claim not in final_section
 release_section = changelog[release_start:release_end]
 for marker in [
     "copy-on-write",
-    "current repository and BI release carriers were finalized for 2.8.0",
-    "formal `v2.8.0` tag and GitHub Release were accepted",
-    "global installed Skill was deployed",
+    "five-phase lifecycle and built-in BI are finalized for 3.0.0",
+    "no formal tag or GitHub Release exists yet",
+    "global installed Skill deployment remains a separate post-release action",
 ]:
     assert marker in release_section
 for stale_claim in [
-    "Unreleased - 2.8.0 candidate",
-    "prepared for 2.8.0",
-    "does not change VERSION, BI",
+    "Unreleased - 3.0.0 candidate",
+    "prepared for 3.0.0",
+    "3.0.0 has been released",
 ]:
     assert stale_claim not in release_section
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
-assert 'schema = "LCCoding 3.0.0 installer provenance"' in package_driver
-assert '$releaseInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"' in package_driver
+assert 'schema = "LCCoding 4.0.0 installer provenance"' in package_driver
+assert '$releaseInstallerName = "LCCoding-BI_4.0.0_x64-setup.exe"' in package_driver
 workflow = (root / ".github/workflows/release-bi.yml").read_text(encoding="utf-8")
-assert 'VERSION -Raw).Trim() -ne "3.0.0"' in workflow
-assert "LCCoding-BI_3.0.0_x64-setup.exe" in workflow
+assert 'VERSION -Raw).Trim() -ne "4.0.0"' in workflow
+assert "LCCoding-BI_4.0.0_x64-setup.exe" in workflow
 
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")
@@ -153,7 +152,7 @@ assert loop_identities["status_adapters"]["2.6.0"]["compatibility_status"] == "S
 assert loop_identities["status_adapters"]["2.7.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
 assert loop_identities["status_adapters"]["2.8.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
 assert loop_identities["status_adapters"]["3.0.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
-assert loop_identities["status_adapters"]["3.0.0"]["minimum_bi_version"] == release_current
+assert loop_identities["status_adapters"]["3.0.0"]["minimum_bi_version"] == "3.0.0"
 assert list(loop_identities["status_adapters"]["3.0.0"]["phase_steps"]) == current_phase_ids
 assert loop_identities["status_adapters"]["4.0.0"]["compatibility_status"] == "CURRENT"
 assert loop_identities["status_adapters"]["4.0.0"]["minimum_bi_version"] == phase_projection_current
@@ -181,4 +180,4 @@ assert "calabash" not in release_verifier.lower()
 for powershell7_only in ["Text.Json", "HashData", "ToHexString"]:
     assert powershell7_only not in release_verifier
 
-print("PASS: LCCoding 3.0 release carriers and 4.0 compatibility projection are consistent")
+print("PASS: LCCoding 4.0 candidate carriers and compatibility projection are consistent")

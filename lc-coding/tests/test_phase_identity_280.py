@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location("phase_identity_280", validator_pa
 validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
 
-CURRENT_SCHEMA = "3.0.0"
+CURRENT_SCHEMA = "4.0.0"
 PROJECTED_SCHEMA = "4.0.0"
 LEGACY_SCHEMAS = ("2.6.0", "2.7.0")
 CURRENT_PHASES = (
@@ -251,8 +251,8 @@ assert valid_result.returncode == 0, valid_result.stdout + valid_result.stderr
 assert valid_result.stdout.strip() == "PASS"
 
 duplicate_text = valid_text.replace(
-    '"status_schema_version":"3.0.0"',
-    '"status_schema_version":"3.0.0","status_schema_version":"3.0.0"',
+    '"status_schema_version":"4.0.0"',
+    '"status_schema_version":"4.0.0","status_schema_version":"4.0.0"',
     1,
 )
 duplicate_result = run_cli(duplicate_text)

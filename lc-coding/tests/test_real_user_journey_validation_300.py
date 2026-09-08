@@ -17,6 +17,9 @@ HASH = "1" * 64
 
 def base_status():
     status = json.loads((ROOT / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8"))
+    for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+        status.pop(field)
+    status["status_schema_version"] = "3.0.0"
     status["canonical_candidate"] = {"candidate_id": "CANDIDATE-300", "candidate_hash": HASH}
     status["current_phase"] = "REAL_USER_JOURNEY_ACCEPTANCE"
     status["phase_gates"]["INITIAL_READY"] = "PASS"
@@ -49,6 +52,7 @@ def base_status():
 
 def base_phase_status():
     phase = json.loads((ROOT / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8"))
+    phase["status_schema_version"] = "3.0.0"
     phase["current_phase"] = "REAL_USER_JOURNEY_ACCEPTANCE"
     for phase_id in ("INITIAL", "PRODUCT_FORMATION", "REAL_PRODUCT_INTEGRATION"):
         phase["phases"][phase_id]["status"] = "COMPLETE"

@@ -818,6 +818,9 @@ def build_cli_project(project, *, aggregate=True, run_phases=None, schema="2.6.0
             == UNPROVED_AGENT_PRODUCT_FORMATION
         )
         status.pop("agent_product_formation")
+    if schema != "4.0.0":
+        for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+            status.pop(field)
     status["status_schema_version"] = schema
     status["initialization_mode"] = "NEW"
     status["current_phase"] = "DELIVERY_PREPARATION" if aggregate else "INITIAL"

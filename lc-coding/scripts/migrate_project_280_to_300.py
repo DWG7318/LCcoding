@@ -219,6 +219,15 @@ def validate_source(source, reopen_delivery_preparation=False):
     status = read_json(status_path)
     phase_status = read_json(phase_path)
     template = read_json(STATUS_TEMPLATE_PATH)
+    if template.get("status_schema_version") == "4.0.0":
+        template = copy.deepcopy(template)
+        for field in (
+            "lccoding_applicability",
+            "product_service_strategy",
+            "service_route_map",
+        ):
+            template.pop(field, None)
+        template["status_schema_version"] = TARGET_SCHEMA
     if template.get("status_schema_version") != TARGET_SCHEMA:
         raise MigrationError("installed target status template is not 3.0.0")
     source_fields = set(template) - {JOURNEY_FIELD}

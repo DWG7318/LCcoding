@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$ExpectedInstallerName = "LCCoding-BI_3.0.0_x64-setup.exe"
-$ExpectedCurrentVersion = "3.0.0"
+$ExpectedInstallerName = "LCCoding-BI_4.0.0_x64-setup.exe"
+$ExpectedCurrentVersion = "4.0.0"
 $SmokeRoot = "D:\LCcoding\.codex\.tmp\lccoding-260-install-smoke"
 $TestProjectName = "test-project"
 $SmokeInstallRootName = "installed-current-user"
@@ -218,7 +218,7 @@ function Assert-Artifact {
   foreach ($property in @("schema", "overall_version", "asset", "sha256", "installer_scope")) {
     if ($null -eq $provenance.PSObject.Properties[$property]) { throw "INSTALL_SMOKE_PROVENANCE_INVALID" }
   }
-  if ($provenance.schema -cne "LCCoding 3.0.0 installer provenance" -or
+  if ($provenance.schema -cne "LCCoding 4.0.0 installer provenance" -or
       $provenance.overall_version -cne $Version -or
       $provenance.asset -cne $ExpectedInstallerName -or
       $provenance.sha256 -cne $actualHash -or

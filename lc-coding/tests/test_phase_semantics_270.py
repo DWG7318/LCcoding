@@ -56,7 +56,7 @@ def phase_by_id(contract: dict, phase_id: str) -> dict:
 def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> set[str]:
     errors: set[str] = set()
 
-    if current_lifecycle.get("version") != "3.0.0" or current_phases.get("version") != "3.0.0":
+    if current_lifecycle.get("version") != "4.0.0" or current_phases.get("version") != "4.0.0":
         errors.add("VERSION_CARRIER_CHANGED_EARLY")
 
     mainline = current_lifecycle.get("mainline")

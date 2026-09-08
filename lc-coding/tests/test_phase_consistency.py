@@ -24,12 +24,12 @@ legacy_ids = [
     "DELIVERY_PREPARATION",
 ]
 
-assert phase_contract["version"] == "3.0.0"
+assert phase_contract["version"] == "4.0.0"
 assert canonical_ids == current_ids
-assert manifest["version"] == "3.0.0"
+assert manifest["version"] == "4.0.0"
 assert manifest["phase_overlay"] == canonical_ids
 assert manifest["execution_method_overlay"]["available_in_phases"] == canonical_ids
-assert phase_projection["status_schema_version"] == "3.0.0"
+assert phase_projection["status_schema_version"] == "4.0.0"
 assert list(phase_projection["phases"]) == canonical_ids
 assert phase_contract["execution_methods"]["phase_ids"] == canonical_ids
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
@@ -61,4 +61,4 @@ assert "ENGINEERING_CLOSURE" not in migration
 for phase_id in legacy_ids:
     assert phase_id in migration
 
-print("PASS: phase identifiers are consistent while the 4.0 adapter remains dormant")
+print("PASS: phase identifiers are consistent with the current 4.0 adapter")

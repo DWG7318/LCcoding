@@ -130,7 +130,7 @@ fragment = raw[start : raw.rfind(b"\n  }\n}") + len(b"\n  }")]
 assert hashlib.sha256(fragment).hexdigest() == METHOD_FRAGMENT_SHA256
 
 phase_template = json.loads(PHASE_TEMPLATE_PATH.read_text(encoding="utf-8"))
-assert phase_template["status_schema_version"] == "3.0.0"
+assert phase_template["status_schema_version"] == "4.0.0"
 assert tuple(phase_template["phases"]) == PHASES
 
 spec = importlib.util.spec_from_file_location("phase_status_400", VALIDATOR_PATH)
@@ -146,9 +146,9 @@ assert validator.SCHEMA_PHASE_STEPS["4.0.0"] == {
     phase_id: tuple(steps) for phase_id, steps in EXPECTED_400.items()
 }
 assert validator.validate_phase_status(phase_template) == []
-projected_phase_status = deepcopy(phase_template)
-projected_phase_status["status_schema_version"] = "4.0.0"
-assert validator.validate_phase_status(projected_phase_status) == []
+legacy_phase_status = deepcopy(phase_template)
+legacy_phase_status["status_schema_version"] = "3.0.0"
+assert validator.validate_phase_status(legacy_phase_status) == []
 
 
 def production_loader_rejects(changed_asset):
@@ -179,11 +179,11 @@ for phase_id, index, replacement in (
         accepted_replacements.append(replacement)
 assert not accepted_replacements, accepted_replacements
 
-# Task 8 is projection-only: release and authoritative STATUS carriers remain 3.0.
-assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "3.0.0"
-assert json.loads((ROOT / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == "3.0.0"
+# Task 10 atomically promotes the release and authoritative STATUS carriers.
+assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "4.0.0"
+assert json.loads((ROOT / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == "4.0.0"
 assert json.loads(
     (ROOT / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
-)["status_schema_version"] == "3.0.0"
+)["status_schema_version"] == "4.0.0"
 
-print("PASS: BI compatibility V4 adds one exact 4.0 phase adapter")
+print("PASS: BI compatibility V4 exposes one exact current 4.0 phase adapter")

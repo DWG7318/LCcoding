@@ -1,6 +1,9 @@
 {
   "record_role": "AUTHORITATIVE_PROJECT_STATUS",
-  "status_schema_version": "3.0.0",
+  "status_schema_version": "4.0.0",
+  "lccoding_applicability": "PENDING",
+  "product_service_strategy": "PENDING",
+  "service_route_map": "PENDING",
   "project_id": "",
   "updated_at": "",
   "initialization_mode": "NEW|EXISTING",

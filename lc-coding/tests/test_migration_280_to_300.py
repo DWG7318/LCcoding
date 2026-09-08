@@ -64,6 +64,8 @@ def snapshot(root):
 def source_status():
     status = strict_json(TEMPLATES / "STATUS.json")
     assert status.pop("real_user_journey_acceptance")["state"] == "UNPROVED"
+    for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+        status.pop(field)
     status["status_schema_version"] = "2.8.0"
     assert status["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
     status["project_id"] = "migration-280-fixture"

@@ -237,8 +237,14 @@ def validate_source(source):
     status = read_json(status_path)
     phase_status = read_json(phase_path)
     target_template = read_json(STATUS_TEMPLATE_PATH)
-    if target_template.get("status_schema_version") == "3.0.0":
+    if target_template.get("status_schema_version") in {"3.0.0", "4.0.0"}:
         target_template = copy.deepcopy(target_template)
+        for field in (
+            "lccoding_applicability",
+            "product_service_strategy",
+            "service_route_map",
+        ):
+            target_template.pop(field, None)
         target_template["status_schema_version"] = TARGET_SCHEMA
         target_template.pop("real_user_journey_acceptance", None)
         target_template.get("phase_gates", {}).pop(

@@ -3625,7 +3625,7 @@ def validate_post_security_receipt(
 def _expected_agent_security_binding(lc,status):
     fields=VULNERABILITY_CONTRACT['agent_security_binding_fields']
     not_applicable={field:'NOT_APPLICABLE' for field in fields}
-    if not isinstance(status,dict) or status.get('status_schema_version') not in {'2.8.0','3.0.0'}:
+    if not isinstance(status,dict) or status.get('status_schema_version') not in {'2.8.0','3.0.0','4.0.0'}:
         return not_applicable,[]
     agent_slice=status.get('agent_slice_integration')
     if not isinstance(agent_slice,dict) or agent_slice.get('state')!='AGENT_SLICES_ACCEPTED':

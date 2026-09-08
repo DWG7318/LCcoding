@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - 4.0.0 candidate
+
+- Added LCCoding Applicability Assessment and the product service-strategy discussion before lifecycle admission. Admitted products select `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or both as `MIXED`; Calabash owns one Service Route Map that binds required direct-product, Personal Agent, and Service Center routes to one shared Workflow/Backend/Core capability system.
+
+- Generalized Product Formation, Feature Slice, Real Product Integration, and Real User Journey Acceptance to route-aware and route-faithful proof. Visible actions retain screenshot evidence, nonvisual Agent steps require candidate-bound first-hand evidence, and every accepted route ends in a human-observable business outcome.
+
+- Promoted the current method, status, BI, installer basename, and installer-provenance carriers to 4.0.0 while preserving the 3.0 compatibility adapter, the Calabash baseline, and the independent SLK, CLK, and GLK release identities. The copy-on-write 3.0.0-to-4.0.0 migration preserves existing evidence and leaves new service-route claims unproved.
+
+- This candidate does not create a tag or GitHub Release, deploy the global Skill, or perform a persistent BI installation.
+
 ## 3.0.0
 
 - Added a copy-on-write 3.0.0-to-4.0.0 project migration. Only accepted direct-browser facts are classified as `PLATFORM_COMPLETION`, with a DRAFT and explicitly unproved direct route; the migration makes no claim of Personal Agent or Service Center delivery. Standalone repositories and linked worktrees receive independent Git administration/object storage without copied pointers, alternates, or shared hardlinks. Valid repositories with an unborn HEAD retain their symbolic branch, origin, all existing refs, and reachable history without inventing a commit. Legacy evidence remains preserved, failed publication leaves no target, and version carriers, release, push, installation, and global Skill deployment remain unchanged.

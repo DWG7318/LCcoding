@@ -50,8 +50,8 @@ assert status.get("record_role") == "AUTHORITATIVE_PROJECT_STATUS"
 assert phase_status.get("record_role") == "DERIVED_VIEW"
 assert phase_status.get("derived_from") == "status.json"
 assert health.get("record_role") == "ASSESSMENT_EVIDENCE"
-assert status.get("status_schema_version") == "3.0.0"
-assert phase_status.get("status_schema_version") == "3.0.0"
+assert status.get("status_schema_version") == "4.0.0"
+assert phase_status.get("status_schema_version") == "4.0.0"
 assert "CALABASH_UPGRADE_READY" in status.get("phase_gates", {})
 assert "PRODUCT_BASELINE_READY" not in status.get("phase_gates", {})
 assert status.get("product_baseline") == "PENDING"
@@ -83,6 +83,9 @@ def legacy_phase_view(current_view):
 
 
 def remove_300_status_fields(record):
+    record.pop("lccoding_applicability")
+    record.pop("product_service_strategy")
+    record.pop("service_route_map")
     assert record["real_user_journey_acceptance"]["state"] == "UNPROVED"
     record.pop("real_user_journey_acceptance")
     assert record["phase_gates"].pop("REAL_USER_JOURNEY_ACCEPTED") == "PENDING"
@@ -146,9 +149,14 @@ assert any(
 # Explicit legacy/non-current scalar security status remains readable, but a
 # current record cannot mix scalar and structured truth or add a second ledger.
 legacy_security = copy.deepcopy(status)
+for field in ("lccoding_applicability", "product_service_strategy", "service_route_map"):
+    legacy_security.pop(field)
+legacy_security["status_schema_version"] = "3.0.0"
 legacy_security["vulnerability_closure"] = "PENDING"
 legacy_security["post_security_owner_acceptance"] = "PENDING"
-assert module.validate_status_authority(legacy_security, phase_status, health) == []
+legacy_security_view = copy.deepcopy(phase_status)
+legacy_security_view["status_schema_version"] = "3.0.0"
+assert module.validate_status_authority(legacy_security, legacy_security_view, health) == []
 mixed_security = copy.deepcopy(status)
 mixed_security["vulnerability_closure"] = "PENDING"
 assert any(
