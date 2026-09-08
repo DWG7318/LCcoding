@@ -111,12 +111,15 @@ for token in (
     "Native evidence SHA-256",
     "REAL_USER_JOURNEY_EVIDENCE",
     "event_or_result",
-    "authenticated/matched identity",
-    "performed/success",
     "SERVICE_TO_HUMAN",
     "canonical verification contract",
     "reused or new evidence",
     "structured or empty `repeated_checks`",
+    "AUTHENTICATED / VERIFIED / MATCHED",
+    "PERFORMED / SUCCEEDED",
+    "DELIVERED / ACKNOWLEDGED",
+    "delivery_result",
+    "ALLOW / APPROVED",
 ):
     assert token in acceptance, token
 

@@ -76,7 +76,7 @@ KIND_PAYLOAD_FIELDS = {
     "REQUEST_MESSAGE": {"message_id", "direction", "content"},
     "USER_REQUEST": {"message_id", "direction", "content"},
     "AGENT_RESPONSE": {"message_id", "direction", "content"},
-    "USER_COMMUNICATION": {"message_id", "direction", "content"},
+    "USER_COMMUNICATION": {"message_id", "direction", "content", "delivery_result"},
     "AGENT_IDENTITY": {"subject_id", "verified_by", "result"},
     "SERVICE_ACTOR_IDENTITY": {"subject_id", "verified_by", "result"},
     "TASK_TRANSITION": {"task_id", "from_state", "to_state"},
@@ -106,6 +106,10 @@ DEFECT_LAYER_ORDER = {
     "WORKFLOW_ORCHESTRATION": 1,
     "BACKEND_CORE": 2,
 }
+IDENTITY_SUCCESS_RESULTS = {"AUTHENTICATED", "VERIFIED", "MATCHED"}
+ASSISTED_ACTION_SUCCESS_RESULTS = {"PERFORMED", "SUCCEEDED"}
+USER_COMMUNICATION_SUCCESS_RESULTS = {"DELIVERED", "ACKNOWLEDGED"}
+AUTHORIZATION_SUCCESS_RESULTS = {"ALLOW", "APPROVED"}
 
 _VERIFICATION_VALIDATOR_PATH = Path(__file__).with_name("validate_verification.py")
 _VERIFICATION_SPEC = importlib.util.spec_from_file_location(
@@ -184,18 +188,6 @@ def _meaningful(value):
     return isinstance(value, str) and bool(value.strip()) and value.strip().upper() not in {
         "NONE", "NOT_APPLICABLE", "PENDING", "TBD", "TODO", "UNKNOWN",
     }
-
-
-def _affirmative_semantics(value, positive_tokens):
-    if not isinstance(value, str):
-        return False
-    tokens = {token for token in re.split(r"[^A-Z0-9]+", value.upper()) if token}
-    if tokens & {
-        "NOT", "FAIL", "FAILED", "DENY", "DENIED", "REJECT", "REJECTED", "ERROR",
-        "BLOCKED", "CANCELLED",
-    }:
-        return False
-    return bool(tokens & set(positive_tokens))
 
 
 def _split_exact(value, count):
@@ -1178,15 +1170,15 @@ def _validate_project_evidence(path, row, round_record, route):
         return errors
     if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"} and payload.get("subject_id") != route.get("actor_id"):
         errors.append("identity evidence does not identify the adopted route actor")
-    if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"} and not _affirmative_semantics(
-        payload.get("result"), {"AUTHENTICATED", "MATCHED", "VERIFIED", "PASS", "SUCCESS"}
-    ):
+    if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"} and str(
+        payload.get("result") or ""
+    ).upper() not in IDENTITY_SUCCESS_RESULTS:
         errors.append("identity success evidence must affirm authenticated or matched identity")
     if kind == "AUTHORIZATION_DECISION" and payload.get("scope") != authority.get("resource_id"):
         errors.append("authorization evidence scope disagrees with adopted authority")
-    if kind == "AUTHORIZATION_DECISION" and str(payload.get("decision") or "").upper() not in {
-        "ALLOW", "ALLOWED", "APPROVE", "APPROVED", "AUTHORIZE", "AUTHORIZED", "GRANTED",
-    }:
+    if kind == "AUTHORIZATION_DECISION" and str(
+        payload.get("decision") or ""
+    ).upper() not in AUTHORIZATION_SUCCESS_RESULTS:
         errors.append("delegated route requires an affirmative authorization decision")
     if kind == "PLATFORM_EFFECT" and payload.get("before_state") == payload.get("after_state"):
         errors.append("platform-effect evidence does not prove a state effect")
@@ -1203,20 +1195,16 @@ def _validate_project_evidence(path, row, round_record, route):
         "delegation_basis_id"
     ):
         errors.append("delegation evidence disagrees with adopted authority")
-    if kind == "ASSISTED_ACTION" and not _affirmative_semantics(
-        payload.get("result"), {"PERFORMED", "COMPLETE", "COMPLETED", "PASS", "SUCCESS"}
-    ):
+    if kind == "ASSISTED_ACTION" and str(
+        payload.get("result") or ""
+    ).upper() not in ASSISTED_ACTION_SUCCESS_RESULTS:
         errors.append("assisted action success evidence must show the action was performed")
     if kind == "USER_COMMUNICATION":
-        direction = str(payload.get("direction") or "").upper()
-        delivered_to_user = direction in {
-            "SERVICE_TO_HUMAN", "SERVICE_TO_USER", "DELIVERED_TO_HUMAN",
-            "DELIVERED_TO_USER", "TO_HUMAN", "TO_USER",
-        }
-        delivered_success = _affirmative_semantics(
-            payload.get("content"), {"DELIVERED", "SUCCESS", "PASS", "COMPLETE", "COMPLETED"}
-        )
-        if not delivered_to_user or not delivered_success:
+        if (
+            str(payload.get("direction") or "").upper() != "SERVICE_TO_HUMAN"
+            or str(payload.get("delivery_result") or "").upper()
+            not in USER_COMMUNICATION_SUCCESS_RESULTS
+        ):
             errors.append(
                 "user communication direction/result must prove successful delivery to the user"
             )

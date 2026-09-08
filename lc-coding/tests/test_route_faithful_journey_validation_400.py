@@ -315,7 +315,7 @@ def write_task5_evidence(lc, route_record):
 
 def payload_for(kind, evidence_id, route_record):
     if kind in {"HUMAN_GOAL_MESSAGE", "REQUEST_MESSAGE", "USER_REQUEST", "AGENT_RESPONSE", "USER_COMMUNICATION"}:
-        return {
+        payload = {
             "message_id": "MESSAGE-" + evidence_id,
             "direction": "HUMAN_TO_SERVICE" if kind in {"HUMAN_GOAL_MESSAGE", "USER_REQUEST"} else "SERVICE_TO_HUMAN",
             "content": (
@@ -324,6 +324,9 @@ def payload_for(kind, evidence_id, route_record):
                 else kind.lower().replace("_", " ") + " payload"
             ),
         }
+        if kind == "USER_COMMUNICATION":
+            payload["delivery_result"] = "DELIVERED"
+        return payload
     if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"}:
         return {"subject_id": route_record["actor_id"], "verified_by": "IDENTITY-CHECK", "result": "VERIFIED"}
     if kind == "TASK_TRANSITION":
@@ -341,7 +344,7 @@ def payload_for(kind, evidence_id, route_record):
     if kind == "DELEGATION_BASIS":
         return {"delegation_basis_id": route_record["authority"]["delegation_basis_id"], "delegated_by": "HUMAN-1", "scope": route_record["authority"]["resource_id"]}
     if kind == "ASSISTED_ACTION":
-        return {"action_event_id": "ASSISTED-" + evidence_id, "action": "SUBMIT", "result": "COMPLETE"}
+        return {"action_event_id": "ASSISTED-" + evidence_id, "action": "SUBMIT", "result": "PERFORMED"}
     raise AssertionError(kind)
 
 
@@ -1022,6 +1025,10 @@ for route_id in ("ROUTE-AGENT", "ROUTE-CENTER"):
 for route_id, kind, field, value, message in (
     ("ROUTE-AGENT", "AGENT_IDENTITY", "result", "FAILED", "identity success"),
     ("ROUTE-AGENT", "AGENT_IDENTITY", "result", "NOT_AUTHENTICATED", "identity success"),
+    (
+        "ROUTE-AGENT", "AGENT_IDENTITY", "result", "UNAUTHENTICATED_SUCCESS",
+        "identity success",
+    ),
     ("ROUTE-CENTER", "SERVICE_ACTOR_IDENTITY", "result", "DENIED", "identity success"),
     ("ROUTE-CENTER", "ASSISTED_ACTION", "result", "FAILED", "assisted action success"),
     (
@@ -1029,11 +1036,19 @@ for route_id, kind, field, value, message in (
         "assisted action success",
     ),
     (
+        "ROUTE-CENTER", "ASSISTED_ACTION", "result", "NOTPERFORMED_SUCCESS",
+        "assisted action success",
+    ),
+    (
         "ROUTE-CENTER", "USER_COMMUNICATION", "direction", "HUMAN_TO_SERVICE",
         "user communication direction/result",
     ),
     (
-        "ROUTE-CENTER", "USER_COMMUNICATION", "content", "DELIVERY_FAILED",
+        "ROUTE-CENTER", "USER_COMMUNICATION", "delivery_result", "FAILED",
+        "user communication direction/result",
+    ),
+    (
+        "ROUTE-CENTER", "USER_COMMUNICATION", "delivery_result", "UNDELIVERED_SUCCESS",
         "user communication direction/result",
     ),
 ):
