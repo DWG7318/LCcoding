@@ -278,6 +278,10 @@ JOURNEY_ACCEPTANCE_STATUS_FIELDS={
     'acceptance_record_reference','defect_log_reference','owner_result',
 }
 STATUS_FIELDS_300=STATUS_FIELDS_280|{'real_user_journey_acceptance'}
+SERVICE_TOPOLOGY_STATUS_FIELDS={
+    'lccoding_applicability','product_service_strategy','service_route_map',
+}
+STATUS_FIELDS_400=STATUS_FIELDS_300|SERVICE_TOPOLOGY_STATUS_FIELDS
 AGENT_SLICE_INTEGRATION_FIELDS={
     'state','candidate_id','candidate_hash','product_baseline_id','product_baseline_hash',
     'configuration_baseline_id','configuration_baseline_hash',
@@ -493,16 +497,17 @@ def validate_agent_slice_status(lc,status):
 
 def validate_security_status_shape(status):
     errors=[]
+    schema=status.get('status_schema_version')
     closure=status.get('vulnerability_closure')
     acceptance=status.get('post_security_owner_acceptance')
-    strict=isinstance(closure,dict) or isinstance(acceptance,dict)
+    strict=schema=='4.0.0' or isinstance(closure,dict) or isinstance(acceptance,dict)
     if not strict:
         return errors
     if not isinstance(closure,dict) or not isinstance(acceptance,dict):
         return ['current security status cannot mix scalar and structured authority']
-    schema=status.get('status_schema_version')
     expected_fields=(
-        STATUS_FIELDS_300 if schema=='3.0.0' else STATUS_FIELDS_280 if schema=='2.8.0' else STATUS_FIELDS_270
+        STATUS_FIELDS_400 if schema=='4.0.0' else STATUS_FIELDS_300 if schema=='3.0.0'
+        else STATUS_FIELDS_280 if schema=='2.8.0' else STATUS_FIELDS_270
         if schema in {'2.6.0','2.7.0'} else None
     )
     if expected_fields is None:
@@ -512,10 +517,10 @@ def validate_security_status_shape(status):
         errors.append('current security status missing closed fields '+', '.join(sorted(missing)))
     if unknown:
         errors.append('current security status has unknown or second-authority fields '+', '.join(sorted(unknown)))
-    if schema in {'2.8.0','3.0.0'}:
+    if schema in {'2.8.0','3.0.0','4.0.0'}:
         errors.extend(_AGENT_NATIVE.validate_product_formation_status(status.get('agent_product_formation')))
         errors.extend(_agent_slice_status_shape(status))
-    if schema=='3.0.0':
+    if schema in {'3.0.0','4.0.0'}:
         journey=status.get('real_user_journey_acceptance')
         if not isinstance(journey,dict):
             errors.append('real_user_journey_acceptance must be a closed object')
@@ -524,6 +529,15 @@ def validate_security_status_shape(status):
             unknown=set(journey)-JOURNEY_ACCEPTANCE_STATUS_FIELDS
             if missing: errors.append('real_user_journey_acceptance missing fields '+', '.join(sorted(missing)))
             if unknown: errors.append('real_user_journey_acceptance unknown fields '+', '.join(sorted(unknown)))
+    if schema=='4.0.0':
+        allowed={
+            'lccoding_applicability':{'PENDING','WHOLE_PRODUCT_FIT','BOUNDED_PRODUCT_FIT'},
+            'product_service_strategy':{'PENDING','PLATFORM_COMPLETION','AGENT_COLLABORATIVE','MIXED'},
+            'service_route_map':{'PENDING','DRAFT','ADOPTED'},
+        }
+        for field,values in allowed.items():
+            if not isinstance(status.get(field),str) or status.get(field) not in values:
+                errors.append('4.0 status has invalid '+field)
     for record,required,label in [
         (closure,VULNERABILITY_STATUS_FIELDS,'vulnerability_closure'),
         (acceptance,POST_SECURITY_STATUS_FIELDS,'post_security_owner_acceptance'),
