@@ -6,6 +6,7 @@
 - Source preservation: ORIGINAL_3_0_INPUTS_BYTES_AND_MTIMES_UNCHANGED
 - Git target isolation: INDEPENDENT_GIT_METADATA_NO_SHARED_ADMIN_OR_HARDLINKS
 - Unborn Git state: UNBORN_HEAD_PRESERVED_NO_COMMIT_INVENTED
+- Unborn Git history: UNBORN_REFS_AND_REACHABLE_HISTORY_PRESERVED
 - Historical status treatment: PRESERVED_UNDER_.lccoding/history/3.0.0
 - Required publication behavior: ATOMIC_TARGET_ABSENT_ON_FAILURE
 - Accepted direct-browser classification: PLATFORM_COMPLETION
@@ -23,13 +24,15 @@ pass. Failure leaves the target absent and never changes the source tree.
 For a standalone repository or linked worktree with a commit, the staged target
 materializes its own Git administrative directory and object storage through a
 non-local, no-hardlink clone of the exact source HEAD. For a valid standalone
-repository with an unborn HEAD, it instead initializes independent Git metadata,
-preserves the symbolic branch and origin configuration, and does not invent a
-commit. In either case the exact working tree is overlaid without copying the
-source `.git` directory or pointer. The migration fails closed unless separate
-admin/common directories, absence of object alternates, and absence of shared
-object hardlinks can be proved. Target Git index or status operations therefore
-cannot mutate the source worktree index.
+repository or linked worktree with an unborn HEAD, it instead materializes an
+independent mirror of every existing ref and its reachable history, restores the
+same unborn symbolic branch in a non-bare target, preserves origin configuration,
+and does not invent a commit. In either case the exact working tree is overlaid
+without copying the source `.git` directory or pointer. The migration fails
+closed unless exact ref preservation, separate admin/common directories, absence
+of object alternates, and absence of shared object hardlinks can be proved.
+Target Git index or status operations therefore cannot mutate the source
+worktree index or common repository.
 
 An accepted 3.0 screenshot-backed browser journey supports only a conservative
 `PLATFORM_COMPLETION` classification. The copied candidate receives a DRAFT

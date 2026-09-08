@@ -528,6 +528,7 @@ for marker in (
     "ORIGINAL_3_0_INPUTS_BYTES_AND_MTIMES_UNCHANGED",
     "INDEPENDENT_GIT_METADATA_NO_SHARED_ADMIN_OR_HARDLINKS",
     "UNBORN_HEAD_PRESERVED_NO_COMMIT_INVENTED",
+    "UNBORN_REFS_AND_REACHABLE_HISTORY_PRESERVED",
     "PLATFORM_COMPLETION",
     "DRAFT",
     "PERSONAL_AGENT_NOT_CLAIMED",
@@ -831,6 +832,188 @@ with tempfile.TemporaryDirectory(prefix="lccoding-unborn-git-400-") as temporary
     ) == source_status_before
     assert (source_index.read_bytes(), source_index.stat().st_mtime_ns) == source_index_before
     assert snapshot(unborn_source) == source_tree_before
+
+with tempfile.TemporaryDirectory(prefix="lccoding-unborn-history-400-") as temporary:
+    base = Path(temporary)
+    history_repository = base / "history-repository"
+    history_source = base / "unborn-history-source-300"
+    history_target = base / "unborn-history-target-400"
+    history_repository.mkdir()
+    init_result = run(
+        ["git", "init", "--quiet", "--initial-branch=main"], cwd=history_repository
+    )
+    assert init_result.returncode == 0, init_result.stdout + init_result.stderr
+    run(
+        ["git", "config", "user.email", "fixture@example.invalid"],
+        cwd=history_repository,
+    ).check_returncode()
+    run(
+        ["git", "config", "user.name", "Fixture"], cwd=history_repository
+    ).check_returncode()
+    run(
+        [
+            "git",
+            "remote",
+            "add",
+            "origin",
+            "https://example.invalid/lccoding/history.git",
+        ],
+        cwd=history_repository,
+    ).check_returncode()
+    write(history_repository / "prior.txt", "reachable history\n")
+    run(["git", "add", "prior.txt"], cwd=history_repository).check_returncode()
+    run(
+        ["git", "commit", "--quiet", "-m", "prior main history"],
+        cwd=history_repository,
+    ).check_returncode()
+    main_commit = git_text(history_repository, "rev-parse", "refs/heads/main")
+    run(["git", "repack", "-ad"], cwd=history_repository).check_returncode()
+    worktree_result = run(
+        [
+            "git",
+            "worktree",
+            "add",
+            "--quiet",
+            "-b",
+            "linked-before-orphan",
+            str(history_source),
+            "main",
+        ],
+        cwd=history_repository,
+    )
+    assert worktree_result.returncode == 0, worktree_result.stdout + worktree_result.stderr
+    assert (history_source / ".git").is_file()
+    orphan_result = run(
+        ["git", "switch", "--quiet", "--orphan", "unborn-with-history"],
+        cwd=history_source,
+    )
+    assert orphan_result.returncode == 0, orphan_result.stdout + orphan_result.stderr
+    make_source(history_source, accepted=False)
+    run(["git", "add", "-A"], cwd=history_source).check_returncode()
+    source_validation = run(
+        [sys.executable, str(PROJECT_VALIDATOR), str(history_source)]
+    )
+    assert source_validation.returncode == 0, source_validation.stdout + source_validation.stderr
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=history_source).returncode != 0
+    assert git_text(history_source, "symbolic-ref", "--quiet", "--short", "HEAD") == (
+        "unborn-with-history"
+    )
+    source_refs = git_text(
+        history_source, "for-each-ref", "--format=%(refname) %(objectname)"
+    )
+    assert f"refs/heads/main {main_commit}" in source_refs.splitlines()
+
+    source_status_before = git_text(
+        history_source, "status", "--porcelain=v1", "--untracked-files=all"
+    )
+    source_admin = Path(
+        git_text(history_source, "rev-parse", "--absolute-git-dir")
+    ).resolve()
+    source_common = Path(
+        git_text(history_source, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    ).resolve()
+    assert source_admin != source_common
+    source_index = Path(
+        git_text(
+            history_source,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "index",
+        )
+    ).resolve()
+    source_objects = Path(
+        git_text(
+            history_source,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "objects",
+        )
+    ).resolve()
+    source_index_before = (source_index.read_bytes(), source_index.stat().st_mtime_ns)
+    source_tree_before = snapshot(history_source)
+    source_repository_before = snapshot(history_repository)
+
+    history_result = invoke(history_source, history_target)
+    assert history_result.returncode == 0, history_result.stdout + history_result.stderr
+    target_validation = run(
+        [sys.executable, str(PROJECT_VALIDATOR), str(history_target)]
+    )
+    assert target_validation.returncode == 0, target_validation.stdout + target_validation.stderr
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=history_target).returncode != 0
+    assert git_text(history_target, "symbolic-ref", "--quiet", "--short", "HEAD") == (
+        "unborn-with-history"
+    )
+    assert git_text(history_target, "rev-parse", "refs/heads/main") == main_commit
+    assert run(
+        ["git", "cat-file", "-e", f"{main_commit}^{{commit}}"], cwd=history_target
+    ).returncode == 0
+    assert git_text(history_target, "show", f"{main_commit}:prior.txt") == (
+        "reachable history"
+    )
+    assert git_text(
+        history_target, "for-each-ref", "--format=%(refname) %(objectname)"
+    ) == source_refs
+    assert git_text(history_target, "config", "--get", "remote.origin.url") == (
+        "https://example.invalid/lccoding/history.git"
+    )
+
+    target_admin = Path(
+        git_text(history_target, "rev-parse", "--absolute-git-dir")
+    ).resolve()
+    target_common = Path(
+        git_text(history_target, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    ).resolve()
+    target_index = Path(
+        git_text(
+            history_target,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "index",
+        )
+    ).resolve()
+    target_objects = Path(
+        git_text(
+            history_target,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "objects",
+        )
+    ).resolve()
+    assert (history_target / ".git").is_dir()
+    assert target_admin == target_common == (history_target / ".git").resolve()
+    assert target_admin != source_admin
+    assert target_common != source_common
+    assert target_index != source_index
+    assert target_objects != source_objects
+    assert not (target_objects / "info/alternates").exists()
+
+    target_add = run(
+        ["git", "add", ".lccoding/status.json", "VERSION"], cwd=history_target
+    )
+    assert target_add.returncode == 0, target_add.stdout + target_add.stderr
+    assert target_index.is_file()
+    matching_object_files = 0
+    for target_object in target_objects.rglob("*"):
+        if not target_object.is_file() or target_object.is_symlink():
+            continue
+        source_object = source_objects / target_object.relative_to(target_objects)
+        if not source_object.is_file() or source_object.is_symlink():
+            continue
+        matching_object_files += 1
+        assert not target_object.samefile(source_object)
+    assert matching_object_files > 0
+    assert git_text(history_target, "status", "--porcelain=v1")
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=history_target).returncode != 0
+    assert git_text(
+        history_source, "status", "--porcelain=v1", "--untracked-files=all"
+    ) == source_status_before
+    assert (source_index.read_bytes(), source_index.stat().st_mtime_ns) == source_index_before
+    assert snapshot(history_source) == source_tree_before
+    assert snapshot(history_repository) == source_repository_before
 
 validator_spec = importlib.util.spec_from_file_location(
     "migration_400_status_authority", PROJECT_VALIDATOR

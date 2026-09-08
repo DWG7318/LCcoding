@@ -586,22 +586,39 @@ def materialize_source(source, stage):
         )
         if source_branch.returncode or not source_branch.stdout.strip():
             raise MigrationError("independent Git materialization failed")
-        initialized = subprocess.run(
+        source_refs = run_git(
+            source, "for-each-ref", "--format=%(refname) %(objectname)"
+        )
+        stage.mkdir()
+        mirrored = subprocess.run(
             [
                 "git",
-                "init",
+                "clone",
                 "--quiet",
-                f"--initial-branch={source_branch.stdout.strip()}",
-                str(stage),
+                "--mirror",
+                "--no-local",
+                "--no-hardlinks",
+                str(source),
+                str(stage / ".git"),
             ],
             cwd=stage.parent,
             capture_output=True,
             text=True,
         )
-        if initialized.returncode:
+        if mirrored.returncode:
+            raise MigrationError("independent Git materialization failed")
+        run_git(stage, "config", "core.bare", "false")
+        remote_cleanup = git_result(stage, "config", "--remove-section", "remote.origin")
+        if remote_cleanup.returncode not in {0, 5}:
             raise MigrationError("independent Git materialization failed")
         if source_origin.returncode == 0 and source_origin.stdout.strip():
-            run_git(stage, "remote", "add", "origin", source_origin.stdout.strip())
+            run_git(stage, "config", "remote.origin.url", source_origin.stdout.strip())
+            run_git(
+                stage,
+                "config",
+                "remote.origin.fetch",
+                "+refs/heads/*:refs/remotes/origin/*",
+            )
         overlay_source_tree(source, stage)
         verify_independent_git(source, stage)
         if git_result(stage, "rev-parse", "--verify", "HEAD").returncode == 0:
@@ -610,6 +627,10 @@ def materialize_source(source, stage):
             source_branch.stdout.strip()
         ):
             raise MigrationError("unborn Git branch identity was not preserved")
+        if run_git(stage, "for-each-ref", "--format=%(refname) %(objectname)") != (
+            source_refs
+        ):
+            raise MigrationError("unborn Git history or refs were not preserved")
         return
     clone = subprocess.run(
         [
