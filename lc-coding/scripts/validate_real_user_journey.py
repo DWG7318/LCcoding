@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import zlib
 
 
 SUMMARY_FIELDS = {
@@ -60,8 +61,21 @@ EVIDENCE_RECORD_FIELDS = {
 }
 EXEMPTION_RECORD_FIELDS = {
     "record_role", "evidence_schema_version", "evidence_id", "defect_id",
-    "candidate_id", "candidate_hash", "route_id", "authority", "impact",
+    "candidate_id", "candidate_hash", "round", "route_id", "authority", "impact",
     "recovery_condition", "decision",
+}
+D3_RECORD_FIELDS = {
+    "receipt_id", "layer", "claim_id", "claim_version", "candidate_id",
+    "candidate_hash", "environment_id", "authority", "reused_evidence",
+    "new_evidence", "repeated_checks", "coverage", "risks_remaining", "verdict",
+    "issued_at", "executor_context_id", "verification_context_id",
+    "verification_workspace_id", "model_binding_id",
+}
+PRIORITY_EXCEPTION_FIELDS = {
+    "record_role", "evidence_schema_version", "evidence_id", "candidate_id",
+    "candidate_hash", "earlier_defect_id", "earlier_repair_sequence", "earlier_layer",
+    "later_defect_id", "later_repair_sequence", "later_layer", "authority", "rationale",
+    "decision",
 }
 KIND_PAYLOAD_FIELDS = {
     "HUMAN_GOAL_MESSAGE": {"message_id", "direction", "content"},
@@ -169,13 +183,6 @@ def _meaningful(value):
     return isinstance(value, str) and bool(value.strip()) and value.strip().upper() not in {
         "NONE", "NOT_APPLICABLE", "PENDING", "TBD", "TODO", "UNKNOWN",
     }
-
-
-def _justified_priority_exception(value):
-    if not isinstance(value, str) or ": " not in value:
-        return False
-    decision_id, rationale = value.split(": ", 1)
-    return bool(SAFE_ID_RE.fullmatch(decision_id)) and _meaningful(rationale)
 
 
 def _split_exact(value, count):
@@ -612,6 +619,115 @@ def _run_starts(lc):
     return starts, errors
 
 
+def _bound_route_evidence(value):
+    parts = [part.strip() for part in str(value or "").split("~")]
+    if (
+        len(parts) != 4 or not SAFE_ID_RE.fullmatch(parts[0])
+        or not HASH_RE.fullmatch(parts[1]) or not SAFE_ID_RE.fullmatch(parts[2])
+        or not SAFE_ID_RE.fullmatch(parts[3])
+    ):
+        return None
+    return tuple(parts)
+
+
+def _validate_task5_final_and_d3(lc, row, route, receipt, receipt_id):
+    errors = []
+    labeled = {}
+    for item in str(row.get("Task5 Final Verification / D3 citations") or "").split(";"):
+        label, separator, value = item.strip().partition(":")
+        if not separator or label not in {"FINAL", "D3"} or label in labeled:
+            errors.append("Task5 Final Verification / D3 citations are malformed")
+            continue
+        labeled[label] = value.strip()
+    if set(labeled) != {"FINAL", "D3"}:
+        errors.append("Task5 Final Verification / D3 citations must resolve both artifacts")
+        return errors
+    resolved = {}
+    for label in ("FINAL", "D3"):
+        reference, path, citation_errors = _resolve_exact_citation(
+            lc, labeled[label], "Task5 " + label + " artifact"
+        )
+        errors.extend(citation_errors)
+        if reference is not None and path is not None:
+            resolved[label] = (reference, path)
+    if set(resolved) != {"FINAL", "D3"}:
+        return errors
+    final_reference, final_path = resolved["FINAL"]
+    d3_reference, d3_path = resolved["D3"]
+    if final_path == d3_path or final_reference[0] == d3_reference[0]:
+        errors.append("Task5 Final Verification and D3 must be distinct exact artifacts")
+
+    final_text, read_errors = _read_markdown(final_path)
+    errors.extend(read_errors)
+    final, field_errors = _markdown_fields(final_text)
+    errors.extend(field_errors)
+    candidate = _split_exact(receipt.get("Candidate ID / hash"), 2)
+    authority = route.get("authority") if isinstance(route.get("authority"), dict) else {}
+    final_expected = {
+        "Artifact role": "FINAL_FEATURE_VERIFICATION",
+        "Verification ID": final_reference[0],
+        "Integration candidate ID / exact hash": receipt.get("Candidate ID / hash"),
+        "Integration Route ID": route.get("route_id"),
+        "Service Route ID": route.get("route_id"),
+        "Human-observable outcome": route.get("human_observable_outcome"),
+        "Final verdict": "PASS",
+    }
+    if any(final.get(field) != value for field, value in final_expected.items()):
+        errors.append("Task5 Final Feature Verification does not join the adopted route result")
+    terminal = {}
+    for item in str(final.get("D3 / Loop Owner Acceptance evidence") or "").split(";"):
+        label, separator, value = item.strip().partition(":")
+        if separator and label in {"D3", "OWNER"} and label not in terminal:
+            terminal[label] = _bound_route_evidence(value)
+    expected_prefix = (
+        candidate[0] if candidate else None,
+        candidate[1].removeprefix("sha256:") if candidate else None,
+        route.get("route_id"),
+    )
+    if (
+        set(terminal) != {"D3", "OWNER"} or None in terminal.values()
+        or terminal.get("D3") != expected_prefix + (d3_reference[0],)
+        or terminal.get("OWNER") != expected_prefix + (receipt_id,)
+    ):
+        errors.append("Task5 Final Feature Verification terminal evidence join is invalid")
+
+    d3, d3_errors = _read_json(d3_path)
+    errors.extend(d3_errors)
+    if not isinstance(d3, dict):
+        errors.append("actual Task5 D3 artifact must be a strict verification receipt")
+        return errors
+    if set(d3) != D3_RECORD_FIELDS:
+        errors.append("actual Task5 D3 artifact must use the closed verification receipt schema")
+    d3_expected = {
+        "receipt_id": d3_reference[0],
+        "layer": "D3",
+        "claim_id": route.get("capability_implementation_id"),
+        "claim_version": "4.0.0",
+        "candidate_id": candidate[0] if candidate else None,
+        "candidate_hash": candidate[1].removeprefix("sha256:") if candidate else None,
+        "authority": authority.get("action_id"),
+        "coverage": [route.get("route_id")],
+        "verdict": "PASS",
+    }
+    if any(d3.get(field) != value for field, value in d3_expected.items()):
+        errors.append("actual Task5 D3 artifact does not join candidate, route, authority, and PASS")
+    for field in (
+        "environment_id", "issued_at", "executor_context_id", "verification_context_id",
+        "verification_workspace_id", "model_binding_id",
+    ):
+        if not _meaningful(d3.get(field)):
+            errors.append("actual Task5 D3 artifact lacks " + field)
+    for field in ("reused_evidence", "new_evidence", "repeated_checks", "risks_remaining"):
+        value = d3.get(field)
+        if not isinstance(value, list) or any(not _meaningful(item) for item in value):
+            errors.append("actual Task5 D3 artifact " + field + " must be a structured list")
+    if not d3.get("new_evidence") or not d3.get("repeated_checks"):
+        errors.append("actual Task5 D3 artifact requires new evidence and repeated checks")
+    if receipt.get("D3 Receipt") != d3_reference[0]:
+        errors.append("receipt D3 identity disagrees with the actual Task5 D3 artifact")
+    return errors
+
+
 def _validate_task5_receipts(lc, status, coverage, required_routes):
     errors = []
     indexed = status.get("loop_owner_acceptances")
@@ -691,6 +807,9 @@ def _validate_task5_receipts(lc, status, coverage, required_routes):
             run_d3 = _split_exact(row.get("Task5 Run ID / D3 Receipt"), 2)
             if run_d3 != [run_id, d3]:
                 errors.append("Task5 receipt Run/D3 citation disagrees with resolved receipt")
+            errors.extend(_validate_task5_final_and_d3(
+                lc, row, route, receipt, acceptance_id
+            ))
             steps = [item.strip() for item in str(receipt.get("Acceptance steps") or "").split(",") if item.strip()]
             required_steps = [
                 route.get("route_id"), route.get("actor_id"), authority.get("action_id"),
@@ -785,7 +904,33 @@ def _validate_route_coverage(text, required_routes):
     return actual, errors
 
 
-def _validate_route_rounds(text, summary, required_count):
+def _parse_unattempted_dispositions(value):
+    if value == "NONE":
+        return {}, []
+    dispositions = {}
+    errors = []
+    for item in str(value or "").split(";"):
+        parts = _split_exact(item.strip(), 4)
+        try:
+            defect_id = int(parts[3]) if parts else -1
+        except (TypeError, ValueError):
+            defect_id = -1
+        if (
+            not parts or not SAFE_ID_RE.fullmatch(parts[0])
+            or parts[1] not in {"DEPENDENCY_BLOCKED", "GLOBAL_BLOCKED"}
+            or not SAFE_ID_RE.fullmatch(parts[2]) or defect_id < 40001
+        ):
+            errors.append("unattempted route disposition is malformed")
+            continue
+        if parts[0] in dispositions:
+            errors.append("unattempted route dispositions contain duplicate routes")
+        dispositions[parts[0]] = (parts[1], parts[2], defect_id)
+    return dispositions, errors
+
+
+def _validate_route_rounds(text, summary, required_routes):
+    required_count = len(required_routes)
+    required_route_ids = {key[1] for key in required_routes}
     rows, errors = _rows_with_header_prefix(
         text, ("Round", "Candidate ID / SHA-256"), "acceptance rounds"
     )
@@ -813,6 +958,14 @@ def _validate_route_rounds(text, summary, required_count):
             not SAFE_ID_RE.fullmatch(item) for item in attempted
         ):
             errors.append("acceptance round attempted route IDs are malformed or duplicated")
+        if any(item not in required_route_ids for item in attempted):
+            errors.append("acceptance round attempts a route outside adopted coverage")
+        dispositions, disposition_errors = _parse_unattempted_dispositions(
+            row.get("Unattempted route dispositions")
+        )
+        errors.extend(disposition_errors)
+        if set(dispositions) != required_route_ids - set(attempted):
+            errors.append("every unattempted adopted route requires one exact blocking disposition")
         if row.get("Started from each attempted actual route entry") != "YES":
             errors.append("every attempted round must restart from each attempted actual route entry")
         counts = _split_exact(row.get("Required routes / passed / failed"), 3)
@@ -853,6 +1006,7 @@ def _validate_route_rounds(text, summary, required_count):
         stored["_candidate"] = tuple(candidate) if candidate else None
         stored["_attempted"] = tuple(attempted)
         stored["_defects"] = tuple(defects)
+        stored["_dispositions"] = dispositions
         stored["_counts"] = (required, passed, failed)
         by_number[number] = stored
     numbers = list(by_number)
@@ -878,48 +1032,80 @@ def _validate_route_rounds(text, summary, required_count):
 
 
 def _screenshot_dimensions(data):
-    if data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) >= 24 and data[12:16] == b"IHDR":
-        return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
-    if data.startswith((b"GIF87a", b"GIF89a")) and len(data) >= 10:
-        return int.from_bytes(data[6:8], "little"), int.from_bytes(data[8:10], "little")
-    if data.startswith(b"\xff\xd8\xff"):
-        index = 2
-        sof = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
-        while index + 4 <= len(data):
-            if data[index] != 0xFF:
-                index += 1
-                continue
-            marker = data[index + 1]
-            index += 2
-            if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7:
-                continue
-            if index + 2 > len(data):
-                break
-            length = int.from_bytes(data[index:index + 2], "big")
-            if length < 2 or index + length > len(data):
-                break
-            if marker in sof and length >= 7:
-                return (
-                    int.from_bytes(data[index + 5:index + 7], "big"),
-                    int.from_bytes(data[index + 3:index + 5], "big"),
-                )
-            index += length
-    if len(data) >= 30 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
-        kind = data[12:16]
-        if kind == b"VP8X":
-            return (
-                1 + int.from_bytes(data[24:27], "little"),
-                1 + int.from_bytes(data[27:30], "little"),
-            )
-        if kind == b"VP8L" and len(data) >= 25 and data[20] == 0x2F:
-            bits = int.from_bytes(data[21:25], "little")
-            return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
-        if kind == b"VP8 " and len(data) >= 30 and data[23:26] == b"\x9d\x01\x2a":
-            return (
-                int.from_bytes(data[26:28], "little") & 0x3FFF,
-                int.from_bytes(data[28:30], "little") & 0x3FFF,
-            )
-    return None
+    """Return PNG dimensions only after validating a complete image stream."""
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return None
+    position = 8
+    chunks = []
+    idat = []
+    while position + 12 <= len(data):
+        length = int.from_bytes(data[position:position + 4], "big")
+        end = position + 12 + length
+        if end > len(data):
+            return None
+        kind = data[position + 4:position + 8]
+        payload = data[position + 8:position + 8 + length]
+        crc = int.from_bytes(data[position + 8 + length:end], "big")
+        if (
+            len(kind) != 4
+            or not all(65 <= byte <= 90 or 97 <= byte <= 122 for byte in kind)
+            or zlib.crc32(kind + payload) & 0xFFFFFFFF != crc
+        ):
+            return None
+        chunks.append((kind, payload))
+        if kind == b"IDAT":
+            idat.append(payload)
+        position = end
+        if kind == b"IEND":
+            break
+    if (
+        position != len(data) or not chunks or chunks[0][0] != b"IHDR"
+        or chunks[-1] != (b"IEND", b"")
+        or sum(kind == b"IHDR" for kind, _ in chunks) != 1
+        or sum(kind == b"IEND" for kind, _ in chunks) != 1
+        or not idat
+    ):
+        return None
+    ihdr = chunks[0][1]
+    if len(ihdr) != 13:
+        return None
+    width = int.from_bytes(ihdr[0:4], "big")
+    height = int.from_bytes(ihdr[4:8], "big")
+    bit_depth, color_type, compression, filtering, interlace = ihdr[8:13]
+    valid_depths = {
+        0: {1, 2, 4, 8, 16}, 2: {8, 16}, 3: {1, 2, 4, 8},
+        4: {8, 16}, 6: {8, 16},
+    }
+    if (
+        width < 1 or height < 1 or bit_depth not in valid_depths.get(color_type, set())
+        or compression != 0 or filtering != 0 or interlace != 0
+    ):
+        return None
+    kinds = [kind for kind, _ in chunks]
+    first_idat = kinds.index(b"IDAT")
+    last_idat = len(kinds) - 1 - kinds[::-1].index(b"IDAT")
+    if any(kind != b"IDAT" for kind in kinds[first_idat:last_idat + 1]):
+        return None
+    if color_type == 3 and b"PLTE" not in kinds[:first_idat]:
+        return None
+    known_critical = {b"IHDR", b"PLTE", b"IDAT", b"IEND"}
+    if any(kind[0] & 0x20 == 0 and kind not in known_critical for kind in kinds):
+        return None
+    try:
+        decoder = zlib.decompressobj()
+        pixels = decoder.decompress(b"".join(idat)) + decoder.flush()
+    except zlib.error:
+        return None
+    if not decoder.eof or decoder.unused_data or decoder.unconsumed_tail:
+        return None
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color_type]
+    row_bytes = (width * channels * bit_depth + 7) // 8
+    stride = row_bytes + 1
+    if len(pixels) != height * stride or any(
+        pixels[offset] > 4 for offset in range(0, len(pixels), stride)
+    ):
+        return None
+    return width, height
 
 
 def _validate_screenshot(path, row):
@@ -930,7 +1116,9 @@ def _validate_screenshot(path, row):
         return ["visible route step screenshot is unreadable"]
     dimensions = _screenshot_dimensions(data)
     if not dimensions or min(dimensions) <= 0:
-        errors.append("visible route step requires actual screenshot header bytes and dimensions")
+        errors.append(
+            "visible route step requires actual screenshot bytes as a structurally complete screenshot"
+        )
     digest = row.get("Screenshot SHA-256")
     actual = hashlib.sha256(data).hexdigest()
     if not HASH_RE.fullmatch(str(digest or "")) or digest != actual:
@@ -988,6 +1176,10 @@ def _validate_project_evidence(path, row, round_record, route):
         errors.append("identity evidence does not identify the adopted route actor")
     if kind == "AUTHORIZATION_DECISION" and payload.get("scope") != authority.get("resource_id"):
         errors.append("authorization evidence scope disagrees with adopted authority")
+    if kind == "AUTHORIZATION_DECISION" and str(payload.get("decision") or "").upper() not in {
+        "ALLOW", "ALLOWED", "APPROVE", "APPROVED", "AUTHORIZE", "AUTHORIZED", "GRANTED",
+    }:
+        errors.append("delegated route requires an affirmative authorization decision")
     if kind == "PLATFORM_EFFECT" and payload.get("before_state") == payload.get("after_state"):
         errors.append("platform-effect evidence does not prove a state effect")
     if kind == "TASK_TRANSITION" and payload.get("from_state") == payload.get("to_state"):
@@ -1010,9 +1202,17 @@ def _validate_completed_route_evidence(route, route_rows, route_id):
     errors = []
     route_kind = route.get("route_kind")
     kinds = {row.get("Evidence kind") for row in route_rows}
-    consent = route.get("consent") if isinstance(route.get("consent"), dict) else {}
-    if consent.get("requirement") != "NOT_REQUIRED" and "AUTHORIZATION_DECISION" not in kinds:
-        errors.append("accepted delegated route lacks applicable authorization evidence")
+    if route_kind in {"PERSONAL_AGENT", "SERVICE_CENTER"} and "AUTHORIZATION_DECISION" not in kinds:
+        errors.append("accepted delegated route lacks affirmative authorization evidence")
+    if route_kind == "PERSONAL_AGENT" and "AGENT_IDENTITY" not in kinds:
+        errors.append("accepted Personal Agent route lacks Agent identity evidence")
+    if route_kind == "SERVICE_CENTER":
+        if "SERVICE_ACTOR_IDENTITY" not in kinds:
+            errors.append("accepted Service Center route lacks service actor identity evidence")
+        if "ASSISTED_ACTION" not in kinds:
+            errors.append("accepted Service Center route lacks assisted action evidence")
+        if "USER_COMMUNICATION" not in kinds:
+            errors.append("accepted Service Center route lacks user communication evidence")
     if route_kind in {"PERSONAL_AGENT", "SERVICE_CENTER"} and "PLATFORM_EFFECT" not in kinds:
         errors.append("accepted delegated route lacks platform-effect evidence")
     if route_kind == "SERVICE_CENTER" and "DELEGATION_BASIS" not in kinds:
@@ -1167,6 +1367,7 @@ def _validate_route_evidence(lc, text, summary, required_routes, rounds):
             errors.append("acceptance round first/last evidence does not match attempted evidence")
         observed_passed = 0
         observed_failed = 0
+        blocking_evidence_ids = set()
         for key, route in required_routes.items():
             if key[1] not in attempted:
                 continue
@@ -1180,6 +1381,7 @@ def _validate_route_evidence(lc, text, summary, required_routes, rounds):
             nonpassing = [row for row in route_rows if row.get("Result") != "PASS"]
             if nonpassing:
                 observed_failed += 1
+                blocking_evidence_ids.update(row.get("Evidence ID") for row in nonpassing)
                 if route_rows[-1].get("Result") not in {"DEFECT", "BLOCKED_BY_DEFECT"}:
                     errors.append("failed attempted route must end at its real defect or blocked step")
             else:
@@ -1192,6 +1394,11 @@ def _validate_route_evidence(lc, text, summary, required_routes, rounds):
             errors.append("acceptance round passed/failed counts disagree with route evidence")
         if round_row.get("Result") == "PASS" and observed_failed:
             errors.append("PASS round route evidence contains a non-PASS step")
+        for _, evidence_id, defect_id in round_row.get("_dispositions", {}).values():
+            if evidence_id not in blocking_evidence_ids:
+                errors.append("unattempted route disposition must join actual blocking evidence")
+            if defect_id not in round_row.get("_defects", ()):
+                errors.append("unattempted route disposition must join a round defect")
     context = {
         "rows": rows,
         "by_round": evidence_by_round,
@@ -1241,7 +1448,7 @@ def _validate_acceptance_record_400(project_root: Path, status: dict) -> list[st
         "passed_journey_count"
     ) != required_count:
         errors.append("accepted 4.0 journey summary must pass every required delivered route")
-    rounds, round_errors = _validate_route_rounds(text, summary, required_count)
+    rounds, round_errors = _validate_route_rounds(text, summary, required_routes)
     errors.extend(round_errors)
     _, evidence_errors = _validate_route_evidence(
         lc, text, summary, required_routes, rounds
@@ -1266,7 +1473,7 @@ def _acceptance_context_for_defects(project_root, status, required_routes):
     if path is None:
         return {}, {}, ["defect binding requires a readable journey acceptance record"]
     text, errors = _read_markdown(path)
-    rounds, round_errors = _validate_route_rounds(text, summary, len(required_routes))
+    rounds, round_errors = _validate_route_rounds(text, summary, required_routes)
     context, evidence_errors = _validate_route_evidence(
         lc, text, summary, required_routes, rounds
     )
@@ -1296,17 +1503,36 @@ def _matching_evidence(context, *, round_number, journey_id, route_id, step_id=N
     ]
 
 
-def _citation_matches_row(lc, value, row, label):
-    reference, path, errors = _resolve_exact_citation(lc, value, label)
-    if reference is None or path is None or not isinstance(row, dict):
-        return False, errors
-    expected = (
-        row.get("Evidence ID"), "sha256:" + str(row.get("_digest")), row.get("_path")
+def _evidence_identity(row):
+    if not isinstance(row, dict):
+        return None
+    return (
+        row.get("_round_number"), row.get("Evidence ID"), row.get("_digest"),
+        row.get("_path"),
     )
-    if reference[0] != expected[0] or reference[1] != expected[1] or path != expected[2]:
-        errors.append(label + " does not join the actual route evidence row/file")
-        return False, errors
-    return True, errors
+
+
+def _resolve_history_route_evidence(lc, value, context, round_number):
+    label = "defect history evidence"
+    reference, path, errors = _resolve_exact_citation(lc, value, label)
+    if reference is None or path is None:
+        return None, errors
+    round_rows = [
+        row
+        for rows in context.get("by_round", {}).get(round_number, {}).values()
+        for row in rows
+    ]
+    matches = [
+        row for row in round_rows
+        if row.get("_round_number") == round_number
+        and row.get("Evidence ID") == reference[0]
+        and "sha256:" + str(row.get("_digest")) == reference[1]
+        and row.get("_path") == path
+    ]
+    if len(matches) != 1:
+        errors.append("defect history evidence must join one actual route evidence row/file")
+        return None, errors
+    return matches[0], errors
 
 
 def _validate_exemption_citation(lc, value, defect_id, defect_row, history_row):
@@ -1335,6 +1561,7 @@ def _validate_exemption_citation(lc, value, defect_id, defect_row, history_row):
         "defect_id": defect_id,
         "candidate_id": candidate[0] if candidate else None,
         "candidate_hash": candidate[1] if candidate else None,
+        "round": history_row.get("_round_number"),
         "route_id": discovery[4] if discovery else None,
         "authority": exemption[0] if exemption else None,
         "impact": exemption[1] if exemption else None,
@@ -1344,6 +1571,40 @@ def _validate_exemption_citation(lc, value, defect_id, defect_row, history_row):
     if any(record.get(field) != expected_value for field, expected_value in expected.items()):
         errors.append(label + " does not join the defect, candidate, route, or Owner decision")
     return errors
+
+
+def _validate_priority_exception(lc, value, summary, earlier, later):
+    label = "repair priority exception evidence"
+    reference, path, errors = _resolve_exact_citation(lc, value, label)
+    if reference is None or path is None:
+        return False, errors
+    record, read_errors = _read_json(path)
+    errors.extend(label + ": " + error for error in read_errors)
+    if not isinstance(record, dict):
+        if not read_errors:
+            errors.append(label + " must be a strict project evidence object")
+        return False, errors
+    if set(record) != PRIORITY_EXCEPTION_FIELDS:
+        errors.append(label + " must use the closed project exception schema")
+    expected = {
+        "record_role": "REAL_USER_JOURNEY_REPAIR_PRIORITY_EXCEPTION",
+        "evidence_schema_version": "4.0.0",
+        "evidence_id": reference[0],
+        "candidate_id": summary.get("candidate_id"),
+        "candidate_hash": summary.get("candidate_hash"),
+        "earlier_defect_id": earlier[4],
+        "earlier_repair_sequence": earlier[0],
+        "earlier_layer": earlier[1],
+        "later_defect_id": later[4],
+        "later_repair_sequence": later[0],
+        "later_layer": later[1],
+        "decision": "ALLOW_PRIORITY_EXCEPTION",
+    }
+    if any(record.get(field) != expected_value for field, expected_value in expected.items()):
+        errors.append(label + " does not join the exact candidate and inverted repairs")
+    if not _meaningful(record.get("authority")) or not _meaningful(record.get("rationale")):
+        errors.append(label + " requires authority and a meaningful rationale")
+    return not errors, errors
 
 
 def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
@@ -1495,7 +1756,10 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
             repair_sequence = -1
         if repair_sequence < 1:
             errors.append("defect Repair sequence must be a positive integer")
-        repair_rows.append((repair_sequence, layer, row.get("Priority exception justification"), state))
+        repair_rows.append((
+            repair_sequence, layer, row.get("Priority exception justification"), state,
+            defect_id,
+        ))
     if ids != sorted(set(ids)) or any(defect_id < 40001 for defect_id in ids):
         errors.append("defect IDs must be unique, increasing, unrecycled, and start at 40001")
     expected = {
@@ -1510,7 +1774,8 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
             errors.append(field + " disagrees with the append-only defect register")
 
     scheduled_repairs = [
-        item for item in repair_rows if item[3] in {"OPEN", "REOPENED", "DEFERRED"}
+        item for item in repair_rows
+        if item[3] in {"OPEN", "REOPENED", "DEFERRED", "FIXED_VERIFIED"}
     ]
     sequences = [item[0] for item in scheduled_repairs]
     if len(sequences) != len(set(sequences)):
@@ -1519,14 +1784,16 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
     for earlier, later in zip(ordered_repairs, ordered_repairs[1:]):
         earlier_rank = DEFECT_LAYER_ORDER.get(earlier[1])
         later_rank = DEFECT_LAYER_ORDER.get(later[1])
-        if (
-            earlier_rank is not None and later_rank is not None
-            and earlier_rank > later_rank and not _justified_priority_exception(earlier[2])
-        ):
-            errors.append(
-                "repair priority order requires boundary before orchestration before core, "
-                "or an explicit justified exception"
+        if earlier_rank is not None and later_rank is not None and earlier_rank > later_rank:
+            justified, exception_errors = _validate_priority_exception(
+                lc, earlier[2], summary, earlier, later
             )
+            errors.extend(exception_errors)
+            if not justified:
+                errors.append(
+                    "repair priority order requires boundary before orchestration before core, "
+                    "or exact justified exception evidence"
+                )
 
     for number, round_row in rounds.items():
         if set(round_row.get("_defects", ())) != discoveries_by_round.get(number, set()):
@@ -1551,6 +1818,19 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
             or not HASH_RE.fullmatch(history_candidate[1])
         ):
             errors.append("defect state history candidate identity is malformed")
+        try:
+            history_round = int(row.get("Round", ""))
+        except (TypeError, ValueError):
+            history_round = -1
+        row["_round_number"] = history_round
+        round_candidate = rounds.get(history_round, {}).get("_candidate")
+        if not history_candidate or tuple(history_candidate) != round_candidate:
+            errors.append("defect history candidate/round does not join acceptance history")
+        if row.get("New state") != "OWNER_EXEMPTED":
+            row["_evidence"], evidence_errors = _resolve_history_route_evidence(
+                lc, row.get("Evidence / reason"), evidence_context, history_round
+            )
+            errors.extend(evidence_errors)
     for defect_id, row in register.items():
         events = by_id.get(defect_id, [])
         valid = bool(events) and events[0].get("Prior state") == "NOT_APPLICABLE" and events[
@@ -1570,17 +1850,13 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
             errors.append("defect requires complete state history from OPEN through current state")
             continue
         first_row = discovery_evidence.get(defect_id)
-        _, citation_errors = _citation_matches_row(
-            lc, events[0].get("Evidence / reason"), first_row,
-            "OPEN history evidence",
-        )
-        errors.extend(citation_errors)
+        if _evidence_identity(events[0].get("_evidence")) != _evidence_identity(first_row):
+            errors.append("OPEN history evidence does not join defect discovery evidence")
         if row.get("State") == "FIXED_VERIFIED":
-            _, citation_errors = _citation_matches_row(
-                lc, events[-1].get("Evidence / reason"), retest_evidence.get(defect_id),
-                "FIXED_VERIFIED history evidence",
-            )
-            errors.extend(citation_errors)
+            if _evidence_identity(events[-1].get("_evidence")) != _evidence_identity(
+                retest_evidence.get(defect_id)
+            ):
+                errors.append("FIXED_VERIFIED history evidence does not join later retest evidence")
         if row.get("State") == "OWNER_EXEMPTED":
             errors.extend(_validate_exemption_citation(
                 lc, events[-1].get("Evidence / reason"), defect_id, row, events[-1]

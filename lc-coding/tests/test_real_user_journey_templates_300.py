@@ -97,7 +97,11 @@ for token in (
     "Human-observable outcome",
     "Task5 acceptance receipt citations",
     "Task5 Run ID / D3 Receipt",
+    "Task5 Final Verification / D3 citations",
+    "FINAL_FEATURE_VERIFICATION",
+    '"layer": "D3"',
     "Attempted route IDs",
+    "Unattempted route dispositions",
     "Action",
     "Visible location",
     "Viewport",
@@ -134,6 +138,8 @@ for token in (
     "UI / AGENT_SERVICE / ASSISTED_SERVICE",
     "## Route-faithful defect register",
     "REAL_USER_JOURNEY_DEFECT_EXEMPTION",
+    "REAL_USER_JOURNEY_REPAIR_PRIORITY_EXCEPTION",
+    "| Round |",
 ):
     assert token in defect_log, token
 

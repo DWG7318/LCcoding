@@ -1,10 +1,11 @@
-import base64
 import copy
 import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import struct
 import tempfile
+import zlib
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,10 +18,21 @@ CURRENT_ID = "CANDIDATE-400"
 CURRENT_HASH = "4" * 64
 OLD_ID = "CANDIDATE-399"
 OLD_HASH = "3" * 64
-PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUB"
-    "AScY42YAAAAASUVORK5CYII="
-)
+
+def png_bytes(label):
+    def chunk(kind, payload):
+        return (
+            struct.pack(">I", len(payload)) + kind + payload
+            + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
+        )
+
+    color = hashlib.sha256(label.encode("utf-8")).digest()[:4]
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(b"\x00" + color))
+        + chunk(b"IEND", b"")
+    )
 
 
 def route(route_id, route_kind, actor_id, actor_kind, delegation, audits):
@@ -90,12 +102,13 @@ SERVICE_MAP = {
 EVIDENCE_PLAN = {
     "ROUTE-DIRECT": ["SCREENSHOT"],
     "ROUTE-AGENT": [
-        "HUMAN_GOAL_MESSAGE", "AUTHORIZATION_DECISION", "PLATFORM_EFFECT",
-        "AUDIT_EVENT", "RESULT_DELIVERY",
+        "HUMAN_GOAL_MESSAGE", "AGENT_IDENTITY", "AUTHORIZATION_DECISION",
+        "PLATFORM_EFFECT", "AUDIT_EVENT", "RESULT_DELIVERY",
     ],
     "ROUTE-CENTER": [
-        "USER_REQUEST", "DELEGATION_BASIS", "AUTHORIZATION_DECISION",
-        "PLATFORM_EFFECT", "AUDIT_EVENT", "RESULT_DELIVERY",
+        "USER_REQUEST", "SERVICE_ACTOR_IDENTITY", "DELEGATION_BASIS",
+        "AUTHORIZATION_DECISION", "ASSISTED_ACTION", "PLATFORM_EFFECT",
+        "USER_COMMUNICATION", "AUDIT_EVENT", "RESULT_DELIVERY",
     ],
 }
 
@@ -166,6 +179,10 @@ def citation(evidence_id, path, lc):
         evidence_id + " / sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
         + " / " + path.relative_to(lc).as_posix()
     )
+
+
+def bound(route_id, evidence_id):
+    return "~".join((CURRENT_ID, CURRENT_HASH, route_id, evidence_id))
 
 
 def receipt_fields(route_record, start_hash):
@@ -249,7 +266,51 @@ def write_task5_evidence(lc, route_record):
     receipt_path = lc / "reviews" / ("OA-" + suffix + ".md")
     receipt = receipt_fields(route_record, start["Start Contract SHA-256"])
     write_markdown(receipt_path, "Loop Owner Acceptance Receipt", receipt)
-    return receipt_path, citation(receipt["Acceptance ID"], receipt_path, lc), receipt
+    d3_path = lc / "reviews" / ("D3-" + suffix + ".json")
+    d3 = {
+        "receipt_id": receipt["D3 Receipt"],
+        "layer": "D3",
+        "claim_id": route_record["capability_implementation_id"],
+        "claim_version": "4.0.0",
+        "candidate_id": CURRENT_ID,
+        "candidate_hash": CURRENT_HASH,
+        "environment_id": "ENV-TASK5-" + suffix,
+        "authority": route_record["authority"]["action_id"],
+        "reused_evidence": [],
+        "new_evidence": ["ROUTE-EFFECT-" + suffix],
+        "repeated_checks": ["ROUTE-CHECK-" + suffix],
+        "coverage": [route_record["route_id"]],
+        "risks_remaining": [],
+        "verdict": "PASS",
+        "issued_at": "2026-09-08T00:00:00Z",
+        "executor_context_id": "EXECUTOR-" + suffix,
+        "verification_context_id": "VERIFY-CONTEXT-" + suffix,
+        "verification_workspace_id": "VERIFY-WORKSPACE-" + suffix,
+        "model_binding_id": "MODEL-BINDING-" + suffix,
+    }
+    d3_path.write_text(json.dumps(d3, indent=2) + "\n", encoding="utf-8", newline="\n")
+    final_path = lc / ("FINAL-FEATURE-VERIFICATION-" + suffix + ".md")
+    final = {
+        "Artifact role": "FINAL_FEATURE_VERIFICATION",
+        "Verification ID": "VERIFY-" + suffix,
+        "Integration candidate ID / exact hash": exact_candidate(),
+        "Integration Route ID": route_record["route_id"],
+        "Service Route ID": route_record["route_id"],
+        "Human-observable outcome": route_record["human_observable_outcome"],
+        "D3 / Loop Owner Acceptance evidence": (
+            "D3:" + bound(route_record["route_id"], receipt["D3 Receipt"])
+            + "; OWNER:" + bound(route_record["route_id"], receipt["Acceptance ID"])
+        ),
+        "Final verdict": "PASS",
+    }
+    write_markdown(final_path, "Final Feature Verification", final)
+    artifacts = {
+        "final_path": final_path,
+        "d3_path": d3_path,
+        "final_citation": citation(final["Verification ID"], final_path, lc),
+        "d3_citation": citation(d3["receipt_id"], d3_path, lc),
+    }
+    return receipt_path, citation(receipt["Acceptance ID"], receipt_path, lc), receipt, artifacts
 
 
 def payload_for(kind, evidence_id, route_record):
@@ -322,7 +383,10 @@ def evidence_row(
     human_outcome = route_record["human_observable_outcome"] if final else "NOT_APPLICABLE"
     if kind == "SCREENSHOT":
         path = directory / (step_id + ".png")
-        path.write_bytes(screenshot_bytes if screenshot_bytes is not None else PNG + f"round-{round_number}".encode())
+        path.write_bytes(
+            screenshot_bytes if screenshot_bytes is not None
+            else png_bytes(f"round-{round_number}-{route_record['route_id']}-{step_id}")
+        )
         screenshot_path = ".lccoding/" + path.relative_to(lc).as_posix()
         screenshot_hash = hashlib.sha256(path.read_bytes()).hexdigest()
         action = "CLICK_SUBMIT"
@@ -423,8 +487,8 @@ def empty_defect_log():
 
 ## State history
 
-| Defect ID | Event time | Prior state | New state | Candidate ID / SHA-256 | Evidence / reason |
-|---|---|---|---|---|---|
+| Defect ID | Event time | Prior state | New state | Candidate ID / SHA-256 | Round | Evidence / reason |
+|---|---|---|---|---|---|---|
 """
 
 
@@ -447,8 +511,8 @@ def fixed_history_defect(context):
     open_citation = citation(old["id"], old["path"], context["lc"])
     fixed_citation = citation(retest["id"], retest["path"], context["lc"])
     history = "\n".join((
-        row_line((40001, "2026-09-08T00:00:00Z", "NOT_APPLICABLE", "OPEN", f"{OLD_ID} / {OLD_HASH}", open_citation)),
-        row_line((40001, "2026-09-08T00:01:00Z", "OPEN", "FIXED_VERIFIED", f"{CURRENT_ID} / {CURRENT_HASH}", fixed_citation)),
+        row_line((40001, "2026-09-08T00:00:00Z", "NOT_APPLICABLE", "OPEN", f"{OLD_ID} / {OLD_HASH}", 1, open_citation)),
+        row_line((40001, "2026-09-08T00:01:00Z", "OPEN", "FIXED_VERIFIED", f"{CURRENT_ID} / {CURRENT_HASH}", 2, fixed_citation)),
     ))
     return defect, history
 
@@ -464,9 +528,13 @@ def write_project(root, *, historical=False):
 
     coverage_rows = []
     receipts = {}
+    task5_artifacts = {}
     for route_record in ROUTES:
-        receipt_path, receipt_citation, receipt = write_task5_evidence(lc, route_record)
+        receipt_path, receipt_citation, receipt, artifacts = write_task5_evidence(
+            lc, route_record
+        )
         receipts[route_record["route_id"]] = receipt_path
+        task5_artifacts[route_record["route_id"]] = artifacts
         authority = route_record["authority"]
         coverage_rows.append(row_line((
             "JOURNEY-001", route_record["route_id"], route_record["route_kind"],
@@ -474,7 +542,9 @@ def write_project(root, *, historical=False):
             " / ".join((authority["action_id"], authority["resource_id"], authority["delegation_basis_id"])),
             route_record["promised_entry"], route_record["human_observable_outcome"],
             ",".join(route_record["acceptance_evidence_ids"]), receipt_citation,
-            receipt["Run ID"] + " / " + receipt["D3 Receipt"], "REQUIRED",
+            receipt["Run ID"] + " / " + receipt["D3 Receipt"],
+            "FINAL:" + artifacts["final_citation"] + "; D3:" + artifacts["d3_citation"],
+            "REQUIRED",
         )))
 
     evidence = {}
@@ -496,10 +566,14 @@ def write_project(root, *, historical=False):
     if historical:
         old_row, old_defect = evidence_row(
             lc, ROUTES[0], 1, 900, "SCREENSHOT", OLD_ID, OLD_HASH,
-            result="DEFECT", screenshot_bytes=PNG + b"round-old-defect",
+            result="DEFECT", screenshot_bytes=png_bytes("round-old-defect"),
         )
         round_rows.append(row_line((
-            1, f"{OLD_ID} / {OLD_HASH}", "YES", "ROUTE-DIRECT", "3 / 0 / 1",
+            1, f"{OLD_ID} / {OLD_HASH}", "YES", "ROUTE-DIRECT",
+            "; ".join(
+                route_id + " / GLOBAL_BLOCKED / " + old_defect["id"] + " / 40001"
+                for route_id in ("ROUTE-AGENT", "ROUTE-CENTER")
+            ), "3 / 0 / 1",
             old_defect["id"] + " / " + old_defect["id"], "40001", "REWORK",
         )))
     first_current = next(iter(evidence.values()))["id"]
@@ -507,7 +581,7 @@ def write_project(root, *, historical=False):
     round_rows.append(row_line((
         current_round, f"{CURRENT_ID} / {CURRENT_HASH}", "YES",
         ",".join(route_record["route_id"] for route_record in ROUTES),
-        "3 / 3 / 0", first_current + " / " + last_current, "NONE", "PASS",
+        "NONE", "3 / 3 / 0", first_current + " / " + last_current, "NONE", "PASS",
     )))
 
     acceptance = f"""# Real User Journey Acceptance
@@ -522,14 +596,14 @@ def write_project(root, *, historical=False):
 
 ## Route-faithful 4.0 journey coverage
 
-| Journey ID | Service Route ID | Route kind | Actor ID / kind | Authority action / resource / delegation | Actual external entry | Expected human-observable outcome | Adopted acceptance evidence IDs | Task5 acceptance receipt citations | Task5 Run ID / D3 Receipt | Applicability |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Journey ID | Service Route ID | Route kind | Actor ID / kind | Authority action / resource / delegation | Actual external entry | Expected human-observable outcome | Adopted acceptance evidence IDs | Task5 acceptance receipt citations | Task5 Run ID / D3 Receipt | Task5 Final Verification / D3 citations | Applicability |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 {chr(10).join(coverage_rows)}
 
 ## Acceptance rounds
 
-| Round | Candidate ID / SHA-256 | Started from each attempted actual route entry | Attempted route IDs | Required routes / passed / failed | First and last evidence | Defect IDs | Result |
-|---|---|---|---|---|---|---|---|
+| Round | Candidate ID / SHA-256 | Started from each attempted actual route entry | Attempted route IDs | Unattempted route dispositions | Required routes / passed / failed | First and last evidence | Defect IDs | Result |
+|---|---|---|---|---|---|---|---|---|
 {chr(10).join(round_rows)}
 
 ## Route-faithful 4.0 evidence digests
@@ -545,6 +619,7 @@ def write_project(root, *, historical=False):
         "lc": lc,
         "map": map_path,
         "receipts": receipts,
+        "task5_artifacts": task5_artifacts,
         "evidence": evidence,
         "old_defect": old_defect,
     }
@@ -680,6 +755,7 @@ def make_exempted(lc, status):
         "defect_id": 40001,
         "candidate_id": CURRENT_ID,
         "candidate_hash": CURRENT_HASH,
+        "round": 2,
         "route_id": "ROUTE-DIRECT",
         "authority": "OWNER-1",
         "impact": "bounded impact",
@@ -703,11 +779,11 @@ def make_exempted(lc, status):
     return exemption_path
 
 
-def install_priority_inversion(lc, status, context):
+def install_priority_inversion(lc, status, context, *, keep_fixed=False):
     acceptance = lc / "REAL-USER-JOURNEY-ACCEPTANCE.md"
     second_line, second = evidence_row(
         lc, ROUTES[0], 1, 901, "SCREENSHOT", OLD_ID, OLD_HASH,
-        result="DEFECT", screenshot_bytes=PNG + b"second-old-defect",
+        result="DEFECT", screenshot_bytes=png_bytes("second-old-defect"),
     )
     lines = acceptance.read_text(encoding="utf-8").splitlines()
     first_index = next(index for index, line in enumerate(lines) if "| STEP-900 |" in line)
@@ -722,7 +798,8 @@ def install_priority_inversion(lc, status, context):
     )
 
     defect_log = lc / "REAL-USER-JOURNEY-DEFECT-LOG.md"
-    mutate_table(defect_log, "Defect ID", "| 40001 |", "State", "OPEN")
+    if not keep_fixed:
+        mutate_table(defect_log, "Defect ID", "| 40001 |", "State", "OPEN")
     mutate_table(
         defect_log, "Defect ID", "| 40001 |", "Affected layer / root cause",
         "BACKEND_CORE / shared capability defect",
@@ -731,17 +808,21 @@ def install_priority_inversion(lc, status, context):
         defect_log, "Defect ID", "| 40001 |", "Boundary surface / evidence",
         "NOT_APPLICABLE",
     )
-    mutate_table(
-        defect_log, "Defect ID", "| 40001 |",
-        "Correction identity / engineering re-verification", "NOT_APPLICABLE",
-    )
-    mutate_table(defect_log, "Defect ID", "| 40001 |", "Retest round", "NOT_APPLICABLE")
-    mutate_table(
-        defect_log, "Defect ID", "| 40001 |",
-        "Retest evidence ID / kind / SHA-256", "NOT_APPLICABLE",
-    )
     lines = defect_log.read_text(encoding="utf-8").splitlines()
-    lines = [line for line in lines if "| OPEN | FIXED_VERIFIED |" not in line]
+    if not keep_fixed:
+        mutate_table(
+            defect_log, "Defect ID", "| 40001 |",
+            "Correction identity / engineering re-verification", "NOT_APPLICABLE",
+        )
+        mutate_table(
+            defect_log, "Defect ID", "| 40001 |", "Retest round", "NOT_APPLICABLE"
+        )
+        mutate_table(
+            defect_log, "Defect ID", "| 40001 |",
+            "Retest evidence ID / kind / SHA-256", "NOT_APPLICABLE",
+        )
+        lines = defect_log.read_text(encoding="utf-8").splitlines()
+        lines = [line for line in lines if "| OPEN | FIXED_VERIFIED |" not in line]
     first_defect_index = next(index for index, line in enumerate(lines) if line.startswith("| 40001 | 2026") and len(cells(line)) == len(DEFECT_HEADERS))
     second_defect = row_line((
         40002,
@@ -757,11 +838,42 @@ def install_priority_inversion(lc, status, context):
     lines.insert(first_defect_index + 1, second_defect)
     lines.append(row_line((
         40002, "2026-09-08T00:00:01Z", "NOT_APPLICABLE", "OPEN",
-        f"{OLD_ID} / {OLD_HASH}", citation(second["id"], second["path"], lc),
+        f"{OLD_ID} / {OLD_HASH}", 1, citation(second["id"], second["path"], lc),
     )))
     defect_log.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-    status["real_user_journey_acceptance"]["fixed_verified_defect_ids"] = []
-    status["real_user_journey_acceptance"]["open_defect_ids"] = [40001, 40002]
+    if not keep_fixed:
+        status["real_user_journey_acceptance"]["fixed_verified_defect_ids"] = []
+        status["real_user_journey_acceptance"]["open_defect_ids"] = [40001, 40002]
+    else:
+        status["real_user_journey_acceptance"]["open_defect_ids"] = [40002]
+
+
+def write_priority_exception(lc):
+    evidence_id = "PRIORITY-EXCEPTION-40001-40002"
+    record = {
+        "record_role": "REAL_USER_JOURNEY_REPAIR_PRIORITY_EXCEPTION",
+        "evidence_schema_version": "4.0.0",
+        "evidence_id": evidence_id,
+        "candidate_id": CURRENT_ID,
+        "candidate_hash": CURRENT_HASH,
+        "earlier_defect_id": 40001,
+        "earlier_repair_sequence": 1,
+        "earlier_layer": "BACKEND_CORE",
+        "later_defect_id": 40002,
+        "later_repair_sequence": 2,
+        "later_layer": "USER_SERVICE_BOUNDARY",
+        "authority": "OWNER-1",
+        "rationale": "shared-core correction unblocks both defects",
+        "decision": "ALLOW_PRIORITY_EXCEPTION",
+    }
+    path = lc / "evidence/real-user-journey/priority-exceptions/40001-40002.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
+    mutate_table(
+        lc / "REAL-USER-JOURNEY-DEFECT-LOG.md", "Defect ID", "| 40001 |",
+        "Priority exception justification", citation(evidence_id, path, lc),
+    )
+    return path
 
 
 def add_successful_route_to_failed_round(lc, route_record):
@@ -783,6 +895,11 @@ def add_successful_route_to_failed_round(lc, route_record):
     mutate_table(
         acceptance, "Round", f"{OLD_ID} / {OLD_HASH}",
         "Required routes / passed / failed", "3 / 1 / 1",
+    )
+    mutate_table(
+        acceptance, "Round", f"{OLD_ID} / {OLD_HASH}",
+        "Unattempted route dispositions",
+        "ROUTE-CENTER / GLOBAL_BLOCKED / RUJE-001-900 / 40001",
     )
     mutate_table(
         acceptance, "Round", f"{OLD_ID} / {OLD_HASH}", "First and last evidence",
@@ -824,6 +941,26 @@ with tempfile.TemporaryDirectory() as temporary:
     )
     assert any("actual screenshot" in error for error in errors_for(root, status, phase))
 
+for corrupt in (
+    lambda data: data[:-12],
+    lambda data: data[:data.index(b"IDAT") + 5]
+    + bytes([data[data.index(b"IDAT") + 5] ^ 1])
+    + data[data.index(b"IDAT") + 6:],
+):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        lc, status, phase, context = write_project(root)
+        screenshot = context["evidence"][(1, "ROUTE-DIRECT", "SCREENSHOT")]
+        screenshot["path"].write_bytes(corrupt(screenshot["path"].read_bytes()))
+        mutate_table(
+            lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Round", screenshot["id"],
+            "Screenshot SHA-256", hashlib.sha256(screenshot["path"].read_bytes()).hexdigest(),
+        )
+        assert any(
+            "structurally complete screenshot" in error
+            for error in errors_for(root, status, phase)
+        )
+
 # Nonvisual evidence is a kind-specific project evidence record bound to every
 # route/candidate/round/step identity. A generic log or drifted identity fails.
 with tempfile.TemporaryDirectory() as temporary:
@@ -853,6 +990,30 @@ with tempfile.TemporaryDirectory() as temporary:
         "Evidence kind", "SERVICE_ACTOR_IDENTITY",
     )
     assert any("evidence kind is not applicable" in error for error in errors_for(root, status, phase))
+
+for route_id, kind, message in (
+    ("ROUTE-AGENT", "AGENT_IDENTITY", "Agent identity"),
+    ("ROUTE-CENTER", "SERVICE_ACTOR_IDENTITY", "service actor identity"),
+    ("ROUTE-CENTER", "ASSISTED_ACTION", "assisted action"),
+    ("ROUTE-CENTER", "USER_COMMUNICATION", "user communication"),
+):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        lc, status, phase, context = write_project(root)
+        item = context["evidence"][(1, route_id, kind)]
+        remove_table_row(lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "| " + item["id"] + " |")
+        assert any(message in error for error in errors_for(root, status, phase))
+
+for route_id in ("ROUTE-AGENT", "ROUTE-CENTER"):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        lc, status, phase, context = write_project(root)
+        item = context["evidence"][(1, route_id, "AUTHORIZATION_DECISION")]
+        mutate_json_evidence(
+            lc, item["id"],
+            lambda record: record["event_or_result"].__setitem__("decision", "DENY"),
+        )
+        assert any("affirmative authorization" in error for error in errors_for(root, status, phase))
 
 # Receipt citations are resolved; the authoritative acceptance index and
 # candidate/route/Run/D3/start joins cannot be satisfied by matching strings.
@@ -887,6 +1048,34 @@ for field, value, message in (
 with tempfile.TemporaryDirectory() as temporary:
     root = Path(temporary)
     lc, status, phase, context = write_project(root)
+    route_id = "ROUTE-AGENT"
+    old_d3 = "D3-AGENT"
+    renamed_d3 = "D3-RENAMED"
+    mutate_receipt(
+        lc, route_id,
+        lambda fields: fields.update({
+            "D3 Receipt": renamed_d3,
+            "Acceptance steps": fields["Acceptance steps"].replace(old_d3, renamed_d3),
+        }),
+        update_run_d3=True,
+    )
+    artifacts = context["task5_artifacts"][route_id]
+    final_fields = parse_markdown(artifacts["final_path"])
+    final_fields["D3 / Loop Owner Acceptance evidence"] = final_fields[
+        "D3 / Loop Owner Acceptance evidence"
+    ].replace(old_d3, renamed_d3)
+    write_markdown(artifacts["final_path"], "Final Feature Verification", final_fields)
+    mutate_table(
+        lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Journey ID", route_id,
+        "Task5 Final Verification / D3 citations",
+        "FINAL:" + citation(final_fields["Verification ID"], artifacts["final_path"], lc)
+        + "; D3:" + artifacts["d3_citation"],
+    )
+    assert any("actual Task5 D3 artifact" in error for error in errors_for(root, status, phase))
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, context = write_project(root)
     receipt = context["receipts"]["ROUTE-AGENT"]
     receipt.write_text(receipt.read_text(encoding="utf-8") + "\nmutated\n", encoding="utf-8")
     assert any("receipt hash" in error for error in errors_for(root, status, phase))
@@ -897,6 +1086,29 @@ with tempfile.TemporaryDirectory() as temporary:
     root = Path(temporary)
     lc, status, phase, _ = write_project(root, historical=True)
     assert errors_for(root, status, phase) == [], errors_for(root, status, phase)
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, _ = write_project(root, historical=True)
+    mutate_table(
+        lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Round", f"{OLD_ID} / {OLD_HASH}",
+        "Unattempted route dispositions",
+        "ROUTE-AGENT / GLOBAL_BLOCKED / RUJE-001-900 / 40001",
+    )
+    assert any("unattempted adopted route" in error for error in errors_for(root, status, phase))
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, _ = write_project(root, historical=True)
+    mutate_table(
+        lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Round", f"{OLD_ID} / {OLD_HASH}",
+        "Unattempted route dispositions",
+        "; ".join(
+            route_id + " / GLOBAL_BLOCKED / MISSING-EVIDENCE / 40001"
+            for route_id in ("ROUTE-AGENT", "ROUTE-CENTER")
+        ),
+    )
+    assert any("blocking evidence" in error for error in errors_for(root, status, phase))
 
 # A failed round may contain another attempted route that passed. It stops only
 # the failed route at its defect and does not falsely mark every attempt failed.
@@ -953,6 +1165,19 @@ with tempfile.TemporaryDirectory() as temporary:
     )
     assert any("FIXED_VERIFIED history evidence" in error for error in errors_for(root, status, phase))
 
+for column, value in (
+    ("Candidate ID / SHA-256", f"{CURRENT_ID} / {CURRENT_HASH}"),
+    ("Round", "2"),
+):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        lc, status, phase, _ = write_project(root, historical=True)
+        mutate_table(
+            lc / "REAL-USER-JOURNEY-DEFECT-LOG.md", "Defect ID",
+            "NOT_APPLICABLE | OPEN", column, value,
+        )
+        assert any("history candidate/round" in error for error in errors_for(root, status, phase))
+
 # Owner exemption is a resolved project decision record whose authority, impact,
 # recovery condition, candidate, route, and defect identity join the history.
 with tempfile.TemporaryDirectory() as temporary:
@@ -989,12 +1214,34 @@ with tempfile.TemporaryDirectory() as temporary:
         "Priority exception justification", "because it is easier",
     )
     assert any("repair priority order" in error for error in validator.validate_defect_log(root, status))
+    write_priority_exception(lc)
+    assert not any("repair priority order" in error for error in validator.validate_defect_log(root, status))
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, _, context = write_project(root, historical=True)
+    install_priority_inversion(lc, status, context, keep_fixed=True)
+    assert any(
+        "repair priority order" in error
+        for error in validator.validate_defect_log(root, status)
+    ), "a completed core repair bypassed the boundary-first order"
+    path = write_priority_exception(lc)
+    assert not any(
+        "repair priority order" in error
+        for error in validator.validate_defect_log(root, status)
+    )
+    record = json.loads(path.read_text(encoding="utf-8"))
+    record["later_defect_id"] = 49999
+    path.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8", newline="\n")
     mutate_table(
         lc / "REAL-USER-JOURNEY-DEFECT-LOG.md", "Defect ID", "| 40001 |",
         "Priority exception justification",
-        "OWNER-PRIORITY-EXCEPTION-1: shared-core correction unblocks both defects",
+        citation("PRIORITY-EXCEPTION-40001-40002", path, lc),
     )
-    assert not any("repair priority order" in error for error in validator.validate_defect_log(root, status))
+    assert any(
+        "priority exception evidence" in error
+        for error in validator.validate_defect_log(root, status)
+    )
 
 # Malformed status/map containers return deterministic validation errors instead
 # of TypeError, including invalid counts, IDs, index members, and route lists.
