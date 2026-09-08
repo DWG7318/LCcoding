@@ -527,6 +527,7 @@ for marker in (
     "COPY_ON_WRITE_EXTERNAL_TARGET",
     "ORIGINAL_3_0_INPUTS_BYTES_AND_MTIMES_UNCHANGED",
     "INDEPENDENT_GIT_METADATA_NO_SHARED_ADMIN_OR_HARDLINKS",
+    "UNBORN_HEAD_PRESERVED_NO_COMMIT_INVENTED",
     "PLATFORM_COMPLETION",
     "DRAFT",
     "PERSONAL_AGENT_NOT_CLAIMED",
@@ -714,6 +715,122 @@ with tempfile.TemporaryDirectory(prefix="lccoding-linked-worktree-400-") as temp
     assert git_text(linked_source, "status", "--porcelain=v1", "--untracked-files=all") == source_status_before
     assert (source_index.read_bytes(), source_index.stat().st_mtime_ns) == source_index_before
     assert snapshot(linked_source) == source_tree_before
+
+with tempfile.TemporaryDirectory(prefix="lccoding-unborn-git-400-") as temporary:
+    base = Path(temporary)
+    unborn_source = base / "unborn-source-300"
+    unborn_target = base / "unborn-target-400"
+    unborn_source.mkdir()
+    init_result = run(
+        ["git", "init", "--quiet", "--initial-branch=unborn-migration"],
+        cwd=unborn_source,
+    )
+    assert init_result.returncode == 0, init_result.stdout + init_result.stderr
+    run(
+        [
+            "git",
+            "remote",
+            "add",
+            "origin",
+            "https://example.invalid/lccoding/unborn.git",
+        ],
+        cwd=unborn_source,
+    ).check_returncode()
+    make_source(unborn_source, accepted=False)
+    run(["git", "add", "-A"], cwd=unborn_source).check_returncode()
+    assert run([sys.executable, str(PROJECT_VALIDATOR), str(unborn_source)]).returncode == 0
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=unborn_source).returncode != 0
+    assert git_text(unborn_source, "symbolic-ref", "--quiet", "--short", "HEAD") == (
+        "unborn-migration"
+    )
+
+    source_status_before = git_text(
+        unborn_source, "status", "--porcelain=v1", "--untracked-files=all"
+    )
+    assert source_status_before
+    source_admin = Path(
+        git_text(unborn_source, "rev-parse", "--absolute-git-dir")
+    ).resolve()
+    source_common = Path(
+        git_text(unborn_source, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    ).resolve()
+    source_index = Path(
+        git_text(
+            unborn_source,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "index",
+        )
+    ).resolve()
+    source_objects = Path(
+        git_text(
+            unborn_source,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "objects",
+        )
+    ).resolve()
+    source_index_before = (source_index.read_bytes(), source_index.stat().st_mtime_ns)
+    source_tree_before = snapshot(unborn_source)
+
+    unborn_result = invoke(unborn_source, unborn_target)
+    assert unborn_result.returncode == 0, unborn_result.stdout + unborn_result.stderr
+    target_validation = run(
+        [sys.executable, str(PROJECT_VALIDATOR), str(unborn_target)]
+    )
+    assert target_validation.returncode == 0, target_validation.stdout + target_validation.stderr
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=unborn_target).returncode != 0
+    assert git_text(unborn_target, "symbolic-ref", "--quiet", "--short", "HEAD") == (
+        "unborn-migration"
+    )
+    assert git_text(unborn_target, "config", "--get", "remote.origin.url") == (
+        "https://example.invalid/lccoding/unborn.git"
+    )
+
+    target_admin = Path(
+        git_text(unborn_target, "rev-parse", "--absolute-git-dir")
+    ).resolve()
+    target_common = Path(
+        git_text(unborn_target, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    ).resolve()
+    target_index = Path(
+        git_text(
+            unborn_target,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "index",
+        )
+    ).resolve()
+    target_objects = Path(
+        git_text(
+            unborn_target,
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "objects",
+        )
+    ).resolve()
+    assert (unborn_target / ".git").is_dir()
+    assert target_admin == target_common == (unborn_target / ".git").resolve()
+    assert target_admin != source_admin
+    assert target_common != source_common
+    assert target_index != source_index
+    assert target_objects != source_objects
+    assert not (target_objects / "info/alternates").exists()
+
+    target_add = run(["git", "add", ".lccoding/status.json"], cwd=unborn_target)
+    assert target_add.returncode == 0, target_add.stdout + target_add.stderr
+    assert target_index.is_file()
+    assert git_text(unborn_target, "status", "--porcelain=v1")
+    assert run(["git", "rev-parse", "--verify", "HEAD"], cwd=unborn_target).returncode != 0
+    assert git_text(
+        unborn_source, "status", "--porcelain=v1", "--untracked-files=all"
+    ) == source_status_before
+    assert (source_index.read_bytes(), source_index.stat().st_mtime_ns) == source_index_before
+    assert snapshot(unborn_source) == source_tree_before
 
 validator_spec = importlib.util.spec_from_file_location(
     "migration_400_status_authority", PROJECT_VALIDATOR

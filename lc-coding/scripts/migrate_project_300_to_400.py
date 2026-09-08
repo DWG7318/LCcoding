@@ -480,15 +480,19 @@ def safe_cleanup(stage, destination_parent, destination_name):
 
 
 def run_git(repository, *arguments):
-    result = subprocess.run(
+    result = git_result(repository, *arguments)
+    if result.returncode:
+        raise MigrationError("independent Git materialization failed")
+    return result.stdout.strip()
+
+
+def git_result(repository, *arguments):
+    return subprocess.run(
         ["git", "--no-optional-locks", *arguments],
         cwd=repository,
         capture_output=True,
         text=True,
     )
-    if result.returncode:
-        raise MigrationError("independent Git materialization failed")
-    return result.stdout.strip()
 
 
 def absolute_git_path(repository, *arguments):
@@ -571,13 +575,42 @@ def materialize_source(source, stage):
     if not git_marker.exists():
         shutil.copytree(source, stage, copy_function=shutil.copy2)
         return
-    source_head = run_git(source, "rev-parse", "--verify", "HEAD")
-    source_origin = subprocess.run(
-        ["git", "--no-optional-locks", "config", "--get", "remote.origin.url"],
-        cwd=source,
-        capture_output=True,
-        text=True,
-    )
+    inside_work_tree = git_result(source, "rev-parse", "--is-inside-work-tree")
+    if inside_work_tree.returncode or inside_work_tree.stdout.strip() != "true":
+        raise MigrationError("independent Git materialization failed")
+    source_head = git_result(source, "rev-parse", "--verify", "HEAD")
+    source_origin = git_result(source, "config", "--get", "remote.origin.url")
+    if source_head.returncode:
+        source_branch = git_result(
+            source, "symbolic-ref", "--quiet", "--short", "HEAD"
+        )
+        if source_branch.returncode or not source_branch.stdout.strip():
+            raise MigrationError("independent Git materialization failed")
+        initialized = subprocess.run(
+            [
+                "git",
+                "init",
+                "--quiet",
+                f"--initial-branch={source_branch.stdout.strip()}",
+                str(stage),
+            ],
+            cwd=stage.parent,
+            capture_output=True,
+            text=True,
+        )
+        if initialized.returncode:
+            raise MigrationError("independent Git materialization failed")
+        if source_origin.returncode == 0 and source_origin.stdout.strip():
+            run_git(stage, "remote", "add", "origin", source_origin.stdout.strip())
+        overlay_source_tree(source, stage)
+        verify_independent_git(source, stage)
+        if git_result(stage, "rev-parse", "--verify", "HEAD").returncode == 0:
+            raise MigrationError("unborn Git materialization invented a commit")
+        if run_git(stage, "symbolic-ref", "--quiet", "--short", "HEAD") != (
+            source_branch.stdout.strip()
+        ):
+            raise MigrationError("unborn Git branch identity was not preserved")
+        return
     clone = subprocess.run(
         [
             "git",
@@ -594,7 +627,7 @@ def materialize_source(source, stage):
     )
     if clone.returncode:
         raise MigrationError("independent Git materialization failed")
-    run_git(stage, "checkout", "--quiet", "--detach", source_head)
+    run_git(stage, "checkout", "--quiet", "--detach", source_head.stdout.strip())
     if source_origin.returncode == 0 and source_origin.stdout.strip():
         run_git(stage, "remote", "set-url", "origin", source_origin.stdout.strip())
     else:
