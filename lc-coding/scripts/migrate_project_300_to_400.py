@@ -479,6 +479,131 @@ def safe_cleanup(stage, destination_parent, destination_name):
     shutil.rmtree(resolved, onerror=remove_readonly)
 
 
+def run_git(repository, *arguments):
+    result = subprocess.run(
+        ["git", "--no-optional-locks", *arguments],
+        cwd=repository,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise MigrationError("independent Git materialization failed")
+    return result.stdout.strip()
+
+
+def absolute_git_path(repository, *arguments):
+    value = Path(run_git(repository, *arguments))
+    if not value.is_absolute():
+        value = Path(repository) / value
+    return value.resolve(strict=True)
+
+
+def reject_shared_git_objects(source_common, target_common):
+    source_objects = source_common / "objects"
+    target_objects = target_common / "objects"
+    if not source_objects.is_dir() or not target_objects.is_dir():
+        raise MigrationError("independent Git object storage cannot be proved")
+    for target_object in target_objects.rglob("*"):
+        if not target_object.is_file() or target_object.is_symlink():
+            continue
+        relative = target_object.relative_to(target_objects)
+        source_object = source_objects / relative
+        if not source_object.is_file() or source_object.is_symlink():
+            continue
+        try:
+            shared = os.path.samefile(source_object, target_object)
+        except OSError as error:
+            raise MigrationError("independent Git object storage cannot be proved") from error
+        if shared:
+            raise MigrationError("target Git object storage shares source hardlinks")
+
+
+def verify_independent_git(source, target):
+    source_admin = absolute_git_path(source, "rev-parse", "--absolute-git-dir")
+    source_common = absolute_git_path(source, "rev-parse", "--git-common-dir")
+    target_admin = absolute_git_path(target, "rev-parse", "--absolute-git-dir")
+    target_common = absolute_git_path(target, "rev-parse", "--git-common-dir")
+    expected_admin = (target / ".git").resolve(strict=True)
+    if not expected_admin.is_dir() or target_admin != expected_admin or target_common != expected_admin:
+        raise MigrationError("target Git metadata is not an independent repository")
+    if target_admin in {source_admin, source_common} or target_common in {
+        source_admin,
+        source_common,
+    }:
+        raise MigrationError("target Git metadata still points at the source repository")
+    alternates = target_common / "objects/info/alternates"
+    if alternates.exists():
+        try:
+            if alternates.read_bytes().strip():
+                raise MigrationError("target Git object storage uses source alternates")
+        except OSError as error:
+            raise MigrationError("independent Git alternates state cannot be proved") from error
+    reject_shared_git_objects(source_common, target_common)
+
+
+def remove_checkout_except_git(stage):
+    for child in stage.iterdir():
+        if child.name == ".git":
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+
+def overlay_source_tree(source, stage):
+    def ignore_root_git(directory, names):
+        if Path(directory).resolve() == source:
+            return {".git"}.intersection(names)
+        return set()
+
+    shutil.copytree(
+        source,
+        stage,
+        dirs_exist_ok=True,
+        copy_function=shutil.copy2,
+        ignore=ignore_root_git,
+    )
+
+
+def materialize_source(source, stage):
+    git_marker = source / ".git"
+    if not git_marker.exists():
+        shutil.copytree(source, stage, copy_function=shutil.copy2)
+        return
+    source_head = run_git(source, "rev-parse", "--verify", "HEAD")
+    source_origin = subprocess.run(
+        ["git", "--no-optional-locks", "config", "--get", "remote.origin.url"],
+        cwd=source,
+        capture_output=True,
+        text=True,
+    )
+    clone = subprocess.run(
+        [
+            "git",
+            "clone",
+            "--quiet",
+            "--no-checkout",
+            "--no-local",
+            "--no-hardlinks",
+            str(source),
+            str(stage),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if clone.returncode:
+        raise MigrationError("independent Git materialization failed")
+    run_git(stage, "checkout", "--quiet", "--detach", source_head)
+    if source_origin.returncode == 0 and source_origin.stdout.strip():
+        run_git(stage, "remote", "set-url", "origin", source_origin.stdout.strip())
+    else:
+        run_git(stage, "remote", "remove", "origin")
+    remove_checkout_except_git(stage)
+    overlay_source_tree(source, stage)
+    verify_independent_git(source, stage)
+
+
 def migrate(source_argument, destination_argument):
     source, destination, destination_parent = resolve_paths(
         source_argument, destination_argument
@@ -486,7 +611,7 @@ def migrate(source_argument, destination_argument):
     source_status, source_phase_status, template, route_template = validate_source(source)
     stage = destination_parent / f".{destination.name}.lccoding-migrate-{uuid.uuid4().hex}"
     try:
-        shutil.copytree(source, stage, copy_function=shutil.copy2)
+        materialize_source(source, stage)
         transform(stage, source_status, source_phase_status, template, route_template)
         phase_validation = run_phase_validator(stage)
         if phase_validation.returncode:

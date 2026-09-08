@@ -526,6 +526,7 @@ for marker in (
     "Target status schema: 4.0.0",
     "COPY_ON_WRITE_EXTERNAL_TARGET",
     "ORIGINAL_3_0_INPUTS_BYTES_AND_MTIMES_UNCHANGED",
+    "INDEPENDENT_GIT_METADATA_NO_SHARED_ADMIN_OR_HARDLINKS",
     "PLATFORM_COMPLETION",
     "DRAFT",
     "PERSONAL_AGENT_NOT_CLAIMED",
@@ -653,6 +654,66 @@ with tempfile.TemporaryDirectory(prefix="lccoding-migration-400-") as temporary:
     assert not duplicate_target.exists()
     assert snapshot(duplicate_source) == duplicate_before
     assert not list(base.glob(".*.lccoding-migrate-*"))
+
+with tempfile.TemporaryDirectory(prefix="lccoding-linked-worktree-400-") as temporary:
+    base = Path(temporary)
+    repository = base / "repository"
+    linked_source = base / "linked-source-300"
+    linked_target = base / "linked-target-400"
+    repository.mkdir()
+    run(["git", "init", "--quiet"], cwd=repository).check_returncode()
+    run(["git", "config", "user.email", "fixture@example.invalid"], cwd=repository).check_returncode()
+    run(["git", "config", "user.name", "Fixture"], cwd=repository).check_returncode()
+    write(repository / "seed.txt", "seed\n")
+    run(["git", "add", "seed.txt"], cwd=repository).check_returncode()
+    run(["git", "commit", "--quiet", "-m", "seed"], cwd=repository).check_returncode()
+    worktree_result = run(
+        ["git", "worktree", "add", "--quiet", "-b", "migration-linked-source", str(linked_source), "HEAD"],
+        cwd=repository,
+    )
+    assert worktree_result.returncode == 0, worktree_result.stdout + worktree_result.stderr
+    assert (linked_source / ".git").is_file(), "fixture is not a real linked worktree"
+    make_source(linked_source, accepted=False)
+    run(["git", "add", "-A"], cwd=linked_source).check_returncode()
+    run(["git", "commit", "--quiet", "-m", "valid 3.0 linked source"], cwd=linked_source).check_returncode()
+
+    def git_text(repo, *arguments):
+        result = run(["git", "--no-optional-locks", *arguments], cwd=repo)
+        assert result.returncode == 0, result.stdout + result.stderr
+        return result.stdout.strip()
+
+    source_status_before = git_text(linked_source, "status", "--porcelain=v1", "--untracked-files=all")
+    assert source_status_before == ""
+    source_admin = Path(git_text(linked_source, "rev-parse", "--absolute-git-dir")).resolve()
+    source_index_text = git_text(
+        linked_source, "rev-parse", "--path-format=absolute", "--git-path", "index"
+    )
+    source_index = Path(source_index_text)
+    if not source_index.is_absolute():
+        source_index = linked_source / source_index
+    source_index = source_index.resolve()
+    source_index_before = (source_index.read_bytes(), source_index.stat().st_mtime_ns)
+    source_tree_before = snapshot(linked_source)
+
+    linked_result = invoke(linked_source, linked_target)
+    assert linked_result.returncode == 0, linked_result.stdout + linked_result.stderr
+    assert run([sys.executable, str(PROJECT_VALIDATOR), str(linked_target)]).returncode == 0
+    target_admin = Path(git_text(linked_target, "rev-parse", "--absolute-git-dir")).resolve()
+    target_common = Path(git_text(linked_target, "rev-parse", "--git-common-dir"))
+    if not target_common.is_absolute():
+        target_common = linked_target / target_common
+    target_common = target_common.resolve()
+    assert target_admin != source_admin
+    assert (linked_target / ".git").is_dir()
+    assert target_admin == target_common == (linked_target / ".git").resolve()
+    assert not (target_common / "objects/info/alternates").exists()
+
+    target_add = run(["git", "add", ".lccoding/status.json"], cwd=linked_target)
+    assert target_add.returncode == 0, target_add.stdout + target_add.stderr
+    assert git_text(linked_target, "status", "--porcelain=v1")
+    assert git_text(linked_source, "status", "--porcelain=v1", "--untracked-files=all") == source_status_before
+    assert (source_index.read_bytes(), source_index.stat().st_mtime_ns) == source_index_before
+    assert snapshot(linked_source) == source_tree_before
 
 validator_spec = importlib.util.spec_from_file_location(
     "migration_400_status_authority", PROJECT_VALIDATOR

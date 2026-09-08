@@ -4,6 +4,7 @@
 - Target status schema: 4.0.0
 - Candidate construction: COPY_ON_WRITE_EXTERNAL_TARGET
 - Source preservation: ORIGINAL_3_0_INPUTS_BYTES_AND_MTIMES_UNCHANGED
+- Git target isolation: INDEPENDENT_GIT_METADATA_NO_SHARED_ADMIN_OR_HARDLINKS
 - Historical status treatment: PRESERVED_UNDER_.lccoding/history/3.0.0
 - Required publication behavior: ATOMIC_TARGET_ABSENT_ON_FAILURE
 - Accepted direct-browser classification: PLATFORM_COMPLETION
@@ -17,6 +18,14 @@ The migration accepts only a separate, nonexistent output path. It validates the
 exact 3.0 source, constructs and validates a staged 4.0 candidate, and publishes
 the target only after `validate_phase_status.py` and `validate_project.py` both
 pass. Failure leaves the target absent and never changes the source tree.
+
+For a standalone repository or linked worktree, the staged target materializes
+its own Git administrative directory and object storage through a non-local,
+no-hardlink clone of the exact source HEAD. The exact working tree is then
+overlaid without copying the source `.git` directory or pointer. The migration
+fails closed unless separate admin/common directories, absence of object
+alternates, and absence of shared object hardlinks can be proved. Target Git
+index or status operations therefore cannot mutate the source worktree index.
 
 An accepted 3.0 screenshot-backed browser journey supports only a conservative
 `PLATFORM_COMPLETION` classification. The copied candidate receives a DRAFT

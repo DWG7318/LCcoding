@@ -2,7 +2,7 @@
 
 ## 3.0.0
 
-- Added a copy-on-write 3.0.0-to-4.0.0 project migration. Only accepted direct-browser facts are classified as `PLATFORM_COMPLETION`, with a DRAFT and explicitly unproved direct route; the migration makes no claim of Personal Agent or Service Center delivery. Legacy evidence remains preserved, failed publication leaves no target, and version carriers, release, push, installation, and global Skill deployment remain unchanged.
+- Added a copy-on-write 3.0.0-to-4.0.0 project migration. Only accepted direct-browser facts are classified as `PLATFORM_COMPLETION`, with a DRAFT and explicitly unproved direct route; the migration makes no claim of Personal Agent or Service Center delivery. Standalone repositories and linked worktrees receive independent Git administration/object storage without copied pointers, alternates, or shared hardlinks. Legacy evidence remains preserved, failed publication leaves no target, and version carriers, release, push, installation, and global Skill deployment remain unchanged.
 
 - The five-phase lifecycle and built-in BI are finalized for 3.0.0 following independently accepted preflight evidence, inserting screenshot-backed Real User Journey Acceptance before Delivery Preparation. The copy-on-write 2.8-to-3.0 migration preserves prior evidence as historical and leaves the new journey acceptance explicitly unproved; no formal tag or GitHub Release exists yet, and global installed Skill deployment remains a separate post-release action, performed only after the formal release is independently accepted.
 
