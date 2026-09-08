@@ -11,6 +11,7 @@
         "PRODUCT_SERVICE_STRATEGY",
         "PROJECT_INITIALIZATION"
       ],
+      "fine_milestone_path_condition": "LCCODING_LIFECYCLE_ADMITTED",
       "applicability_outcomes": [
         "WHOLE_PRODUCT_FIT",
         "BOUNDED_PRODUCT_FIT",
@@ -21,6 +22,14 @@
         "AGENT_COLLABORATIVE"
       ],
       "combined_product_service_strategy": "MIXED",
+      "applicability_admission": {
+        "admitted_outcomes": [
+          "WHOLE_PRODUCT_FIT",
+          "BOUNDED_PRODUCT_FIT"
+        ],
+        "terminal_outcome": "OTHER_METHOD_RECOMMENDED",
+        "incomplete_disposition": "PROPOSAL_INCOMPLETE"
+      },
       "end_before": "CALABASH_DRAFT",
       "exit_gate": "INITIAL_READY",
       "existing_takeover_input": "READY"
@@ -31,7 +40,7 @@
       "fine_milestones": [
         "CALABASH_DRAFT",
         "SERVICE_ROUTE_MAP",
-        "WORKFLOW_UI_SIMULATION",
+        "WORKFLOW_ROUTE_SURFACES_SIMULATION",
         "MANDATORY_CALABASH_UPGRADE",
         "PRODUCT_BASELINE"
       ],
@@ -51,6 +60,31 @@
         },
         "route_support_scope": "PER_DELIVERED_JOURNEY",
         "shared_capability_system": "WORKFLOW_BACKEND_CORE"
+      },
+      "formation_surface_contract": {
+        "selection_scope": "PER_DELIVERED_JOURNEY",
+        "required_product_ends": [
+          "WORKFLOW",
+          "SIMULATION",
+          "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+          "HUMAN_OBSERVABLE_OUTCOME_SURFACE"
+        ],
+        "conditional_surface_kinds": {
+          "DIRECT_PRODUCT": [
+            "DIRECT_PRODUCT_SURFACE",
+            "HUMAN_OBSERVABLE_OUTCOME_SURFACE"
+          ],
+          "PERSONAL_AGENT": [
+            "AGENT_SERVICE_SURFACE",
+            "HUMAN_OBSERVABLE_OUTCOME_SURFACE"
+          ],
+          "SERVICE_CENTER": [
+            "ASSISTED_SERVICE_SURFACE",
+            "HUMAN_OBSERVABLE_OUTCOME_SURFACE"
+          ]
+        },
+        "graphical_ui_required": "ONLY_WHEN_PROMISED_BY_ROUTE",
+        "artificial_ui_forbidden": true
       },
       "end_after": "PRODUCT_BASELINE",
       "exit_evidence": {
@@ -116,6 +150,8 @@
         "TASK_TRANSITION",
         "ARTIFACT",
         "AUTHORIZATION_DECISION",
+        "PLATFORM_EFFECT",
+        "RESULT_DELIVERY",
         "AUDIT_EVENT"
       ],
       "final_human_observable_outcome_required": true,

@@ -18,7 +18,7 @@ LCCoding coordinates product definition, formation, Real Product Integration, re
 
 Source clauses: [LC-AUTH-003](SPEC.md#lc-auth-003), [LC-INTEG-005](SPEC.md#lc-integ-005)
 
-LCCoding assesses fit for the full method without judging or rejecting the value of the underlying project. Its two primary product service strategies are platform completion and Agent collaboration; a mixed product uses both in one capability system. Direct Product, Personal Agent, and Service Center routes remain selected per delivered journey and converge on one shared Workflow/Backend/Core. Calabash owns product meaning and the Service Route Map; LCCoding owns lifecycle timing, adoption, impact, and proof.
+LCCoding assesses fit for the full method without judging or rejecting the value of the underlying project. Only a whole-product or bounded-product fit enters the remaining lifecycle. An other-method recommendation ends the LCCoding assessment without rejecting the project; insufficient facts remain proposal-incomplete without a negative fit result. Its two primary product service strategies are platform completion and Agent collaboration; a mixed product uses both in one capability system. Direct Product, Personal Agent, and Service Center routes remain selected per delivered journey and converge on one shared Workflow/Backend/Core. Calabash owns product meaning and the Service Route Map; LCCoding owns lifecycle timing, adoption, impact, and proof.
 
 ## Owner rights
 
@@ -38,7 +38,7 @@ Owner Proposal
 → Project Initialization
 → Calabash Draft
 → Service Route Map
-→ [Simulation World foundation first → Workflow capability end ∥ UI product-surface end]
+→ [Simulation World foundation first → Workflow capability end ∥ applicable route/service-surface and human-outcome ends]
 → Mandatory Calabash Upgrade
 → Product Baseline
 → Feature Slice
@@ -50,7 +50,7 @@ Owner Proposal
 → Delivery
 ```
 
-The compatible compact expression is `Calabash Draft → [Simulation foundation first → Workflow ∥ UI] → Mandatory Calabash Upgrade → Product Baseline`. The bracket is formation inside the existing lifecycle, not a new node.
+This is the admitted path only: an other-method recommendation is terminal before Proposal Readiness, while proposal-incomplete waits for facts and resumes assessment. The compatible 3.0 direct-product phrase `UI product-surface end` maps into the applicable-service-surface end and does not make UI mandatory for any other route. The bracket is formation inside the existing lifecycle, not a new node.
 
 ## Five phases and the execution axis
 
