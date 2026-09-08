@@ -932,7 +932,9 @@ fn journey_value_state(value: &str) -> Result<ViewState, ProjectionError> {
         "UNPROVED" | "PENDING" => Ok(ViewState::Pending),
         "ACTIVE" | "REWORK" | "REAL_USER_JOURNEY_REWORK" => Ok(ViewState::Active),
         "COMPLETE" | "VERIFIED" | "REAL_USER_JOURNEY_ACCEPTED" => Ok(ViewState::Done),
-        "BLOCKED" | "DEFERRED" | "REAL_USER_JOURNEY_DEFERRED" | "INVALID" | "INVALIDATED" => Ok(ViewState::Error),
+        "BLOCKED" | "DEFERRED" | "REAL_USER_JOURNEY_DEFERRED" | "INVALID" | "INVALIDATED" => {
+            Ok(ViewState::Error)
+        }
         _ => Err(ProjectionError::Inconsistent),
     }
 }
@@ -1004,7 +1006,7 @@ fn journey_record_value(value: &str) -> Result<&'static str, ProjectionError> {
 }
 
 fn journey_report(status: &StatusRecord) -> Result<Option<ReportView>, ProjectionError> {
-    if status.status_schema_version != "3.0.0" {
+    if !matches!(status.status_schema_version.as_str(), "3.0.0" | "4.0.0") {
         return Ok(None);
     }
     let journey = status
@@ -1053,7 +1055,11 @@ fn journey_report(status: &StatusRecord) -> Result<Option<ReportView>, Projectio
             ReportRow {
                 key: "row.open_defects",
                 value: RowValue::Metric {
-                    status: if journey.open_defect_ids.is_empty() { "CLEAR" } else { "OPEN" },
+                    status: if journey.open_defect_ids.is_empty() {
+                        "CLEAR"
+                    } else {
+                        "OPEN"
+                    },
                     completed: Some(0),
                     total: Some(count(journey.open_defect_ids.len())),
                     interval_minutes: None,
@@ -1087,6 +1093,7 @@ pub fn snapshot_from_status(
         "2.7.0" => "2.7.0",
         "2.8.0" => "2.8.0",
         "3.0.0" => "3.0.0",
+        "4.0.0" => "4.0.0",
         _ => return Err(ProjectionError::Inconsistent),
     };
     if manifest.is_some_and(|manifest| manifest.lccoding.version != manifest_schema) {
@@ -1201,18 +1208,57 @@ pub fn snapshot_from_status(
             },
         },
     ];
-    if matches!(status.status_schema_version.as_str(), "2.8.0" | "3.0.0") {
+    if matches!(
+        status.status_schema_version.as_str(),
+        "2.8.0" | "3.0.0" | "4.0.0"
+    ) {
         candidate_rows.extend(agent_summary_rows(status)?);
+    }
+    let mut proposal_rows = vec![
+        view_row("row.conclusion", step_state(&phases, "PROPOSAL_READINESS")?),
+        view_row("row.initial_gate", step_state(&phases, "INITIAL_READY")?),
+    ];
+    let mut calabash_rows = vec![
+        view_row("row.status", step_state(&phases, "CALABASH_DRAFT")?),
+        ReportRow {
+            key: "row.version_record",
+            value: RowValue::Record {
+                value: if calabash_version.is_some() {
+                    "RECORDED"
+                } else {
+                    "NOT_RECORDED"
+                },
+            },
+        },
+    ];
+    if status.status_schema_version == "4.0.0" {
+        proposal_rows.extend([
+            ReportRow {
+                key: "row.lccoding_applicability",
+                value: RowValue::Record {
+                    value: applicability_value(status)?,
+                },
+            },
+            ReportRow {
+                key: "row.product_service_strategy",
+                value: RowValue::Record {
+                    value: service_strategy_value(status)?,
+                },
+            },
+        ]);
+        calabash_rows.push(ReportRow {
+            key: "row.service_route_map",
+            value: RowValue::Record {
+                value: route_map_value(status)?,
+            },
+        });
     }
     let reports = Reports {
         proposal: report(
             "proposal",
             step_state(&phases, "PROPOSAL_READINESS")?,
             None,
-            vec![
-                view_row("row.conclusion", step_state(&phases, "PROPOSAL_READINESS")?),
-                view_row("row.initial_gate", step_state(&phases, "INITIAL_READY")?),
-            ],
+            proposal_rows,
         ),
         candidate: report(
             "candidate",
@@ -1224,19 +1270,7 @@ pub fn snapshot_from_status(
             "calabash",
             step_state(&phases, "CALABASH_DRAFT")?,
             calabash_version.clone(),
-            vec![
-                view_row("row.status", step_state(&phases, "CALABASH_DRAFT")?),
-                ReportRow {
-                    key: "row.version_record",
-                    value: RowValue::Record {
-                        value: if calabash_version.is_some() {
-                            "RECORDED"
-                        } else {
-                            "NOT_RECORDED"
-                        },
-                    },
-                },
-            ],
+            calabash_rows,
         ),
         simulation: metric_report(
             "simulation",
@@ -1302,6 +1336,7 @@ pub fn snapshot_from_status(
             "2.7.0" => "LCCoding 2.7.0 derived BI",
             "2.8.0" => "LCCoding 2.8.0 derived BI",
             "3.0.0" => "LCCoding 3.0.0 derived BI",
+            "4.0.0" => "LCCoding 4.0.0 derived BI",
             _ => return Err(ProjectionError::Inconsistent),
         },
         authoritative: false,
@@ -1325,10 +1360,20 @@ fn projected_step(
     aggregate: ViewState,
 ) -> Result<StepView, ProjectionError> {
     let (id, state, report) = match id {
+        "LCCODING_APPLICABILITY_ASSESSMENT" => (
+            "LCCODING_APPLICABILITY_ASSESSMENT",
+            applicability_state(status)?,
+            None,
+        ),
         "PROPOSAL_READINESS" => (
             "PROPOSAL_READINESS",
             state(&status.proposal)?,
             Some("proposal"),
+        ),
+        "PRODUCT_SERVICE_STRATEGY" => (
+            "PRODUCT_SERVICE_STRATEGY",
+            service_strategy_state(status)?,
+            None,
         ),
         "PROJECT_INITIALIZATION" => (
             "PROJECT_INITIALIZATION",
@@ -1345,6 +1390,7 @@ fn projected_step(
             state(&status.calabash_draft)?,
             Some("calabash"),
         ),
+        "SERVICE_ROUTE_MAP_READY" => ("SERVICE_ROUTE_MAP_READY", route_map_state(status)?, None),
         "SIMULATION_WORLD_FOUNDATION" => (
             "SIMULATION_WORLD_FOUNDATION",
             state(&status.simulation)?,
@@ -1436,6 +1482,59 @@ fn projected_step(
         _ => return Err(ProjectionError::Inconsistent),
     };
     Ok(step(id, state, report))
+}
+
+fn applicability_value(status: &StatusRecord) -> Result<&'static str, ProjectionError> {
+    match status.lccoding_applicability() {
+        Some("PENDING") => Ok("PENDING"),
+        Some("WHOLE_PRODUCT_FIT") => Ok("WHOLE_PRODUCT_FIT"),
+        Some("BOUNDED_PRODUCT_FIT") => Ok("BOUNDED_PRODUCT_FIT"),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn service_strategy_value(status: &StatusRecord) -> Result<&'static str, ProjectionError> {
+    match status.product_service_strategy() {
+        Some("PENDING") => Ok("PENDING"),
+        Some("PLATFORM_COMPLETION") => Ok("PLATFORM_COMPLETION"),
+        Some("AGENT_COLLABORATIVE") => Ok("AGENT_COLLABORATIVE"),
+        Some("MIXED") => Ok("MIXED"),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn route_map_value(status: &StatusRecord) -> Result<&'static str, ProjectionError> {
+    match status.service_route_map() {
+        Some("PENDING") => Ok("PENDING"),
+        Some("DRAFT") => Ok("DRAFT"),
+        Some("ADOPTED") => Ok("ADOPTED"),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn applicability_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    match applicability_value(status)? {
+        "PENDING" => Ok(ViewState::Pending),
+        "WHOLE_PRODUCT_FIT" | "BOUNDED_PRODUCT_FIT" => Ok(ViewState::Done),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn service_strategy_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    match service_strategy_value(status)? {
+        "PENDING" => Ok(ViewState::Pending),
+        "PLATFORM_COMPLETION" | "AGENT_COLLABORATIVE" | "MIXED" => Ok(ViewState::Done),
+        _ => Err(ProjectionError::Inconsistent),
+    }
+}
+
+fn route_map_state(status: &StatusRecord) -> Result<ViewState, ProjectionError> {
+    match route_map_value(status)? {
+        "PENDING" => Ok(ViewState::Pending),
+        "DRAFT" => Ok(ViewState::Active),
+        "ADOPTED" => Ok(ViewState::Done),
+        _ => Err(ProjectionError::Inconsistent),
+    }
 }
 
 fn step_state(phases: &[PhaseView], id: &str) -> Result<ViewState, ProjectionError> {

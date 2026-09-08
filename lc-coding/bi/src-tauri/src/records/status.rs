@@ -40,9 +40,8 @@ pub fn normalize_state(value: &str) -> Option<NormalizedState> {
             Some(NormalizedState::Active)
         }
         "PENDING" => Some(NormalizedState::Pending),
-        "BLOCKED" | "ERROR" | "FAIL" | "FAILED" | "INVALID" | "INVALIDATED" | "NOT_CONTINUING" | "REJECTED" => {
-            Some(NormalizedState::Error)
-        }
+        "BLOCKED" | "ERROR" | "FAIL" | "FAILED" | "INVALID" | "INVALIDATED" | "NOT_CONTINUING"
+        | "REJECTED" => Some(NormalizedState::Error),
         _ => None,
     }
 }
@@ -269,6 +268,12 @@ pub struct OpenGap {
 pub struct StatusRecord {
     pub record_role: String,
     pub status_schema_version: String,
+    #[serde(default)]
+    lccoding_applicability: Present<String>,
+    #[serde(default)]
+    product_service_strategy: Present<String>,
+    #[serde(default)]
+    service_route_map: Present<String>,
     pub project_id: String,
     pub updated_at: String,
     pub initialization_mode: String,
@@ -312,6 +317,18 @@ pub struct StatusRecord {
 }
 
 impl StatusRecord {
+    pub fn lccoding_applicability(&self) -> Option<&str> {
+        self.lccoding_applicability.value().map(String::as_str)
+    }
+
+    pub fn product_service_strategy(&self) -> Option<&str> {
+        self.product_service_strategy.value().map(String::as_str)
+    }
+
+    pub fn service_route_map(&self) -> Option<&str> {
+        self.service_route_map.value().map(String::as_str)
+    }
+
     pub fn agent_product_formation(&self) -> Option<&AgentProductFormation> {
         self.agent_product_formation.value()
     }
@@ -380,6 +397,7 @@ fn validate(status: &StatusRecord) -> Result<(), RecordError> {
         }
     }
     validate_candidate(&status.canonical_candidate, &status.status_schema_version)?;
+    validate_service_topology_summary(status)?;
     validate_agent_state(status)?;
     validate_journey_state(status)?;
     match &status.vulnerability_closure {
@@ -430,6 +448,35 @@ fn validate(status: &StatusRecord) -> Result<(), RecordError> {
     Ok(())
 }
 
+fn validate_service_topology_summary(status: &StatusRecord) -> Result<(), RecordError> {
+    let applicability = status.lccoding_applicability();
+    let strategy = status.product_service_strategy();
+    let route_map = status.service_route_map();
+    if status.status_schema_version != "4.0.0" {
+        return if applicability.is_none() && strategy.is_none() && route_map.is_none() {
+            Ok(())
+        } else {
+            Err(RecordError::Invalid)
+        };
+    }
+    if applicability.is_some_and(|value| {
+        matches!(
+            value,
+            "PENDING" | "WHOLE_PRODUCT_FIT" | "BOUNDED_PRODUCT_FIT"
+        )
+    }) && strategy.is_some_and(|value| {
+        matches!(
+            value,
+            "PENDING" | "PLATFORM_COMPLETION" | "AGENT_COLLABORATIVE" | "MIXED"
+        )
+    }) && route_map.is_some_and(|value| matches!(value, "PENDING" | "DRAFT" | "ADOPTED"))
+    {
+        Ok(())
+    } else {
+        Err(RecordError::Invalid)
+    }
+}
+
 pub(crate) fn direct_states(status: &StatusRecord) -> [&str; 19] {
     [
         &status.phase_gates.initial_ready,
@@ -463,7 +510,7 @@ fn validate_agent_state(status: &StatusRecord) -> Result<(), RecordError> {
                 return Err(RecordError::Invalid);
             }
         }
-        "2.8.0" | "3.0.0" => {
+        "2.8.0" | "3.0.0" | "4.0.0" => {
             let formation = status
                 .agent_product_formation()
                 .ok_or(RecordError::Invalid)?;
@@ -481,7 +528,7 @@ fn validate_agent_state(status: &StatusRecord) -> Result<(), RecordError> {
 fn validate_journey_state(status: &StatusRecord) -> Result<(), RecordError> {
     let gate = status.phase_gates.real_user_journey_accepted.value();
     let journey = status.real_user_journey_acceptance();
-    if status.status_schema_version != "3.0.0" {
+    if !matches!(status.status_schema_version.as_str(), "3.0.0" | "4.0.0") {
         return if gate.is_none() && journey.is_none() {
             Ok(())
         } else {
@@ -558,8 +605,7 @@ fn validate_journey_state(status: &StatusRecord) -> Result<(), RecordError> {
 }
 
 fn unique_defect_ids(ids: &[u64]) -> bool {
-    ids.iter().all(|value| *value >= 40_001)
-        && ids.windows(2).all(|window| window[0] < window[1])
+    ids.iter().all(|value| *value >= 40_001) && ids.windows(2).all(|window| window[0] < window[1])
 }
 
 fn validate_agent_product_formation(value: &AgentProductFormation) -> Result<(), RecordError> {

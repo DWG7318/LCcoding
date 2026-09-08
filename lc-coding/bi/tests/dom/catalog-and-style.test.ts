@@ -250,14 +250,37 @@ const EXPECTED_300_CATALOG = {
   },
 } as const;
 
-const EXPECTED_ALL_CATALOG = { ...EXPECTED_CATALOG, ...EXPECTED_300_CATALOG } as const;
+const EXPECTED_400_CATALOG = {
+  "value.whole_product_fit": { en: "Whole-product fit", zh_CN: "整体产品适配" },
+  "value.bounded_product_fit": { en: "Bounded product fit", zh_CN: "有界产品适配" },
+  "value.platform_completion": { en: "Platform completion", zh_CN: "平台完备" },
+  "value.agent_collaborative": { en: "Agent collaboration", zh_CN: "Agent 协作" },
+  "value.mixed": { en: "Mixed", zh_CN: "混合" },
+  "value.draft": { en: "Draft", zh_CN: "草案" },
+  "value.adopted": { en: "Adopted", zh_CN: "已采纳" },
+  "row.lccoding_applicability": { en: "LCCoding applicability", zh_CN: "LCCoding 适用性" },
+  "row.product_service_strategy": { en: "Product service strategy", zh_CN: "产品服务策略" },
+  "row.service_route_map": { en: "Service Route Map", zh_CN: "服务路线图" },
+  "step.LCCODING_APPLICABILITY_ASSESSMENT": {
+    en: "LCCoding Applicability Assessment",
+    zh_CN: "LCCoding 适用性评估",
+  },
+  "step.PRODUCT_SERVICE_STRATEGY": { en: "Product Service Strategy", zh_CN: "产品服务策略" },
+  "step.SERVICE_ROUTE_MAP_READY": { en: "Service Route Map Ready", zh_CN: "服务路线图就绪" },
+} as const;
+
+const EXPECTED_ALL_CATALOG = {
+  ...EXPECTED_CATALOG,
+  ...EXPECTED_300_CATALOG,
+  ...EXPECTED_400_CATALOG,
+} as const;
 
 describe("closed bilingual catalog", () => {
-  it("has the exact 140-key catalog with legacy and five-phase 3.0 tuples", () => {
+  it("has the exact 153-key catalog with legacy and schema-selected 4.0 tuples", () => {
     expect(CATALOG).toEqual(EXPECTED_ALL_CATALOG);
-    expect(Object.keys(CATALOG)).toHaveLength(140);
+    expect(Object.keys(CATALOG)).toHaveLength(153);
     expect(Object.keys(CATALOG).filter((key) => key.startsWith("phase."))).toHaveLength(6);
-    expect(Object.keys(CATALOG).filter((key) => key.startsWith("step."))).toHaveLength(26);
+    expect(Object.keys(CATALOG).filter((key) => key.startsWith("step."))).toHaveLength(29);
   });
 
   it("keeps identical complete language sets and never falls back in Chinese", () => {

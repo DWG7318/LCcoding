@@ -2,7 +2,9 @@ import { message, type Language, type MessageKey } from "../i18n/catalog";
 import type {
   AgentApplicability,
   AgentIntegration,
+  LockValue,
   MetricStatus,
+  RecordValue,
   ReportRow,
   ReportView,
   ViewState,
@@ -27,7 +29,14 @@ const VALUE_KEYS = {
   REAL_USER_JOURNEY_ACCEPTED: "value.journey_accepted",
   REAL_USER_JOURNEY_REWORK: "value.journey_rework",
   REAL_USER_JOURNEY_DEFERRED: "value.journey_deferred",
-} as const satisfies Readonly<Record<string, MessageKey>>;
+  WHOLE_PRODUCT_FIT: "value.whole_product_fit",
+  BOUNDED_PRODUCT_FIT: "value.bounded_product_fit",
+  PLATFORM_COMPLETION: "value.platform_completion",
+  AGENT_COLLABORATIVE: "value.agent_collaborative",
+  MIXED: "value.mixed",
+  DRAFT: "value.draft",
+  ADOPTED: "value.adopted",
+} as const satisfies Readonly<Record<LockValue | RecordValue, MessageKey>>;
 
 const METRIC_KEYS = {
   COMPLIANT: "metric.compliant",

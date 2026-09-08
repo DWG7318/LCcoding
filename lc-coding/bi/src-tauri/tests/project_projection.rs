@@ -71,11 +71,23 @@ fn baseline_complete_status() -> String {
 
 fn status_version(body: &str, version: &str) -> String {
     let mut value: Value = serde_json::from_str(body).unwrap();
-    if version != "3.0.0" {
-        assert!(value.as_object_mut().unwrap().remove("real_user_journey_acceptance").is_some());
-        assert!(value["phase_gates"].as_object_mut().unwrap().remove("REAL_USER_JOURNEY_ACCEPTED").is_some());
+    if !matches!(version, "3.0.0" | "4.0.0") {
+        assert!(
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("real_user_journey_acceptance")
+                .is_some()
+        );
+        assert!(
+            value["phase_gates"]
+                .as_object_mut()
+                .unwrap()
+                .remove("REAL_USER_JOURNEY_ACCEPTED")
+                .is_some()
+        );
     }
-    if matches!(version, "2.8.0" | "3.0.0") {
+    if matches!(version, "2.8.0" | "3.0.0" | "4.0.0") {
         assert!(value.get("agent_product_formation").is_some());
         assert!(value.get("agent_slice_integration").is_some());
     } else {
@@ -96,6 +108,11 @@ fn status_version(body: &str, version: &str) -> String {
         if value["current_phase"] == "REAL_PRODUCT_INTEGRATION" {
             value["current_phase"] = Value::String("ENGINEERING_RUNS".into());
         }
+    }
+    if version == "4.0.0" {
+        value["lccoding_applicability"] = Value::String("PENDING".into());
+        value["product_service_strategy"] = Value::String("PENDING".into());
+        value["service_route_map"] = Value::String("PENDING".into());
     }
     value["status_schema_version"] = Value::String(version.to_owned());
     serde_json::to_string_pretty(&value).unwrap()
@@ -291,9 +308,18 @@ fn accepted_journey_projects_only_sanitized_phase_four_counts_and_state() {
     assert_eq!(snapshot["schema"], "LCCoding 3.0.0 derived BI");
     assert_eq!(snapshot["phases"][3]["id"], "REAL_USER_JOURNEY_ACCEPTANCE");
     assert_eq!(snapshot["phases"][3]["state"], "done");
-    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][0]["value"]["completed"], 8);
-    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][4]["value"]["total"], 0);
-    assert_eq!(snapshot["reports"]["journey_acceptance"]["rows"][5]["value"]["completed"], 2);
+    assert_eq!(
+        snapshot["reports"]["journey_acceptance"]["rows"][0]["value"]["completed"],
+        8
+    );
+    assert_eq!(
+        snapshot["reports"]["journey_acceptance"]["rows"][4]["value"]["total"],
+        0
+    );
+    assert_eq!(
+        snapshot["reports"]["journey_acceptance"]["rows"][5]["value"]["completed"],
+        2
+    );
     let wire = snapshot.to_string();
     assert!(!wire.contains("REAL-USER-JOURNEY-ACCEPTANCE.md"));
     assert!(!wire.contains("40001"));
@@ -470,13 +496,14 @@ fn agent_native_status_is_schema_exact_and_identity_bound() {
 }
 
 #[test]
-fn status_adapters_drive_exact_260_270_280_and_300_phase_layouts() {
+fn status_adapters_drive_exact_260_270_280_300_and_400_phase_layouts() {
     let compatibility = embedded_compatibility_asset().unwrap();
     let expected_counts = [
         ("2.6.0", vec![3, 5, 7, 6]),
         ("2.7.0", vec![3, 7, 5, 6]),
         ("2.8.0", vec![3, 7, 5, 6]),
         ("3.0.0", vec![3, 7, 5, 5, 6]),
+        ("4.0.0", vec![5, 8, 5, 5, 6]),
     ];
     for (version, counts) in expected_counts {
         let status = parse_status(&status_version(&initial_status(), version)).unwrap();
@@ -508,7 +535,11 @@ fn status_adapters_drive_exact_260_270_280_and_300_phase_layouts() {
         );
         assert_eq!(
             snapshot["reports"].as_object().unwrap().len(),
-            if version == "3.0.0" { 9 } else { 8 }
+            if matches!(version, "3.0.0" | "4.0.0") {
+                9
+            } else {
+                8
+            }
         );
         assert!(
             !snapshot
@@ -533,6 +564,122 @@ fn status_adapters_drive_exact_260_270_280_and_300_phase_layouts() {
     let current_300 = compatibility.status_phase_steps("3.0.0").unwrap();
     assert_eq!(current_300[3].phase_id, "REAL_USER_JOURNEY_ACCEPTANCE");
     assert_eq!(current_300[3].step_ids.len(), 5);
+    let current_400 = compatibility.status_phase_steps("4.0.0").unwrap();
+    assert_eq!(
+        current_400[0].step_ids,
+        [
+            "LCCODING_APPLICABILITY_ASSESSMENT",
+            "PROPOSAL_READINESS",
+            "PRODUCT_SERVICE_STRATEGY",
+            "PROJECT_INITIALIZATION",
+            "INITIAL_READY",
+        ]
+    );
+    assert_eq!(current_400[1].step_ids[1], "SERVICE_ROUTE_MAP_READY");
+}
+
+#[test]
+fn schema_400_projects_only_exact_sanitized_service_topology_summaries() {
+    let mut value: Value =
+        serde_json::from_str(&status_version(&product_formation_status(), "4.0.0")).unwrap();
+    value["lccoding_applicability"] = Value::String("WHOLE_PRODUCT_FIT".into());
+    value["product_service_strategy"] = Value::String("MIXED".into());
+    value["service_route_map"] = Value::String("DRAFT".into());
+    let status = parse_status(&value.to_string()).unwrap();
+    let snapshot = serde_json::to_value(snapshot_from_status(&status, None).unwrap()).unwrap();
+
+    assert_eq!(snapshot["schema"], "LCCoding 4.0.0 derived BI");
+    assert_eq!(
+        snapshot["phases"][0]["steps"][0],
+        serde_json::json!({
+            "id": "LCCODING_APPLICABILITY_ASSESSMENT",
+            "state": "done",
+            "report": Value::Null,
+        })
+    );
+    assert_eq!(
+        snapshot["phases"][0]["steps"][2],
+        serde_json::json!({
+            "id": "PRODUCT_SERVICE_STRATEGY",
+            "state": "done",
+            "report": Value::Null,
+        })
+    );
+    assert_eq!(
+        snapshot["phases"][1]["steps"][1],
+        serde_json::json!({
+            "id": "SERVICE_ROUTE_MAP_READY",
+            "state": "active",
+            "report": Value::Null,
+        })
+    );
+    assert_eq!(
+        snapshot["reports"]["proposal"]["rows"][2],
+        serde_json::json!({
+            "key": "row.lccoding_applicability",
+            "value": { "kind": "record", "value": "WHOLE_PRODUCT_FIT" },
+        })
+    );
+    assert_eq!(
+        snapshot["reports"]["proposal"]["rows"][3],
+        serde_json::json!({
+            "key": "row.product_service_strategy",
+            "value": { "kind": "record", "value": "MIXED" },
+        })
+    );
+    assert_eq!(
+        snapshot["reports"]["calabash"]["rows"][2],
+        serde_json::json!({
+            "key": "row.service_route_map",
+            "value": { "kind": "record", "value": "DRAFT" },
+        })
+    );
+
+    let wire = snapshot.to_string();
+    for forbidden in ["evidence", "path", "repository", "authorization", "audit"] {
+        assert!(!wire.contains(forbidden));
+    }
+}
+
+#[test]
+fn schema_400_status_summaries_are_exact_and_fail_closed() {
+    let valid: Value = serde_json::from_str(&status_version(&initial_status(), "4.0.0")).unwrap();
+    assert!(parse_status(&valid.to_string()).is_ok());
+
+    for field in [
+        "lccoding_applicability",
+        "product_service_strategy",
+        "service_route_map",
+    ] {
+        let mut missing = valid.clone();
+        missing.as_object_mut().unwrap().remove(field);
+        assert!(
+            parse_status(&missing.to_string()).is_err(),
+            "missing {field}"
+        );
+        let mut null = valid.clone();
+        null[field] = Value::Null;
+        assert!(parse_status(&null.to_string()).is_err(), "null {field}");
+    }
+    for (field, invalid) in [
+        ("lccoding_applicability", "OTHER_METHOD_RECOMMENDED"),
+        ("lccoding_applicability", "WHOLE_PRODUCT"),
+        ("product_service_strategy", "AGENT_ONLY"),
+        ("service_route_map", "COMPLETE"),
+    ] {
+        let mut mutation = valid.clone();
+        mutation[field] = Value::String(invalid.into());
+        assert!(
+            parse_status(&mutation.to_string()).is_err(),
+            "{field}={invalid}"
+        );
+    }
+
+    let mut legacy: Value = serde_json::from_str(&initial_status()).unwrap();
+    legacy["lccoding_applicability"] = Value::String("WHOLE_PRODUCT_FIT".into());
+    legacy["product_service_strategy"] = Value::String("MIXED".into());
+    legacy["service_route_map"] = Value::String("ADOPTED".into());
+    assert!(parse_status(&legacy.to_string()).is_err());
 }
 
 #[test]
@@ -626,8 +773,20 @@ fn status_and_manifest_field_presence_is_schema_version_sensitive() {
     assert!(parse_status(&explicit_empty).is_ok());
 
     let mut legacy: Value = serde_json::from_str(&status_text).unwrap();
-    assert!(legacy.as_object_mut().unwrap().remove("real_user_journey_acceptance").is_some());
-    assert!(legacy["phase_gates"].as_object_mut().unwrap().remove("REAL_USER_JOURNEY_ACCEPTED").is_some());
+    assert!(
+        legacy
+            .as_object_mut()
+            .unwrap()
+            .remove("real_user_journey_acceptance")
+            .is_some()
+    );
+    assert!(
+        legacy["phase_gates"]
+            .as_object_mut()
+            .unwrap()
+            .remove("REAL_USER_JOURNEY_ACCEPTED")
+            .is_some()
+    );
     assert!(
         legacy
             .as_object_mut()
@@ -785,7 +944,11 @@ fn duplicate_unknown_unsafe_and_unsupported_status_values_fail_closed() {
         1,
     );
     let unsafe_name = valid.replace("示例 Project", "C:/private/project");
-    let unsupported = valid.replacen("\"status_schema_version\": \"3.0.0\"", "\"status_schema_version\": \"2.3.0\"", 1);
+    let unsupported = valid.replacen(
+        "\"status_schema_version\": \"3.0.0\"",
+        "\"status_schema_version\": \"2.3.0\"",
+        1,
+    );
 
     for malformed in [duplicate, unknown, unsafe_name] {
         let error = parse_status(&malformed).unwrap_err();

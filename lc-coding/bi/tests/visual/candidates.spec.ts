@@ -29,6 +29,13 @@ if (VISUAL_CASES.length + 1 !== 37) {
 function journeySnapshot(): unknown {
   const snapshot = structuredClone(successSnapshot) as Record<string, any>;
   snapshot.schema = "LCCoding 3.0.0 derived BI";
+  snapshot.phases[0].steps.splice(2, 1);
+  snapshot.phases[0].steps.splice(0, 1);
+  snapshot.phases[1].steps.splice(1, 1);
+  snapshot.phases.splice(3, 1);
+  snapshot.reports.proposal.rows.splice(2, 2);
+  snapshot.reports.calabash.rows.splice(2, 1);
+  delete snapshot.reports.journey_acceptance;
   snapshot.phases.splice(3, 0, {
     id: "REAL_USER_JOURNEY_ACCEPTANCE",
     state: "pending",

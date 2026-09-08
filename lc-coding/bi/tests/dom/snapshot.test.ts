@@ -23,17 +23,18 @@ const REPORT_IDS = [
   "baseline",
   "loop_governance",
 ] as const;
-const REPORT_IDS_300 = [...REPORT_IDS, "journey_acceptance"] as const;
+const REPORT_IDS_300_400 = [...REPORT_IDS, "journey_acceptance"] as const;
 
 const REPORT_STATE_BINDINGS = [
-  ["proposal", 0, 0, "pending"],
-  ["candidate", 0, 1, "pending"],
+  ["proposal", 0, 1, "pending"],
+  ["candidate", 0, 3, "pending"],
   ["calabash", 1, 0, "pending"],
-  ["simulation", 1, 1, "pending"],
-  ["workflow", 1, 2, "done"],
-  ["ui", 1, 3, "pending"],
-  ["baseline", 1, 6, "done"],
+  ["simulation", 1, 2, "pending"],
+  ["workflow", 1, 3, "done"],
+  ["ui", 1, 4, "pending"],
+  ["baseline", 1, 7, "done"],
   ["loop_governance", 2, 2, "done"],
+  ["journey_acceptance", 3, 0, "done"],
 ] as const;
 
 const NOT_RECORDED_METRIC = {
@@ -53,7 +54,7 @@ const UNKNOWN_METRIC = {
 } as const;
 
 const EXPECTED_SUCCESS = {
-  schema: "LCCoding 2.8.0 derived BI",
+  schema: "LCCoding 4.0.0 derived BI",
   authoritative: false,
   read_only: true,
   health: "ok",
@@ -64,7 +65,9 @@ const EXPECTED_SUCCESS = {
       id: "INITIAL",
       state: "done",
       steps: [
+        { id: "LCCODING_APPLICABILITY_ASSESSMENT", state: "done", report: null },
         { id: "PROPOSAL_READINESS", state: "done", report: "proposal" },
+        { id: "PRODUCT_SERVICE_STRATEGY", state: "done", report: null },
         { id: "PROJECT_INITIALIZATION", state: "done", report: "candidate" },
         { id: "INITIAL_READY", state: "done", report: null },
       ],
@@ -74,6 +77,7 @@ const EXPECTED_SUCCESS = {
       state: "active",
       steps: [
         { id: "CALABASH_DRAFT", state: "done", report: "calabash" },
+        { id: "SERVICE_ROUTE_MAP_READY", state: "active", report: null },
         { id: "SIMULATION_WORLD_FOUNDATION", state: "done", report: "simulation" },
         { id: "WORKFLOW_CAPABILITY_END", state: "active", report: "workflow" },
         { id: "UI_PRODUCT_SURFACE_END", state: "error", report: "ui" },
@@ -91,6 +95,17 @@ const EXPECTED_SUCCESS = {
         { id: "LOOP_RUN_D0_D3", state: "pending", report: "loop_governance" },
         { id: "LOOP_OWNER_ACCEPTANCE", state: "pending", report: null },
         { id: "ALL_REQUIRED_RUNS_ACCEPTED", state: "pending", report: null },
+      ],
+    },
+    {
+      id: "REAL_USER_JOURNEY_ACCEPTANCE",
+      state: "pending",
+      steps: [
+        { id: "JOURNEY_COVERAGE_READY", state: "pending", report: "journey_acceptance" },
+        { id: "ACCEPTANCE_ENVIRONMENT_READY", state: "pending", report: "journey_acceptance" },
+        { id: "REAL_USER_JOURNEY_ROUND", state: "pending", report: "journey_acceptance" },
+        { id: "JOURNEY_DEFECT_CLOSURE", state: "pending", report: "journey_acceptance" },
+        { id: "REAL_USER_JOURNEY_OWNER_ACCEPTANCE", state: "pending", report: "journey_acceptance" },
       ],
     },
     {
@@ -118,6 +133,8 @@ const EXPECTED_SUCCESS = {
       rows: [
         { key: "row.conclusion", value: { kind: "view_state", value: "done" } },
         { key: "row.initial_gate", value: { kind: "view_state", value: "done" } },
+        { key: "row.lccoding_applicability", value: { kind: "record", value: "WHOLE_PRODUCT_FIT" } },
+        { key: "row.product_service_strategy", value: { kind: "record", value: "MIXED" } },
       ],
     },
     candidate: {
@@ -172,6 +189,7 @@ const EXPECTED_SUCCESS = {
       rows: [
         { key: "row.status", value: { kind: "view_state", value: "done" } },
         { key: "row.version_record", value: { kind: "record", value: "RECORDED" } },
+        { key: "row.service_route_map", value: { kind: "record", value: "DRAFT" } },
       ],
     },
     simulation: {
@@ -232,6 +250,20 @@ const EXPECTED_SUCCESS = {
         { key: "row.progress", value: NOT_RECORDED_METRIC },
         { key: "row.cell_capacity", value: NOT_RECORDED_METRIC },
         { key: "row.pin_policy", value: NOT_RECORDED_METRIC },
+      ],
+    },
+    journey_acceptance: {
+      id: "journey_acceptance",
+      state: "pending",
+      version: null,
+      rows: [
+        { key: "row.journey_coverage", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+        { key: "row.acceptance_environment", value: { kind: "record", value: "UNPROVED" } },
+        { key: "row.complete_rounds", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+        { key: "row.journey_results", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
+        { key: "row.open_defects", value: { kind: "metric", status: "CLEAR", completed: 0, total: 0, interval_minutes: null } },
+        { key: "row.fixed_verified_defects", value: { kind: "metric", status: "RECORDED", completed: 0, total: null, interval_minutes: null } },
+        { key: "row.owner_journey_result", value: { kind: "record", value: "PENDING" } },
       ],
     },
   },
@@ -432,41 +464,29 @@ function mutated(change: (draft: JsonObject) => void): unknown {
 }
 
 function legacy270Fixture(): JsonObject {
-  const draft = structuredClone(successFixture) as JsonObject;
+  const draft = legacy280Fixture();
   draft.schema = "LCCoding 2.7.0 derived BI";
   phase(draft, 2).id = "ENGINEERING_RUNS";
   array(report(draft, "candidate").rows).splice(2);
   return draft;
 }
 
+function legacy280Fixture(): JsonObject {
+  const draft = current300Fixture();
+  draft.schema = "LCCoding 2.8.0 derived BI";
+  array(draft.phases).splice(3, 1);
+  delete object(draft.reports).journey_acceptance;
+  return draft;
+}
+
 function current300Fixture(): JsonObject {
   const draft = structuredClone(successFixture) as JsonObject;
   draft.schema = "LCCoding 3.0.0 derived BI";
-  array(draft.phases).splice(3, 0, {
-    id: "REAL_USER_JOURNEY_ACCEPTANCE",
-    state: "pending",
-    steps: [
-      { id: "JOURNEY_COVERAGE_READY", state: "pending", report: "journey_acceptance" },
-      { id: "ACCEPTANCE_ENVIRONMENT_READY", state: "pending", report: "journey_acceptance" },
-      { id: "REAL_USER_JOURNEY_ROUND", state: "pending", report: "journey_acceptance" },
-      { id: "JOURNEY_DEFECT_CLOSURE", state: "pending", report: "journey_acceptance" },
-      { id: "REAL_USER_JOURNEY_OWNER_ACCEPTANCE", state: "pending", report: "journey_acceptance" },
-    ],
-  });
-  object(draft.reports).journey_acceptance = {
-    id: "journey_acceptance",
-    state: "pending",
-    version: null,
-    rows: [
-      { key: "row.journey_coverage", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
-      { key: "row.acceptance_environment", value: { kind: "record", value: "UNPROVED" } },
-      { key: "row.complete_rounds", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
-      { key: "row.journey_results", value: { kind: "metric", status: "UNPROVED", completed: 0, total: 0, interval_minutes: null } },
-      { key: "row.open_defects", value: { kind: "metric", status: "CLEAR", completed: 0, total: 0, interval_minutes: null } },
-      { key: "row.fixed_verified_defects", value: { kind: "metric", status: "RECORDED", completed: 0, total: null, interval_minutes: null } },
-      { key: "row.owner_journey_result", value: { kind: "record", value: "PENDING" } },
-    ],
-  };
+  array(phase(draft, 0).steps).splice(2, 1);
+  array(phase(draft, 0).steps).splice(0, 1);
+  array(phase(draft, 1).steps).splice(1, 1);
+  array(report(draft, "proposal").rows).splice(2, 2);
+  array(report(draft, "calabash").rows).splice(2, 1);
   return draft;
 }
 
@@ -494,11 +514,11 @@ function collectKeys(value: unknown, keys: string[] = []): string[] {
 
 describe("parseSnapshot", () => {
   it.each([
-    ["success", successFixture, EXPECTED_SUCCESS],
-    ["error", errorFixture, EXPECTED_ERROR],
-  ])("accepts the exact %s fixture as a fresh deep-frozen Snapshot", (_name, fixture, exact) => {
+    ["success", successFixture, EXPECTED_SUCCESS, REPORT_IDS_300_400],
+    ["error", errorFixture, EXPECTED_ERROR, REPORT_IDS],
+  ])("accepts the exact %s fixture as a fresh deep-frozen Snapshot", (_name, fixture, exact, reportIds) => {
     expect(fixture).toEqual(exact);
-    expect(Object.keys(fixture.reports)).toEqual(REPORT_IDS);
+    expect(Object.keys(fixture.reports)).toEqual(reportIds);
     expect(fixture.phases.map(({ id }) => id)).toEqual(exact.phases.map(({ id }) => id));
 
     const parsed = parseSnapshot(fixture);
@@ -524,7 +544,7 @@ describe("parseSnapshot", () => {
 
   it("binds each accepted schema to exactly one phase and step tuple", () => {
     expect(parseSnapshot(structuredClone(successFixture)).schema).toBe(
-      "LCCoding 2.8.0 derived BI",
+      "LCCoding 4.0.0 derived BI",
     );
     expect(parseSnapshot(structuredClone(errorFixture)).schema).toBe(
       "LCCoding 2.6.0 derived BI",
@@ -533,8 +553,11 @@ describe("parseSnapshot", () => {
     const legacy270 = legacy270Fixture();
     expect(parseSnapshot(legacy270)).toEqual(legacy270);
 
+    const legacy280 = legacy280Fixture();
+    expect(parseSnapshot(legacy280)).toEqual(legacy280);
+
     const current300 = current300Fixture();
-    expect(Object.keys(object(current300.reports))).toEqual(REPORT_IDS_300);
+    expect(Object.keys(object(current300.reports))).toEqual(REPORT_IDS_300_400);
     expect(parseSnapshot(current300)).toEqual(current300);
 
     expect(() =>
@@ -562,6 +585,49 @@ describe("parseSnapshot", () => {
         engineering.unshift(formation.pop()!);
       })),
     ).toThrow(TypeError);
+  });
+
+  it("accepts only exact sanitized 4.0 applicability, strategy, and route-map summaries", () => {
+    const parsed = parseSnapshot(structuredClone(successFixture));
+    expect(parsed.phases[0]?.steps.map(({ id }) => id)).toEqual([
+      "LCCODING_APPLICABILITY_ASSESSMENT",
+      "PROPOSAL_READINESS",
+      "PRODUCT_SERVICE_STRATEGY",
+      "PROJECT_INITIALIZATION",
+      "INITIAL_READY",
+    ]);
+    expect(parsed.phases[1]?.steps[1]).toEqual({
+      id: "SERVICE_ROUTE_MAP_READY",
+      state: "active",
+      report: null,
+    });
+    expect(parsed.reports.proposal.rows.slice(2)).toEqual([
+      {
+        key: "row.lccoding_applicability",
+        value: { kind: "record", value: "WHOLE_PRODUCT_FIT" },
+      },
+      {
+        key: "row.product_service_strategy",
+        value: { kind: "record", value: "MIXED" },
+      },
+    ]);
+    expect(parsed.reports.calabash.rows[2]).toEqual({
+      key: "row.service_route_map",
+      value: { kind: "record", value: "DRAFT" },
+    });
+
+    for (const [reportId, rowIndex, invalid] of [
+      ["proposal", 2, "OTHER_METHOD_RECOMMENDED"],
+      ["proposal", 2, "WHOLE_PRODUCT"],
+      ["proposal", 3, "AGENT_ONLY"],
+      ["calabash", 2, "COMPLETE"],
+    ] as const) {
+      expect(() =>
+        parseSnapshot(mutated((draft) => {
+          rowValue(draft, reportId, rowIndex).value = invalid;
+        })),
+      ).toThrow(TypeError);
+    }
   });
 
   it("accepts a closed 3.0 journey report and rejects accepted/open contradictions", () => {
@@ -614,7 +680,7 @@ describe("parseSnapshot", () => {
     ["missing phase tuple item", (draft: JsonObject) => void array(draft.phases).pop()],
     ["reordered phase tuple", (draft: JsonObject) => void array(draft.phases).reverse()],
     ["wrong step tuple", (draft: JsonObject) => void (step(draft).id = "INITIAL_READY")],
-    ["duplicate step tuple", (draft: JsonObject) => void (step(draft, 1, 6).id = "MANDATORY_CALABASH_UPGRADE")],
+    ["duplicate step tuple", (draft: JsonObject) => void (step(draft, 1, 7).id = "MANDATORY_CALABASH_UPGRADE")],
     ["missing step tuple item", (draft: JsonObject) => void array(phase(draft).steps).pop()],
     ["missing step tuple slot", (draft: JsonObject) => void delete array(phase(draft).steps)[0]],
     [
@@ -639,6 +705,7 @@ describe("parseSnapshot", () => {
           ui: reports.ui!,
           baseline: reports.baseline!,
           loop_governance: reports.loop_governance!,
+          journey_acceptance: reports.journey_acceptance!,
         };
       },
     ],

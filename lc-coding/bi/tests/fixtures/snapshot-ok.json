@@ -1,5 +1,5 @@
 {
-  "schema": "LCCoding 2.8.0 derived BI",
+  "schema": "LCCoding 4.0.0 derived BI",
   "authoritative": false,
   "read_only": true,
   "health": "ok",
@@ -10,7 +10,9 @@
       "id": "INITIAL",
       "state": "done",
       "steps": [
+        { "id": "LCCODING_APPLICABILITY_ASSESSMENT", "state": "done", "report": null },
         { "id": "PROPOSAL_READINESS", "state": "done", "report": "proposal" },
+        { "id": "PRODUCT_SERVICE_STRATEGY", "state": "done", "report": null },
         { "id": "PROJECT_INITIALIZATION", "state": "done", "report": "candidate" },
         { "id": "INITIAL_READY", "state": "done", "report": null }
       ]
@@ -20,6 +22,7 @@
       "state": "active",
       "steps": [
         { "id": "CALABASH_DRAFT", "state": "done", "report": "calabash" },
+        { "id": "SERVICE_ROUTE_MAP_READY", "state": "active", "report": null },
         { "id": "SIMULATION_WORLD_FOUNDATION", "state": "done", "report": "simulation" },
         { "id": "WORKFLOW_CAPABILITY_END", "state": "active", "report": "workflow" },
         { "id": "UI_PRODUCT_SURFACE_END", "state": "error", "report": "ui" },
@@ -37,6 +40,17 @@
         { "id": "LOOP_RUN_D0_D3", "state": "pending", "report": "loop_governance" },
         { "id": "LOOP_OWNER_ACCEPTANCE", "state": "pending", "report": null },
         { "id": "ALL_REQUIRED_RUNS_ACCEPTED", "state": "pending", "report": null }
+      ]
+    },
+    {
+      "id": "REAL_USER_JOURNEY_ACCEPTANCE",
+      "state": "pending",
+      "steps": [
+        { "id": "JOURNEY_COVERAGE_READY", "state": "pending", "report": "journey_acceptance" },
+        { "id": "ACCEPTANCE_ENVIRONMENT_READY", "state": "pending", "report": "journey_acceptance" },
+        { "id": "REAL_USER_JOURNEY_ROUND", "state": "pending", "report": "journey_acceptance" },
+        { "id": "JOURNEY_DEFECT_CLOSURE", "state": "pending", "report": "journey_acceptance" },
+        { "id": "REAL_USER_JOURNEY_OWNER_ACCEPTANCE", "state": "pending", "report": "journey_acceptance" }
       ]
     },
     {
@@ -59,7 +73,9 @@
       "version": null,
       "rows": [
         { "key": "row.conclusion", "value": { "kind": "view_state", "value": "done" } },
-        { "key": "row.initial_gate", "value": { "kind": "view_state", "value": "done" } }
+        { "key": "row.initial_gate", "value": { "kind": "view_state", "value": "done" } },
+        { "key": "row.lccoding_applicability", "value": { "kind": "record", "value": "WHOLE_PRODUCT_FIT" } },
+        { "key": "row.product_service_strategy", "value": { "kind": "record", "value": "MIXED" } }
       ]
     },
     "candidate": {
@@ -83,7 +99,8 @@
       "version": "v2.4.0",
       "rows": [
         { "key": "row.status", "value": { "kind": "view_state", "value": "done" } },
-        { "key": "row.version_record", "value": { "kind": "record", "value": "RECORDED" } }
+        { "key": "row.version_record", "value": { "kind": "record", "value": "RECORDED" } },
+        { "key": "row.service_route_map", "value": { "kind": "record", "value": "DRAFT" } }
       ]
     },
     "simulation": {
@@ -144,6 +161,20 @@
         { "key": "row.progress", "value": { "kind": "metric", "status": "NOT_RECORDED", "completed": null, "total": null, "interval_minutes": null } },
         { "key": "row.cell_capacity", "value": { "kind": "metric", "status": "NOT_RECORDED", "completed": null, "total": null, "interval_minutes": null } },
         { "key": "row.pin_policy", "value": { "kind": "metric", "status": "NOT_RECORDED", "completed": null, "total": null, "interval_minutes": null } }
+      ]
+    },
+    "journey_acceptance": {
+      "id": "journey_acceptance",
+      "state": "pending",
+      "version": null,
+      "rows": [
+        { "key": "row.journey_coverage", "value": { "kind": "metric", "status": "UNPROVED", "completed": 0, "total": 0, "interval_minutes": null } },
+        { "key": "row.acceptance_environment", "value": { "kind": "record", "value": "UNPROVED" } },
+        { "key": "row.complete_rounds", "value": { "kind": "metric", "status": "UNPROVED", "completed": 0, "total": 0, "interval_minutes": null } },
+        { "key": "row.journey_results", "value": { "kind": "metric", "status": "UNPROVED", "completed": 0, "total": 0, "interval_minutes": null } },
+        { "key": "row.open_defects", "value": { "kind": "metric", "status": "CLEAR", "completed": 0, "total": 0, "interval_minutes": null } },
+        { "key": "row.fixed_verified_defects", "value": { "kind": "metric", "status": "RECORDED", "completed": 0, "total": null, "interval_minutes": null } },
+        { "key": "row.owner_journey_result", "value": { "kind": "record", "value": "PENDING" } }
       ]
     }
   }

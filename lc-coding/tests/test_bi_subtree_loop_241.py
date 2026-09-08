@@ -67,7 +67,9 @@ assert lifecycle["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"] == {
 }
 
 model = (root / "lc-coding/bi/src/model/snapshot.ts").read_text(encoding="utf-8")
-layout = model[model.index("const PHASE_LAYOUT"):model.index("type RowKind")]
+layout = model[
+    model.index("const PHASE_LAYOUT"):model.index("const PHASE_LAYOUT_400")
+]
 actual_steps = [
     (step, report or None)
     for step, report in re.findall(
@@ -76,6 +78,33 @@ actual_steps = [
 ]
 assert actual_steps == expected_steps
 assert len(actual_steps) == 26
+
+layout_400 = model[
+    model.index("const PHASE_LAYOUT_400"):model.index("const SNAPSHOT_SCHEMAS")
+]
+actual_400_prefix = [
+    (step, report or None)
+    for step, report in re.findall(
+        r'\["([A-Z0-9_]+)",\s*(?:"([a-z_]+)"|null)\]', layout_400
+    )
+]
+assert actual_400_prefix == [
+    ("LCCODING_APPLICABILITY_ASSESSMENT", None),
+    ("PROPOSAL_READINESS", "proposal"),
+    ("PRODUCT_SERVICE_STRATEGY", None),
+    ("PROJECT_INITIALIZATION", "candidate"),
+    ("INITIAL_READY", None),
+    ("CALABASH_DRAFT", "calabash"),
+    ("SERVICE_ROUTE_MAP_READY", None),
+    ("SIMULATION_WORLD_FOUNDATION", "simulation"),
+    ("WORKFLOW_CAPABILITY_END", "workflow"),
+    ("UI_PRODUCT_SURFACE_END", "ui"),
+    ("CALABASH_UPGRADE_READY", None),
+    ("MANDATORY_CALABASH_UPGRADE", None),
+    ("PRODUCT_BASELINE", "baseline"),
+]
+assert "...PHASE_LAYOUT_300.slice(2)" in layout_400
+assert len(actual_400_prefix) + 5 + 5 + 6 == 29
 
 report_type = model[model.index("export type ReportId"):model.index("export type StepId")]
 assert re.findall(r'\| "([a-z_]+)"', report_type) == [

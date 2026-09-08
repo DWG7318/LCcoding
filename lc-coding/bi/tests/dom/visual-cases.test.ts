@@ -54,12 +54,13 @@ describe("fixed BI visual candidate matrix", () => {
     expect(slugs.every((slug) => slug.startsWith("candidate--"))).toBe(true);
   });
 
-  it("keeps the 2.8 candidate visual on the existing report with only six sanitized Agent rows", () => {
-    expect(successSnapshot.schema).toBe("LCCoding 2.8.0 derived BI");
+  it("keeps the 4.0 candidate visual on existing reports with only sanitized summary rows", () => {
+    expect(successSnapshot.schema).toBe("LCCoding 4.0.0 derived BI");
     expect(successSnapshot.phases.map(({ id }) => id)).toEqual([
       "INITIAL",
       "PRODUCT_FORMATION",
       "REAL_PRODUCT_INTEGRATION",
+      "REAL_USER_JOURNEY_ACCEPTANCE",
       "DELIVERY_PREPARATION",
     ]);
     expect(successSnapshot.reports.candidate.rows).toEqual([
@@ -106,6 +107,20 @@ describe("fixed BI visual candidate matrix", () => {
     expect(serialized).not.toMatch(
       /(?:candidate_id|configuration|topology|attestation|slice_id|sha256|evidence|path|prompt|memory|credential|event)/iu,
     );
+    expect(successSnapshot.reports.proposal.rows.slice(2)).toEqual([
+      {
+        key: "row.lccoding_applicability",
+        value: { kind: "record", value: "WHOLE_PRODUCT_FIT" },
+      },
+      {
+        key: "row.product_service_strategy",
+        value: { kind: "record", value: "MIXED" },
+      },
+    ]);
+    expect(successSnapshot.reports.calabash.rows[2]).toEqual({
+      key: "row.service_route_map",
+      value: { kind: "record", value: "DRAFT" },
+    });
   });
 
   it("keeps the 28-case legacy core and eight reduced-motion boundaries closed", () => {

@@ -85,6 +85,7 @@ projection_schema_mapping = '''schema: match status.status_schema_version.as_str
             "2.7.0" => "LCCoding 2.7.0 derived BI",
             "2.8.0" => "LCCoding 2.8.0 derived BI",
             "3.0.0" => "LCCoding 3.0.0 derived BI",
+            "4.0.0" => "LCCoding 4.0.0 derived BI",
             _ => return Err(ProjectionError::Inconsistent),
         }'''
 assert projection.count(projection_schema_mapping) == 1

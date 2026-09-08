@@ -7,6 +7,7 @@ use super::{RecordError, strict_json};
 const ASSET_SCHEMA_V1: &str = "LCCODING_BI_COMPATIBILITY_V1";
 const ASSET_SCHEMA_V2: &str = "LCCODING_BI_COMPATIBILITY_V2";
 const ASSET_SCHEMA_V3: &str = "LCCODING_BI_COMPATIBILITY_V3";
+const ASSET_SCHEMA_V4: &str = "LCCODING_BI_COMPATIBILITY_V4";
 const NORMALIZATION_MAPPING: [&str; 7] = [
     "worker_checker_wake",
     "supervisor_wait",
@@ -69,6 +70,8 @@ struct StatusAdapters {
     adapter_280: Option<StatusAdapter>,
     #[serde(rename = "3.0.0")]
     adapter_300: Option<StatusAdapter>,
+    #[serde(rename = "4.0.0")]
+    adapter_400: Option<StatusAdapter>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -121,6 +124,10 @@ impl CompatibilityAsset {
                 &self.status_adapters.adapter_300.as_ref()?.phase_steps,
                 "REAL_PRODUCT_INTEGRATION",
             ),
+            "4.0.0" => (
+                &self.status_adapters.adapter_400.as_ref()?.phase_steps,
+                "REAL_PRODUCT_INTEGRATION",
+            ),
             _ => return None,
         };
         let integration_steps = match integration_phase_id {
@@ -142,7 +149,7 @@ impl CompatibilityAsset {
                 step_ids: integration_steps.clone(),
             },
         ];
-        if status_schema_version == "3.0.0" {
+        if matches!(status_schema_version, "3.0.0" | "4.0.0") {
             phases.push(StatusPhaseSteps {
                 phase_id: "REAL_USER_JOURNEY_ACCEPTANCE",
                 step_ids: steps.real_user_journey_acceptance.as_ref()?.clone(),
@@ -187,6 +194,7 @@ fn phase_step_set<'a>(
     adapter: &'a StatusAdapter,
     integration_phase_id: &str,
     include_journey: bool,
+    expected: &[&str],
 ) -> Option<BTreeSet<&'a str>> {
     let integration_steps = match integration_phase_id {
         "ENGINEERING_RUNS" if adapter.phase_steps.real_product_integration.is_none() => {
@@ -216,11 +224,6 @@ fn phase_step_set<'a>(
         .flat_map(|phase| phase.iter().map(String::as_str))
         .collect();
     let unique: BTreeSet<&str> = flattened.iter().copied().collect();
-    let expected: Vec<&str> = if include_journey {
-        CANONICAL_300_STEPS.to_vec()
-    } else {
-        CANONICAL_280_STEPS.to_vec()
-    };
     (flattened == expected
         && unique.len() == expected.len()
         && flattened.iter().all(|step| machine_id(step)))
@@ -228,28 +231,86 @@ fn phase_step_set<'a>(
 }
 
 const CANONICAL_280_STEPS: [&str; 21] = [
-    "PROPOSAL_READINESS", "PROJECT_INITIALIZATION", "INITIAL_READY",
-    "CALABASH_DRAFT", "SIMULATION_WORLD_FOUNDATION", "WORKFLOW_CAPABILITY_END",
-    "UI_PRODUCT_SURFACE_END", "CALABASH_UPGRADE_READY", "MANDATORY_CALABASH_UPGRADE",
-    "PRODUCT_BASELINE", "FEATURE_SLICE_EXECUTION_COVERAGE",
-    "UI_LOCKED_INTEGRATION_BASELINE", "LOOP_RUN_D0_D3", "LOOP_OWNER_ACCEPTANCE",
-    "ALL_REQUIRED_RUNS_ACCEPTED", "CENTRALIZED_VULNERABILITY_AUDIT",
-    "SECURITY_REMEDIATION", "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
-    "POST_SECURITY_OWNER_ACCEPTANCE", "DELIVERY_METHOD_QA",
+    "PROPOSAL_READINESS",
+    "PROJECT_INITIALIZATION",
+    "INITIAL_READY",
+    "CALABASH_DRAFT",
+    "SIMULATION_WORLD_FOUNDATION",
+    "WORKFLOW_CAPABILITY_END",
+    "UI_PRODUCT_SURFACE_END",
+    "CALABASH_UPGRADE_READY",
+    "MANDATORY_CALABASH_UPGRADE",
+    "PRODUCT_BASELINE",
+    "FEATURE_SLICE_EXECUTION_COVERAGE",
+    "UI_LOCKED_INTEGRATION_BASELINE",
+    "LOOP_RUN_D0_D3",
+    "LOOP_OWNER_ACCEPTANCE",
+    "ALL_REQUIRED_RUNS_ACCEPTED",
+    "CENTRALIZED_VULNERABILITY_AUDIT",
+    "SECURITY_REMEDIATION",
+    "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+    "POST_SECURITY_OWNER_ACCEPTANCE",
+    "DELIVERY_METHOD_QA",
     "DELIVERY_PACKAGE_GUARD_READY",
 ];
 const CANONICAL_300_STEPS: [&str; 26] = [
-    "PROPOSAL_READINESS", "PROJECT_INITIALIZATION", "INITIAL_READY",
-    "CALABASH_DRAFT", "SIMULATION_WORLD_FOUNDATION", "WORKFLOW_CAPABILITY_END",
-    "UI_PRODUCT_SURFACE_END", "CALABASH_UPGRADE_READY", "MANDATORY_CALABASH_UPGRADE",
-    "PRODUCT_BASELINE", "FEATURE_SLICE_EXECUTION_COVERAGE",
-    "UI_LOCKED_INTEGRATION_BASELINE", "LOOP_RUN_D0_D3", "LOOP_OWNER_ACCEPTANCE",
-    "ALL_REQUIRED_RUNS_ACCEPTED", "JOURNEY_COVERAGE_READY",
-    "ACCEPTANCE_ENVIRONMENT_READY", "REAL_USER_JOURNEY_ROUND",
-    "JOURNEY_DEFECT_CLOSURE", "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
-    "CENTRALIZED_VULNERABILITY_AUDIT", "SECURITY_REMEDIATION",
-    "SECURITY_REAUDIT_VULNERABILITY_CLOSURE", "POST_SECURITY_OWNER_ACCEPTANCE",
-    "DELIVERY_METHOD_QA", "DELIVERY_PACKAGE_GUARD_READY",
+    "PROPOSAL_READINESS",
+    "PROJECT_INITIALIZATION",
+    "INITIAL_READY",
+    "CALABASH_DRAFT",
+    "SIMULATION_WORLD_FOUNDATION",
+    "WORKFLOW_CAPABILITY_END",
+    "UI_PRODUCT_SURFACE_END",
+    "CALABASH_UPGRADE_READY",
+    "MANDATORY_CALABASH_UPGRADE",
+    "PRODUCT_BASELINE",
+    "FEATURE_SLICE_EXECUTION_COVERAGE",
+    "UI_LOCKED_INTEGRATION_BASELINE",
+    "LOOP_RUN_D0_D3",
+    "LOOP_OWNER_ACCEPTANCE",
+    "ALL_REQUIRED_RUNS_ACCEPTED",
+    "JOURNEY_COVERAGE_READY",
+    "ACCEPTANCE_ENVIRONMENT_READY",
+    "REAL_USER_JOURNEY_ROUND",
+    "JOURNEY_DEFECT_CLOSURE",
+    "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
+    "CENTRALIZED_VULNERABILITY_AUDIT",
+    "SECURITY_REMEDIATION",
+    "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+    "POST_SECURITY_OWNER_ACCEPTANCE",
+    "DELIVERY_METHOD_QA",
+    "DELIVERY_PACKAGE_GUARD_READY",
+];
+const CANONICAL_400_STEPS: [&str; 29] = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
+    "PROPOSAL_READINESS",
+    "PRODUCT_SERVICE_STRATEGY",
+    "PROJECT_INITIALIZATION",
+    "INITIAL_READY",
+    "CALABASH_DRAFT",
+    "SERVICE_ROUTE_MAP_READY",
+    "SIMULATION_WORLD_FOUNDATION",
+    "WORKFLOW_CAPABILITY_END",
+    "UI_PRODUCT_SURFACE_END",
+    "CALABASH_UPGRADE_READY",
+    "MANDATORY_CALABASH_UPGRADE",
+    "PRODUCT_BASELINE",
+    "FEATURE_SLICE_EXECUTION_COVERAGE",
+    "UI_LOCKED_INTEGRATION_BASELINE",
+    "LOOP_RUN_D0_D3",
+    "LOOP_OWNER_ACCEPTANCE",
+    "ALL_REQUIRED_RUNS_ACCEPTED",
+    "JOURNEY_COVERAGE_READY",
+    "ACCEPTANCE_ENVIRONMENT_READY",
+    "REAL_USER_JOURNEY_ROUND",
+    "JOURNEY_DEFECT_CLOSURE",
+    "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
+    "CENTRALIZED_VULNERABILITY_AUDIT",
+    "SECURITY_REMEDIATION",
+    "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+    "POST_SECURITY_OWNER_ACCEPTANCE",
+    "DELIVERY_METHOD_QA",
+    "DELIVERY_PACKAGE_GUARD_READY",
 ];
 
 fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bool {
@@ -260,10 +321,12 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
         && legacy.minimum_bi_version == "2.6.0"
         && adapter_270.status_schema_version == "2.7.0"
         && adapter_270.minimum_bi_version == "2.7.0"
-        && phase_step_set(legacy, "ENGINEERING_RUNS", false).is_some_and(|steps| {
-            phase_step_set(adapter_270, "ENGINEERING_RUNS", false)
-                .is_some_and(|adapter_steps| steps == adapter_steps)
-        })
+        && phase_step_set(legacy, "ENGINEERING_RUNS", false, &CANONICAL_280_STEPS).is_some_and(
+            |steps| {
+                phase_step_set(adapter_270, "ENGINEERING_RUNS", false, &CANONICAL_280_STEPS)
+                    .is_some_and(|adapter_steps| steps == adapter_steps)
+            },
+        )
         && legacy.phase_steps.initial == adapter_270.phase_steps.initial
         && legacy.phase_steps.delivery_preparation == adapter_270.phase_steps.delivery_preparation
         && legacy.phase_steps.initial.len() == 3
@@ -293,6 +356,7 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
             adapter_270.compatibility_status == "CURRENT"
                 && adapters.adapter_280.is_none()
                 && adapters.adapter_300.is_none()
+                && adapters.adapter_400.is_none()
         }
         ASSET_SCHEMA_V2 => {
             adapter_270.compatibility_status == "SUPPORTED_LEGACY"
@@ -300,13 +364,21 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
                     adapter_280.status_schema_version == "2.8.0"
                         && adapter_280.compatibility_status == "CURRENT"
                         && adapter_280.minimum_bi_version == "2.8.0"
-                        && phase_step_set(adapter_280, "REAL_PRODUCT_INTEGRATION", false).is_some_and(
-                            |adapter_280_steps| {
-                                phase_step_set(adapter_270, "ENGINEERING_RUNS", false).is_some_and(
-                                    |adapter_270_steps| adapter_280_steps == adapter_270_steps,
-                                )
-                            },
+                        && phase_step_set(
+                            adapter_280,
+                            "REAL_PRODUCT_INTEGRATION",
+                            false,
+                            &CANONICAL_280_STEPS,
                         )
+                        .is_some_and(|adapter_280_steps| {
+                            phase_step_set(
+                                adapter_270,
+                                "ENGINEERING_RUNS",
+                                false,
+                                &CANONICAL_280_STEPS,
+                            )
+                            .is_some_and(|adapter_270_steps| adapter_280_steps == adapter_270_steps)
+                        })
                         && adapter_280.phase_steps.initial == adapter_270.phase_steps.initial
                         && adapter_280.phase_steps.product_formation
                             == adapter_270.phase_steps.product_formation
@@ -324,6 +396,7 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
                         && adapter_280.phase_steps.delivery_preparation.len() == 6
                 })
                 && adapters.adapter_300.is_none()
+                && adapters.adapter_400.is_none()
         }
         ASSET_SCHEMA_V3 => {
             adapter_270.compatibility_status == "SUPPORTED_LEGACY"
@@ -331,17 +404,100 @@ fn validate_status_adapters(asset_schema: &str, adapters: &StatusAdapters) -> bo
                     adapter_280.status_schema_version == "2.8.0"
                         && adapter_280.compatibility_status == "SUPPORTED_LEGACY"
                         && adapter_280.minimum_bi_version == "2.8.0"
-                        && phase_step_set(adapter_280, "REAL_PRODUCT_INTEGRATION", false).is_some()
+                        && phase_step_set(
+                            adapter_280,
+                            "REAL_PRODUCT_INTEGRATION",
+                            false,
+                            &CANONICAL_280_STEPS,
+                        )
+                        .is_some()
                         && adapters.adapter_300.as_ref().is_some_and(|adapter_300| {
                             adapter_300.status_schema_version == "3.0.0"
                                 && adapter_300.compatibility_status == "CURRENT"
                                 && adapter_300.minimum_bi_version == "3.0.0"
-                                && phase_step_set(adapter_300, "REAL_PRODUCT_INTEGRATION", true).is_some()
-                                && adapter_300.phase_steps.initial == adapter_280.phase_steps.initial
-                                && adapter_300.phase_steps.product_formation == adapter_280.phase_steps.product_formation
-                                && adapter_300.phase_steps.real_product_integration == adapter_280.phase_steps.real_product_integration
-                                && adapter_300.phase_steps.delivery_preparation == adapter_280.phase_steps.delivery_preparation
-                                && adapter_300.phase_steps.real_user_journey_acceptance.as_ref().is_some_and(|steps| steps.len() == 5)
+                                && phase_step_set(
+                                    adapter_300,
+                                    "REAL_PRODUCT_INTEGRATION",
+                                    true,
+                                    &CANONICAL_300_STEPS,
+                                )
+                                .is_some()
+                                && adapter_300.phase_steps.initial
+                                    == adapter_280.phase_steps.initial
+                                && adapter_300.phase_steps.product_formation
+                                    == adapter_280.phase_steps.product_formation
+                                && adapter_300.phase_steps.real_product_integration
+                                    == adapter_280.phase_steps.real_product_integration
+                                && adapter_300.phase_steps.delivery_preparation
+                                    == adapter_280.phase_steps.delivery_preparation
+                                && adapter_300
+                                    .phase_steps
+                                    .real_user_journey_acceptance
+                                    .as_ref()
+                                    .is_some_and(|steps| steps.len() == 5)
+                        })
+                })
+                && adapters.adapter_400.is_none()
+        }
+        ASSET_SCHEMA_V4 => {
+            adapter_270.compatibility_status == "SUPPORTED_LEGACY"
+                && adapters.adapter_280.as_ref().is_some_and(|adapter_280| {
+                    adapter_280.status_schema_version == "2.8.0"
+                        && adapter_280.compatibility_status == "SUPPORTED_LEGACY"
+                        && adapter_280.minimum_bi_version == "2.8.0"
+                        && phase_step_set(
+                            adapter_280,
+                            "REAL_PRODUCT_INTEGRATION",
+                            false,
+                            &CANONICAL_280_STEPS,
+                        )
+                        .is_some()
+                        && adapters.adapter_300.as_ref().is_some_and(|adapter_300| {
+                            adapter_300.status_schema_version == "3.0.0"
+                                && adapter_300.compatibility_status == "SUPPORTED_LEGACY"
+                                && adapter_300.minimum_bi_version == "3.0.0"
+                                && phase_step_set(
+                                    adapter_300,
+                                    "REAL_PRODUCT_INTEGRATION",
+                                    true,
+                                    &CANONICAL_300_STEPS,
+                                )
+                                .is_some()
+                                && adapter_300.phase_steps.initial
+                                    == adapter_280.phase_steps.initial
+                                && adapter_300.phase_steps.product_formation
+                                    == adapter_280.phase_steps.product_formation
+                                && adapter_300.phase_steps.real_product_integration
+                                    == adapter_280.phase_steps.real_product_integration
+                                && adapter_300.phase_steps.delivery_preparation
+                                    == adapter_280.phase_steps.delivery_preparation
+                                && adapter_300
+                                    .phase_steps
+                                    .real_user_journey_acceptance
+                                    .as_ref()
+                                    .is_some_and(|steps| steps.len() == 5)
+                                && adapters.adapter_400.as_ref().is_some_and(|adapter_400| {
+                                    adapter_400.status_schema_version == "4.0.0"
+                                        && adapter_400.compatibility_status == "CURRENT"
+                                        && adapter_400.minimum_bi_version == "4.0.0"
+                                        && phase_step_set(
+                                            adapter_400,
+                                            "REAL_PRODUCT_INTEGRATION",
+                                            true,
+                                            &CANONICAL_400_STEPS,
+                                        )
+                                        .is_some()
+                                        && adapter_400.phase_steps.initial
+                                            == CANONICAL_400_STEPS[..5]
+                                        && adapter_400.phase_steps.product_formation
+                                            == CANONICAL_400_STEPS[5..13]
+                                        && adapter_400.phase_steps.real_product_integration
+                                            == adapter_300.phase_steps.real_product_integration
+                                        && adapter_400.phase_steps.real_user_journey_acceptance
+                                            == adapter_300.phase_steps.real_user_journey_acceptance
+                                        && adapter_400.phase_steps.delivery_preparation
+                                            == adapter_300.phase_steps.delivery_preparation
+                                })
                         })
                 })
         }

@@ -4,7 +4,8 @@ export type SnapshotSchema =
   | "LCCoding 2.6.0 derived BI"
   | "LCCoding 2.7.0 derived BI"
   | "LCCoding 2.8.0 derived BI"
-  | "LCCoding 3.0.0 derived BI";
+  | "LCCoding 3.0.0 derived BI"
+  | "LCCoding 4.0.0 derived BI";
 
 export type PhaseId =
   | "INITIAL"
@@ -28,10 +29,13 @@ export type ReportId =
   | "journey_acceptance";
 
 export type StepId =
+  | "LCCODING_APPLICABILITY_ASSESSMENT"
   | "PROPOSAL_READINESS"
+  | "PRODUCT_SERVICE_STRATEGY"
   | "PROJECT_INITIALIZATION"
   | "INITIAL_READY"
   | "CALABASH_DRAFT"
+  | "SERVICE_ROUTE_MAP_READY"
   | "SIMULATION_WORLD_FOUNDATION"
   | "WORKFLOW_CAPABILITY_END"
   | "UI_PRODUCT_SURFACE_END"
@@ -58,10 +62,13 @@ export type StepId =
 export type RowKey =
   | "row.conclusion"
   | "row.initial_gate"
+  | "row.lccoding_applicability"
+  | "row.product_service_strategy"
   | "row.identity"
   | "row.integrity"
   | "row.status"
   | "row.version_record"
+  | "row.service_route_map"
   | "row.current_phase"
   | "row.realized_peer_subtrees"
   | "row.realized_subtrees"
@@ -115,7 +122,14 @@ export type RecordValue =
   | "COMPLETE"
   | "REAL_USER_JOURNEY_ACCEPTED"
   | "REAL_USER_JOURNEY_REWORK"
-  | "REAL_USER_JOURNEY_DEFERRED";
+  | "REAL_USER_JOURNEY_DEFERRED"
+  | "WHOLE_PRODUCT_FIT"
+  | "BOUNDED_PRODUCT_FIT"
+  | "PLATFORM_COMPLETION"
+  | "AGENT_COLLABORATIVE"
+  | "MIXED"
+  | "DRAFT"
+  | "ADOPTED";
 export type MetricStatus =
   | "COMPLIANT"
   | "ACTIVE"
@@ -213,6 +227,18 @@ const JOURNEY_RECORD_VALUES = [
 ] as const;
 const AGENT_INTEGRATION_RECORD_VALUES = ["UNPROVED", "ACCEPTED"] as const;
 const ISOLATION_RECORD_VALUES = ["UNPROVED", "VERIFIED"] as const;
+const APPLICABILITY_RECORD_VALUES = [
+  "PENDING",
+  "WHOLE_PRODUCT_FIT",
+  "BOUNDED_PRODUCT_FIT",
+] as const;
+const SERVICE_STRATEGY_RECORD_VALUES = [
+  "PENDING",
+  "PLATFORM_COMPLETION",
+  "AGENT_COLLABORATIVE",
+  "MIXED",
+] as const;
+const ROUTE_MAP_RECORD_VALUES = ["PENDING", "DRAFT", "ADOPTED"] as const;
 const METRIC_STATUSES = ["COMPLIANT", "ACTIVE", "VIOLATION", "UNKNOWN", "NOT_RECORDED"] as const;
 const JOURNEY_METRIC_STATUSES = [
   "UNPROVED", "ACTIVE", "REWORK", "DEFERRED", "INVALIDATED", "COMPLETE",
@@ -326,11 +352,39 @@ const PHASE_LAYOUT_300: readonly PhaseLayout[] = [
   PHASE_LAYOUT_280[3]!,
 ] as const;
 
+const PHASE_LAYOUT_400: readonly PhaseLayout[] = [
+  {
+    id: "INITIAL",
+    steps: [
+      ["LCCODING_APPLICABILITY_ASSESSMENT", null],
+      ["PROPOSAL_READINESS", "proposal"],
+      ["PRODUCT_SERVICE_STRATEGY", null],
+      ["PROJECT_INITIALIZATION", "candidate"],
+      ["INITIAL_READY", null],
+    ],
+  },
+  {
+    id: "PRODUCT_FORMATION",
+    steps: [
+      ["CALABASH_DRAFT", "calabash"],
+      ["SERVICE_ROUTE_MAP_READY", null],
+      ["SIMULATION_WORLD_FOUNDATION", "simulation"],
+      ["WORKFLOW_CAPABILITY_END", "workflow"],
+      ["UI_PRODUCT_SURFACE_END", "ui"],
+      ["CALABASH_UPGRADE_READY", null],
+      ["MANDATORY_CALABASH_UPGRADE", null],
+      ["PRODUCT_BASELINE", "baseline"],
+    ],
+  },
+  ...PHASE_LAYOUT_300.slice(2),
+] as const;
+
 const SNAPSHOT_SCHEMAS = [
   "LCCoding 2.6.0 derived BI",
   "LCCoding 2.7.0 derived BI",
   "LCCoding 2.8.0 derived BI",
   "LCCoding 3.0.0 derived BI",
+  "LCCoding 4.0.0 derived BI",
 ] as const;
 
 const PHASE_LAYOUTS: Readonly<Record<SnapshotSchema, readonly PhaseLayout[]>> = {
@@ -338,6 +392,7 @@ const PHASE_LAYOUTS: Readonly<Record<SnapshotSchema, readonly PhaseLayout[]>> = 
   "LCCoding 2.7.0 derived BI": PHASE_LAYOUT_270,
   "LCCoding 2.8.0 derived BI": PHASE_LAYOUT_280,
   "LCCoding 3.0.0 derived BI": PHASE_LAYOUT_300,
+  "LCCoding 4.0.0 derived BI": PHASE_LAYOUT_400,
 };
 
 type RowKind = RowValue["kind"];
@@ -421,11 +476,25 @@ const REPORT_ROWS_300: ReportRows = {
   ],
 };
 
+const REPORT_ROWS_400: ReportRows = {
+  ...REPORT_ROWS_300,
+  proposal: [
+    ...REPORT_ROWS_300.proposal!,
+    ["row.lccoding_applicability", "record"],
+    ["row.product_service_strategy", "record"],
+  ],
+  calabash: [
+    ...REPORT_ROWS_300.calabash!,
+    ["row.service_route_map", "record"],
+  ],
+};
+
 const REPORT_ROWS: Readonly<Record<SnapshotSchema, ReportRows>> = {
   "LCCoding 2.6.0 derived BI": REPORT_ROWS_260_270,
   "LCCoding 2.7.0 derived BI": REPORT_ROWS_260_270,
   "LCCoding 2.8.0 derived BI": REPORT_ROWS_280,
   "LCCoding 3.0.0 derived BI": REPORT_ROWS_300,
+  "LCCoding 4.0.0 derived BI": REPORT_ROWS_400,
 };
 
 const SNAPSHOT_KEYS = [
@@ -660,6 +729,15 @@ function parseRowValue(
       if (key === "row.dual_agent_isolation") {
         return { kind, value: exactEnum(value.value, ISOLATION_RECORD_VALUES) };
       }
+      if (key === "row.lccoding_applicability") {
+        return { kind, value: exactEnum(value.value, APPLICABILITY_RECORD_VALUES) };
+      }
+      if (key === "row.product_service_strategy") {
+        return { kind, value: exactEnum(value.value, SERVICE_STRATEGY_RECORD_VALUES) };
+      }
+      if (key === "row.service_route_map") {
+        return { kind, value: exactEnum(value.value, ROUTE_MAP_RECORD_VALUES) };
+      }
       return { kind, value: exactEnum(value.value, RECORD_VALUES) };
   }
 }
@@ -762,12 +840,19 @@ function parseReport(
     rows,
   };
   if (
-    (schema === "LCCoding 2.8.0 derived BI" || schema === "LCCoding 3.0.0 derived BI") &&
+    (
+      schema === "LCCoding 2.8.0 derived BI" ||
+      schema === "LCCoding 3.0.0 derived BI" ||
+      schema === "LCCoding 4.0.0 derived BI"
+    ) &&
     id === "candidate"
   ) {
     validateAgentCandidateRows(rows);
   }
-  if (schema === "LCCoding 3.0.0 derived BI" && id === "journey_acceptance") {
+  if (
+    (schema === "LCCoding 3.0.0 derived BI" || schema === "LCCoding 4.0.0 derived BI") &&
+    id === "journey_acceptance"
+  ) {
     validateJourneyRows(rows, report.state);
   }
   return report;
@@ -792,7 +877,10 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
     phases[index] = parsePhase(phasesInput[index], phaseLayout[index]!);
   }
 
-  const reportIds = schema === "LCCoding 3.0.0 derived BI" ? REPORT_IDS_300 : REPORT_IDS_260_280;
+  const reportIds =
+    schema === "LCCoding 3.0.0 derived BI" || schema === "LCCoding 4.0.0 derived BI"
+      ? REPORT_IDS_300
+      : REPORT_IDS_260_280;
   const reportsInput = exactObject(value.reports, reportIds);
   if (Object.keys(reportsInput).some((key, index) => key !== reportIds[index])) invalid();
   const reports = {
@@ -809,7 +897,7 @@ export function parseSnapshot(input: unknown): Readonly<Snapshot> {
       schema,
       phaseValues,
     ),
-    ...(schema === "LCCoding 3.0.0 derived BI"
+    ...(schema === "LCCoding 3.0.0 derived BI" || schema === "LCCoding 4.0.0 derived BI"
       ? {
           journey_acceptance: parseReport(
             reportsInput.journey_acceptance,

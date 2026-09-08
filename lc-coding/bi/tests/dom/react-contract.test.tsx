@@ -46,7 +46,7 @@ describe("React BI product contract", () => {
     expect(document.body.textContent).not.toContain("unbound");
   });
 
-  it("renders the fixed four phases, 21 steps, and eight protected reports", async () => {
+  it("renders the fixed five phases, 29 steps, and nine protected reports", async () => {
     const snapshot = parseSnapshot(structuredClone(okFixture));
     render(<App ports={ports(snapshot)} />);
 
@@ -56,10 +56,12 @@ describe("React BI product contract", () => {
       "INITIAL",
       "PRODUCT_FORMATION",
       "REAL_PRODUCT_INTEGRATION",
+      "REAL_USER_JOURNEY_ACCEPTANCE",
       "DELIVERY_PREPARATION",
     ]);
-    expect(document.querySelectorAll("[data-step-id]")).toHaveLength(21);
-    expect(document.querySelectorAll(".open-report")).toHaveLength(8);
+    expect(document.querySelectorAll("[data-step-id]")).toHaveLength(29);
+    expect(Object.keys(snapshot.reports)).toHaveLength(9);
+    expect(document.querySelectorAll(".open-report")).toHaveLength(13);
     expect(screen.getByText("Real Product Integration")).toBeTruthy();
     expect(screen.queryByText("PRODUCT_INTEGRATION")).toBeNull();
 
@@ -82,6 +84,35 @@ describe("React BI product contract", () => {
       expect(open?.isConnected).toBe(false);
       expect(document.activeElement).toBe(restored);
     });
+  });
+
+  it("renders exact sanitized 4.0 topology summaries through existing reports", async () => {
+    const snapshot = parseSnapshot(structuredClone(okFixture));
+    render(<App ports={ports(snapshot)} />);
+
+    await screen.findByText("Example Project");
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-step-id="PROPOSAL_READINESS"] .open-report',
+      )!,
+    );
+    expect(await screen.findByText("Whole-product fit")).toBeTruthy();
+    expect(screen.getByText("Mixed")).toBeTruthy();
+    expect(document.querySelector('[data-row-key="row.lccoding_applicability"]')?.textContent)
+      .toBe("LCCoding applicabilityWhole-product fit");
+    expect(document.querySelector('[data-row-key="row.product_service_strategy"]')?.textContent)
+      .toBe("Product service strategyMixed");
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(
+      document.querySelector<HTMLButtonElement>(
+        '[data-step-id="CALABASH_DRAFT"] .open-report',
+      )!,
+    );
+    expect(await screen.findByText("Draft")).toBeTruthy();
+    expect(document.querySelector('[data-row-key="row.service_route_map"]')?.textContent)
+      .toBe("Service Route MapDraft");
+    expect(document.querySelector(".report-surface a")).toBeNull();
   });
 
   it("renders the sanitized Agent-native summary in the existing candidate report", async () => {
