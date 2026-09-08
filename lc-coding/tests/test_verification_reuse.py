@@ -25,7 +25,14 @@ for marker in [
 validator_path=root/'lc-coding/scripts/validate_project.py'
 spec=importlib.util.spec_from_file_location('validate_project',validator_path)
 validator=importlib.util.module_from_spec(spec); spec.loader.exec_module(validator)
+canonical_path=root/'lc-coding/scripts/validate_verification.py'
+canonical_spec=importlib.util.spec_from_file_location('validate_verification',canonical_path)
+canonical=importlib.util.module_from_spec(canonical_spec); canonical_spec.loader.exec_module(canonical)
 receipt={'receipt_id':'r','layer':'D3','claim_id':'FS-1','claim_version':'1','candidate_id':'c','candidate_hash':'h','environment_id':'e','authority':'fresh verifier','executor_context_id':'worker-1','verification_context_id':'verifier-1','verification_workspace_id':'verify-ws-1','model_binding_id':'model-v1','reused_evidence':['d2'],'new_evidence':['seam'],'repeated_checks':[{'source_layer':'D2','reason':'environment materially differs','scope_difference':'production package','risk':'runtime','result':'PASS'}],'coverage':['FS-1'],'risks_remaining':[],'verdict':'PASS','issued_at':'now'}
+assert canonical.validate_receipt(receipt)==[]
+reused_only=dict(receipt,reused_evidence=['d2'],new_evidence=[],repeated_checks=[])
+assert canonical.validate_receipt(reused_only)==[]
+assert canonical.validate_receipt(dict(receipt,repeated_checks=['not-structured']))
 with tempfile.TemporaryDirectory() as td:
     p=Path(td)/'r.json'; p.write_text(json.dumps(receipt))
     cp=subprocess.run([sys.executable,str(root/'lc-coding/scripts/validate_verification.py'),str(p)],capture_output=True,text=True)

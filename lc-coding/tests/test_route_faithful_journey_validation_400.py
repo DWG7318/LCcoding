@@ -276,9 +276,9 @@ def write_task5_evidence(lc, route_record):
         "candidate_hash": CURRENT_HASH,
         "environment_id": "ENV-TASK5-" + suffix,
         "authority": route_record["authority"]["action_id"],
-        "reused_evidence": [],
-        "new_evidence": ["ROUTE-EFFECT-" + suffix],
-        "repeated_checks": ["ROUTE-CHECK-" + suffix],
+        "reused_evidence": ["D2-" + suffix],
+        "new_evidence": [],
+        "repeated_checks": [],
         "coverage": [route_record["route_id"]],
         "risks_remaining": [],
         "verdict": "PASS",
@@ -318,7 +318,11 @@ def payload_for(kind, evidence_id, route_record):
         return {
             "message_id": "MESSAGE-" + evidence_id,
             "direction": "HUMAN_TO_SERVICE" if kind in {"HUMAN_GOAL_MESSAGE", "USER_REQUEST"} else "SERVICE_TO_HUMAN",
-            "content": kind.lower().replace("_", " ") + " payload",
+            "content": (
+                "DELIVERED_SUCCESS: result delivered to user"
+                if kind == "USER_COMMUNICATION"
+                else kind.lower().replace("_", " ") + " payload"
+            ),
         }
     if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"}:
         return {"subject_id": route_record["actor_id"], "verified_by": "IDENTITY-CHECK", "result": "VERIFIED"}
@@ -500,10 +504,10 @@ def fixed_history_defect(context):
         f"2026-09-08T00:00:00Z / {OLD_ID} / 1 / JOURNEY-001 / ROUTE-DIRECT / {old['step']}",
         f"{old['id']} / {old['kind']} / {old['hash']}",
         "submit should render / submit was blocked",
-        "HIGH / YES / ROUTE-DIRECT",
+        "HIGH / YES / ROUTE-DIRECT,ROUTE-AGENT,ROUTE-CENTER",
         "USER_SERVICE_BOUNDARY / blocked submit feedback",
         "UI / " + old["id"],
-        "ROUTE-DIRECT", 1, "NOT_APPLICABLE",
+        "ROUTE-DIRECT,ROUTE-AGENT,ROUTE-CENTER", 1, "NOT_APPLICABLE",
         "FIX-40001 / D0-D3-REVERIFIED", 2,
         f"{retest['id']} / {retest['kind']} / {retest['hash']}",
         "FIXED_VERIFIED", "NOT_APPLICABLE",
@@ -571,7 +575,7 @@ def write_project(root, *, historical=False):
         round_rows.append(row_line((
             1, f"{OLD_ID} / {OLD_HASH}", "YES", "ROUTE-DIRECT",
             "; ".join(
-                route_id + " / GLOBAL_BLOCKED / " + old_defect["id"] + " / 40001"
+                route_id + " / DEPENDENCY_BLOCKED / " + old_defect["id"] + " / 40001"
                 for route_id in ("ROUTE-AGENT", "ROUTE-CENTER")
             ), "3 / 0 / 1",
             old_defect["id"] + " / " + old_defect["id"], "40001", "REWORK",
@@ -899,7 +903,7 @@ def add_successful_route_to_failed_round(lc, route_record):
     mutate_table(
         acceptance, "Round", f"{OLD_ID} / {OLD_HASH}",
         "Unattempted route dispositions",
-        "ROUTE-CENTER / GLOBAL_BLOCKED / RUJE-001-900 / 40001",
+        "ROUTE-CENTER / DEPENDENCY_BLOCKED / RUJE-001-900 / 40001",
     )
     mutate_table(
         acceptance, "Round", f"{OLD_ID} / {OLD_HASH}", "First and last evidence",
@@ -1015,6 +1019,36 @@ for route_id in ("ROUTE-AGENT", "ROUTE-CENTER"):
         )
         assert any("affirmative authorization" in error for error in errors_for(root, status, phase))
 
+for route_id, kind, field, value, message in (
+    ("ROUTE-AGENT", "AGENT_IDENTITY", "result", "FAILED", "identity success"),
+    ("ROUTE-AGENT", "AGENT_IDENTITY", "result", "NOT_AUTHENTICATED", "identity success"),
+    ("ROUTE-CENTER", "SERVICE_ACTOR_IDENTITY", "result", "DENIED", "identity success"),
+    ("ROUTE-CENTER", "ASSISTED_ACTION", "result", "FAILED", "assisted action success"),
+    (
+        "ROUTE-CENTER", "ASSISTED_ACTION", "result", "NOT_PERFORMED",
+        "assisted action success",
+    ),
+    (
+        "ROUTE-CENTER", "USER_COMMUNICATION", "direction", "HUMAN_TO_SERVICE",
+        "user communication direction/result",
+    ),
+    (
+        "ROUTE-CENTER", "USER_COMMUNICATION", "content", "DELIVERY_FAILED",
+        "user communication direction/result",
+    ),
+):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        lc, status, phase, context = write_project(root)
+        item = context["evidence"][(1, route_id, kind)]
+        mutate_json_evidence(
+            lc, item["id"],
+            lambda record, field=field, value=value: record["event_or_result"].__setitem__(
+                field, value
+            ),
+        )
+        assert any(message in error for error in errors_for(root, status, phase))
+
 # Receipt citations are resolved; the authoritative acceptance index and
 # candidate/route/Run/D3/start joins cannot be satisfied by matching strings.
 with tempfile.TemporaryDirectory() as temporary:
@@ -1076,6 +1110,34 @@ with tempfile.TemporaryDirectory() as temporary:
 with tempfile.TemporaryDirectory() as temporary:
     root = Path(temporary)
     lc, status, phase, context = write_project(root)
+    route_id = "ROUTE-AGENT"
+    artifacts = context["task5_artifacts"][route_id]
+    d3 = json.loads(artifacts["d3_path"].read_text(encoding="utf-8"))
+    d3.update({
+        "reused_evidence": [],
+        "new_evidence": ["ROUTE-SEAM-AGENT"],
+        "repeated_checks": [{
+            "source_layer": "D2",
+            "reason": "environment materially differs",
+            "scope_difference": "route seam",
+            "risk": "runtime",
+            "result": "PASS",
+        }],
+    })
+    artifacts["d3_path"].write_text(
+        json.dumps(d3, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+    mutate_table(
+        lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Journey ID", route_id,
+        "Task5 Final Verification / D3 citations",
+        "FINAL:" + artifacts["final_citation"] + "; D3:"
+        + citation(d3["receipt_id"], artifacts["d3_path"], lc),
+    )
+    assert errors_for(root, status, phase) == [], errors_for(root, status, phase)
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, context = write_project(root)
     receipt = context["receipts"]["ROUTE-AGENT"]
     receipt.write_text(receipt.read_text(encoding="utf-8") + "\nmutated\n", encoding="utf-8")
     assert any("receipt hash" in error for error in errors_for(root, status, phase))
@@ -1093,7 +1155,7 @@ with tempfile.TemporaryDirectory() as temporary:
     mutate_table(
         lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Round", f"{OLD_ID} / {OLD_HASH}",
         "Unattempted route dispositions",
-        "ROUTE-AGENT / GLOBAL_BLOCKED / RUJE-001-900 / 40001",
+        "ROUTE-AGENT / DEPENDENCY_BLOCKED / RUJE-001-900 / 40001",
     )
     assert any("unattempted adopted route" in error for error in errors_for(root, status, phase))
 
@@ -1104,11 +1166,38 @@ with tempfile.TemporaryDirectory() as temporary:
         lc / "REAL-USER-JOURNEY-ACCEPTANCE.md", "Round", f"{OLD_ID} / {OLD_HASH}",
         "Unattempted route dispositions",
         "; ".join(
-            route_id + " / GLOBAL_BLOCKED / MISSING-EVIDENCE / 40001"
+            route_id + " / DEPENDENCY_BLOCKED / MISSING-EVIDENCE / 40001"
             for route_id in ("ROUTE-AGENT", "ROUTE-CENTER")
         ),
     )
     assert any("blocking evidence" in error for error in errors_for(root, status, phase))
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, _ = write_project(root, historical=True)
+    defect_log = lc / "REAL-USER-JOURNEY-DEFECT-LOG.md"
+    mutate_table(
+        defect_log, "Defect ID", "| 40001 |",
+        "Severity / reachability / blocking scope", "HIGH / YES / ROUTE-DIRECT",
+    )
+    mutate_table(
+        defect_log, "Defect ID", "| 40001 |", "Affected routes", "ROUTE-DIRECT",
+    )
+    assert any("does not cover omitted route" in error for error in errors_for(root, status, phase))
+
+with tempfile.TemporaryDirectory() as temporary:
+    root = Path(temporary)
+    lc, status, phase, _ = write_project(root, historical=True)
+    acceptance = lc / "REAL-USER-JOURNEY-ACCEPTANCE.md"
+    mutate_table(
+        acceptance, "Round", f"{OLD_ID} / {OLD_HASH}",
+        "Unattempted route dispositions",
+        "; ".join(
+            route_id + " / GLOBAL_BLOCKED / RUJE-001-900 / 40001"
+            for route_id in ("ROUTE-AGENT", "ROUTE-CENTER")
+        ),
+    )
+    assert any("validated global boundary" in error for error in errors_for(root, status, phase))
 
 # A failed round may contain another attempted route that passed. It stops only
 # the failed route at its defect and does not falsely mark every attempt failed.

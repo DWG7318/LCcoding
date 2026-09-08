@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -64,13 +65,6 @@ EXEMPTION_RECORD_FIELDS = {
     "candidate_id", "candidate_hash", "round", "route_id", "authority", "impact",
     "recovery_condition", "decision",
 }
-D3_RECORD_FIELDS = {
-    "receipt_id", "layer", "claim_id", "claim_version", "candidate_id",
-    "candidate_hash", "environment_id", "authority", "reused_evidence",
-    "new_evidence", "repeated_checks", "coverage", "risks_remaining", "verdict",
-    "issued_at", "executor_context_id", "verification_context_id",
-    "verification_workspace_id", "model_binding_id",
-}
 PRIORITY_EXCEPTION_FIELDS = {
     "record_role", "evidence_schema_version", "evidence_id", "candidate_id",
     "candidate_hash", "earlier_defect_id", "earlier_repair_sequence", "earlier_layer",
@@ -112,6 +106,13 @@ DEFECT_LAYER_ORDER = {
     "WORKFLOW_ORCHESTRATION": 1,
     "BACKEND_CORE": 2,
 }
+
+_VERIFICATION_VALIDATOR_PATH = Path(__file__).with_name("validate_verification.py")
+_VERIFICATION_SPEC = importlib.util.spec_from_file_location(
+    "lccoding_validate_verification", _VERIFICATION_VALIDATOR_PATH
+)
+_VERIFICATION_VALIDATOR = importlib.util.module_from_spec(_VERIFICATION_SPEC)
+_VERIFICATION_SPEC.loader.exec_module(_VERIFICATION_VALIDATOR)
 
 
 def _is_nonnegative_integer(value):
@@ -183,6 +184,18 @@ def _meaningful(value):
     return isinstance(value, str) and bool(value.strip()) and value.strip().upper() not in {
         "NONE", "NOT_APPLICABLE", "PENDING", "TBD", "TODO", "UNKNOWN",
     }
+
+
+def _affirmative_semantics(value, positive_tokens):
+    if not isinstance(value, str):
+        return False
+    tokens = {token for token in re.split(r"[^A-Z0-9]+", value.upper()) if token}
+    if tokens & {
+        "NOT", "FAIL", "FAILED", "DENY", "DENIED", "REJECT", "REJECTED", "ERROR",
+        "BLOCKED", "CANCELLED",
+    }:
+        return False
+    return bool(tokens & set(positive_tokens))
 
 
 def _split_exact(value, count):
@@ -696,33 +709,24 @@ def _validate_task5_final_and_d3(lc, row, route, receipt, receipt_id):
     if not isinstance(d3, dict):
         errors.append("actual Task5 D3 artifact must be a strict verification receipt")
         return errors
-    if set(d3) != D3_RECORD_FIELDS:
-        errors.append("actual Task5 D3 artifact must use the closed verification receipt schema")
+    errors.extend(
+        "actual Task5 D3 artifact violates canonical verification contract: " + error
+        for error in _VERIFICATION_VALIDATOR.validate_receipt(d3)
+    )
     d3_expected = {
         "receipt_id": d3_reference[0],
         "layer": "D3",
         "claim_id": route.get("capability_implementation_id"),
-        "claim_version": "4.0.0",
         "candidate_id": candidate[0] if candidate else None,
         "candidate_hash": candidate[1].removeprefix("sha256:") if candidate else None,
         "authority": authority.get("action_id"),
-        "coverage": [route.get("route_id")],
         "verdict": "PASS",
     }
     if any(d3.get(field) != value for field, value in d3_expected.items()):
         errors.append("actual Task5 D3 artifact does not join candidate, route, authority, and PASS")
-    for field in (
-        "environment_id", "issued_at", "executor_context_id", "verification_context_id",
-        "verification_workspace_id", "model_binding_id",
-    ):
-        if not _meaningful(d3.get(field)):
-            errors.append("actual Task5 D3 artifact lacks " + field)
-    for field in ("reused_evidence", "new_evidence", "repeated_checks", "risks_remaining"):
-        value = d3.get(field)
-        if not isinstance(value, list) or any(not _meaningful(item) for item in value):
-            errors.append("actual Task5 D3 artifact " + field + " must be a structured list")
-    if not d3.get("new_evidence") or not d3.get("repeated_checks"):
-        errors.append("actual Task5 D3 artifact requires new evidence and repeated checks")
+    coverage = d3.get("coverage")
+    if not isinstance(coverage, list) or route.get("route_id") not in coverage:
+        errors.append("actual Task5 D3 artifact coverage does not join the adopted route")
     if receipt.get("D3 Receipt") != d3_reference[0]:
         errors.append("receipt D3 identity disagrees with the actual Task5 D3 artifact")
     return errors
@@ -1174,6 +1178,10 @@ def _validate_project_evidence(path, row, round_record, route):
         return errors
     if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"} and payload.get("subject_id") != route.get("actor_id"):
         errors.append("identity evidence does not identify the adopted route actor")
+    if kind in {"AGENT_IDENTITY", "SERVICE_ACTOR_IDENTITY"} and not _affirmative_semantics(
+        payload.get("result"), {"AUTHENTICATED", "MATCHED", "VERIFIED", "PASS", "SUCCESS"}
+    ):
+        errors.append("identity success evidence must affirm authenticated or matched identity")
     if kind == "AUTHORIZATION_DECISION" and payload.get("scope") != authority.get("resource_id"):
         errors.append("authorization evidence scope disagrees with adopted authority")
     if kind == "AUTHORIZATION_DECISION" and str(payload.get("decision") or "").upper() not in {
@@ -1195,6 +1203,23 @@ def _validate_project_evidence(path, row, round_record, route):
         "delegation_basis_id"
     ):
         errors.append("delegation evidence disagrees with adopted authority")
+    if kind == "ASSISTED_ACTION" and not _affirmative_semantics(
+        payload.get("result"), {"PERFORMED", "COMPLETE", "COMPLETED", "PASS", "SUCCESS"}
+    ):
+        errors.append("assisted action success evidence must show the action was performed")
+    if kind == "USER_COMMUNICATION":
+        direction = str(payload.get("direction") or "").upper()
+        delivered_to_user = direction in {
+            "SERVICE_TO_HUMAN", "SERVICE_TO_USER", "DELIVERED_TO_HUMAN",
+            "DELIVERED_TO_USER", "TO_HUMAN", "TO_USER",
+        }
+        delivered_success = _affirmative_semantics(
+            payload.get("content"), {"DELIVERED", "SUCCESS", "PASS", "COMPLETE", "COMPLETED"}
+        )
+        if not delivered_to_user or not delivered_success:
+            errors.append(
+                "user communication direction/result must prove successful delivery to the user"
+            )
     return errors
 
 
@@ -1696,6 +1721,7 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
             errors.append("defect discovery evidence must resolve one actual DEFECT/BLOCKED row/file")
         else:
             discovery_evidence[defect_id] = matches[0]
+        row["_discovery_evidence_id"] = evidence[0] if evidence else None
         discoveries_by_round.setdefault(discovery_round, set()).add(defect_id)
         layer_parts = _split_exact(row.get("Affected layer / root cause"), 2)
         layer = layer_parts[0] if layer_parts else None
@@ -1718,8 +1744,24 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
         elif boundary != "NOT_APPLICABLE":
             errors.append("non-boundary defect must use NOT_APPLICABLE boundary evidence")
         affected = [item.strip() for item in str(row.get("Affected routes", "")).split(",")]
-        if not affected or any(item not in routes for item in affected):
+        if (
+            not affected or len(affected) != len(set(affected))
+            or any(item not in routes for item in affected)
+        ):
             errors.append("defect affected routes must identify required delivered adopted routes")
+        row["_affected_routes"] = set(affected)
+        severity = _split_exact(row.get("Severity / reachability / blocking scope"), 3)
+        blocking_scope = severity[2] if severity else None
+        if blocking_scope == "GLOBAL_BOUNDARY":
+            scope_routes = set()
+        else:
+            scope_routes = {
+                item.strip() for item in str(blocking_scope or "").split(",") if item.strip()
+            }
+            if not scope_routes or any(item not in routes for item in scope_routes):
+                errors.append("defect blocking scope must name adopted routes or GLOBAL_BOUNDARY")
+        row["_blocking_scope"] = blocking_scope
+        row["_blocking_scope_routes"] = scope_routes
         try:
             retest_round = int(row.get("Retest round", ""))
         except (TypeError, ValueError):
@@ -1772,6 +1814,23 @@ def _validate_defect_log_400(project_root: Path, status: dict) -> list[str]:
     for field, value in expected.items():
         if summary.get(field) != value:
             errors.append(field + " disagrees with the append-only defect register")
+
+    for round_row in rounds.values():
+        for omitted_route, disposition in round_row.get("_dispositions", {}).items():
+            disposition_kind, evidence_id, defect_id = disposition
+            defect = register.get(defect_id)
+            if not isinstance(defect, dict) or defect.get("_discovery_evidence_id") != evidence_id:
+                errors.append(
+                    "unattempted route disposition defect must join its exact blocking evidence"
+                )
+                continue
+            if omitted_route not in defect.get("_affected_routes", set()):
+                errors.append("blocking defect does not cover omitted route in affected routes")
+            if disposition_kind == "GLOBAL_BLOCKED":
+                if defect.get("_blocking_scope") != "GLOBAL_BOUNDARY":
+                    errors.append("GLOBAL_BLOCKED requires an explicit validated global boundary")
+            elif omitted_route not in defect.get("_blocking_scope_routes", set()):
+                errors.append("blocking defect does not cover omitted route in blocking scope")
 
     scheduled_repairs = [
         item for item in repair_rows

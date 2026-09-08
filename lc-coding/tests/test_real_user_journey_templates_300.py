@@ -111,6 +111,12 @@ for token in (
     "Native evidence SHA-256",
     "REAL_USER_JOURNEY_EVIDENCE",
     "event_or_result",
+    "authenticated/matched identity",
+    "performed/success",
+    "SERVICE_TO_HUMAN",
+    "canonical verification contract",
+    "reused or new evidence",
+    "structured or empty `repeated_checks`",
 ):
     assert token in acceptance, token
 
@@ -140,6 +146,8 @@ for token in (
     "REAL_USER_JOURNEY_DEFECT_EXEMPTION",
     "REAL_USER_JOURNEY_REPAIR_PRIORITY_EXCEPTION",
     "| Round |",
+    "GLOBAL_BOUNDARY",
+    "omitted route",
 ):
     assert token in defect_log, token
 

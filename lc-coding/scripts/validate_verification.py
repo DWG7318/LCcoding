@@ -6,9 +6,8 @@ REQUIRED=['receipt_id','layer','claim_id','claim_version','candidate_id','candid
 REPEAT=['source_layer','reason','scope_difference','risk','result']
 INDEPENDENCE=['executor_context_id','verification_context_id','verification_workspace_id']
 
-def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('receipt'); args=ap.parse_args()
-    d=json.loads(Path(args.receipt).read_text(encoding='utf-8'))
+def validate_receipt(d):
+    if not isinstance(d,dict): return ['verification receipt must be an object']
     errors=[f'missing {x}' for x in REQUIRED if not d.get(x)]
     if d.get('layer') not in ['D0','D1','D2','D3']: errors.append('invalid layer')
     if d.get('layer') in ['D1','D2','D3']:
@@ -16,11 +15,22 @@ def main():
             if not d.get(x): errors.append(f'missing independence field {x}')
         if d.get('executor_context_id') and d.get('executor_context_id')==d.get('verification_context_id'):
             errors.append('self-verification context collision')
-    for i,r in enumerate(d.get('repeated_checks',[])):
+    repeated=d.get('repeated_checks',[])
+    if not isinstance(repeated,list):
+        errors.append('repeated_checks must be a list'); repeated=[]
+    for i,r in enumerate(repeated):
+        if not isinstance(r,dict):
+            errors.append(f'repeated_checks[{i}] must be an object'); continue
         for x in REPEAT:
             if not r.get(x): errors.append(f'repeated_checks[{i}] missing {x}')
     if d.get('new_evidence')==[] and d.get('layer') in ['D2','D3'] and not d.get('reused_evidence'):
         errors.append('higher layer has neither reused nor new evidence')
+    return errors
+
+def main():
+    ap=argparse.ArgumentParser(); ap.add_argument('receipt'); args=ap.parse_args()
+    d=json.loads(Path(args.receipt).read_text(encoding='utf-8'))
+    errors=validate_receipt(d)
     if errors:
         print('FAIL'); print('\n'.join(errors)); raise SystemExit(1)
     print('PASS')

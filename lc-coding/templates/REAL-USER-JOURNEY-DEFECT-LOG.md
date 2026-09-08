@@ -29,6 +29,8 @@ For `4.0.0`, use the table below instead. The normal order remains user-experien
 
 Every discovery tuple—candidate, round, journey, route, step, evidence ID, evidence kind, and hash—joins one actual first-hand `DEFECT` or `BLOCKED_BY_DEFECT` evidence row/file. Every 4.0 defect has complete append-only state history beginning `NOT_APPLICABLE -> OPEN` and ending at the current register state. `FIXED_VERIFIED` cites an actual later-round passing retest row/file.
 
+An unattempted-route `DEPENDENCY_BLOCKED` disposition can cite a defect only when both `Affected routes` and its blocking scope name that omitted route. `GLOBAL_BLOCKED` additionally requires the exact blocking scope `GLOBAL_BOUNDARY`. A route-local direct-product defect cannot silently suppress independent Agent or Service-Center routes.
+
 `OWNER_EXEMPTED` cites an exact-hash JSON project record with `record_role: REAL_USER_JOURNEY_DEFECT_EXEMPTION`, schema `4.0.0`, evidence and defect IDs, candidate ID/hash, round, route ID, Owner authority, human impact, recovery condition, and decision. The record binds the exemption history without defining an external runtime protocol.
 
 A repair-order inversion cites an exact-hash JSON project record with `record_role: REAL_USER_JOURNEY_REPAIR_PRIORITY_EXCEPTION`, schema `4.0.0`, evidence ID, current candidate ID/hash, exact earlier/later defect IDs, sequences and layers, authority, rationale, and `ALLOW_PRIORITY_EXCEPTION` decision.
