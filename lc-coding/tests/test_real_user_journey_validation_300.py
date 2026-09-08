@@ -135,6 +135,9 @@ with tempfile.TemporaryDirectory() as temporary:
     root = Path(temporary)
     lc = write_project(root)
     assert errors_for(root) == [], errors_for(root)
+    # Exact 3.0 retains its byte/hash browser semantics; it does not retroactively
+    # require an image codec signature introduced by route-faithful 4.0 evidence.
+    assert validator.validate_acceptance_record(root, base_status()) == []
 
     duplicate = lc / "REAL-USER-JOURNEY-ACCEPTANCE.md"
     duplicate.write_text(duplicate.read_text(encoding="utf-8") + "\n- Owner result: PENDING\n", encoding="utf-8")

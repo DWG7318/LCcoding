@@ -4450,7 +4450,7 @@ def main():
     if (lc/'PROJECT-HEALTH.json').exists(): health=json.loads((lc/'PROJECT-HEALTH.json').read_text(encoding='utf-8'))
     if status and phase_status and health:
         errors.extend(validate_status_authority(status,phase_status,health))
-        if status.get('status_schema_version')=='3.0.0':
+        if status.get('status_schema_version') in {'3.0.0','4.0.0'}:
             errors.extend(_JOURNEY_VALIDATOR.validate_real_user_journey(
                 Path(args.project),status,phase_status
             ))

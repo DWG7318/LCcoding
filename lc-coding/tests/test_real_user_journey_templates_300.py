@@ -84,6 +84,21 @@ for heading in (
 ):
     assert acceptance.count(heading) == 1, heading
 
+for heading in (
+    "## Route-faithful 4.0 journey coverage",
+    "## Route-faithful 4.0 evidence digests",
+):
+    assert acceptance.count(heading) == 1, heading
+for token in (
+    "DIRECT_PRODUCT",
+    "PERSONAL_AGENT",
+    "SERVICE_CENTER",
+    "SCREENSHOT",
+    "NONVISUAL",
+    "Human-observable outcome",
+):
+    assert token in acceptance, token
+
 assert defect_log.startswith("# Real User Journey Defect Log\n")
 assert "The first legal defect ID is `40001`" in defect_log
 assert "IDs increase monotonically and are never recycled" in defect_log
@@ -98,5 +113,13 @@ for column in (
     "Exemption authority / impact / recovery",
 ):
     assert column in defect_log, column
+for token in (
+    "USER_SERVICE_BOUNDARY",
+    "WORKFLOW_ORCHESTRATION",
+    "BACKEND_CORE",
+    "UI / AGENT_SERVICE / ASSISTED_SERVICE",
+    "## Route-faithful defect register",
+):
+    assert token in defect_log, token
 
 print("PASS: 3.0 journey acceptance templates are closed and unproved by default")
