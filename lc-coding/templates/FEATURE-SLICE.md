@@ -45,20 +45,20 @@
 - Service Route ID:
 - Route kind: DIRECT_PRODUCT / PERSONAL_AGENT / SERVICE_CENTER
 - Promised real entry:
-- Promised real entry evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Promised real entry evidence: CANDIDATE:<candidate ID / exact hash>; ENTRY:<adopted promised entry>; SURFACE:<adopted surface ID>; TRIGGER:<realized Workflow trigger>; SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; PATH:<scenario path>
 - Actor ID:
 - Authority action ID:
 - Authority resource ID:
 - Delegation basis ID: NOT_APPLICABLE / <Delegation ID>
-- Actor / authority evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Actor / authority evidence: CANDIDATE:<candidate ID / exact hash>; ACTOR:<adopted actor ID>; ACTION:<authority action ID>; RESOURCE:<authority resource ID>; DELEGATION:<delegation basis ID>; SCENARIO:<Scenario ID>
 - Route adapter / product surface ID:
-- Route adapter / product surface evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Route adapter / product surface evidence: CANDIDATE:<candidate ID / exact hash>; ROUTE:<Service Route ID>; SURFACE:<service-surface trace ID>; KIND:<service-surface kind>; CAPABILITY:<shared Workflow capability ID>
 - Shared Workflow capability ID:
-- Shared Workflow capability evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
-- Authoritative state / data / side-effect evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
-- Route result evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Shared Workflow capability evidence: CANDIDATE:<candidate ID / exact hash>; ROUTE:<Service Route ID>; WORKFLOW:<Workflow ID>; CAPABILITY:<shared capability ID>; ATTESTATION:<Workflow evidence/attestation>
+- Authoritative state / data / side-effect evidence: CANDIDATE:<candidate ID / exact hash>; WORKFLOW:<Workflow ID>; TRACE:<realized rules/state/side-effect trace>; ATTESTATION:<Workflow evidence/attestation>
+- Route result evidence: CANDIDATE:<candidate ID / exact hash>; SIMULATION:<Simulation ID>; SCENARIO:<Scenario ID>; RESULT:<scenario evidence>; USAGE:<exact Slice usage>
 - Human-observable outcome:
-- Human-observable outcome evidence: <candidate-id>~<sha256>~<route-id>~<evidence-id>
+- Human-observable outcome evidence: CANDIDATE:<candidate ID / exact hash>; SURFACE:<human outcome surface ID>; OUTCOME:<adopted human outcome>; FEEDBACK:<realized feedback/result>; ATTESTATION:<surface/scenario attestation>
 - Audit event IDs: NONE / <closed IDs>
 - Audit lineage evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Route proof basis: REAL_ROUTE_EXECUTION

@@ -21,6 +21,7 @@
 - Product Baseline trace (REAL_PRODUCT_INTEGRATION only):
 - Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only):
 - Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only):
+- Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only):
 - Evidence return target in calling phase:
 - D0-D3 evidence / verification condition:
 - Loop Owner Acceptance condition / route:
@@ -28,4 +29,4 @@
 - Readiness result: READY / BLOCKED
 - Blocker evidence:
 
-The `Start Contract SHA-256` freezes this contract's canonical UTF-8 bytes with that field's value empty, before the digest is inserted. The terminal receipt must repeat the resulting contract ID, digest, status schema, and phase identity exactly. Omit the three `REAL_PRODUCT_INTEGRATION only` fields for Runs called by another phase; cite that phase's own source contracts under phase-appropriate inputs instead. Meaning-changing work cites a valid current Definition Handoff and governed update route through its Impact Analysis. Meaning-neutral work cites validated phase/evidence rationale and must not fabricate a Definition Baseline. The Snake/Scorpion field cites disposition evidence without reconstructing those dimensions. `READY` requires no blocker (`NONE`); `BLOCKED` requires specific blocker evidence. This contract records future D0-D3 and Owner-acceptance conditions only; completing a Run returns evidence and never advances its calling phase by itself.
+The `Start Contract SHA-256` freezes this contract's canonical UTF-8 bytes with that field's value empty, before the digest is inserted. The terminal receipt must repeat the resulting contract ID, digest, status schema, and phase identity exactly. A `3.0.0` Real Product Integration Run uses the Applicable UI / Integration Baseline field; a `4.0.0` Run uses Service Route / Integration Baseline and does not invent UI for a route without it. Omit schema-inapplicable and non-calling-phase integration fields. Meaning-changing work cites a valid current Definition Handoff and governed update route through its Impact Analysis. Meaning-neutral work cites validated phase/evidence rationale and must not fabricate a Definition Baseline. The Snake/Scorpion field cites disposition evidence without reconstructing those dimensions. `READY` requires no blocker (`NONE`); `BLOCKED` requires specific blocker evidence. This contract records future D0-D3 and Owner-acceptance conditions only; completing a Run returns evidence and never advances its calling phase by itself.

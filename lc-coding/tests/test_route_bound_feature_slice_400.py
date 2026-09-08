@@ -42,6 +42,9 @@ for relative, markers in TEMPLATE_MARKERS.items():
 assert hasattr(validator, "validate_route_bound_feature_slice"), (
     "4.0 route-bound Feature Slice validator is missing"
 )
+assert hasattr(validator, "validate_phase3_run_slice_binding"), (
+    "4.0 route-aware Run/Slice aggregate binding is missing"
+)
 
 
 def route(route_id, route_kind, actor_id, actor_kind, delegation, surface_id, audits):
@@ -116,41 +119,247 @@ STATUS_400 = {
 CANDIDATE = "CANDIDATE-1 / sha256:" + "a" * 64
 
 
+WORKFLOWS = [
+    {
+        "Workflow ID": "WF-APPLICATION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Implementation status": "IMPLEMENTED",
+        "Trigger": "observed authorized application request",
+        "Rules / state / side-effect trace": (
+            "authoritative application state transition and persisted submission side effect"
+        ),
+        "Evidence / attestation": "candidate-observed Workflow execution attestation",
+        "API contract / evidence": "application API contract presence",
+        "MCP contract / evidence": "application MCP contract presence",
+    }
+]
+WORKFLOW_ROUTES = [
+    {
+        "Service Route ID": route_id,
+        "Workflow ID": "WF-APPLICATION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    }
+    for route_id in ("ROUTE-DIRECT", "ROUTE-AGENT", "ROUTE-CENTER")
+]
+SURFACES = [
+    {
+        "Service Route ID": "ROUTE-DIRECT",
+        "Service Surface ID": "UI-DIRECT",
+        "Service Surface Kind": "DIRECT_PRODUCT",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+    {
+        "Service Route ID": "ROUTE-AGENT",
+        "Service Surface ID": "AGENT-SERVICE-APPLICATION",
+        "Service Surface Kind": "AGENT_SERVICE",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+    {
+        "Service Route ID": "ROUTE-AGENT",
+        "Service Surface ID": "UI-HUMAN-RESULT",
+        "Service Surface Kind": "HUMAN_RESULT_CONSENT_EXCEPTION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+    {
+        "Service Route ID": "ROUTE-CENTER",
+        "Service Surface ID": "SERVICE-CENTER-APPLICATION",
+        "Service Surface Kind": "ASSISTED_SERVICE",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+    {
+        "Service Route ID": "ROUTE-CENTER",
+        "Service Surface ID": "UI-CENTER-RESULT",
+        "Service Surface Kind": "HUMAN_RESULT_CONSENT_EXCEPTION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+]
+UI_ROWS = [
+    {
+        "UI ID": ui_id,
+        "Subtree path": "ui/" + ui_id.lower(),
+        "Component version": "1.0.0",
+        "Content hash": "sha256:" + hash_character * 64,
+        "Actions / feedback": feedback,
+        "Evidence / attestation": attestation,
+        "UI change authority": "OWNER_ONLY",
+        "Baseline Change Request": "NONE",
+    }
+    for ui_id, hash_character, feedback, attestation in (
+        (
+            "UI-DIRECT", "b", "rendered the accepted application result to the human",
+            "candidate-observed direct UI result attestation",
+        ),
+        (
+            "UI-HUMAN-RESULT", "c", "delivered the Personal Agent result to the human",
+            "candidate-observed Personal Agent human outcome attestation",
+        ),
+        (
+            "UI-CENTER-RESULT", "d", "delivered the assisted result to the human",
+            "candidate-observed Service Center human outcome attestation",
+        ),
+    )
+]
+SIMULATIONS = [{"Simulation ID": "SIM-APPLICATION"}]
+SCENARIOS = [
+    {
+        "Simulation ID": "SIM-APPLICATION",
+        "Scenario ID": "SCENARIO-" + suffix,
+        "Actors": actor_id,
+        "Path": path,
+        "Visible / invisible evidence": result,
+        "Used by Slice/Run/Acceptance": "FS-" + suffix,
+    }
+    for suffix, actor_id, path, result in (
+        (
+            "DIRECT", "HUMAN-1", "direct entry invoked the authoritative application Workflow",
+            "observed direct route result after authoritative state change",
+        ),
+        (
+            "AGENT", "PERSONAL-AGENT-1", "authorized Personal Agent request invoked the application Workflow",
+            "observed Personal Agent task result after authoritative state change",
+        ),
+        (
+            "CENTER", "SERVICE-CENTER-ACTOR-1", "delegated assisted request invoked the application Workflow",
+            "observed Service Center result after authoritative state change",
+        ),
+    )
+]
+SIMULATION_ROUTES = [
+    {
+        "Service Route ID": "ROUTE-" + suffix,
+        "Simulation ID": "SIM-APPLICATION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Scenario IDs": "SCENARIO-" + suffix,
+        "Audit event IDs": audits,
+    }
+    for suffix, audits in (("DIRECT", "NONE"), ("AGENT", "AUDIT-AGENT"), ("CENTER", "AUDIT-CENTER"))
+]
+HANDOFF_ROUTES = [
+    {
+        "Service Route ID": "ROUTE-DIRECT",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Service Surface IDs": "UI-DIRECT",
+        "Simulation Scenario IDs": "SCENARIO-DIRECT",
+        "Audit event IDs": "NONE",
+    },
+    {
+        "Service Route ID": "ROUTE-AGENT",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Service Surface IDs": "AGENT-SERVICE-APPLICATION, UI-HUMAN-RESULT",
+        "Simulation Scenario IDs": "SCENARIO-AGENT",
+        "Audit event IDs": "AUDIT-AGENT",
+    },
+    {
+        "Service Route ID": "ROUTE-CENTER",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Service Surface IDs": "SERVICE-CENTER-APPLICATION, UI-CENTER-RESULT",
+        "Simulation Scenario IDs": "SCENARIO-CENTER",
+        "Audit event IDs": "AUDIT-CENTER",
+    },
+]
+
+
 def bound(route_id, evidence_id):
     return "CANDIDATE-1~sha256:" + "a" * 64 + "~" + route_id + "~" + evidence_id
 
 
+def closed_record(**values):
+    return "; ".join(key + ":" + value for key, value in values.items())
+
+
 def route_fields(route_row, map_hash):
     route_id = route_row["route_id"]
-    audits = route_row["audit_event_ids"]
+    suffix = route_id.removeprefix("ROUTE-")
+    audits = [item for item in route_row["audit_event_ids"] if isinstance(item, str)]
+    scenario = next(row for row in SCENARIOS if row["Scenario ID"] == "SCENARIO-" + suffix)
+    adapter = next(
+        row
+        for row in SURFACES
+        if row["Service Route ID"] == route_id
+        and row["Service Surface ID"] == route_row["adapter_or_surface_id"]
+    )
+    route_ui = next(
+        (
+            ui
+            for surface in SURFACES
+            if surface["Service Route ID"] == route_id
+            for ui in UI_ROWS
+            if ui["UI ID"] == surface["Service Surface ID"]
+        ),
+        None,
+    )
     fields = {
         "Service topology schema version": "4.0.0",
         "Service Route Map ID / exact hash": "SERVICE-ROUTES-1 / " + map_hash,
         "Service Route ID": route_id,
         "Route kind": route_row["route_kind"],
         "Promised real entry": route_row["promised_entry"],
-        "Promised real entry evidence": bound(route_id, "ENTRY"),
+        "Promised real entry evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            ENTRY=route_row["promised_entry"],
+            SURFACE=route_row["adapter_or_surface_id"],
+            TRIGGER=WORKFLOWS[0]["Trigger"],
+            SIMULATION=scenario["Simulation ID"],
+            SCENARIO=scenario["Scenario ID"],
+            PATH=scenario["Path"],
+        ),
         "Actor ID": route_row["actor_id"],
         "Authority action ID": route_row["authority"]["action_id"],
         "Authority resource ID": route_row["authority"]["resource_id"],
         "Delegation basis ID": route_row["authority"]["delegation_basis_id"],
-        "Actor / authority evidence": bound(route_id, "AUTHORITY"),
+        "Actor / authority evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            ACTOR=route_row["actor_id"],
+            ACTION=route_row["authority"]["action_id"],
+            RESOURCE=route_row["authority"]["resource_id"],
+            DELEGATION=route_row["authority"]["delegation_basis_id"],
+            SCENARIO=scenario["Scenario ID"],
+        ),
         "Route adapter / product surface ID": route_row["adapter_or_surface_id"],
-        "Route adapter / product surface evidence": bound(route_id, "SURFACE"),
+        "Route adapter / product surface evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            ROUTE=route_id,
+            SURFACE=adapter["Service Surface ID"],
+            KIND=adapter["Service Surface Kind"],
+            CAPABILITY=adapter["Workflow Capability ID"],
+        ),
         "Shared Workflow capability ID": route_row["capability_implementation_id"],
-        "Shared Workflow capability evidence": bound(route_id, "WORKFLOW"),
-        "Authoritative state / data / side-effect evidence": bound(route_id, "EFFECT"),
-        "Route result evidence": bound(route_id, "ROUTE-RESULT"),
+        "Shared Workflow capability evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            ROUTE=route_id,
+            WORKFLOW=WORKFLOWS[0]["Workflow ID"],
+            CAPABILITY=WORKFLOWS[0]["Workflow Capability ID"],
+            ATTESTATION=WORKFLOWS[0]["Evidence / attestation"],
+        ),
+        "Authoritative state / data / side-effect evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            WORKFLOW=WORKFLOWS[0]["Workflow ID"],
+            TRACE=WORKFLOWS[0]["Rules / state / side-effect trace"],
+            ATTESTATION=WORKFLOWS[0]["Evidence / attestation"],
+        ),
+        "Route result evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            SIMULATION=scenario["Simulation ID"],
+            SCENARIO=scenario["Scenario ID"],
+            RESULT=scenario["Visible / invisible evidence"],
+            USAGE=scenario["Used by Slice/Run/Acceptance"],
+        ),
         "Human-observable outcome": route_row["human_observable_outcome"],
-        "Human-observable outcome evidence": bound(route_id, "HUMAN-OUTCOME"),
+        "Human-observable outcome evidence": closed_record(
+            CANDIDATE=CANDIDATE,
+            SURFACE=(route_ui or adapter)["UI ID" if route_ui else "Service Surface ID"],
+            OUTCOME=route_row["human_observable_outcome"],
+            FEEDBACK=(route_ui or scenario)["Actions / feedback" if route_ui else "Visible / invisible evidence"],
+            ATTESTATION=(route_ui or scenario)["Evidence / attestation" if route_ui else "Visible / invisible evidence"],
+        ),
         "Audit event IDs": ", ".join(audits) if audits else "NONE",
         "Audit lineage evidence": bound(route_id, "AUDIT") if audits else "NOT_APPLICABLE",
         "Route proof basis": "REAL_ROUTE_EXECUTION",
         "Non-production / simulated / mocked / manually staged evidence used as route proof": "NO",
-        "Locked UI touch": "YES" if route_row["route_kind"] == "DIRECT_PRODUCT" else "NO",
+        "Locked UI touch": "YES" if route_ui else "NO",
         "One-way UI lock evidence": (
             bound(route_id, "UI-LOCK")
-            if route_row["route_kind"] == "DIRECT_PRODUCT"
+            if route_ui
             else "NOT_APPLICABLE"
         ),
     }
@@ -165,17 +374,20 @@ def write_record(path, title, fields):
     path.write_text(body, encoding="utf-8", newline="\n")
 
 
-def validate_fixture(route_index, mutate=None):
+def validate_fixture(route_index, mutate=None, mutate_inputs=None, mutate_map=None):
     with tempfile.TemporaryDirectory(prefix="route-slice-400-") as temporary:
         root = Path(temporary)
         lc = root / ".lccoding"
         lc.mkdir()
+        route_map = copy.deepcopy(SERVICE_MAP)
+        if mutate_map:
+            mutate_map(route_map)
         map_path = lc / "SERVICE-ROUTE-MAP.json"
         map_path.write_text(
-            json.dumps(SERVICE_MAP, indent=2) + "\n", encoding="utf-8", newline="\n"
+            json.dumps(route_map, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
         map_hash = "sha256:" + hashlib.sha256(map_path.read_bytes()).hexdigest()
-        route_row = SERVICE_MAP["journeys"][0]["routes"][route_index]
+        route_row = route_map["journeys"][0]["routes"][route_index]
         common = route_fields(route_row, map_hash)
         route_id = route_row["route_id"]
         suffix = route_id.removeprefix("ROUTE-")
@@ -217,10 +429,20 @@ def validate_fixture(route_index, mutate=None):
             "Final verdict": "PASS",
             **copy.deepcopy(common),
         }
-        ui_rows = []
-        if route_row["route_kind"] == "DIRECT_PRODUCT":
+        route_surface_ids = {
+            row["Service Surface ID"]
+            for row in SURFACES
+            if row["Service Route ID"] == route_id
+        }
+        applicable_ui = next(
+            (row for row in UI_ROWS if row["UI ID"] in route_surface_ids), None
+        )
+        if applicable_ui:
             slice_fields["Applicable UI identity"] = (
-                "ID:UI-DIRECT; PATH:ui/direct; VERSION:1.0.0; HASH:sha256:" + "b" * 64
+                "ID:" + applicable_ui["UI ID"]
+                + "; PATH:" + applicable_ui["Subtree path"]
+                + "; VERSION:" + applicable_ui["Component version"]
+                + "; HASH:" + applicable_ui["Content hash"]
             )
             baseline_fields.update(
                 {
@@ -232,13 +454,6 @@ def validate_fixture(route_index, mutate=None):
                     "Prior Integration Baseline ID": "NOT_APPLICABLE",
                 }
             )
-            ui_rows = [
-                {
-                    "UI ID": "UI-DIRECT",
-                    "UI change authority": "OWNER_ONLY",
-                    "Baseline Change Request": "NONE",
-                }
-            ]
         records = {
             "slice": slice_fields,
             "baseline": baseline_fields,
@@ -246,6 +461,21 @@ def validate_fixture(route_index, mutate=None):
         }
         if mutate:
             mutate(records)
+        inputs = {
+            "workflow_rows": copy.deepcopy(WORKFLOWS),
+            "ui_rows": copy.deepcopy(UI_ROWS),
+            "simulation_rows": copy.deepcopy(SIMULATIONS),
+            "scenario_rows": copy.deepcopy(SCENARIOS),
+            "handoff_fields": {
+                "Service Route Map ID / exact hash": "SERVICE-ROUTES-1 / " + map_hash,
+            },
+            "workflow_route_rows": copy.deepcopy(WORKFLOW_ROUTES),
+            "service_surface_rows": copy.deepcopy(SURFACES),
+            "simulation_route_rows": copy.deepcopy(SIMULATION_ROUTES),
+            "handoff_route_rows": copy.deepcopy(HANDOFF_ROUTES),
+        }
+        if mutate_inputs:
+            mutate_inputs(inputs)
         write_record(slice_path, "Feature Slice", slice_fields)
         write_record(baseline_path, "Integration Baseline", baseline_fields)
         write_record(final_path, "Final Feature Verification", final_fields)
@@ -253,12 +483,16 @@ def validate_fixture(route_index, mutate=None):
             lc,
             slice_path,
             slice_fields,
-            [],
-            ui_rows,
-            [],
-            [],
-            {},
+            inputs["workflow_rows"],
+            inputs["ui_rows"],
+            inputs["simulation_rows"],
+            inputs["scenario_rows"],
+            inputs["handoff_fields"],
             copy.deepcopy(STATUS_400),
+            inputs["workflow_route_rows"],
+            inputs["service_surface_rows"],
+            inputs["simulation_route_rows"],
+            inputs["handoff_route_rows"],
         )
 
 
@@ -280,6 +514,22 @@ def expect_error(route_index, mutation, marker):
     assert any(marker in error for error in errors), (marker, errors)
 
 
+def expect_input_error(route_index, mutation, marker):
+    errors = validate_fixture(route_index, mutate_inputs=mutation)
+    assert any(marker in error for error in errors), (marker, errors)
+
+
+def use_other_route_evidence(other_route_index, field):
+    def mutate(records):
+        map_hash = records["slice"]["Service Route Map ID / exact hash"].split(" / ", 1)[1]
+        other = route_fields(
+            SERVICE_MAP["journeys"][0]["routes"][other_route_index], map_hash
+        )[field]
+        for record in records.values():
+            record[field] = other
+    return mutate
+
+
 expect_error(
     1,
     lambda records: [record.__setitem__("Route kind", "DIRECT_PRODUCT") for record in records.values()],
@@ -287,11 +537,8 @@ expect_error(
 )
 expect_error(
     1,
-    lambda records: [
-        record.__setitem__("Human-observable outcome evidence", bound("ROUTE-DIRECT", "UI-PASS"))
-        for record in records.values()
-    ],
-    "another route",
+    use_other_route_evidence(0, "Human-observable outcome evidence"),
+    "human-observable outcome join",
 )
 expect_error(
     1,
@@ -310,11 +557,8 @@ expect_error(
 )
 expect_error(
     2,
-    lambda records: [
-        record.__setitem__("Route result evidence", bound("ROUTE-AGENT", "AGENT-RESULT"))
-        for record in records.values()
-    ],
-    "another route",
+    use_other_route_evidence(1, "Route result evidence"),
+    "route result join",
 )
 expect_error(
     1,
@@ -356,5 +600,124 @@ expect_error(
     ],
     "Service Route Map identity/hash drift",
 )
+expect_error(
+    1,
+    lambda records: [record.__setitem__("Integration Route ID", "") for record in records.values()],
+    "active 4.0 Feature Slice requires Integration Route ID",
+)
+missing_dispatch_identity_errors = validate_fixture(
+    1,
+    lambda records: [
+        [
+            record.__setitem__(field, "")
+            for field in (
+                "Integration Route ID", "Integration candidate ID / exact hash",
+                "Service Route Map ID / exact hash", "Actor ID", "Authority action ID",
+                "Authority resource ID", "Delegation basis ID",
+            )
+        ]
+        for record in records.values()
+    ],
+)
+for marker in (
+    "Integration Route ID", "candidate ID / exact hash", "Service Route Map ID / exact hash",
+    "Actor ID", "Authority action ID", "Authority resource ID", "Delegation basis ID",
+):
+    assert any(marker in error for error in missing_dispatch_identity_errors), (
+        marker, missing_dispatch_identity_errors
+    )
+expect_error(
+    1,
+    lambda records: [
+        record.__setitem__("Actor / authority evidence", WORKFLOWS[0]["API contract / evidence"])
+        for record in records.values()
+    ],
+    "structured actor/authority join",
+)
+expect_error(
+    1,
+    lambda records: [
+        record.__setitem__("Human-observable outcome evidence", "operations log only")
+        for record in records.values()
+    ],
+    "human-observable outcome join",
+)
+expect_error(
+    1,
+    lambda records: [
+        record.__setitem__("Locked UI touch", "NO")
+        or record.__setitem__("One-way UI lock evidence", "NOT_APPLICABLE")
+        for record in records.values()
+    ],
+    "Locked UI touch must equal the adopted route's realized surfaces",
+)
+
+expect_input_error(
+    1,
+    lambda inputs: [
+        inputs[name].clear()
+        for name in (
+            "workflow_rows", "ui_rows", "simulation_rows", "scenario_rows",
+            "workflow_route_rows", "service_surface_rows", "simulation_route_rows",
+            "handoff_route_rows",
+        )
+    ],
+    "authoritative route evidence join",
+)
+expect_input_error(
+    1,
+    lambda inputs: inputs["workflow_route_rows"][1].__setitem__(
+        "Workflow Capability ID", "CAP-DIFFERENT"
+    ),
+    "Workflow route trace",
+)
+
+malformed_audit_errors = validate_fixture(
+    1,
+    mutate_map=lambda route_map: route_map["journeys"][0]["routes"][1][
+        "audit_event_ids"
+    ].append({"not": "an ID"}),
+)
+assert any("audit_event_ids must be an array of stable IDs" in error for error in malformed_audit_errors), (
+    malformed_audit_errors
+)
+
+# Run aggregation is route-aware for 4.0 and exactly UI-bound for 3.0.
+run_slice_400 = {
+    "Slice ID / version": "FS-AGENT / 4.0.0",
+    "Product Baseline trace": "PB-1",
+    "Service Route ID": "ROUTE-AGENT",
+    "Integration Baseline ID": "IB-AGENT",
+}
+run_start_400 = {
+    "Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)": "FS-AGENT / 4.0.0",
+    "Product Baseline trace (REAL_PRODUCT_INTEGRATION only)": "PB-1",
+    "Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)": (
+        "ROUTE-AGENT / IB-AGENT"
+    ),
+}
+assert validator.validate_phase3_run_slice_binding(
+    "4.0.0", run_start_400, run_slice_400
+) == []
+ui_inventing_start = copy.deepcopy(run_start_400)
+ui_inventing_start.pop("Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)")
+ui_inventing_start["Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)"] = (
+    "UI-INVENTED / IB-AGENT"
+)
+assert validator.validate_phase3_run_slice_binding(
+    "4.0.0", ui_inventing_start, run_slice_400
+)
+legacy_slice = {
+    "Slice ID / version": "FS-1 / 3.0.0",
+    "Product Baseline trace": "PB-1",
+    "Applicable UI subtree ID / path": "UI-1 :: product/ui",
+    "Integration Baseline ID": "IB-1",
+}
+legacy_start = {
+    "Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)": "FS-1 / 3.0.0",
+    "Product Baseline trace (REAL_PRODUCT_INTEGRATION only)": "PB-1",
+    "Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)": "UI-1 / IB-1",
+}
+assert validator.validate_phase3_run_slice_binding("3.0.0", legacy_start, legacy_slice) == []
 
 print("PASS: 4.0 Feature Slices prove one ordered real chain per required service route")

@@ -120,13 +120,20 @@ PHASE3_START_FIELDS={
     'Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)',
     'Applicable UI / Integration Baseline (REAL_PRODUCT_INTEGRATION only)',
 }
+PHASE3_START_FIELDS_400={
+    'Product Baseline trace (REAL_PRODUCT_INTEGRATION only)',
+    'Feature Slice ID / version (REAL_PRODUCT_INTEGRATION only)',
+    'Service Route / Integration Baseline (REAL_PRODUCT_INTEGRATION only)',
+}
 DEFINITION_START_FIELDS={
     'Meaning impact classification',
     'Definition basis / neutral Impact Analysis reference',
     'Applicable Snake / Scorpion disposition evidence reference',
 }
 START_REQUIRED_FIELDS=START_REQUIRED_FIELDS|DEFINITION_START_FIELDS
-START_ALLOWED_FIELDS=START_REQUIRED_FIELDS|PHASE3_START_FIELDS|LEGACY_PHASE3_START_FIELDS
+START_ALLOWED_FIELDS=(
+    START_REQUIRED_FIELDS|PHASE3_START_FIELDS|PHASE3_START_FIELDS_400|LEGACY_PHASE3_START_FIELDS
+)
 RECEIPT_REQUIRED_FIELDS={
     'Artifact role','Acceptance ID','Run ID','Run-start contract ID',
     'Run-start contract SHA-256','Status schema version','LCCoding phase scope','Phase-owned objective',
@@ -1537,12 +1544,6 @@ ROUTE_BOUND_FIELDS_400={
     'Non-production / simulated / mocked / manually staged evidence used as route proof',
     'Locked UI touch','One-way UI lock evidence',
 }
-ROUTE_CHAIN_EVIDENCE_FIELDS_400=(
-    'Promised real entry evidence','Actor / authority evidence',
-    'Route adapter / product surface evidence','Shared Workflow capability evidence',
-    'Authoritative state / data / side-effect evidence','Route result evidence',
-    'Human-observable outcome evidence',
-)
 GENERIC_EVIDENCE_IDS={
     'DONE','PASS','READY','COMPLETE','EVIDENCE','GENERIC','MOCK','STUB','SCRIPTED','MANUAL',
     'PENDING','UNKNOWN','NONE','NOT_APPLICABLE','TBD','TODO','PROOF','RESULT',
@@ -1991,7 +1992,9 @@ def validate_one_way_ui_lock(
 
 def validate_route_bound_feature_slice(
     project_root,status,slice_path,slice_fields,baseline_path,baseline_fields,final_path,final_fields,
-    ui_rows=None,handoff_fields=None,
+    workflow_rows=None,ui_rows=None,simulation_rows=None,scenario_rows=None,handoff_fields=None,
+    workflow_route_rows=None,service_surface_rows=None,simulation_route_rows=None,
+    handoff_route_rows=None,
 ):
     """Validate the 4.0 promised-entry-to-human-outcome Feature Slice chain."""
     if status.get('status_schema_version')!='4.0.0': return []
@@ -2067,6 +2070,8 @@ def validate_route_bound_feature_slice(
     expected_map_identity=(route_map.get('map_id'),exact_artifact_hash(map_path))
     if exact_id_hash(slice_fields.get('Service Route Map ID / exact hash'))!=expected_map_identity:
         errors.append('Service Route Map identity/hash drift')
+    if exact_id_hash((handoff_fields or {}).get('Service Route Map ID / exact hash'))!=expected_map_identity:
+        errors.append('Product Baseline handoff Service Route Map identity/hash drift')
     if slice_fields.get('Service topology schema version')!='4.0.0':
         errors.append('route-bound Feature Slice requires exact 4.0.0 service topology schema')
 
@@ -2110,21 +2115,186 @@ def validate_route_bound_feature_slice(
     ):
         errors.append('Personal Agent and Service Center routes require attributable delegation')
 
-    evidence_identities=[]
-    for field in ROUTE_CHAIN_EVIDENCE_FIELDS_400:
-        identity,item_errors=parse_bound_route_evidence(
-            slice_fields.get(field),candidate,route_id,field.lower()
-        ) if candidate else (None,[field.lower()+' requires the full current candidate identity'])
-        errors.extend(item_errors)
-        if identity and identity[2]!=route_id:
-            errors.append(field.lower()+" cannot reuse another route's PASS")
-        if identity:
-            evidence_identities.append(identity)
-            evidence_token=identity[3].upper()
-            if any(marker in evidence_token for marker in ('MOCK','STUB','SIMULAT','MANUAL','STAGED')):
-                errors.append(field.lower()+' cannot use simulation, mock, or manually staged state')
-    if len(evidence_identities)!=len(set(evidence_identities)):
-        errors.append('ordered route chain requires independent evidence for every real link')
+    workflow_rows=workflow_rows or []; ui_rows=ui_rows or []
+    simulation_rows=simulation_rows or []; scenario_rows=scenario_rows or []
+    workflow_route_rows=workflow_route_rows or []; service_surface_rows=service_surface_rows or []
+    simulation_route_rows=simulation_route_rows or []; handoff_route_rows=handoff_route_rows or []
+
+    def one_route_row(rows,label):
+        matches=[row for row in rows if isinstance(row,dict) and row.get('Service Route ID')==route_id]
+        if len(matches)!=1:
+            errors.append('authoritative route evidence join requires exactly one '+label+' for '+route_id)
+            return {}
+        return matches[0]
+
+    workflow_trace=one_route_row(workflow_route_rows,'Workflow route trace')
+    workflow_id=str(workflow_trace.get('Workflow ID','')).strip()
+    workflow_matches=[
+        row for row in workflow_rows
+        if isinstance(row,dict) and row.get('Workflow ID')==workflow_id
+    ]
+    workflow=workflow_matches[0] if len(workflow_matches)==1 else {}
+    if len(workflow_matches)!=1:
+        errors.append('authoritative route evidence join requires exactly one realized Workflow row')
+    capability=str(adopted.get('capability_implementation_id','')).strip()
+    if (
+        workflow_trace.get('Workflow Capability ID')!=capability
+        or workflow.get('Workflow Capability ID')!=capability
+        or workflow.get('Implementation status')!='IMPLEMENTED'
+    ):
+        errors.append('Workflow route trace must join one implemented shared Workflow capability')
+
+    route_surfaces=[
+        row for row in service_surface_rows
+        if isinstance(row,dict) and row.get('Service Route ID')==route_id
+    ]
+    adapter_id=str(adopted.get('adapter_or_surface_id','')).strip()
+    adapter_matches=[row for row in route_surfaces if row.get('Service Surface ID')==adapter_id]
+    adapter=adapter_matches[0] if len(adapter_matches)==1 else {}
+    if len(adapter_matches)!=1 or adapter.get('Workflow Capability ID')!=capability:
+        errors.append('authoritative route evidence join requires the adopted adapter/surface trace')
+
+    simulation_trace=one_route_row(simulation_route_rows,'Simulation route trace')
+    simulation_id=str(simulation_trace.get('Simulation ID','')).strip()
+    if len([
+        row for row in simulation_rows
+        if isinstance(row,dict) and row.get('Simulation ID')==simulation_id
+    ])!=1:
+        errors.append('authoritative route evidence join requires one realized Simulation row')
+    scenario_ids,scenario_id_errors=parse_closed_id_list(
+        simulation_trace.get('Scenario IDs'),'route-bound Simulation Scenario IDs'
+    ); errors.extend(scenario_id_errors)
+    if simulation_trace.get('Workflow Capability ID')!=capability:
+        errors.append('Simulation route trace must join the same shared Workflow capability')
+
+    handoff_trace=one_route_row(handoff_route_rows,'Product Baseline route trace')
+    handoff_surfaces,handoff_surface_errors=parse_closed_id_list(
+        handoff_trace.get('Service Surface IDs'),'route-bound Product Baseline Service Surface IDs'
+    ); errors.extend(handoff_surface_errors)
+    handoff_scenarios,handoff_scenario_errors=parse_closed_id_list(
+        handoff_trace.get('Simulation Scenario IDs'),'route-bound Product Baseline Scenario IDs'
+    ); errors.extend(handoff_scenario_errors)
+    handoff_audits,handoff_audit_errors=parse_closed_id_list(
+        handoff_trace.get('Audit event IDs'),'route-bound Product Baseline Audit event IDs'
+    ); errors.extend(handoff_audit_errors)
+    surface_ids={str(row.get('Service Surface ID','')).strip() for row in route_surfaces}
+    if (
+        handoff_trace.get('Workflow Capability ID')!=capability
+        or handoff_surfaces!=surface_ids or handoff_scenarios!=scenario_ids
+    ):
+        errors.append('Product Baseline route trace must exactly join capability, surfaces, and scenarios')
+
+    def evidence_record(field,keys,expected,label):
+        record,record_errors=parse_exact_record_values(slice_fields.get(field),keys,label)
+        errors.extend(record_errors)
+        if record!=expected: errors.append(label+' does not join authoritative route evidence')
+        return record
+
+    candidate_text=str(slice_fields.get('Integration candidate ID / exact hash','')).strip()
+    entry_record,_=parse_exact_record_values(
+        slice_fields.get('Promised real entry evidence'),
+        ('CANDIDATE','ENTRY','SURFACE','TRIGGER','SIMULATION','SCENARIO','PATH'),
+        'promised real entry join'
+    )
+    selected_scenario_id=entry_record.get('SCENARIO')
+    scenario_matches=[
+        row for row in scenario_rows
+        if isinstance(row,dict) and row.get('Simulation ID')==simulation_id
+        and row.get('Scenario ID')==selected_scenario_id
+    ]
+    scenario=scenario_matches[0] if len(scenario_matches)==1 else {}
+    if selected_scenario_id not in scenario_ids or len(scenario_matches)!=1:
+        errors.append('authoritative route evidence join requires one adopted Simulation scenario')
+    used_by,used_by_errors=parse_closed_id_list(
+        scenario.get('Used by Slice/Run/Acceptance'),'route-bound Scenario usage'
+    ); errors.extend(used_by_errors)
+    if not slice_identity or slice_identity[0] not in used_by:
+        errors.append('adopted Simulation scenario must be used by the exact Feature Slice')
+    scenario_actors,scenario_actor_errors=parse_closed_id_list(
+        scenario.get('Actors'),'route-bound Scenario actors'
+    ); errors.extend(scenario_actor_errors)
+    if adopted.get('actor_id') not in scenario_actors:
+        errors.append('adopted Simulation scenario must exercise the exact route actor')
+
+    semantic_sources={
+        'Workflow trigger':workflow.get('Trigger'),
+        'Workflow state/effect trace':workflow.get('Rules / state / side-effect trace'),
+        'Workflow attestation':workflow.get('Evidence / attestation'),
+        'Simulation path':scenario.get('Path'),
+        'Simulation result':scenario.get('Visible / invisible evidence'),
+    }
+    for label,value in semantic_sources.items():
+        if not semantic_present(value): errors.append(label+' is required for the real route evidence join')
+    contract_values={
+        str(workflow.get(field,'')).strip()
+        for field in ('API contract / evidence','MCP contract / evidence')
+        if semantic_present(workflow.get(field))
+    }
+    if any(str(value or '').strip() in contract_values for value in semantic_sources.values()):
+        errors.append('API/MCP contract presence cannot substitute for semantic route execution evidence')
+
+    evidence_record(
+        'Promised real entry evidence',
+        ('CANDIDATE','ENTRY','SURFACE','TRIGGER','SIMULATION','SCENARIO','PATH'),
+        {
+            'CANDIDATE':candidate_text,'ENTRY':str(adopted.get('promised_entry','')),
+            'SURFACE':adapter_id,'TRIGGER':str(workflow.get('Trigger','')),
+            'SIMULATION':simulation_id,'SCENARIO':selected_scenario_id,
+            'PATH':str(scenario.get('Path','')),
+        },
+        'promised real entry join',
+    )
+    evidence_record(
+        'Actor / authority evidence',
+        ('CANDIDATE','ACTOR','ACTION','RESOURCE','DELEGATION','SCENARIO'),
+        {
+            'CANDIDATE':candidate_text,'ACTOR':str(adopted.get('actor_id','')),
+            'ACTION':str(authority.get('action_id','')),
+            'RESOURCE':str(authority.get('resource_id','')),
+            'DELEGATION':str(authority.get('delegation_basis_id','')),
+            'SCENARIO':selected_scenario_id,
+        },
+        'structured actor/authority join',
+    )
+    evidence_record(
+        'Route adapter / product surface evidence',
+        ('CANDIDATE','ROUTE','SURFACE','KIND','CAPABILITY'),
+        {
+            'CANDIDATE':candidate_text,'ROUTE':route_id,'SURFACE':adapter_id,
+            'KIND':str(adapter.get('Service Surface Kind','')),'CAPABILITY':capability,
+        },
+        'route adapter/surface join',
+    )
+    evidence_record(
+        'Shared Workflow capability evidence',
+        ('CANDIDATE','ROUTE','WORKFLOW','CAPABILITY','ATTESTATION'),
+        {
+            'CANDIDATE':candidate_text,'ROUTE':route_id,'WORKFLOW':workflow_id,
+            'CAPABILITY':capability,'ATTESTATION':str(workflow.get('Evidence / attestation','')),
+        },
+        'shared Workflow capability join',
+    )
+    evidence_record(
+        'Authoritative state / data / side-effect evidence',
+        ('CANDIDATE','WORKFLOW','TRACE','ATTESTATION'),
+        {
+            'CANDIDATE':candidate_text,'WORKFLOW':workflow_id,
+            'TRACE':str(workflow.get('Rules / state / side-effect trace','')),
+            'ATTESTATION':str(workflow.get('Evidence / attestation','')),
+        },
+        'authoritative state/data/side-effect join',
+    )
+    evidence_record(
+        'Route result evidence',
+        ('CANDIDATE','SIMULATION','SCENARIO','RESULT','USAGE'),
+        {
+            'CANDIDATE':candidate_text,'SIMULATION':simulation_id,
+            'SCENARIO':selected_scenario_id,
+            'RESULT':str(scenario.get('Visible / invisible evidence','')),
+            'USAGE':str(scenario.get('Used by Slice/Run/Acceptance','')),
+        },
+        'route result join',
+    )
     if slice_fields.get('Route proof basis')!='REAL_ROUTE_EXECUTION':
         errors.append("API/MCP presence or another route's UI PASS cannot prove this route")
     if slice_fields.get(
@@ -2133,12 +2303,22 @@ def validate_route_bound_feature_slice(
         errors.append('simulation, mock, or manually staged state cannot prove real route integration')
 
     expected_audits=adopted.get('audit_event_ids')
-    if not isinstance(expected_audits,list): expected_audits=[]
+    if (
+        not isinstance(expected_audits,list)
+        or any(not isinstance(item,str) or not stable_id(item) for item in expected_audits)
+    ):
+        errors.append('required route '+route_id+' audit_event_ids must be an array of stable IDs')
+        expected_audits=[]
     actual_audits,audit_errors=parse_closed_id_list(
         slice_fields.get('Audit event IDs'),'Feature Slice Audit event IDs'
     ); errors.extend(audit_errors)
     if actual_audits!=set(expected_audits):
         errors.append('Feature Slice audit lineage disagrees with the adopted route')
+    simulation_audits,simulation_audit_errors=parse_closed_id_list(
+        simulation_trace.get('Audit event IDs'),'route-bound Simulation Audit event IDs'
+    ); errors.extend(simulation_audit_errors)
+    if simulation_audits!=set(expected_audits) or handoff_audits!=set(expected_audits):
+        errors.append('route audit lineage must join Service Route Map, Simulation, and Product Baseline')
     audit_evidence=slice_fields.get('Audit lineage evidence')
     if expected_audits:
         _,audit_evidence_errors=parse_bound_route_evidence(
@@ -2148,12 +2328,16 @@ def validate_route_bound_feature_slice(
     elif audit_evidence!='NOT_APPLICABLE':
         errors.append('route without adopted audit events must use NOT_APPLICABLE audit evidence')
 
+    ui_ids={str(row.get('UI ID','')).strip() for row in ui_rows if isinstance(row,dict)}
+    applicable_ui_ids=surface_ids.intersection(ui_ids)
+    expected_locked_ui='YES' if applicable_ui_ids else 'NO'
     locked_ui=slice_fields.get('Locked UI touch')
     if locked_ui not in {'YES','NO'}:
         errors.append('Locked UI touch must be exact YES or NO')
-    if adopted.get('route_kind')=='DIRECT_PRODUCT' and locked_ui!='YES':
-        errors.append('direct-product route must retain the one-way UI lock')
+    if locked_ui!=expected_locked_ui:
+        errors.append("Locked UI touch must equal the adopted route's realized surfaces")
     ui_lock_evidence=slice_fields.get('One-way UI lock evidence')
+    ui_identity={}; human_ui={}
     if locked_ui=='YES':
         _,ui_errors=parse_bound_route_evidence(
             ui_lock_evidence,candidate,route_id,'one-way UI lock evidence'
@@ -2170,12 +2354,40 @@ def validate_route_bound_feature_slice(
                 str(ui_identity.get('HASH',''))
             ):
                 errors.append('route-bound applicable UI identity requires semantic version and exact hash')
+            if ui_identity.get('ID') not in applicable_ui_ids:
+                errors.append('route-bound applicable UI identity must be one of the route realized surfaces')
+            matches=[row for row in ui_rows if row.get('UI ID')==ui_identity.get('ID')]
+            if len(matches)==1: human_ui=matches[0]
         errors.extend(validate_one_way_ui_lock(
             Path(project_root)/'.lccoding',baseline_path,baseline_fields,{'ui':ui_identity},
             ui_rows or [],handoff_fields or {},final_fields
         ))
     elif locked_ui=='NO' and ui_lock_evidence!='NOT_APPLICABLE':
         errors.append('route that does not touch locked UI must use NOT_APPLICABLE UI lock evidence')
+    elif locked_ui=='NO' and semantic_present(slice_fields.get('Applicable UI identity')):
+        errors.append('route without a realized UI surface must not invent an Applicable UI identity')
+
+    human_surface=str(human_ui.get('UI ID') or adapter_id)
+    human_feedback=str(
+        human_ui.get('Actions / feedback')
+        or scenario.get('Visible / invisible evidence','')
+    )
+    human_attestation=str(
+        human_ui.get('Evidence / attestation')
+        or scenario.get('Visible / invisible evidence','')
+    )
+    if not semantic_present(human_feedback) or not semantic_present(human_attestation):
+        errors.append('human-observable outcome requires realized feedback and attestation')
+    evidence_record(
+        'Human-observable outcome evidence',
+        ('CANDIDATE','SURFACE','OUTCOME','FEEDBACK','ATTESTATION'),
+        {
+            'CANDIDATE':candidate_text,'SURFACE':human_surface,
+            'OUTCOME':str(adopted.get('human_observable_outcome','')),
+            'FEEDBACK':human_feedback,'ATTESTATION':human_attestation,
+        },
+        'human-observable outcome join',
+    )
 
     if candidate:
         for field in ('D0-D3 evidence plan','Normal Loop Owner Acceptance route(s)'):
@@ -2218,22 +2430,32 @@ def validate_route_bound_feature_slice(
     return errors
 
 def validate_real_product_integration(
-    lc,slice_path,slice_fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields,status=None
+    lc,slice_path,slice_fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields,
+    status=None,workflow_route_rows=None,service_surface_rows=None,simulation_route_rows=None,
+    handoff_route_rows=None,
 ):
     if (status or {}).get('status_schema_version')=='4.0.0':
-        if not present(slice_fields.get('Integration Route ID')): return []
+        errors=[]
+        for field in (
+            'Integration Route ID','Integration candidate ID / exact hash',
+            'Service Route Map ID / exact hash','Actor ID','Authority action ID',
+            'Authority resource ID','Delegation basis ID',
+        ):
+            if not str(slice_fields.get(field,'')).strip():
+                errors.append('active 4.0 Feature Slice requires '+field)
         _,baseline_path=_safe_lccoding_evidence(slice_path,slice_fields.get('Integration Baseline reference'))
         _,final_path=_safe_lccoding_evidence(slice_path,slice_fields.get('Final Feature Verification reference'))
         if not baseline_path or not final_path:
-            errors=[]
             if not baseline_path: errors.append('Feature Slice requires a contained Integration Baseline reference')
             if not final_path: errors.append('Feature Slice requires a contained Final Feature Verification reference')
             return errors
         baseline_fields,baseline_errors=parse_markdown_fields_strict(baseline_path)
         final_fields,final_errors=parse_markdown_fields_strict(final_path)
-        return baseline_errors+final_errors+validate_route_bound_feature_slice(
+        return errors+baseline_errors+final_errors+validate_route_bound_feature_slice(
             Path(lc).parent,status,slice_path,slice_fields,baseline_path,baseline_fields,
-            final_path,final_fields,ui_rows,handoff_fields,
+            final_path,final_fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,
+            handoff_fields,workflow_route_rows,service_surface_rows,simulation_route_rows,
+            handoff_route_rows,
         )
     return _validate_real_product_integration_300(
         lc,slice_path,slice_fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,handoff_fields
@@ -3712,6 +3934,40 @@ def canonical_run_start_hash(text):
     if matches!=1: return None
     return 'sha256:'+hashlib.sha256(''.join(canonical).encode('utf-8')).hexdigest()
 
+def run_phase_order(schema):
+    if schema=='4.0.0': return PHASE_IDS_BY_SCHEMA.get('3.0.0')
+    return PHASE_IDS_BY_SCHEMA.get(schema)
+
+def phase3_start_fields(schema):
+    if schema=='4.0.0': return PHASE3_START_FIELDS_400
+    if schema in {'2.8.0','3.0.0'}: return PHASE3_START_FIELDS
+    return LEGACY_PHASE3_START_FIELDS
+
+def validate_phase3_run_slice_binding(status_schema,start,slice_fields):
+    errors=[]; expected=phase3_start_fields(status_schema)
+    present_fields=(PHASE3_START_FIELDS|PHASE3_START_FIELDS_400|LEGACY_PHASE3_START_FIELDS)&set(start)
+    if present_fields!=expected or any(not present(start.get(field)) for field in expected):
+        return ['Phase-3 Run start requires exact schema-selected integration identities']
+    baseline_field=next(field for field in expected if field.startswith('Product Baseline trace'))
+    slice_field=next(field for field in expected if field.startswith('Feature Slice ID / version'))
+    entry_field=next(field for field in expected if ' / Integration Baseline (' in field)
+    if start.get(baseline_field)!=slice_fields.get('Product Baseline trace'):
+        errors.append('required Run start Product Baseline disagrees with active Slice')
+    if start.get(slice_field)!=slice_fields.get('Slice ID / version'):
+        errors.append('required Run start Feature Slice identity disagrees with active Slice')
+    start_entry=exact_ui_integration_identity(start.get(entry_field))
+    expected_entry=(
+        str(slice_fields.get('Service Route ID','')).strip()
+        if status_schema=='4.0.0'
+        else str(slice_fields.get('Applicable UI subtree ID / path','')).partition('::')[0].strip()
+    )
+    integration=str(slice_fields.get('Integration Baseline ID','')).strip()
+    if not stable_id(expected_entry) or not stable_id(integration):
+        errors.append('active Slice requires stable route/UI and Integration Baseline IDs')
+    elif start_entry!=(expected_entry,integration):
+        errors.append('required Run start route/UI and Integration Baseline disagree with active Slice')
+    return errors
+
 def validate_run_start_record(path,fields,eligible_methods,manifest,lock,expected_status_schema=None):
     errors=[]; prefix='Run start '+str(path)
     missing=START_REQUIRED_FIELDS-set(fields); unknown=set(fields)-START_ALLOWED_FIELDS
@@ -3725,15 +3981,15 @@ def validate_run_start_record(path,fields,eligible_methods,manifest,lock,expecte
         if field in fields and not stable_id(fields.get(field)):
             errors.append(prefix+' '+field+' must be a safe stable ID')
     schema=fields.get('Status schema version')
-    phase_order=PHASE_IDS_BY_SCHEMA.get(schema)
+    phase_order=run_phase_order(schema)
     if phase_order is None: errors.append(prefix+' has unsupported Status schema version')
     if expected_status_schema is not None and schema!=expected_status_schema:
         errors.append(prefix+' Status schema version disagrees with authoritative status')
     phase=fields.get('LCCoding phase scope')
     if not phase_order or phase not in phase_order: errors.append(prefix+' has invalid phase for Status schema version')
     phase3=phase_order[2] if phase_order else None
-    expected_phase3_fields=(PHASE3_START_FIELDS if schema in {'2.8.0','3.0.0'} else LEGACY_PHASE3_START_FIELDS)
-    all_phase3_fields=PHASE3_START_FIELDS|LEGACY_PHASE3_START_FIELDS
+    expected_phase3_fields=phase3_start_fields(schema)
+    all_phase3_fields=PHASE3_START_FIELDS|PHASE3_START_FIELDS_400|LEGACY_PHASE3_START_FIELDS
     phase3_fields=all_phase3_fields&set(fields)
     if phase==phase3:
         if phase3_fields!=expected_phase3_fields or any(not present(fields.get(field)) for field in expected_phase3_fields):
@@ -3778,7 +4034,7 @@ def validate_terminal_receipt(path,fields,expected_status_schema=None):
     for field in ['Acceptance ID','Run ID','Run-start contract ID','Run-start contract SHA-256','Status schema version','LCCoding phase scope','Phase-owned objective','Candidate ID / hash','D3 Receipt','Entry / role / account','Scenario IDs','Acceptance steps','Invisible risks already verified','Evidence return target in the calling phase','Accepted at']:
         if not present(fields.get(field)): errors.append(prefix+' missing terminal evidence '+field)
     schema=fields.get('Status schema version')
-    phase_order=PHASE_IDS_BY_SCHEMA.get(schema)
+    phase_order=run_phase_order(schema)
     if phase_order is None: errors.append(prefix+' has unsupported Status schema version')
     if expected_status_schema is not None and schema!=expected_status_schema:
         errors.append(prefix+' Status schema version disagrees with authoritative status')
@@ -3846,7 +4102,7 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
     )
     schema_required=generic_mode or aggregate_claimed or bool(raw_indexed)
     if not schema_required: return errors
-    phase_order=PHASE_IDS_BY_SCHEMA.get(status_schema)
+    phase_order=run_phase_order(status_schema)
     if phase_order is None: errors.append('Run evidence requires a supported authoritative status_schema_version')
     phase3=phase_order[2] if phase_order else None
     if not generic_mode: return errors
@@ -3904,12 +4160,9 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
         candidate=str(slice_fields.get('Accepted integration candidate / baseline identity','')).strip()
         candidate_identity=exact_id_hash(candidate)
         if not candidate_identity: errors.append('accepted integration candidate requires exact ID / sha256 identity')
-        slice_identity=str(slice_fields.get('Slice ID / version','')).strip()
-        baseline=str(slice_fields.get('Product Baseline trace','')).strip()
         integration=str(slice_fields.get('Integration Baseline ID','')).strip()
-        ui_reference=str(slice_fields.get('Applicable UI subtree ID / path','')).partition('::')[0].strip()
-        if not stable_id(ui_reference) or not stable_id(integration):
-            errors.append('active Slice requires stable UI and Integration Baseline IDs')
+        if not stable_id(integration):
+            errors.append('active Slice requires stable Integration Baseline ID')
         for run_id in sorted(required):
             start_item=starts.get(run_id); receipt_items=receipts.get(run_id,[])
             if not start_item: continue
@@ -3917,10 +4170,8 @@ def validate_run_evidence(lc,status,manifest,lock,manifest_path):
             if len(receipt_items)!=1:
                 errors.append('required Run requires exactly one receipt: '+run_id); continue
             receipt=receipt_items[0][1]
-            suffix=PHASE_IDS_BY_SCHEMA[status_schema][2]
-            start_ui_integration=exact_ui_integration_identity(start.get(f'Applicable UI / Integration Baseline ({suffix} only)'))
-            if start.get(f'Feature Slice ID / version ({suffix} only)')!=slice_identity or start.get(f'Product Baseline trace ({suffix} only)')!=baseline or start_ui_integration!=(ui_reference,integration):
-                errors.append('required Run start disagrees with active Slice: '+run_id)
+            binding_errors=validate_phase3_run_slice_binding(status_schema,start,slice_fields)
+            errors.extend(error+': '+run_id for error in binding_errors)
             if start.get('Readiness result')!='READY' or start.get('Blocker evidence')!='NONE':
                 errors.append('required Run start is not READY: '+run_id)
             receipt_candidate=str(receipt.get('Candidate ID / hash','')).strip()
@@ -4253,7 +4504,8 @@ def main():
             ))
             errors.extend(validate_real_product_integration(
                 lc,slice_path,fields,workflow_rows,ui_rows,simulation_rows,scenario_rows,
-                handoff_fields,status
+                handoff_fields,status,workflow_route_rows,service_surface_rows,
+                simulation_route_rows,handoff_route_rows
             ))
     gap_records=[]
     if (lc/'reviews').is_dir():
