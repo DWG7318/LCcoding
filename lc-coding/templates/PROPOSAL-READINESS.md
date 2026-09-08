@@ -3,6 +3,31 @@
 - Proposal ID:
 - Source materials:
 - Checked once at:
+
+## LCCoding applicability assessment
+
+- Human beneficiary or authorized representative: PENDING
+- Complete product or service journey: PENDING
+- Real business Workflow: PENDING
+- Actor-facing product surface: PENDING
+- Surface / Workflow / Simulation / Backend/Core integration need: PENDING
+- Real acceptance entry: PENDING
+- Complete bounded product scope selected: PENDING
+- Applicability recommendation: PENDING
+- Applicability reasons:
+
+## Product service strategy discussion
+
+- Selected primary strategy: PENDING
+- Required coexisting strategy: PENDING
+- Intended user groups:
+- Service Center decision: PENDING
+- Strategy rationale:
+- Material uncertainties:
+- Unresolved Calabash topics:
+
+## Readiness record
+
 - Present decisions:
 - Conflicts:
 - Blocking gaps:
