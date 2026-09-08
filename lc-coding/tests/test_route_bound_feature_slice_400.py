@@ -117,6 +117,7 @@ STATUS_400 = {
     "loop_owner_acceptances": [
         "ACCEPTANCE-ROUTE-DIRECT",
         "ACCEPTANCE-ROUTE-AGENT",
+        "ACCEPTANCE-ROUTE-AGENT-SECOND",
         "ACCEPTANCE-ROUTE-CENTER",
     ],
 }
@@ -381,6 +382,7 @@ def route_receipt_fields(route_row, run_start_hash):
             "WF-APPLICATION",
             route_row["capability_implementation_id"],
             scenario_id,
+            "RISK-" + suffix,
             "D3-" + suffix,
             "ACCEPTANCE-" + route_row["route_id"],
         )
@@ -403,7 +405,7 @@ def route_receipt_fields(route_row, run_start_hash):
         "Acceptance steps": ", ".join(required_steps),
         "Product questions": "NONE",
         "Prior accepted dependencies reused": "NONE",
-        "Invisible risks already verified": "D3-" + suffix,
+        "Invisible risks already verified": "RISK-" + suffix,
         "Known limits": "NONE",
         "Evidence return target in the calling phase": "FS-" + suffix,
         "Calling phase gate remains independently evaluated": "YES",
@@ -509,7 +511,8 @@ def validate_fixture(
             "Integration candidate ID / exact hash": CANDIDATE,
             "Integration Baseline ID / reference": "IB-" + suffix + " / " + baseline_path.name,
             "D3 / Loop Owner Acceptance evidence": (
-                "D3:" + bound(route_id, "D3") + "; OWNER:" + bound(route_id, "OWNER")
+                "D3:" + bound(route_id, "D3-" + suffix)
+                + "; OWNER:" + bound(route_id, "ACCEPTANCE-" + route_id)
             ),
             "Final verdict": "PASS",
             **copy.deepcopy(common),
@@ -589,6 +592,54 @@ for route_index in range(3):
     assert positive_errors == [], (
         SERVICE_MAP["journeys"][0]["routes"][route_index], positive_errors
     )
+
+def require_second_agent_acceptance(service_map):
+    service_map["journeys"][0]["routes"][1]["acceptance_evidence_ids"].append(
+        "ACCEPTANCE-ROUTE-AGENT-SECOND"
+    )
+
+
+missing_required_acceptance_errors = validate_fixture(
+    1, mutate_map=require_second_agent_acceptance
+)
+assert any(
+    "cited acceptance evidence IDs must exactly cover the adopted route set" in error
+    for error in missing_required_acceptance_errors
+), missing_required_acceptance_errors
+
+
+def cite_second_agent_acceptance(lc, records, paths, references):
+    route_row = SERVICE_MAP["journeys"][0]["routes"][1]
+    run_fields = route_run_start_fields(route_row)
+    run_fields["Start Contract ID"] = "START-AGENT-SECOND"
+    run_fields["Run ID"] = "RUN-AGENT-SECOND"
+    run_path = lc / "runs" / "RUN-AGENT-SECOND" / "RUN-HANDOFF.md"
+    write_record(run_path, "Run Handoff", run_fields)
+    run_fields["Start Contract SHA-256"] = validator.canonical_run_start_hash(
+        run_path.read_text(encoding="utf-8")
+    )
+    write_record(run_path, "Run Handoff", run_fields)
+    receipt = route_receipt_fields(route_row, run_fields["Start Contract SHA-256"])
+    receipt["Acceptance ID"] = "ACCEPTANCE-ROUTE-AGENT-SECOND"
+    receipt["Run ID"] = "RUN-AGENT-SECOND"
+    receipt["Run-start contract ID"] = "START-AGENT-SECOND"
+    steps = [item.strip() for item in receipt["Acceptance steps"].split(",")]
+    steps[-1] = receipt["Acceptance ID"]
+    receipt["Acceptance steps"] = ", ".join(steps)
+    receipt_path = lc / "reviews" / "OA-AGENT-SECOND.md"
+    write_record(receipt_path, "Loop Owner Acceptance Receipt", receipt)
+    reference = evidence_reference(receipt_path, receipt["Acceptance ID"])
+    records["slice"]["Required Run IDs"] = "RUN-AGENT, RUN-AGENT-SECOND"
+    for record in records.values():
+        record["Authoritative state / data / side-effect evidence"] = reference
+
+
+complete_required_acceptance_errors = validate_fixture(
+    1,
+    mutate_map=require_second_agent_acceptance,
+    mutate_evidence=cite_second_agent_acceptance,
+)
+assert complete_required_acceptance_errors == [], complete_required_acceptance_errors
 
 # Exact 3.0 validation remains selected independently and gains no 4.0 requirements.
 assert validator.validate_route_bound_feature_slice(
@@ -831,6 +882,31 @@ def reorder_route_steps(lc, records, paths, references):
 
 expect_evidence_error(
     1, reorder_route_steps, "route execution receipt does not join the ordered route identities"
+)
+
+
+def change_route_receipt(field, value):
+    def mutate(lc, records, paths, references):
+        path = paths["ROUTE-AGENT"]
+        fields = validator.parse_markdown_fields_strict(path)[0]
+        fields[field] = value
+        write_record(path, "Loop Owner Acceptance Receipt", fields)
+        reference = evidence_reference(path, fields["Acceptance ID"])
+        for record in records.values():
+            for evidence_field in ROUTE_EXECUTION_EVIDENCE_FIELDS:
+                record[evidence_field] = reference
+    return mutate
+
+
+expect_evidence_error(
+    1,
+    change_route_receipt("D3 Receipt", "D3-DIFFERENT"),
+    "D3 Receipt does not match Final Feature Verification",
+)
+expect_evidence_error(
+    1,
+    change_route_receipt("Invisible risks already verified", "RISK-DIFFERENT"),
+    "invisible-risk evidence does not match ordered acceptance evidence",
 )
 expect_error(
     1,

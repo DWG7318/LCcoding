@@ -51,7 +51,7 @@
 - Locked UI touch: YES / NO
 - One-way UI lock evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 
-For `4.0.0`, each of the seven route-chain evidence fields above is an existing exact evidence citation: stable Acceptance ID, SHA-256 of the resolved bytes, and the contained canonical `reviews/...` receipt path. It resolves to the candidate-bound `LOOP_OWNER_ACCEPTANCE_RECEIPT` named by the adopted route. Simulation output or an operations log is not the actual route result and cannot prove the human-observable outcome.
+For `4.0.0`, each of the seven route-chain evidence fields above is an existing exact evidence citation: stable Acceptance ID, SHA-256 of the resolved bytes, and the contained canonical `reviews/...` receipt path. Together the citations cover the adopted route's exact `acceptance_evidence_ids` set, with one unique receipt identity per ID. Each resolves to a candidate-bound `LOOP_OWNER_ACCEPTANCE_RECEIPT` named by the adopted route. The receipt's D3 identity must match this record's D3 evidence, while its independently verified invisible-risk evidence remains a separate ordered fact. Simulation output or an operations log is not the actual route result and cannot prove the human-observable outcome.
 - Product Baseline identity / frozen commit:
 - Primary product mainline ID:
 - Applicable UI identity: ID:<UI ID>; PATH:<subtree path>; VERSION:<component semver>; HASH:<sha256>

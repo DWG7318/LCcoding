@@ -2248,6 +2248,18 @@ def validate_route_bound_feature_slice(
     if not resolved_execution:
         errors.append('route execution evidence collection must contain resolved runtime results')
 
+    terminal,terminal_errors=parse_exact_record_values(
+        final_fields.get('D3 / Loop Owner Acceptance evidence'),('D3','OWNER'),
+        'Final terminal evidence'
+    ); errors.extend(terminal_errors)
+    terminal_identities={}
+    if candidate:
+        for key,value in terminal.items():
+            identity,item_errors=parse_bound_route_evidence(
+                value,candidate,route_id,'Final '+key+' evidence'
+            ); errors.extend(item_errors)
+            terminal_identities[key]=identity
+
     acceptance_ids=adopted.get('acceptance_evidence_ids')
     if (
         not isinstance(acceptance_ids,list) or not acceptance_ids
@@ -2256,6 +2268,13 @@ def validate_route_bound_feature_slice(
     ):
         errors.append('adopted route acceptance_evidence_ids must be a non-empty stable ID list')
         acceptance_ids=[]
+    receipt_bindings={}
+    for reference,_ in unique_receipts.values():
+        receipt_bindings.setdefault(reference[0],set()).add(reference[1:])
+    if set(receipt_bindings)!=set(acceptance_ids):
+        errors.append('cited acceptance evidence IDs must exactly cover the adopted route set')
+    if any(len(bindings)!=1 for bindings in receipt_bindings.values()):
+        errors.append('each cited acceptance evidence ID must resolve one unique receipt identity')
     required_runs,required_run_errors=parse_closed_id_list(
         slice_fields.get('Required Run IDs'),'route-bound Slice Required Run IDs'
     ); errors.extend(required_run_errors)
@@ -2313,14 +2332,24 @@ def validate_route_bound_feature_slice(
             if item.strip()
         ]
         d3=str(receipt.get('D3 Receipt','')).strip()
-        if receipt_steps!=expected_step_prefix+[d3,reference[0]]:
+        invisible,invisible_errors=parse_closed_id_list(
+            receipt.get('Invisible risks already verified'),
+            'route execution receipt invisible-risk evidence',
+        ); errors.extend(invisible_errors)
+        if not invisible:
+            errors.append('route execution receipt requires distinct invisible-risk evidence')
+        if receipt_steps!=expected_step_prefix+sorted(invisible)+[d3,reference[0]]:
+            errors.append('invisible-risk evidence does not match ordered acceptance evidence')
             errors.append('route execution receipt does not join the ordered route identities')
         if receipt.get('Run ID') not in required_runs:
             errors.append('route execution receipt Run ID is absent from the Slice required Runs')
         if slice_id and receipt.get('Evidence return target in the calling phase')!=slice_id:
             errors.append('route execution receipt does not return to the exact Feature Slice')
-        if not stable_id(d3) or receipt.get('Invisible risks already verified')!=d3:
-            errors.append('route execution receipt lacks exact D3 state/effect verification')
+        final_d3=terminal_identities.get('D3')
+        if not stable_id(d3) or not final_d3 or d3!=final_d3[3]:
+            errors.append('route execution D3 Receipt does not match Final Feature Verification')
+        if d3 in invisible:
+            errors.append('D3 Receipt and invisible-risk evidence must remain distinct facts')
         run_matches=run_starts.get(receipt.get('Run ID'),[])
         if len(run_matches)!=1:
             errors.append('route execution receipt must resolve exactly one canonical Run start')
@@ -2347,6 +2376,9 @@ def validate_route_bound_feature_slice(
                 if receipt.get(receipt_field)!=run_fields.get(start_field):
                     errors.append('route execution receipt/Run start mismatch: '+receipt_field)
             errors.extend(validate_phase3_run_slice_binding('4.0.0',run_fields,slice_fields))
+    final_owner=terminal_identities.get('OWNER')
+    if not final_owner or final_owner[3] not in receipt_bindings:
+        errors.append('final Owner evidence must identify one cited route acceptance receipt')
 
     scenario_matches=[
         row for row in scenario_rows if isinstance(row,dict)
@@ -2448,15 +2480,6 @@ def validate_route_bound_feature_slice(
         for field in ('D0-D3 evidence plan','Normal Loop Owner Acceptance route(s)'):
             _,item_errors=parse_bound_route_evidence(
                 slice_fields.get(field),candidate,route_id,'Feature Slice '+field
-            ); errors.extend(item_errors)
-    terminal,terminal_errors=parse_exact_record_values(
-        final_fields.get('D3 / Loop Owner Acceptance evidence'),('D3','OWNER'),
-        'Final terminal evidence'
-    ); errors.extend(terminal_errors)
-    if candidate:
-        for key,value in terminal.items():
-            _,item_errors=parse_bound_route_evidence(
-                value,candidate,route_id,'Final '+key+' evidence'
             ); errors.extend(item_errors)
     if final_fields.get('Final verdict')!='PASS':
         errors.append('current route-bound Final verdict must PASS or remain blocked')

@@ -50,7 +50,7 @@
 - Locked UI touch: YES / NO
 - One-way UI lock evidence: NOT_APPLICABLE / <candidate-id>~<sha256>~<route-id>~<evidence-id>
 
-For `4.0.0`, each of the seven route-chain evidence fields above is an existing exact evidence citation: stable Acceptance ID, SHA-256 of the resolved bytes, and the contained canonical `reviews/...` receipt path. It resolves to the candidate-bound `LOOP_OWNER_ACCEPTANCE_RECEIPT` named by the adopted route, whose Scenario IDs and ordered stable-ID acceptance steps join the authoritative route. Workflow, UI, Simulation, and Product Baseline rows define expected structure and cannot stand in for the runtime result or human outcome.
+For `4.0.0`, each of the seven route-chain evidence fields above is an existing exact evidence citation: stable Acceptance ID, SHA-256 of the resolved bytes, and the contained canonical `reviews/...` receipt path. Together the citations cover the adopted route's exact `acceptance_evidence_ids` set, with one unique receipt identity per ID. Each resolves to a candidate-bound `LOOP_OWNER_ACCEPTANCE_RECEIPT` whose Scenario IDs and ordered stable-ID acceptance steps join the authoritative route. D3 Receipt identity and independently verified invisible-risk evidence remain separately bound terminal facts. Workflow, UI, Simulation, and Product Baseline rows define expected structure and cannot stand in for the runtime result or human outcome.
 - Integration candidate provenance: PROJECT_COMMIT:<exact frozen commit>; EVIDENCE:<candidate-id>~<sha256>~<route-id>~<evidence-id>
 - Product Baseline identity / frozen commit:
 - Primary product mainline ID:
