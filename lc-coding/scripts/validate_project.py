@@ -1180,6 +1180,22 @@ def validate_product_subtree_baseline(
         ))
     return errors
 
+def validate_service_route_trace_schema(
+    status,workflow_route_rows,service_surface_rows,simulation_route_rows,handoff_route_rows,
+):
+    if status.get('status_schema_version')=='4.0.0': return []
+    schema=str(status.get('status_schema_version') or 'unknown')
+    traces=(
+        ('Workflow',workflow_route_rows),
+        ('UI',service_surface_rows),
+        ('Simulation',simulation_route_rows),
+        ('Product Baseline',handoff_route_rows),
+    )
+    return [
+        schema+' project cannot contain 4.0 '+label+' service route trace rows'
+        for label,rows in traces if rows
+    ]
+
 def validate_service_topology_product_formation(
     project_root,status,handoff_fields,
     workflow_rows,workflow_route_rows,ui_rows,service_surface_rows,
@@ -1215,6 +1231,14 @@ def validate_service_topology_product_formation(
             all_routes[route_id]=route
             if route.get('support_state')=='REQUIRED': required_routes[route_id]=route
 
+    route_audits={}
+    for route_id,route in required_routes.items():
+        audit_ids=route.get('audit_event_ids')
+        if not isinstance(audit_ids,list) or any(not isinstance(item,str) or not stable_id(item) for item in audit_ids):
+            errors.append('required route '+route_id+' audit_event_ids must be an array of stable IDs')
+            audit_ids=[]
+        route_audits[route_id]=set(audit_ids)
+
     workflow_by_id={
         str(row.get('Workflow ID','')).strip():str(row.get('Workflow Capability ID','')).strip()
         for row in workflow_rows
@@ -1242,7 +1266,7 @@ def validate_service_topology_product_formation(
     ui_ids={str(row.get('UI ID','')).strip() for row in ui_rows}
     surfaces={route_id:[] for route_id in required_routes}
     seen_surface_pairs=set()
-    surface_kinds={'DIRECT_PRODUCT','AGENT_SERVICE','HUMAN_RESULT_CONSENT_EXCEPTION','SERVICE_CENTER_ASSISTED'}
+    surface_kinds={'DIRECT_PRODUCT','AGENT_SERVICE','HUMAN_RESULT_CONSENT_EXCEPTION','ASSISTED_SERVICE'}
     for index,row in enumerate(service_surface_rows):
         route_id=str(row.get('Service Route ID','')).strip(); prefix=f'Service surface trace row {index+1}'
         surface_id=str(row.get('Service Surface ID','')).strip()
@@ -1272,15 +1296,22 @@ def validate_service_topology_product_formation(
         expected_adapter_kind={
             'DIRECT_PRODUCT':'DIRECT_PRODUCT',
             'PERSONAL_AGENT':'AGENT_SERVICE',
-            'SERVICE_CENTER':'SERVICE_CENTER_ASSISTED',
+            'SERVICE_CENTER':'ASSISTED_SERVICE',
         }.get(route_kind)
+        expected_surface_kinds={
+            'DIRECT_PRODUCT':{'DIRECT_PRODUCT'},
+            'PERSONAL_AGENT':{'AGENT_SERVICE','HUMAN_RESULT_CONSENT_EXCEPTION'},
+            'SERVICE_CENTER':{'ASSISTED_SERVICE','HUMAN_RESULT_CONSENT_EXCEPTION'},
+        }.get(route_kind,set())
+        if {kind for _,kind in route_surfaces}!=expected_surface_kinds:
+            errors.append('required route '+route_id+' must use its exact service surface classes')
         if (adapter,expected_adapter_kind) not in route_surfaces:
             if route_kind=='PERSONAL_AGENT': errors.append('required Personal Agent route '+route_id+' is missing its Agent service surface')
             else: errors.append('required route '+route_id+' service surface does not match its adopted adapter identity')
-        if route_kind=='PERSONAL_AGENT' and not any(
+        if route_kind in {'PERSONAL_AGENT','SERVICE_CENTER'} and not any(
             kind=='HUMAN_RESULT_CONSENT_EXCEPTION' for _,kind in route_surfaces
         ):
-            errors.append('required Personal Agent route '+route_id+' is missing its human result/consent/exception surface')
+            errors.append('required '+('Personal Agent' if route_kind=='PERSONAL_AGENT' else 'Service Center')+' route '+route_id+' is missing its human result/consent/exception surface')
 
     simulation_ids={str(row.get('Simulation ID','')).strip() for row in simulation_rows}
     scenario_pairs={
@@ -1316,7 +1347,7 @@ def validate_service_topology_product_formation(
         if not simulation_scenarios[route_id]:
             if route_kind=='SERVICE_CENTER': errors.append('required Service Center Simulation coverage is missing for '+route_id)
             else: errors.append('required route '+route_id+' is missing Simulation coverage')
-        expected_audits=set(route.get('audit_event_ids',[])) if isinstance(route.get('audit_event_ids'),list) else set()
+        expected_audits=route_audits[route_id]
         if simulation_audits[route_id]!=expected_audits:
             if route_kind=='SERVICE_CENTER': errors.append('required Service Center audit coverage disagrees with the adopted route '+route_id)
             else: errors.append('route audit coverage disagrees with the adopted route '+route_id)
@@ -1343,7 +1374,7 @@ def validate_service_topology_product_formation(
             errors.append('Product Baseline handoff service surface identity mismatch for '+route_id)
         if handoff_scenarios!=simulation_scenarios[route_id]:
             errors.append('Product Baseline handoff Simulation identity mismatch for '+route_id)
-        expected_audits=set(required_routes[route_id].get('audit_event_ids',[]))
+        expected_audits=route_audits[route_id]
         if handoff_audits!=expected_audits:
             errors.append('Product Baseline handoff audit identity mismatch for '+route_id)
     for route_id in required_routes:
@@ -3922,6 +3953,9 @@ def main():
     else:
         errors.extend(product_surface_errors)
         errors.extend(validate_workflow_subtrees(workflow_rows))
+    errors.extend(validate_service_route_trace_schema(
+        status,workflow_route_rows,service_surface_rows,simulation_route_rows,handoff_route_rows
+    ))
     errors.extend(handoff_errors)
     if completed_evidence(status.get('product_baseline')):
         if not handoff.exists():

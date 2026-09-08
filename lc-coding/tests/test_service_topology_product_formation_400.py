@@ -3,6 +3,8 @@ import copy
 import hashlib
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 
 
@@ -39,6 +41,9 @@ for relative, markers in FORMATION_FILES.items():
     text = (ROOT / relative).read_text(encoding="utf-8")
     for marker in markers:
         assert marker in text, (relative, marker)
+ui_template = (ROOT / "lc-coding/templates/UI-MAP.md").read_text(encoding="utf-8")
+assert "`ASSISTED_SERVICE`" in ui_template
+assert "SERVICE_CENTER_ASSISTED" not in ui_template
 
 assert hasattr(validator, "validate_service_topology_product_formation"), (
     "4.0 Product Baseline route join validator is missing"
@@ -187,7 +192,11 @@ WORKFLOW_ROUTES = [
     }
     for route_id in ("ROUTE-DIRECT", "ROUTE-AGENT", "ROUTE-CENTER")
 ]
-UI_ROWS = [{"UI ID": "UI-DIRECT"}, {"UI ID": "UI-HUMAN-RESULT"}]
+UI_ROWS = [
+    {"UI ID": "UI-DIRECT"},
+    {"UI ID": "UI-HUMAN-RESULT"},
+    {"UI ID": "UI-CENTER-RESULT"},
+]
 SURFACES = [
     {
         "Service Route ID": "ROUTE-DIRECT",
@@ -210,7 +219,13 @@ SURFACES = [
     {
         "Service Route ID": "ROUTE-CENTER",
         "Service Surface ID": "SERVICE-CENTER-APPLICATION",
-        "Service Surface Kind": "SERVICE_CENTER_ASSISTED",
+        "Service Surface Kind": "ASSISTED_SERVICE",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    },
+    {
+        "Service Route ID": "ROUTE-CENTER",
+        "Service Surface ID": "UI-CENTER-RESULT",
+        "Service Surface Kind": "HUMAN_RESULT_CONSENT_EXCEPTION",
         "Workflow Capability ID": "CAP-APPLICATION",
     },
 ]
@@ -260,7 +275,7 @@ HANDOFF_ROUTES = [
     {
         "Service Route ID": "ROUTE-CENTER",
         "Workflow Capability ID": "CAP-APPLICATION",
-        "Service Surface IDs": "SERVICE-CENTER-APPLICATION",
+        "Service Surface IDs": "SERVICE-CENTER-APPLICATION, UI-CENTER-RESULT",
         "Simulation Scenario IDs": "SCENARIO-CENTER",
         "Audit event IDs": "AUDIT-CENTER",
     },
@@ -320,11 +335,98 @@ def validate_fixture(
 
 assert validate_fixture() == []
 
+
+def mirrored_surface_claim(route_id, surface_id, surface_kind):
+    changed_surfaces = copy.deepcopy(SURFACES)
+    changed_surfaces.append(
+        {
+            "Service Route ID": route_id,
+            "Service Surface ID": surface_id,
+            "Service Surface Kind": surface_kind,
+            "Workflow Capability ID": "CAP-APPLICATION",
+        }
+    )
+    changed_handoff = copy.deepcopy(HANDOFF_ROUTES)
+    for row in changed_handoff:
+        if row["Service Route ID"] == route_id:
+            row["Service Surface IDs"] += ", " + surface_id
+    return validate_fixture(surfaces=changed_surfaces, handoff_routes=changed_handoff)
+
+
+for label, route_id, surface_id, surface_kind in (
+    ("direct Agent surplus", "ROUTE-DIRECT", "AGENT-SURPLUS", "AGENT_SERVICE"),
+    ("direct assisted surplus", "ROUTE-DIRECT", "CENTER-SURPLUS", "ASSISTED_SERVICE"),
+    ("Personal Agent direct surplus", "ROUTE-AGENT", "UI-DIRECT", "DIRECT_PRODUCT"),
+    ("Personal Agent assisted surplus", "ROUTE-AGENT", "CENTER-SURPLUS", "ASSISTED_SERVICE"),
+    ("Service Center Agent surplus", "ROUTE-CENTER", "AGENT-SURPLUS", "AGENT_SERVICE"),
+    ("Service Center direct surplus", "ROUTE-CENTER", "UI-DIRECT", "DIRECT_PRODUCT"),
+):
+    minimality_errors = mirrored_surface_claim(route_id, surface_id, surface_kind)
+    assert any("exact service surface classes" in error for error in minimality_errors), (
+        label,
+        minimality_errors,
+    )
+
 # Exact 3.0 behavior is retained: no 4.0 formation join is required or inferred.
 assert validator.validate_service_topology_product_formation(
     Path("missing"), {"status_schema_version": "3.0.0", "product_baseline": "ACCEPTED"},
     {}, [], [], [], [], [], [], [], [],
 ) == []
+
+assert hasattr(validator, "validate_service_route_trace_schema"), (
+    "service route trace tables require explicit schema gating"
+)
+legacy_status = {"status_schema_version": "3.0.0"}
+legacy_trace_groups = (
+    ("Workflow", [WORKFLOW_ROUTES[0]], [], [], []),
+    ("UI", [], [SURFACES[1]], [], []),
+    ("Simulation", [], [], [SIMULATION_ROUTES[0]], []),
+    ("Product Baseline", [], [], [], [HANDOFF_ROUTES[0]]),
+)
+for label, workflow_trace, surface_trace, simulation_trace, handoff_trace in legacy_trace_groups:
+    legacy_trace_errors = validator.validate_service_route_trace_schema(
+        legacy_status,
+        workflow_trace,
+        surface_trace,
+        simulation_trace,
+        handoff_trace,
+    )
+    assert any("3.0.0 project cannot contain 4.0" in error for error in legacy_trace_errors), (
+        label,
+        legacy_trace_errors,
+    )
+assert validator.validate_service_route_trace_schema(
+    legacy_status, [], [], [], []
+) == []
+assert validator.validate_service_route_trace_schema(
+    STATUS_400, WORKFLOW_ROUTES, SURFACES, SIMULATION_ROUTES, HANDOFF_ROUTES
+) == []
+
+with tempfile.TemporaryDirectory(prefix="legacy-route-trace-300-") as temporary:
+    legacy_root = Path(temporary)
+    legacy_lc = legacy_root / ".lccoding"
+    legacy_lc.mkdir()
+    (legacy_lc / "status.json").write_text(
+        json.dumps(legacy_status, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+    (legacy_lc / "UI-MAP.md").write_text(
+        "# UI Map\n\n"
+        "- Primary product mainline ID:\n\n"
+        "| UI ID | Subtree path | Component version | Content hash | Actor | Surface / state | Actions / feedback | Workflow subtree references | Simulation subtree references | Evidence / attestation | Lock status | Primary mainline | UI change authority | Baseline Change Request |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n\n"
+        "| Service Route ID | Service Surface ID | Service Surface Kind | Workflow Capability ID |\n"
+        "|---|---|---|---|\n"
+        "| ROUTE-AGENT | AGENT-SERVICE-APPLICATION | AGENT_SERVICE | CAP-APPLICATION |\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    legacy_cli = subprocess.run(
+        [sys.executable, str(VALIDATOR_PATH), str(legacy_root)],
+        capture_output=True,
+        text=True,
+    )
+    assert legacy_cli.returncode != 0
+    assert "3.0.0 project cannot contain 4.0 UI service route trace rows" in legacy_cli.stdout
 
 
 wrong_map_hash = validate_fixture(
@@ -367,17 +469,69 @@ no_center_audit[-1]["Audit event IDs"] = "NONE"
 center_audit_errors = validate_fixture(simulation_routes=no_center_audit)
 assert any("Service Center audit coverage" in error for error in center_audit_errors), center_audit_errors
 
+for malformed_audits in (None, "AUDIT-CENTER", {"audit": "AUDIT-CENTER"}):
+    malformed_map = copy.deepcopy(SERVICE_MAP)
+    malformed_map["journeys"][0]["routes"][2]["audit_event_ids"] = malformed_audits
+    try:
+        malformed_audit_errors = validate_fixture(service_map=malformed_map)
+    except TypeError as error:
+        raise AssertionError("malformed audit_event_ids must fail closed without TypeError") from error
+    assert any(
+        "audit_event_ids must be an array of stable IDs" in error
+        for error in malformed_audit_errors
+    ), (malformed_audits, malformed_audit_errors)
+
 unsupported_claim = copy.deepcopy(HANDOFF_ROUTES)
 unsupported_claim.append(
     {
         "Service Route ID": "ROUTE-FUTURE",
         "Workflow Capability ID": "CAP-APPLICATION",
-        "Service Surface IDs": "AGENT-SERVICE-FUTURE",
+        "Service Surface IDs": "AGENT-SERVICE-FUTURE, UI-FUTURE-RESULT",
         "Simulation Scenario IDs": "SCENARIO-FUTURE",
         "Audit event IDs": "NONE",
     }
 )
-unsupported_errors = validate_fixture(handoff_routes=unsupported_claim)
+unsupported_workflow = copy.deepcopy(WORKFLOW_ROUTES)
+unsupported_workflow.append(
+    {
+        "Service Route ID": "ROUTE-FUTURE",
+        "Workflow ID": "WF-APPLICATION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+    }
+)
+unsupported_surfaces = copy.deepcopy(SURFACES)
+unsupported_surfaces.extend(
+    [
+        {
+            "Service Route ID": "ROUTE-FUTURE",
+            "Service Surface ID": "AGENT-SERVICE-FUTURE",
+            "Service Surface Kind": "AGENT_SERVICE",
+            "Workflow Capability ID": "CAP-APPLICATION",
+        },
+        {
+            "Service Route ID": "ROUTE-FUTURE",
+            "Service Surface ID": "UI-FUTURE-RESULT",
+            "Service Surface Kind": "HUMAN_RESULT_CONSENT_EXCEPTION",
+            "Workflow Capability ID": "CAP-APPLICATION",
+        },
+    ]
+)
+unsupported_simulation = copy.deepcopy(SIMULATION_ROUTES)
+unsupported_simulation.append(
+    {
+        "Service Route ID": "ROUTE-FUTURE",
+        "Simulation ID": "SIM-APPLICATION",
+        "Workflow Capability ID": "CAP-APPLICATION",
+        "Scenario IDs": "SCENARIO-FUTURE",
+        "Audit event IDs": "NONE",
+    }
+)
+unsupported_errors = validate_fixture(
+    workflow_routes=unsupported_workflow,
+    surfaces=unsupported_surfaces,
+    simulation_routes=unsupported_simulation,
+    handoff_routes=unsupported_claim,
+)
 assert any("unsupported or future route" in error for error in unsupported_errors), unsupported_errors
 
 # Existing same-capability API/MCP evidence is not formation or delivery proof.

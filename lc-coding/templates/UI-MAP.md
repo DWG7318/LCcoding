@@ -14,4 +14,4 @@ UI relationships are closed, reciprocal peer-subtree ID references. They allow m
 | Service Route ID | Service Surface ID | Service Surface Kind | Workflow Capability ID |
 |---|---|---|---|
 
-Allowed kinds are `DIRECT_PRODUCT`, `AGENT_SERVICE`, `HUMAN_RESULT_CONSENT_EXCEPTION`, and `SERVICE_CENTER_ASSISTED`. A Personal Agent route records both `AGENT_SERVICE` and `HUMAN_RESULT_CONSENT_EXCEPTION`. Direct and human result surfaces cite their realized UI IDs; Agent or assisted-service surfaces do not become artificial UI merely because their route identities are traced here.
+Allowed kinds are `DIRECT_PRODUCT`, `AGENT_SERVICE`, `HUMAN_RESULT_CONSENT_EXCEPTION`, and `ASSISTED_SERVICE`. A direct route records only `DIRECT_PRODUCT`; a Personal Agent route records `AGENT_SERVICE` plus `HUMAN_RESULT_CONSENT_EXCEPTION`; and a Service Center route records `ASSISTED_SERVICE` plus `HUMAN_RESULT_CONSENT_EXCEPTION`. Direct and human result surfaces cite their realized UI IDs; Agent or assisted-service surfaces do not become artificial UI merely because their route identities are traced here.
