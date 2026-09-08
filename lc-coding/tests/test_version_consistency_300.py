@@ -33,8 +33,9 @@ asset = json.loads(
     )
 )
 adapter = asset["status_adapters"]["3.0.0"]
-assert adapter["compatibility_status"] == "CURRENT"
+assert adapter["compatibility_status"] == "SUPPORTED_LEGACY"
 assert sum(len(steps) for steps in adapter["phase_steps"].values()) == 26
 assert list(adapter["phase_steps"])[3] == "REAL_USER_JOURNEY_ACCEPTANCE"
+assert asset["status_adapters"]["4.0.0"]["compatibility_status"] == "CURRENT"
 
-print("PASS: LCCoding 3.0 five-phase and BI candidate identities are closed")
+print("PASS: LCCoding 3.0 five-phase identity remains supported by BI V4")

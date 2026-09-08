@@ -1,5 +1,5 @@
 {
-  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",
+  "asset_schema": "LCCODING_BI_COMPATIBILITY_V4",
   "status_adapters": {
     "2.6.0": {
       "status_schema_version": "2.6.0",
@@ -111,7 +111,7 @@
     },
     "3.0.0": {
       "status_schema_version": "3.0.0",
-      "compatibility_status": "CURRENT",
+      "compatibility_status": "SUPPORTED_LEGACY",
       "minimum_bi_version": "3.0.0",
       "phase_steps": {
         "INITIAL": [
@@ -121,6 +121,52 @@
         ],
         "PRODUCT_FORMATION": [
           "CALABASH_DRAFT",
+          "SIMULATION_WORLD_FOUNDATION",
+          "WORKFLOW_CAPABILITY_END",
+          "UI_PRODUCT_SURFACE_END",
+          "CALABASH_UPGRADE_READY",
+          "MANDATORY_CALABASH_UPGRADE",
+          "PRODUCT_BASELINE"
+        ],
+        "REAL_PRODUCT_INTEGRATION": [
+          "FEATURE_SLICE_EXECUTION_COVERAGE",
+          "UI_LOCKED_INTEGRATION_BASELINE",
+          "LOOP_RUN_D0_D3",
+          "LOOP_OWNER_ACCEPTANCE",
+          "ALL_REQUIRED_RUNS_ACCEPTED"
+        ],
+        "REAL_USER_JOURNEY_ACCEPTANCE": [
+          "JOURNEY_COVERAGE_READY",
+          "ACCEPTANCE_ENVIRONMENT_READY",
+          "REAL_USER_JOURNEY_ROUND",
+          "JOURNEY_DEFECT_CLOSURE",
+          "REAL_USER_JOURNEY_OWNER_ACCEPTANCE"
+        ],
+        "DELIVERY_PREPARATION": [
+          "CENTRALIZED_VULNERABILITY_AUDIT",
+          "SECURITY_REMEDIATION",
+          "SECURITY_REAUDIT_VULNERABILITY_CLOSURE",
+          "POST_SECURITY_OWNER_ACCEPTANCE",
+          "DELIVERY_METHOD_QA",
+          "DELIVERY_PACKAGE_GUARD_READY"
+        ]
+      }
+    },
+    "4.0.0": {
+      "status_schema_version": "4.0.0",
+      "compatibility_status": "CURRENT",
+      "minimum_bi_version": "4.0.0",
+      "phase_steps": {
+        "INITIAL": [
+          "LCCODING_APPLICABILITY_ASSESSMENT",
+          "PROPOSAL_READINESS",
+          "PRODUCT_SERVICE_STRATEGY",
+          "PROJECT_INITIALIZATION",
+          "INITIAL_READY"
+        ],
+        "PRODUCT_FORMATION": [
+          "CALABASH_DRAFT",
+          "SERVICE_ROUTE_MAP_READY",
           "SIMULATION_WORLD_FOUNDATION",
           "WORKFLOW_CAPABILITY_END",
           "UI_PRODUCT_SURFACE_END",

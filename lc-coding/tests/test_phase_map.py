@@ -2,12 +2,26 @@ from pathlib import Path
 import json
 root=Path(__file__).resolve().parents[2]
 contract=json.loads((root/'lc-coding/contracts/phases.json').read_text())
+compatibility=json.loads((root/'lc-coding/bi/release/loop-contract-identities.json').read_text())
+phase_projection=json.loads((root/'lc-coding/templates/PHASE-STATUS.json').read_text())
 assert contract['mainline_unchanged'] is False
 phases=contract['phases']
 assert [p['id'] for p in phases]==[
     'INITIAL','PRODUCT_FORMATION','REAL_PRODUCT_INTEGRATION',
     'REAL_USER_JOURNEY_ACCEPTANCE','DELIVERY_PREPARATION',
 ]
+phase_ids=[p['id'] for p in phases]
+adapter_400=compatibility['status_adapters']['4.0.0']
+assert list(adapter_400['phase_steps'])==phase_ids
+assert adapter_400['phase_steps']['INITIAL'][:4]==[
+    'LCCODING_APPLICABILITY_ASSESSMENT','PROPOSAL_READINESS',
+    'PRODUCT_SERVICE_STRATEGY','PROJECT_INITIALIZATION',
+]
+assert adapter_400['phase_steps']['PRODUCT_FORMATION'][:2]==[
+    'CALABASH_DRAFT','SERVICE_ROUTE_MAP_READY',
+]
+assert phase_projection['status_schema_version']=='3.0.0'
+assert list(phase_projection['phases'])==phase_ids
 phase_by_id={phase['id']:phase for phase in phases}
 assert phase_by_id['INITIAL']['end_before']=='CALABASH_DRAFT'
 formation=phase_by_id['PRODUCT_FORMATION']

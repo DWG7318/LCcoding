@@ -44,12 +44,20 @@ ADAPTER_SPECS = {
         (3, 7, 5, 6),
     ),
     "3.0.0": (
-        "CURRENT", "3.0.0",
+        "SUPPORTED_LEGACY", "3.0.0",
         (
             "INITIAL", "PRODUCT_FORMATION", "REAL_PRODUCT_INTEGRATION",
             "REAL_USER_JOURNEY_ACCEPTANCE", "DELIVERY_PREPARATION",
         ),
         (3, 7, 5, 5, 6),
+    ),
+    "4.0.0": (
+        "CURRENT", "4.0.0",
+        (
+            "INITIAL", "PRODUCT_FORMATION", "REAL_PRODUCT_INTEGRATION",
+            "REAL_USER_JOURNEY_ACCEPTANCE", "DELIVERY_PREPARATION",
+        ),
+        (5, 8, 5, 5, 6),
     ),
 }
 MACHINE_ID = re.compile(r"^[A-Z][A-Z0-9_]{0,95}$")
@@ -72,7 +80,7 @@ def _load_compatibility_layout():
         raise RuntimeError("invalid fixed BI compatibility asset") from error
     if not isinstance(asset, dict) or tuple(asset) != ASSET_TOP_KEYS:
         raise RuntimeError("invalid fixed BI compatibility asset shape")
-    if asset.get("asset_schema") != "LCCODING_BI_COMPATIBILITY_V3":
+    if asset.get("asset_schema") != "LCCODING_BI_COMPATIBILITY_V4":
         raise RuntimeError("unsupported fixed BI compatibility asset schema")
     adapters = asset.get("status_adapters")
     if not isinstance(adapters, dict) or tuple(adapters) != tuple(ADAPTER_SPECS):
@@ -123,7 +131,8 @@ def _load_compatibility_layout():
     legacy = phase_steps_by_schema["2.6.0"]
     current = phase_steps_by_schema["2.7.0"]
     prepared = phase_steps_by_schema["2.8.0"]
-    current_300 = phase_steps_by_schema["3.0.0"]
+    legacy_300 = phase_steps_by_schema["3.0.0"]
+    current_400 = phase_steps_by_schema["4.0.0"]
     if not (
         step_orders["2.6.0"] == step_orders["2.7.0"] == step_orders["2.8.0"]
         and legacy["INITIAL"] == current["INITIAL"] == prepared["INITIAL"]
@@ -135,15 +144,31 @@ def _load_compatibility_layout():
         and current["ENGINEERING_RUNS"] == legacy["ENGINEERING_RUNS"][2:]
         and prepared["PRODUCT_FORMATION"] == current["PRODUCT_FORMATION"]
         and prepared["REAL_PRODUCT_INTEGRATION"] == current["ENGINEERING_RUNS"]
-        and current_300["INITIAL"] == prepared["INITIAL"]
-        and current_300["PRODUCT_FORMATION"] == prepared["PRODUCT_FORMATION"]
-        and current_300["REAL_PRODUCT_INTEGRATION"] == prepared["REAL_PRODUCT_INTEGRATION"]
-        and current_300["DELIVERY_PREPARATION"] == prepared["DELIVERY_PREPARATION"]
+        and legacy_300["INITIAL"] == prepared["INITIAL"]
+        and legacy_300["PRODUCT_FORMATION"] == prepared["PRODUCT_FORMATION"]
+        and legacy_300["REAL_PRODUCT_INTEGRATION"] == prepared["REAL_PRODUCT_INTEGRATION"]
+        and legacy_300["DELIVERY_PREPARATION"] == prepared["DELIVERY_PREPARATION"]
         and step_orders["3.0.0"] == (
             step_orders["2.8.0"][:-6]
-            + current_300["REAL_USER_JOURNEY_ACCEPTANCE"]
+            + legacy_300["REAL_USER_JOURNEY_ACCEPTANCE"]
             + step_orders["2.8.0"][-6:]
         )
+        and (
+            current_400["INITIAL"][1:2]
+            + current_400["INITIAL"][3:]
+            == legacy_300["INITIAL"]
+        )
+        and (
+            current_400["PRODUCT_FORMATION"][:1]
+            + current_400["PRODUCT_FORMATION"][2:]
+            == legacy_300["PRODUCT_FORMATION"]
+        )
+        and current_400["REAL_PRODUCT_INTEGRATION"]
+        == legacy_300["REAL_PRODUCT_INTEGRATION"]
+        and current_400["REAL_USER_JOURNEY_ACCEPTANCE"]
+        == legacy_300["REAL_USER_JOURNEY_ACCEPTANCE"]
+        and current_400["DELIVERY_PREPARATION"]
+        == legacy_300["DELIVERY_PREPARATION"]
     ):
         raise RuntimeError("inconsistent fixed BI status adapter layouts")
     return phase_orders, step_orders, phase_steps_by_schema

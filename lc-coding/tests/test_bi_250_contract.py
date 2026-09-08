@@ -153,11 +153,27 @@ def controlled_asset_and_gh_state() -> tuple[dict, dict]:
     return asset, state
 
 
+def compatibility_v3_candidate(asset: dict) -> dict:
+    candidate = copy.deepcopy(asset)
+    if candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V3":
+        assert set(candidate.get("status_adapters", {})) == {
+            "2.6.0", "2.7.0", "2.8.0", "3.0.0",
+        }
+        return candidate
+    assert candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V4"
+    candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V3"
+    candidate["status_adapters"].pop("4.0.0")
+    candidate["status_adapters"]["3.0.0"]["compatibility_status"] = "CURRENT"
+    return candidate
+
+
 def compatibility_v2_candidate(asset: dict) -> dict:
     candidate = copy.deepcopy(asset)
     if candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V2":
         assert set(candidate.get("status_adapters", {})) == {"2.6.0", "2.7.0", "2.8.0"}
         return candidate
+    if candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V4":
+        candidate = compatibility_v3_candidate(candidate)
     if candidate.get("asset_schema") == "LCCODING_BI_COMPATIBILITY_V3":
         candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V2"
         candidate["status_adapters"].pop("3.0.0")
@@ -181,6 +197,7 @@ def compatibility_v1_candidate(asset: dict) -> dict:
     candidate["asset_schema"] = "LCCODING_BI_COMPATIBILITY_V1"
     candidate["status_adapters"].pop("2.8.0", None)
     candidate["status_adapters"].pop("3.0.0", None)
+    candidate["status_adapters"].pop("4.0.0", None)
     candidate["status_adapters"]["2.7.0"]["compatibility_status"] = "CURRENT"
     assert set(candidate["status_adapters"]) == {"2.6.0", "2.7.0"}
     return candidate
@@ -301,8 +318,11 @@ raise SystemExit(1)
         return completed, calls
 
 
-valid_asset, _ = controlled_asset_and_gh_state()
+source_asset, _ = controlled_asset_and_gh_state()
+assert source_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V4"
+valid_asset = compatibility_v3_candidate(source_asset)
 assert valid_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V3"
+assert valid_asset["execution_methods"] == source_asset["execution_methods"]
 for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr

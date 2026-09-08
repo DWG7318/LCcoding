@@ -14,6 +14,7 @@ validator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validator)
 
 CURRENT_SCHEMA = "3.0.0"
+PROJECTED_SCHEMA = "4.0.0"
 LEGACY_SCHEMAS = ("2.6.0", "2.7.0")
 CURRENT_PHASES = (
     "INITIAL",
@@ -79,7 +80,7 @@ def phase_view(schema: str, phase3_id: str) -> dict:
             "aggregate_exit_gate": "PENDING",
         },
     }
-    if schema == "3.0.0":
+    if schema in {CURRENT_SCHEMA, PROJECTED_SCHEMA}:
         phases["REAL_USER_JOURNEY_ACCEPTANCE"] = {
             "status": "PENDING",
             "acceptance_record": "NOT_APPLICABLE",
@@ -188,6 +189,8 @@ assert actual_gates == GATES
 assert validator.validate_phase_status(phase_template) == []
 current = phase_view(CURRENT_SCHEMA, "REAL_PRODUCT_INTEGRATION")
 assert validator.validate_phase_status(current) == []
+projected = phase_view(PROJECTED_SCHEMA, "REAL_PRODUCT_INTEGRATION")
+assert validator.validate_phase_status(projected) == []
 for schema in LEGACY_SCHEMAS:
     assert validator.validate_phase_status(phase_view(schema, "ENGINEERING_RUNS")) == []
 assert validator.validate_phase_status(phase_view("2.8.0", "REAL_PRODUCT_INTEGRATION")) == []

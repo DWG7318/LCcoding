@@ -6,6 +6,9 @@ manifest = json.loads((root / "MANIFEST.json").read_text(encoding="utf-8"))
 phase_contract = json.loads(
     (root / "lc-coding/contracts/phases.json").read_text(encoding="utf-8")
 )
+phase_projection = json.loads(
+    (root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8")
+)
 canonical_ids = [phase["id"] for phase in phase_contract["phases"]]
 current_ids = [
     "INITIAL",
@@ -26,6 +29,8 @@ assert canonical_ids == current_ids
 assert manifest["version"] == "3.0.0"
 assert manifest["phase_overlay"] == canonical_ids
 assert manifest["execution_method_overlay"]["available_in_phases"] == canonical_ids
+assert phase_projection["status_schema_version"] == "3.0.0"
+assert list(phase_projection["phases"]) == canonical_ids
 assert phase_contract["execution_methods"]["phase_ids"] == canonical_ids
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
 assert phase_contract["execution_methods"]["method_completion_advances_phase"] is False
@@ -56,4 +61,4 @@ assert "ENGINEERING_CLOSURE" not in migration
 for phase_id in legacy_ids:
     assert phase_id in migration
 
-print("PASS: phase identifiers are consistent across release artifacts")
+print("PASS: phase identifiers are consistent while the 4.0 adapter remains dormant")

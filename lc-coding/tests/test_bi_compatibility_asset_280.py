@@ -9,7 +9,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSET = ROOT / "lc-coding/bi/release/loop-contract-identities.json"
-ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V3"
+ASSET_SCHEMA = "LCCODING_BI_COMPATIBILITY_V4"
 EXECUTION_METHODS_FRAGMENT_SHA256 = (
     "904a0f8ce8eea72e5d1774b95acaa5239d9a4f1a5b39214eb1c5f91c3b7d054b"
 )
@@ -84,6 +84,13 @@ JOURNEY_300 = [
     "JOURNEY_DEFECT_CLOSURE",
     "REAL_USER_JOURNEY_OWNER_ACCEPTANCE",
 ]
+INITIAL_400 = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
+    INITIAL[0],
+    "PRODUCT_SERVICE_STRATEGY",
+    *INITIAL[1:],
+]
+FORMATION_400 = [FORMATION_270[0], "SERVICE_ROUTE_MAP_READY", *FORMATION_270[1:]]
 EXPECTED_ADAPTERS = {
     "2.6.0": {
         "status_schema_version": "2.6.0",
@@ -114,12 +121,29 @@ EXPECTED_ADAPTERS = {
     },
     "3.0.0": {
         "status_schema_version": "3.0.0",
-        "compatibility_status": "CURRENT",
+        "compatibility_status": "SUPPORTED_LEGACY",
         "minimum_bi_version": "3.0.0",
         "phase_steps": dict(
             zip(
                 CURRENT_PHASES,
                 (INITIAL, FORMATION_270, INTEGRATION_270, JOURNEY_300, DELIVERY),
+            )
+        ),
+    },
+    "4.0.0": {
+        "status_schema_version": "4.0.0",
+        "compatibility_status": "CURRENT",
+        "minimum_bi_version": "4.0.0",
+        "phase_steps": dict(
+            zip(
+                CURRENT_PHASES,
+                (
+                    INITIAL_400,
+                    FORMATION_400,
+                    INTEGRATION_270,
+                    JOURNEY_300,
+                    DELIVERY,
+                ),
             )
         ),
     },
@@ -184,7 +208,7 @@ def validate_asset(asset):
                 errors.append(f"{version} phases")
                 continue
             steps = [step for phase in expected_phases for step in phase_steps[phase]]
-            expected_count = 26 if version == "3.0.0" else 21
+            expected_count = {"3.0.0": 26, "4.0.0": 29}.get(version, 21)
             if len(steps) != expected_count or len(set(steps)) != expected_count:
                 errors.append(f"{version} steps")
     methods = asset["execution_methods"]
@@ -283,6 +307,9 @@ mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("status_schema_vers
 mutation(lambda x: x["status_adapters"]["2.7.0"].__setitem__("compatibility_status", "CURRENT"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("compatibility_status", "CURRENT"))
 mutation(lambda x: x["status_adapters"]["2.8.0"].__setitem__("minimum_bi_version", "2.7.0"))
+mutation(lambda x: x["status_adapters"]["3.0.0"].__setitem__("compatibility_status", "CURRENT"))
+mutation(lambda x: x["status_adapters"]["4.0.0"].__setitem__("compatibility_status", "SUPPORTED_LEGACY"))
+mutation(lambda x: x["status_adapters"]["4.0.0"].__setitem__("minimum_bi_version", "3.0.0"))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_FORMATION", FORMATION_260))
 mutation(lambda x: x["status_adapters"]["2.7.0"]["phase_steps"].__setitem__("PRODUCT_INTEGRATION", x["status_adapters"]["2.7.0"]["phase_steps"].pop("ENGINEERING_RUNS")))
 mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__("ENGINEERING_RUNS", x["status_adapters"]["2.8.0"]["phase_steps"]["REAL_PRODUCT_INTEGRATION"]))
@@ -290,6 +317,8 @@ mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__("PRO
 mutation(lambda x: x["status_adapters"]["2.6.0"]["phase_steps"]["INITIAL"].append("INITIAL_READY"))
 mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"]["INITIAL"].append("NEW_GATE"))
 mutation(lambda x: x["status_adapters"]["2.8.0"]["phase_steps"]["PRODUCT_FORMATION"].reverse())
+mutation(lambda x: x["status_adapters"]["4.0.0"]["phase_steps"]["INITIAL"].reverse())
+mutation(lambda x: x["status_adapters"]["4.0.0"]["phase_steps"]["PRODUCT_FORMATION"].reverse())
 mutation(lambda x: x["execution_methods"].update({"fourth": copy.deepcopy(x["execution_methods"]["slk"])}))
 mutation(lambda x: x["execution_methods"].update({"calabash": copy.deepcopy(x["execution_methods"]["slk"])}))
 mutation(lambda x: x["execution_methods"]["slk"].update({"extra": 1}))
@@ -302,9 +331,9 @@ mutation(lambda x: x["execution_methods"]["slk"].__setitem__("normalization_mapp
 mutation(lambda x: x.update({"slk": copy.deepcopy(x["execution_methods"]["slk"])}))
 
 duplicate = asset_raw.decode("utf-8").replace(
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",',
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",\n'
-    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V3",',
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V4",',
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V4",\n'
+    '  "asset_schema": "LCCODING_BI_COMPATIBILITY_V4",',
     1,
 )
 try:
@@ -371,11 +400,18 @@ production_loader_rejects("{")
 production_loader_rejects(duplicate)
 for mutator in [
     lambda x: x["status_adapters"].pop("2.8.0"),
+    lambda x: x["status_adapters"].pop("4.0.0"),
     lambda x: x["status_adapters"].update(
         {"3.1.0": copy.deepcopy(x["status_adapters"]["3.0.0"])}
     ),
     lambda x: x["status_adapters"]["2.8.0"].__setitem__(
         "compatibility_status", "CURRENT"
+    ),
+    lambda x: x["status_adapters"]["3.0.0"].__setitem__(
+        "compatibility_status", "CURRENT"
+    ),
+    lambda x: x["status_adapters"]["4.0.0"].__setitem__(
+        "compatibility_status", "SUPPORTED_LEGACY"
     ),
     lambda x: x["status_adapters"]["2.8.0"]["phase_steps"].__setitem__(
         "ENGINEERING_RUNS",
@@ -384,6 +420,12 @@ for mutator in [
         ),
     ),
     lambda x: x["status_adapters"]["2.8.0"]["phase_steps"][
+        "PRODUCT_FORMATION"
+    ].reverse(),
+    lambda x: x["status_adapters"]["4.0.0"]["phase_steps"][
+        "INITIAL"
+    ].reverse(),
+    lambda x: x["status_adapters"]["4.0.0"]["phase_steps"][
         "PRODUCT_FORMATION"
     ].reverse(),
     lambda x: x["execution_methods"].update(
@@ -404,4 +446,4 @@ with tempfile.TemporaryDirectory() as temporary:
     second.write_text(json.dumps(asset), encoding="utf-8")
     assert len(compatibility_candidates(shadow_root)) == 2
 
-print("PASS: BI compatibility has one closed status and execution-method asset")
+print("PASS: BI compatibility V4 preserves closed legacy and execution-method identities")
