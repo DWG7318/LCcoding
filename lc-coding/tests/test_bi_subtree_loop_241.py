@@ -7,10 +7,13 @@ import re
 root = Path(__file__).resolve().parents[2]
 
 expected_mainline = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
     "PROPOSAL_READINESS",
+    "PRODUCT_SERVICE_STRATEGY",
     "PROJECT_INITIALIZATION",
     "CALABASH_DRAFT",
-    "WORKFLOW_UI_SIMULATION",
+    "SERVICE_ROUTE_MAP",
+    "WORKFLOW_ROUTE_SURFACES_SIMULATION",
     "MANDATORY_CALABASH_UPGRADE",
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
@@ -53,6 +56,15 @@ lifecycle = json.loads(
     (root / "lc-coding/contracts/lifecycle.json").read_text(encoding="utf-8")
 )
 assert lifecycle["mainline"] == expected_mainline
+assert lifecycle["mainline_scope"] == (
+    "WHOLE_PRODUCT_FIT_OR_BOUNDED_PRODUCT_FIT_ADMITTED_PATH"
+)
+assert "WORKFLOW_UI_SIMULATION" not in lifecycle["mainline"]
+assert lifecycle["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"] == {
+    "canonical": "WORKFLOW_ROUTE_SURFACES_SIMULATION",
+    "read_only": True,
+    "meaning": "DIRECT_PRODUCT_FORMATION_COMPATIBILITY_ONLY",
+}
 
 model = (root / "lc-coding/bi/src/model/snapshot.ts").read_text(encoding="utf-8")
 layout = model[model.index("const PHASE_LAYOUT"):model.index("type RowKind")]

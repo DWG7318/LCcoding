@@ -9,6 +9,7 @@ spec = spec_path.read_text(encoding="utf-8-sig")
 BASE_TITLES = {
     "LC-AUTH-001": "Owner authority and method boundary",
     "LC-AUTH-002": "Single semantic authority and project truth",
+    "LC-AUTH-003": "LCCoding applicability and product service strategy",
     "LC-PHASE-001": "Initial",
     "LC-PHASE-002": "Product Formation",
     "LC-PHASE-003": "Real Product Integration",
@@ -20,6 +21,7 @@ BASE_TITLES = {
     "LC-INTEG-001": "Feature Slice and real integration proof",
     "LC-INTEG-002": "One-way UI lock",
     "LC-INTEG-003": "Impact, mutability, and evidence reuse",
+    "LC-INTEG-005": "Service topology and route-faithful lifecycle proof",
     "LC-JOURNEY-001": "Bounded real-user journey coverage and visible evidence",
     "LC-JOURNEY-002": "Defect identity, correction order, and complete-round restart",
     "LC-JOURNEY-003": "Owner verdict, exemption, and later invalidation",
@@ -282,4 +284,4 @@ assert "Agent phase" not in agent_native_text
 assert "new lifecycle gate" not in agent_native_text
 assert "LCCoding implements the Runtime" not in agent_native_text
 
-print("PASS: SPEC exposes a closed 35-clause Agent-native authority graph")
+print("PASS: SPEC exposes a closed 37-clause Agent-native authority graph")

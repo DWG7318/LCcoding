@@ -309,6 +309,8 @@ Phase 3 proves each required route through the Feature Slice chain from promised
 
 The normal correction order is `USER_SERVICE_BOUNDARY` → `WORKFLOW_ORCHESTRATION` → `BACKEND_CORE`. `USER_SERVICE_BOUNDARY` resolves to UI for a direct route, capability/request/authorization/task/result or final human-facing Agent behavior for a Personal Agent route, and assisted-surface or user-communication behavior for a Service Center route. Root-cause evidence may justify one coherent cross-layer correction. The one-way Owner UI lock remains unchanged for human-visible UI. This clause adds no phase, gate, second Workflow/Backend/Core, Runtime, protocol mandate, or BI redesign; accepted 3.0 direct-product evidence remains readable while implementation contracts migrate conservatively in later work.
 
+The active `FEATURE_INTEGRATION` binding follows the same ordered route chain: promised real entry → authenticated actor and valid authority → applicable route adapter or product surface → real Workflow/Backend/Core effects → authoritative state/data/side effect → route result → human-observable business outcome. The 3.0 relation names `REAL_WORKFLOW_UI_SIMULATION_CONNECTION`, `REAL_API_MCP_BACKED_CAPABILITY`, `REAL_STATE_DATA_SIDE_EFFECT`, `VISIBLE_UI_RESULT`, and `INTEGRATION_AND_END_TO_END_PROOF` remain read-only aliases for accepted 3.0 direct-product evidence. They do not govern route-aware 4.0 writes or impose UI-only proof on another route.
+
 ## Real User Journey Acceptance
 
 <a id="lc-journey-001"></a>

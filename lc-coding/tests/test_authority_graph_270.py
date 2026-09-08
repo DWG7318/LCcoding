@@ -358,6 +358,11 @@ required_semantics = {
         "Service Center actor",
         "selected per delivered journey",
         "`USER_SERVICE_BOUNDARY`",
+        "The active `FEATURE_INTEGRATION` binding",
+        "real Workflow/Backend/Core effects",
+        "human-observable business outcome",
+        "remain read-only aliases for accepted 3.0 direct-product evidence",
+        "do not govern route-aware 4.0 writes",
         "accepted 3.0 direct-product evidence remains readable",
     ),
     "LC-JOURNEY-001": (

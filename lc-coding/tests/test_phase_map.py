@@ -40,9 +40,18 @@ assert set(integration['aggregate_excludes'])=={
 journey=phase_by_id['REAL_USER_JOURNEY_ACCEPTANCE']
 assert journey['start_after']=='ALL_REQUIRED_RUNS_ACCEPTED'
 assert journey['candidate_bound'] is True
+assert journey['route_faithful'] is True
 assert journey['visible_product_operation'] is True
-assert journey['complete_round_starts_at']=='HOME_PAGE_OR_PRODUCT_ENTRY'
-assert journey['repair_priority']==['UI','WORKFLOW','BACKEND_CORE']
+assert journey['visible_actions_require_screenshots'] is True
+assert journey['nonvisual_agent_first_hand_evidence']==[
+    'MESSAGE','TASK_TRANSITION','ARTIFACT','AUTHORIZATION_DECISION',
+    'PLATFORM_EFFECT','RESULT_DELIVERY','AUDIT_EVENT',
+]
+assert journey['final_human_observable_outcome_required'] is True
+assert journey['complete_round_starts_at']=='ACTUAL_REQUIRED_ROUTE_ENTRY'
+assert journey['repair_priority']==[
+    'USER_SERVICE_BOUNDARY','WORKFLOW_ORCHESTRATION','BACKEND_CORE',
+]
 assert journey['owner_results']==[
     'REAL_USER_JOURNEY_ACCEPTED',
     'REAL_USER_JOURNEY_REWORK',

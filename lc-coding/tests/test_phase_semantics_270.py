@@ -12,10 +12,13 @@ phase_contract = json.loads(
 )
 
 EXPECTED_MAINLINE = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
     "PROPOSAL_READINESS",
+    "PRODUCT_SERVICE_STRATEGY",
     "PROJECT_INITIALIZATION",
     "CALABASH_DRAFT",
-    "WORKFLOW_UI_SIMULATION",
+    "SERVICE_ROUTE_MAP",
+    "WORKFLOW_ROUTE_SURFACES_SIMULATION",
     "MANDATORY_CALABASH_UPGRADE",
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
@@ -25,13 +28,6 @@ EXPECTED_MAINLINE = [
     "OWNER_ACCEPTANCE",
     "DELIVERY",
 ]
-EXPECTED_MAINLINE_BYTES = (
-    b'["PROPOSAL_READINESS","PROJECT_INITIALIZATION","CALABASH_DRAFT",'
-    b'"WORKFLOW_UI_SIMULATION","MANDATORY_CALABASH_UPGRADE",'
-    b'"PRODUCT_BASELINE","FEATURE_SLICE","FEATURE_INTEGRATION",'
-    b'"REAL_USER_JOURNEY_ACCEPTANCE",'
-    b'"FINAL_VERIFICATION","OWNER_ACCEPTANCE","DELIVERY"]'
-)
 EXPECTED_PHASE_IDS = [
     "INITIAL",
     "PRODUCT_FORMATION",
@@ -50,10 +46,6 @@ EXPECTED_AGGREGATE_EXCLUDES = {
 }
 
 
-def canonical_bytes(value: object) -> bytes:
-    return json.dumps(value, separators=(",", ":"), ensure_ascii=True).encode("ascii")
-
-
 def phase_by_id(contract: dict, phase_id: str) -> dict:
     matches = [phase for phase in contract.get("phases", []) if phase.get("id") == phase_id]
     if len(matches) != 1:
@@ -68,11 +60,47 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
         errors.add("VERSION_CARRIER_CHANGED_EARLY")
 
     mainline = current_lifecycle.get("mainline")
-    if canonical_bytes(mainline) != EXPECTED_MAINLINE_BYTES:
+    if mainline != EXPECTED_MAINLINE:
         errors.add("MAINLINE_ORDER_CHANGED")
-    expected_transitions = dict(zip(EXPECTED_MAINLINE, EXPECTED_MAINLINE[1:]))
+    if current_lifecycle.get("mainline_scope") != (
+        "WHOLE_PRODUCT_FIT_OR_BOUNDED_PRODUCT_FIT_ADMITTED_PATH"
+    ):
+        errors.add("MAINLINE_SCOPE_WRONG")
+    expected_transitions = dict(zip(EXPECTED_MAINLINE[1:], EXPECTED_MAINLINE[2:]))
     if current_lifecycle.get("required_transitions") != expected_transitions:
         errors.add("MAINLINE_TRANSITIONS_CHANGED")
+    if "LCCODING_APPLICABILITY_ASSESSMENT" in current_lifecycle.get(
+        "required_transitions", {}
+    ):
+        errors.add("APPLICABILITY_BECAME_UNCONDITIONAL")
+    routing = current_lifecycle.get("applicability_routing", {})
+    outcomes = routing.get("outcomes", {})
+    if set(outcomes) != {
+        "WHOLE_PRODUCT_FIT",
+        "BOUNDED_PRODUCT_FIT",
+        "OTHER_METHOD_RECOMMENDED",
+    }:
+        errors.add("APPLICABILITY_OUTCOMES_WRONG")
+    for admitted in ("WHOLE_PRODUCT_FIT", "BOUNDED_PRODUCT_FIT"):
+        route = outcomes.get(admitted, {})
+        if route.get("lccoding_lifecycle_admitted") is not True or route.get(
+            "next"
+        ) != "PROPOSAL_READINESS":
+            errors.add("APPLICABILITY_ADMISSION_WRONG")
+    terminal = outcomes.get("OTHER_METHOD_RECOMMENDED", {})
+    if (
+        terminal.get("disposition") != "TERMINAL_ASSESSMENT"
+        or terminal.get("lccoding_lifecycle_admitted") is not False
+        or terminal.get("next") is not None
+    ):
+        errors.add("APPLICABILITY_TERMINAL_WRONG")
+    incomplete = routing.get("insufficient_facts", {})
+    if (
+        incomplete.get("disposition") != "PROPOSAL_INCOMPLETE"
+        or incomplete.get("applicability_outcome") is not None
+        or incomplete.get("next") is not None
+    ):
+        errors.add("APPLICABILITY_INCOMPLETE_WRONG")
 
     phase_ids = [phase.get("id") for phase in current_phases.get("phases", [])]
     if phase_ids != EXPECTED_PHASE_IDS:
@@ -113,6 +141,20 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
     for phase in current_phases.get("phases", []):
         if phase.get("exit_gate") == "CALABASH_UPGRADE_READY":
             errors.add("CALABASH_READINESS_USED_AS_EXIT_GATE")
+    fine_milestones = formation.get("fine_milestones")
+    if (
+        not isinstance(fine_milestones, list)
+        or len(fine_milestones) < 3
+        or fine_milestones[2] != "WORKFLOW_ROUTE_SURFACES_SIMULATION"
+    ):
+        errors.add("FORMATION_ROUTE_SURFACE_MILESTONE_WRONG")
+    surface_contract = formation.get("formation_surface_contract", {})
+    if surface_contract.get("selection_scope") != "PER_DELIVERED_JOURNEY":
+        errors.add("FORMATION_SURFACE_SCOPE_WRONG")
+    if surface_contract.get("graphical_ui_required") != "ONLY_WHEN_PROMISED_BY_ROUTE":
+        errors.add("FORMATION_UI_CONDITION_WRONG")
+    if surface_contract.get("artificial_ui_forbidden") is not True:
+        errors.add("FORMATION_ARTIFICIAL_UI_ALLOWED")
 
     integration = phase_by_id(current_phases, "REAL_PRODUCT_INTEGRATION")
     if integration.get("display_meaning") != "REAL_PRODUCT_INTEGRATION":
@@ -139,10 +181,24 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
     journey = phase_by_id(current_phases, "REAL_USER_JOURNEY_ACCEPTANCE")
     if journey.get("start_after") != "ALL_REQUIRED_RUNS_ACCEPTED":
         errors.add("PHASE_4_START_WRONG")
-    if journey.get("complete_round_starts_at") != "HOME_PAGE_OR_PRODUCT_ENTRY":
+    if journey.get("complete_round_starts_at") != "ACTUAL_REQUIRED_ROUTE_ENTRY":
         errors.add("PHASE_4_ROUND_START_WRONG")
-    if journey.get("repair_priority") != ["UI", "WORKFLOW", "BACKEND_CORE"]:
+    if journey.get("repair_priority") != [
+        "USER_SERVICE_BOUNDARY",
+        "WORKFLOW_ORCHESTRATION",
+        "BACKEND_CORE",
+    ]:
         errors.add("PHASE_4_REPAIR_PRIORITY_WRONG")
+    if journey.get("nonvisual_agent_first_hand_evidence") != [
+        "MESSAGE",
+        "TASK_TRANSITION",
+        "ARTIFACT",
+        "AUTHORIZATION_DECISION",
+        "PLATFORM_EFFECT",
+        "RESULT_DELIVERY",
+        "AUDIT_EVENT",
+    ]:
+        errors.add("PHASE_4_AGENT_EVIDENCE_WRONG")
     if journey.get("exit_gate") != "REAL_USER_JOURNEY_ACCEPTED":
         errors.add("PHASE_4_EXIT_WRONG")
     delivery_phase = phase_by_id(current_phases, "DELIVERY_PREPARATION")
@@ -163,17 +219,48 @@ def validate_phase_semantics(current_lifecycle: dict, current_phases: dict) -> s
         errors.add("LIFECYCLE_PHASE_3_ENTRY_RELATION_MISSING")
     if "EXECUTION_COVERAGE_PREFLIGHT_PER_SLICE_OR_INTEGRATION_RUN" not in feature_slice:
         errors.add("LIFECYCLE_PREFLIGHT_SCOPE_RELATION_MISSING")
-    if "ALL_REQUIRED_PHASE_3_INTEGRATION_RUNS_ACCEPTED" not in bindings.get(
-        "FEATURE_INTEGRATION", []
-    ):
+    feature_integration = bindings.get("FEATURE_INTEGRATION", [])
+    if "ALL_REQUIRED_PHASE_3_INTEGRATION_RUNS_ACCEPTED" not in feature_integration:
         errors.add("LIFECYCLE_AGGREGATE_SCOPE_RELATION_MISSING")
+    route_chain = [
+        "PROMISED_REAL_ENTRY",
+        "AUTHENTICATED_ACTOR_AND_VALID_AUTHORITY",
+        "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+        "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+        "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+        "ROUTE_RESULT",
+        "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+        "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
+    ]
+    if feature_integration[: len(route_chain)] != route_chain:
+        errors.add("FEATURE_INTEGRATION_ROUTE_CHAIN_WRONG")
+    legacy_relations = {
+        "REAL_WORKFLOW_UI_SIMULATION_CONNECTION": "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+        "REAL_API_MCP_BACKED_CAPABILITY": "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+        "REAL_STATE_DATA_SIDE_EFFECT": "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+        "VISIBLE_UI_RESULT": "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+        "INTEGRATION_AND_END_TO_END_PROOF": "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
+    }
+    if set(feature_integration) & set(legacy_relations):
+        errors.add("FEATURE_INTEGRATION_UI_COMPATIBILITY_GOVERNS_ACTIVE")
+    aliases = current_lifecycle.get("compatibility_aliases", {})
+    for legacy, canonical in legacy_relations.items():
+        alias = aliases.get(legacy, {})
+        if (
+            alias.get("canonical") != canonical
+            or alias.get("read_only") is not True
+            or alias.get("governs_route_aware_writes") is not False
+        ):
+            errors.add("FEATURE_INTEGRATION_COMPATIBILITY_ALIAS_WRONG")
     for relation in (
-        "BOUNDED_REQUIRED_JOURNEY_GRAPH",
-        "REAL_VISIBLE_BROWSER_OPERATION",
+        "ROUTE_FAITHFUL_REQUIRED_JOURNEY_GRAPH",
+        "REAL_VISIBLE_BROWSER_OPERATION_FOR_VISIBLE_ACTIONS",
         "SCREENSHOT_AFTER_MEANINGFUL_VISIBLE_ACTION",
+        "CANDIDATE_BOUND_MESSAGE_TASK_ARTIFACT_AUTHORIZATION_PLATFORM_EFFECT_RESULT_DELIVERY_AUDIT_EVIDENCE_FOR_NONVISUAL_AGENT_STEPS",
+        "FINAL_HUMAN_OBSERVABLE_OUTCOME_REQUIRED",
         "DEFECT_IDENTITY_40001_PLUS",
-        "UI_WORKFLOW_BACKEND_CORE_CORRECTION_PRIORITY",
-        "COMPLETE_ROUND_RESTARTS_FROM_HOME_PAGE",
+        "USER_SERVICE_BOUNDARY_WORKFLOW_ORCHESTRATION_BACKEND_CORE_CORRECTION_PRIORITY",
+        "COMPLETE_ROUND_RESTARTS_FROM_ACTUAL_ROUTE_ENTRY",
         "REAL_USER_JOURNEY_ACCEPTED",
     ):
         if relation not in bindings.get("REAL_USER_JOURNEY_ACCEPTANCE", []):

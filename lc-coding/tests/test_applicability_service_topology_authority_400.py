@@ -104,6 +104,35 @@ compatibility = LIFECYCLE["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"]
 assert compatibility["canonical"] == "WORKFLOW_ROUTE_SURFACES_SIMULATION"
 assert compatibility["read_only"] is True
 
+feature_integration = LIFECYCLE["semantic_bindings"]["FEATURE_INTEGRATION"]
+route_chain = [
+    "PROMISED_REAL_ENTRY",
+    "AUTHENTICATED_ACTOR_AND_VALID_AUTHORITY",
+    "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+    "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+    "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+    "ROUTE_RESULT",
+    "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+    "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
+]
+assert feature_integration[: len(route_chain)] == route_chain
+legacy_integration_relations = {
+    "REAL_WORKFLOW_UI_SIMULATION_CONNECTION": "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+    "REAL_API_MCP_BACKED_CAPABILITY": "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+    "REAL_STATE_DATA_SIDE_EFFECT": "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+    "VISIBLE_UI_RESULT": "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+    "INTEGRATION_AND_END_TO_END_PROOF": "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
+}
+assert not (set(feature_integration) & set(legacy_integration_relations))
+for legacy, canonical in legacy_integration_relations.items():
+    alias = LIFECYCLE["compatibility_aliases"][legacy]
+    assert alias == {
+        "canonical": canonical,
+        "read_only": True,
+        "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+        "governs_route_aware_writes": False,
+    }
+
 phase_by_id = {item["id"]: item for item in PHASES["phases"]}
 assert list(phase_by_id) == [
     "INITIAL",

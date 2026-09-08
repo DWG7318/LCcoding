@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -24,13 +25,48 @@ for clause in [
     "LC-JOURNEY-003",
 ]:
     assert f'id="{clause.lower()}"' in SPEC
+
+
+def clause_body(clause_id: str) -> str:
+    match = re.search(
+        rf"(?ms)^### {re.escape(clause_id)} — .*?\n\n(.*?)(?=^<a id=|^## |\Z)",
+        SPEC,
+    )
+    assert match, clause_id
+    return match.group(1)
+
+
+journey_authority = clause_body("LC-JOURNEY-001")
 for marker in [
-    "real rendered feedback",
-    "40001",
-    "restart from the home page",
-    "UI → Workflow → Backend/Core",
-    "REAL_USER_JOURNEY_ACCEPTED",
+    "actual external route entry",
+    "captures a screenshot",
+    "first-hand route evidence",
+    "platform effects",
+    "result delivery",
+    "final human-observable outcome",
 ]:
-    assert marker in SPEC
+    assert marker in journey_authority, marker
+
+correction_authority = clause_body("LC-JOURNEY-002")
+for marker in [
+    "`40001`",
+    "`USER_SERVICE_BOUNDARY` → `WORKFLOW_ORCHESTRATION` → `BACKEND_CORE`",
+    "restart from each actual required route entry",
+]:
+    assert marker in correction_authority, marker
+
+journey = {phase["id"]: phase for phase in PHASES["phases"]}[
+    "REAL_USER_JOURNEY_ACCEPTANCE"
+]
+assert journey["route_faithful"] is True
+assert journey["visible_actions_require_screenshots"] is True
+assert journey["complete_round_starts_at"] == "ACTUAL_REQUIRED_ROUTE_ENTRY"
+assert journey["repair_priority"] == [
+    "USER_SERVICE_BOUNDARY",
+    "WORKFLOW_ORCHESTRATION",
+    "BACKEND_CORE",
+]
+assert journey["final_human_observable_outcome_required"] is True
+assert "REAL_USER_JOURNEY_ACCEPTED" in journey["owner_results"]
 assert SPEC.index("### LC-PHASE-004") < SPEC.index("### LC-PHASE-005")
-print("PASS: LCCoding 3.0 defines one real-user journey acceptance phase")
+print("PASS: LCCoding defines one route-faithful real-user journey acceptance phase")

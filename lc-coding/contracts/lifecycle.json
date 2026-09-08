@@ -67,6 +67,36 @@
       "canonical": "WORKFLOW_ROUTE_SURFACES_SIMULATION",
       "read_only": true,
       "meaning": "DIRECT_PRODUCT_FORMATION_COMPATIBILITY_ONLY"
+    },
+    "REAL_WORKFLOW_UI_SIMULATION_CONNECTION": {
+      "canonical": "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+      "read_only": true,
+      "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+      "governs_route_aware_writes": false
+    },
+    "REAL_API_MCP_BACKED_CAPABILITY": {
+      "canonical": "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+      "read_only": true,
+      "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+      "governs_route_aware_writes": false
+    },
+    "REAL_STATE_DATA_SIDE_EFFECT": {
+      "canonical": "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+      "read_only": true,
+      "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+      "governs_route_aware_writes": false
+    },
+    "VISIBLE_UI_RESULT": {
+      "canonical": "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+      "read_only": true,
+      "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+      "governs_route_aware_writes": false
+    },
+    "INTEGRATION_AND_END_TO_END_PROOF": {
+      "canonical": "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
+      "read_only": true,
+      "scope": "3.0_DIRECT_PRODUCT_EVIDENCE_ONLY",
+      "governs_route_aware_writes": false
     }
   },
   "semantic_bindings": {
@@ -114,11 +144,14 @@
       "NO_LOOP_INTERNAL_DECOMPOSITION"
     ],
     "FEATURE_INTEGRATION": [
-      "REAL_WORKFLOW_UI_SIMULATION_CONNECTION",
-      "REAL_API_MCP_BACKED_CAPABILITY",
-      "REAL_STATE_DATA_SIDE_EFFECT",
-      "VISIBLE_UI_RESULT",
-      "INTEGRATION_AND_END_TO_END_PROOF",
+      "PROMISED_REAL_ENTRY",
+      "AUTHENTICATED_ACTOR_AND_VALID_AUTHORITY",
+      "APPLICABLE_ROUTE_ADAPTER_OR_PRODUCT_SURFACE",
+      "REAL_WORKFLOW_BACKEND_CORE_EFFECTS",
+      "AUTHORITATIVE_STATE_DATA_SIDE_EFFECT",
+      "ROUTE_RESULT",
+      "HUMAN_OBSERVABLE_BUSINESS_OUTCOME",
+      "ROUTE_SPECIFIC_INTEGRATION_AND_END_TO_END_PROOF",
       "D0_D3_PER_RUN",
       "LOOP_OWNER_ACCEPTANCE_PER_NORMAL_RUN",
       "OWNER_GAP_CLOSURE_LINEAGE",

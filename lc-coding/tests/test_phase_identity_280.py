@@ -29,10 +29,13 @@ LEGACY_PHASES = (
     "DELIVERY_PREPARATION",
 )
 MAINLINE = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
     "PROPOSAL_READINESS",
+    "PRODUCT_SERVICE_STRATEGY",
     "PROJECT_INITIALIZATION",
     "CALABASH_DRAFT",
-    "WORKFLOW_UI_SIMULATION",
+    "SERVICE_ROUTE_MAP",
+    "WORKFLOW_ROUTE_SURFACES_SIMULATION",
     "MANDATORY_CALABASH_UPGRADE",
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
@@ -150,6 +153,16 @@ integration = phase_by_id["REAL_PRODUCT_INTEGRATION"]
 journey = phase_by_id["REAL_USER_JOURNEY_ACCEPTANCE"]
 delivery = phase_by_id["DELIVERY_PREPARATION"]
 assert lifecycle_contract["mainline"] == MAINLINE
+assert lifecycle_contract["mainline_scope"] == (
+    "WHOLE_PRODUCT_FIT_OR_BOUNDED_PRODUCT_FIT_ADMITTED_PATH"
+)
+assert "WORKFLOW_UI_SIMULATION" not in lifecycle_contract["mainline"]
+assert lifecycle_contract["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"][
+    "canonical"
+] == "WORKFLOW_ROUTE_SURFACES_SIMULATION"
+assert lifecycle_contract["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"][
+    "read_only"
+] is True
 assert phases_contract["mainline_unchanged"] is False
 assert formation["start"] == "CALABASH_DRAFT"
 assert formation["end_after"] == "PRODUCT_BASELINE"

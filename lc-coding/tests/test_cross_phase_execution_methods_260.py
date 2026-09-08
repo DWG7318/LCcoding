@@ -48,6 +48,14 @@ assert [phase["id"] for phase in phase_contract["phases"]] == current_phases
 assert phase_contract["execution_methods"]["phase_ids"] == current_phases
 assert phase_contract["execution_methods"]["available_in_all_phases"] is True
 assert phase_contract["execution_methods"]["method_completion_advances_phase"] is False
+formation = next(
+    phase for phase in phase_contract["phases"] if phase["id"] == "PRODUCT_FORMATION"
+)
+assert formation["fine_milestones"][2] == "WORKFLOW_ROUTE_SURFACES_SIMULATION"
+assert formation["formation_surface_contract"]["selection_scope"] == (
+    "PER_DELIVERED_JOURNEY"
+)
+assert formation["formation_surface_contract"]["artificial_ui_forbidden"] is True
 
 canonical_manifest = json.loads(text("lc-coding/templates/CANONICAL-MANIFEST.json"))
 assert "Selected Loop" not in canonical_manifest["load_order"]
@@ -93,7 +101,6 @@ require(
 )
 require(
     "SPEC.md",
-    "Workflow, UI, and Simulation are built separately",
     "real product integration",
     "phase-owned objective",
     "returns evidence to the calling phase",

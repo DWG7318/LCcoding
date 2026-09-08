@@ -196,7 +196,6 @@ for marker in [
     "one project Git/GitHub repository",
     "logical subtree",
     "Multiple UI, Workflow, and Simulation",
-    "peer Simulation",
     "worktree is optional",
     "API and MCP",
     "Primary product mainline",
@@ -305,10 +304,13 @@ lifecycle = json.loads(read("lc-coding/contracts/lifecycle.json"))
 phases = json.loads(read("lc-coding/contracts/phases.json"))
 status = json.loads(read("lc-coding/templates/STATUS.json"))
 expected = [
+    "LCCODING_APPLICABILITY_ASSESSMENT",
     "PROPOSAL_READINESS",
+    "PRODUCT_SERVICE_STRATEGY",
     "PROJECT_INITIALIZATION",
     "CALABASH_DRAFT",
-    "WORKFLOW_UI_SIMULATION",
+    "SERVICE_ROUTE_MAP",
+    "WORKFLOW_ROUTE_SURFACES_SIMULATION",
     "MANDATORY_CALABASH_UPGRADE",
     "PRODUCT_BASELINE",
     "FEATURE_SLICE",
@@ -319,6 +321,11 @@ expected = [
     "DELIVERY",
 ]
 assert lifecycle["mainline"] == expected
+assert "WORKFLOW_UI_SIMULATION" not in lifecycle["mainline"]
+assert lifecycle["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"]["canonical"] == (
+    "WORKFLOW_ROUTE_SURFACES_SIMULATION"
+)
+assert lifecycle["compatibility_aliases"]["WORKFLOW_UI_SIMULATION"]["read_only"] is True
 assert phases["mainline_unchanged"] is False
 manifest = json.loads(read("MANIFEST.json"))
 assert manifest["product_subtree_governance"] == {
