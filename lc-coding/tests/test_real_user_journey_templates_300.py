@@ -94,8 +94,19 @@ for token in (
     "PERSONAL_AGENT",
     "SERVICE_CENTER",
     "SCREENSHOT",
-    "NONVISUAL",
     "Human-observable outcome",
+    "Task5 acceptance receipt citations",
+    "Task5 Run ID / D3 Receipt",
+    "Attempted route IDs",
+    "Action",
+    "Visible location",
+    "Viewport",
+    "Screenshot path",
+    "Screenshot SHA-256",
+    "Native evidence path",
+    "Native evidence SHA-256",
+    "REAL_USER_JOURNEY_EVIDENCE",
+    "event_or_result",
 ):
     assert token in acceptance, token
 
@@ -111,6 +122,9 @@ for column in (
     "Retest round",
     "State",
     "Exemption authority / impact / recovery",
+    "Repair sequence",
+    "Priority exception justification",
+    "Retest evidence ID / kind / SHA-256",
 ):
     assert column in defect_log, column
 for token in (
@@ -119,6 +133,7 @@ for token in (
     "BACKEND_CORE",
     "UI / AGENT_SERVICE / ASSISTED_SERVICE",
     "## Route-faithful defect register",
+    "REAL_USER_JOURNEY_DEFECT_EXEMPTION",
 ):
     assert token in defect_log, token
 
