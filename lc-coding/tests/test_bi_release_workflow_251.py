@@ -106,6 +106,11 @@ for identity_join in (
 ):
     assert identity_join in text, identity_join
 
+post_smoke_checksum = re.search(r"(?m)^\s*\$checksumMatch = .*?$", text)
+assert post_smoke_checksum, "formal post-smoke checksum parser is missing"
+assert "LCCoding-BI_4[.]0[.]0_x64-setup[.]exe" in post_smoke_checksum.group(0)
+assert "LCCoding-BI_3[.]0[.]0_x64-setup[.]exe" not in post_smoke_checksum.group(0)
+
 for forbidden in [
     "-AllowDirty",
     "-AllowUnreleasedLoopCandidates",

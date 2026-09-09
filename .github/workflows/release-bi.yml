@@ -163,7 +163,7 @@ jobs:
           $evidence = Get-Content -LiteralPath $evidencePath -Raw | ConvertFrom-Json
           $post = (Get-FileHash -LiteralPath $env:BI_RELEASE_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $checksumText = (Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "installer.sha256") -Raw).Trim()
-          $checksumMatch = [regex]::Match($checksumText, "^([0-9a-f]{64})  LCCoding-BI_3[.]0[.]0_x64-setup[.]exe$")
+          $checksumMatch = [regex]::Match($checksumText, "^([0-9a-f]{64})  LCCoding-BI_4[.]0[.]0_x64-setup[.]exe$")
           if (-not $checksumMatch.Success) { throw "BI_RELEASE_POST_SMOKE_CHECKSUM_INVALID" }
           $checksumSha256 = $checksumMatch.Groups[1].Value
           $provenance = Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "provenance.json") -Raw | ConvertFrom-Json

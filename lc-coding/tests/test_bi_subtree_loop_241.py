@@ -233,7 +233,7 @@ for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]
     assert forbidden_element not in protected_report, forbidden_element
 
 release_paths = {
-    ".github/workflows/release-bi.yml": "ac57a974c16da41e85297deb3adb02a5050956ec97b42ff50f3415233222fb9c",
+    ".github/workflows/release-bi.yml": "542b5194595407cc8acfdbf0e4baeba318856c12e505c59d18e7fb3ea1186771",
     "lc-coding/bi/scripts/package-release.ps1": "da03c9a1a86f37e98f040bdd2cd4e0e46286943c3f42fc10fb22355de61872d4",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "c0958553dc4a3961d2ea722f0290a9ef1274cae6acffcaaad0c093b0973d6c04",
     "lc-coding/bi/tests/packaging/nsis-contract.ps1": "20f9f3fd6dd22726aff421099e0e9b8560180a3aa1f4c3759a29e78145fb4c08",
