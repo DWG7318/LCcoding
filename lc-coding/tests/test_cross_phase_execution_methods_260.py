@@ -117,7 +117,7 @@ require(
 require(
     "lc-coding/templates/RUN-HANDOFF.md",
     "Artifact role: RUN_START_CONTRACT",
-    "Status schema version: 3.0.0",
+    "Status schema version: 4.0.0",
     "Start Contract ID",
     "Start Contract SHA-256",
     "LCCoding phase scope",
@@ -134,7 +134,7 @@ require(
 require(
     "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
     "Artifact role: LOOP_OWNER_ACCEPTANCE_RECEIPT",
-    "Status schema version: 3.0.0",
+    "Status schema version: 4.0.0",
     "Run-start contract ID",
     "Run-start contract SHA-256",
     "LCCoding phase scope",

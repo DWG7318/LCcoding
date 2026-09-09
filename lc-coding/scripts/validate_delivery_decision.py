@@ -50,6 +50,18 @@ DELIVERY_GENERIC_VALUES = frozenset(
 DELIVERY_TEST_HEADS = frozenset({
     "PLACEHOLDER", "SAMPLE", "EXAMPLE", "FAKE", "TEST", "MOCK", "STUB", "DUMMY",
 })
+AGENT_DELIVERY_SCHEMAS = frozenset({"2.8.0", "3.0.0"})
+AGENT_SERVICE_STRATEGIES = frozenset({"AGENT_COLLABORATIVE", "MIXED"})
+
+
+def agent_delivery_required(status):
+    if not isinstance(status, dict):
+        return False
+    schema = status.get("status_schema_version")
+    return schema in AGENT_DELIVERY_SCHEMAS or (
+        schema == "4.0.0"
+        and status.get("product_service_strategy") in AGENT_SERVICE_STRATEGIES
+    )
 AGENT_DECISION_GRAMMAR = {
     "runtime_and_infrastructure": {
         "runtime_responsibility": "CUSTOMER",
@@ -352,17 +364,75 @@ def validate_decision(path):
         errors.append("Delivery Decision requires current POST_SECURITY_OWNER_ACCEPTED")
     if status.get("delivery_method_qa") != "DELIVERY_METHOD_CONFIRMED":
         errors.append("authoritative Delivery Method Q&A is not confirmed")
-    if status.get("status_schema_version") == "3.0.0" and (
-        status.get("phase_gates", {}).get("REAL_USER_JOURNEY_ACCEPTED")
-        != "REAL_USER_JOURNEY_ACCEPTED"
-        or status.get("real_user_journey_acceptance", {}).get("state")
-        != "REAL_USER_JOURNEY_ACCEPTED"
-    ):
+    schema = status.get("status_schema_version")
+    gates = status.get("phase_gates")
+    journey = status.get("real_user_journey_acceptance")
+    journey_accepted = (
+        isinstance(gates, dict)
+        and gates.get("REAL_USER_JOURNEY_ACCEPTED") == "REAL_USER_JOURNEY_ACCEPTED"
+        and isinstance(journey, dict)
+        and journey.get("state") == "REAL_USER_JOURNEY_ACCEPTED"
+    )
+    if schema == "3.0.0" and not journey_accepted:
         errors.append("LCCoding 3.0 Delivery requires current Real User Journey Acceptance")
-    if status.get("status_schema_version") in {"2.8.0", "3.0.0"}:
-        errors.extend(PROJECT_VALIDATOR.validate_agent_native_artifacts(lc, status))
+    if schema == "4.0.0":
+        if not journey_accepted:
+            errors.append(
+                "LCCoding 4.0 Delivery requires current route-faithful Real User Journey Acceptance"
+            )
+        else:
+            phase_path = lc / "PHASE-STATUS.json"
+            try:
+                phase_status = strict_json(phase_path)
+            except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
+                errors.append(
+                    "LCCoding 4.0 Delivery route-faithful phase status is unavailable: "
+                    + str(error)
+                )
+            else:
+                errors.extend(
+                    PROJECT_VALIDATOR._JOURNEY_VALIDATOR.validate_real_user_journey(
+                        lc.parent, status, phase_status
+                    )
+                )
+    agent_required = agent_delivery_required(status)
+    if agent_required:
+        if schema in AGENT_DELIVERY_SCHEMAS:
+            errors.extend(PROJECT_VALIDATOR.validate_agent_native_artifacts(lc, status))
+        else:
+            formation = status.get("agent_product_formation")
+            agent_slice = status.get("agent_slice_integration")
+            formation_bound = (
+                isinstance(formation, dict)
+                and formation.get("state") == "PRODUCT_FORMATION_AGENT_BOUND"
+            )
+            slices_accepted = (
+                isinstance(agent_slice, dict)
+                and agent_slice.get("state") == "AGENT_SLICES_ACCEPTED"
+            )
+            if not formation_bound:
+                errors.append(
+                    "Agent-collaborative Delivery requires bound Product Formation"
+                )
+            if not slices_accepted:
+                errors.append(
+                    "Agent-collaborative Delivery requires accepted Agent Slice integration"
+                )
+            if formation_bound and slices_accepted:
+                errors.extend(
+                    PROJECT_VALIDATOR._AGENT_NATIVE.validate_product_formation_files(
+                        lc / "AGENT-RULE.md",
+                        lc / "PRODUCT-BASELINE-HANDOFF.md",
+                        lc / "status.json",
+                        lc / PROJECT_VALIDATOR.AGENT_CONFIGURATION_BASELINE_NAME,
+                    )
+                )
+                errors.extend(PROJECT_VALIDATOR.validate_agent_slice_status(lc, status))
         agent_slice = status.get("agent_slice_integration")
-        if not isinstance(agent_slice, dict) or agent_slice.get("state") != "AGENT_SLICES_ACCEPTED":
+        if schema in AGENT_DELIVERY_SCHEMAS and (
+            not isinstance(agent_slice, dict)
+            or agent_slice.get("state") != "AGENT_SLICES_ACCEPTED"
+        ):
             errors.append("Agent-native Delivery requires accepted Agent Slice integration")
         expected_records = policy.get("agent_delivery_decision_records", {}) if isinstance(policy, dict) else {}
         for group, expected in expected_records.items():

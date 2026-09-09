@@ -320,9 +320,8 @@ raise SystemExit(1)
 
 source_asset, _ = controlled_asset_and_gh_state()
 assert source_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V4"
-valid_asset = compatibility_v3_candidate(source_asset)
-assert valid_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V3"
-assert valid_asset["execution_methods"] == source_asset["execution_methods"]
+valid_asset = copy.deepcopy(source_asset)
+assert valid_asset["asset_schema"] == "LCCODING_BI_COMPATIBILITY_V4"
 for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
@@ -342,8 +341,16 @@ for host in POWERSHELL_HOSTS:
                 for call in calls
             )
 
-valid_v2_asset = compatibility_v2_candidate(valid_asset)
-assert valid_v2_asset["execution_methods"] == valid_asset["execution_methods"]
+valid_v3_asset = compatibility_v3_candidate(valid_asset)
+assert valid_v3_asset["execution_methods"] == valid_asset["execution_methods"]
+for host in POWERSHELL_HOSTS:
+    verified, calls = run_release_verifier(valid_v3_asset, host)
+    assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
+    assert "VERIFIED_FORMAL_RELEASES" in verified.stdout
+    assert len(calls) in {15, 18}
+
+valid_v2_asset = compatibility_v2_candidate(valid_v3_asset)
+assert valid_v2_asset["execution_methods"] == valid_v3_asset["execution_methods"]
 for host in POWERSHELL_HOSTS:
     verified, calls = run_release_verifier(valid_v2_asset, host)
     assert verified.returncode == 0, host + "\n" + verified.stdout + verified.stderr
@@ -497,16 +504,32 @@ escaped_duplicate_json = json.dumps(valid_asset, indent=2).replace(
 )
 early_rejections.append(escaped_duplicate_json)
 
-missing_v3_adapter = copy.deepcopy(valid_asset)
+missing_v4_adapter = copy.deepcopy(valid_asset)
+del missing_v4_adapter["status_adapters"]["4.0.0"]
+early_rejections.append(missing_v4_adapter)
+wrong_v4_legacy_status = copy.deepcopy(valid_asset)
+wrong_v4_legacy_status["status_adapters"]["3.0.0"]["compatibility_status"] = "CURRENT"
+early_rejections.append(wrong_v4_legacy_status)
+wrong_v4_current_status = copy.deepcopy(valid_asset)
+wrong_v4_current_status["status_adapters"]["4.0.0"]["compatibility_status"] = "SUPPORTED_LEGACY"
+early_rejections.append(wrong_v4_current_status)
+wrong_v4_minimum = copy.deepcopy(valid_asset)
+wrong_v4_minimum["status_adapters"]["4.0.0"]["minimum_bi_version"] = "3.0.0"
+early_rejections.append(wrong_v4_minimum)
+wrong_v4_initial_count = copy.deepcopy(valid_asset)
+wrong_v4_initial_count["status_adapters"]["4.0.0"]["phase_steps"]["INITIAL"].pop()
+early_rejections.append(wrong_v4_initial_count)
+
+missing_v3_adapter = copy.deepcopy(valid_v3_asset)
 del missing_v3_adapter["status_adapters"]["3.0.0"]
 early_rejections.append(missing_v3_adapter)
-wrong_v3_legacy_status = copy.deepcopy(valid_asset)
+wrong_v3_legacy_status = copy.deepcopy(valid_v3_asset)
 wrong_v3_legacy_status["status_adapters"]["2.8.0"]["compatibility_status"] = "CURRENT"
 early_rejections.append(wrong_v3_legacy_status)
-wrong_v3_current_status = copy.deepcopy(valid_asset)
+wrong_v3_current_status = copy.deepcopy(valid_v3_asset)
 wrong_v3_current_status["status_adapters"]["3.0.0"]["compatibility_status"] = "SUPPORTED_LEGACY"
 early_rejections.append(wrong_v3_current_status)
-wrong_v3_journey_count = copy.deepcopy(valid_asset)
+wrong_v3_journey_count = copy.deepcopy(valid_v3_asset)
 wrong_v3_journey_count["status_adapters"]["3.0.0"]["phase_steps"][
     "REAL_USER_JOURNEY_ACCEPTANCE"
 ].pop()

@@ -280,6 +280,80 @@ def current_status(status_id, status_hash, receipt_id, receipt_hash, impact=None
     return status
 
 
+def promote_pending_delivery_400(lc, status, *, strategy="PENDING"):
+    current_template = json.loads(
+        (root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
+    )
+    promoted = copy.deepcopy(status)
+    promoted["status_schema_version"] = "4.0.0"
+    promoted["lccoding_applicability"] = (
+        "PENDING" if strategy == "PENDING" else "WHOLE_PRODUCT_FIT"
+    )
+    promoted["product_service_strategy"] = strategy
+    promoted["service_route_map"] = "PENDING" if strategy == "PENDING" else "ADOPTED"
+    promoted["agent_product_formation"] = copy.deepcopy(
+        current_template["agent_product_formation"]
+    )
+    promoted["agent_slice_integration"] = copy.deepcopy(
+        current_template["agent_slice_integration"]
+    )
+    promoted["real_user_journey_acceptance"] = copy.deepcopy(
+        current_template["real_user_journey_acceptance"]
+    )
+    promoted["phase_gates"]["REAL_USER_JOURNEY_ACCEPTED"] = "PENDING"
+    promoted["current_phase"] = "DELIVERY_PREPARATION"
+    phase = json.loads(
+        (root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8")
+    )
+    phase["current_phase"] = "DELIVERY_PREPARATION"
+    (Path(lc) / "status.json").write_text(json.dumps(promoted), encoding="utf-8")
+    (Path(lc) / "PHASE-STATUS.json").write_text(json.dumps(phase), encoding="utf-8")
+    return promoted
+
+
+def claim_accepted_delivery_journey_400(lc, status):
+    promoted = promote_pending_delivery_400(
+        lc, status, strategy="PLATFORM_COMPLETION"
+    )
+    candidate = promoted["canonical_candidate"]
+    promoted["phase_gates"]["REAL_USER_JOURNEY_ACCEPTED"] = (
+        "REAL_USER_JOURNEY_ACCEPTED"
+    )
+    promoted["real_user_journey_acceptance"] = {
+        "state": "REAL_USER_JOURNEY_ACCEPTED",
+        "candidate_id": candidate["candidate_id"],
+        "candidate_hash": candidate["candidate_hash"],
+        "coverage_state": "COMPLETE",
+        "acceptance_environment_state": "VERIFIED",
+        "current_round": 1,
+        "complete_round_count": 1,
+        "required_journey_count": 1,
+        "passed_journey_count": 1,
+        "failed_journey_count": 0,
+        "not_applicable_journey_count": 0,
+        "open_defect_ids": [],
+        "fixed_verified_defect_ids": [],
+        "exempted_defect_ids": [],
+        "deferred_defect_ids": [],
+        "reopened_defect_ids": [],
+        "acceptance_record_reference": "REAL-USER-JOURNEY-ACCEPTANCE.md",
+        "defect_log_reference": "REAL-USER-JOURNEY-DEFECT-LOG.md",
+        "owner_result": "REAL_USER_JOURNEY_ACCEPTED",
+    }
+    phase_path = Path(lc) / "PHASE-STATUS.json"
+    phase = json.loads(phase_path.read_text(encoding="utf-8"))
+    phase["phases"]["REAL_USER_JOURNEY_ACCEPTANCE"].update({
+        "status": "COMPLETE",
+        "acceptance_record": "REAL-USER-JOURNEY-ACCEPTANCE.md",
+        "defect_log": "REAL-USER-JOURNEY-DEFECT-LOG.md",
+        "complete_rounds": 1,
+        "exit_gate": "REAL_USER_JOURNEY_ACCEPTED",
+    })
+    (Path(lc) / "status.json").write_text(json.dumps(promoted), encoding="utf-8")
+    phase_path.write_text(json.dumps(phase), encoding="utf-8")
+    return promoted
+
+
 def good_decision(candidate_id=CANDIDATE_ID, candidate_hash=CANDIDATE_HASH):
     return {
         "delivery_decision_id": "DD-1",
@@ -492,6 +566,39 @@ def execute_tests():
         result = run_decision(lc / "DELIVERY-DECISION.json")
         assert result.returncode == 0, result.stdout + result.stderr
         assert snapshot(project) == before
+
+        pending_400 = base / "pending-delivery-400"
+        pending_lc, _, pending_status = build_delivery_project(pending_400)
+        promote_pending_delivery_400(pending_lc, pending_status)
+        pending_result = run_decision(pending_lc / "DELIVERY-DECISION.json")
+        assert pending_result.returncode != 0
+        assert (
+            "LCCoding 4.0 Delivery requires current route-faithful Real User Journey Acceptance"
+            in pending_result.stdout + pending_result.stderr
+        )
+
+        claimed_400 = base / "claimed-delivery-without-route-evidence-400"
+        claimed_lc, _, claimed_status = build_delivery_project(claimed_400)
+        claim_accepted_delivery_journey_400(claimed_lc, claimed_status)
+        claimed_result = run_decision(claimed_lc / "DELIVERY-DECISION.json")
+        assert claimed_result.returncode != 0
+        assert "journey acceptance record reference is missing, unsafe, or unreadable" in (
+            claimed_result.stdout + claimed_result.stderr
+        )
+
+        unproved_agent_400 = base / "unproved-agent-delivery-400"
+        agent_400_lc, _, agent_400_status = build_delivery_project(unproved_agent_400)
+        promote_pending_delivery_400(
+            agent_400_lc, agent_400_status, strategy="AGENT_COLLABORATIVE"
+        )
+        agent_400_result = run_decision(agent_400_lc / "DELIVERY-DECISION.json")
+        assert agent_400_result.returncode != 0
+        assert "Agent-collaborative Delivery requires bound Product Formation" in (
+            agent_400_result.stdout + agent_400_result.stderr
+        )
+        assert "Agent-collaborative Delivery requires accepted Agent Slice integration" in (
+            agent_400_result.stdout + agent_400_result.stderr
+        )
 
         def case(name):
             target = base / name

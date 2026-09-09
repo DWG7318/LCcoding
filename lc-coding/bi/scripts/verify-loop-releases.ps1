@@ -7,6 +7,7 @@ $identityPath = Join-Path $bi "release/loop-contract-identities.json"
 $assetSchemaV1 = "LCCODING_BI_COMPATIBILITY_V1"
 $assetSchemaV2 = "LCCODING_BI_COMPATIBILITY_V2"
 $assetSchemaV3 = "LCCODING_BI_COMPATIBILITY_V3"
+$assetSchemaV4 = "LCCODING_BI_COMPATIBILITY_V4"
 
 function Stop-ReleaseGate([string]$Reason) {
   throw "BI_LOOP_RELEASE_DEPENDENCY_BLOCKED:$Reason"
@@ -278,6 +279,7 @@ function Test-CompatibilityAsset($Identities) {
   $layout270 = "908c0cf60c93830e178508e9750298820638aa24349f8f9a51f0566ab17eb71f"
   $layout280 = "9816495f048cb64565f30af7f3802509e04d4b890c1d1f6dd97554db055f468b"
   $layout300 = "0d46093bdf2b1c677a6ebc921c14a87c5b9ccf49692dfe7dd4e13103f691c587"
+  $layout400 = "9e55973d794bf2ae0a1609ba068471423f4dfc3e239301817f306aa6979fcc1a"
   if (
     -not (Test-ExactKeys $Identities @("asset_schema", "status_adapters", "execution_methods")) -or
     -not (Test-ExactKeys $Identities.execution_methods @("slk", "clk", "glk")) -or
@@ -307,6 +309,16 @@ function Test-CompatibilityAsset($Identities) {
       (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "SUPPORTED_LEGACY" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
       (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "SUPPORTED_LEGACY" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280) -and
       (Test-StatusAdapter $Identities.status_adapters."3.0.0" "3.0.0" "CURRENT" "3.0.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 5, 6) $layout300)
+    )
+  }
+  if ($Identities.asset_schema -ceq $assetSchemaV4) {
+    return (
+      (Test-ExactKeys $Identities.status_adapters @("2.6.0", "2.7.0", "2.8.0", "3.0.0", "4.0.0")) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.6.0" "2.6.0" "SUPPORTED_LEGACY" "2.6.0" "ENGINEERING_RUNS" @(3, 5, 7, 6) $layout260) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.7.0" "2.7.0" "SUPPORTED_LEGACY" "2.7.0" "ENGINEERING_RUNS" @(3, 7, 5, 6) $layout270) -and
+      (Test-StatusAdapter $Identities.status_adapters."2.8.0" "2.8.0" "SUPPORTED_LEGACY" "2.8.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 6) $layout280) -and
+      (Test-StatusAdapter $Identities.status_adapters."3.0.0" "3.0.0" "SUPPORTED_LEGACY" "3.0.0" "REAL_PRODUCT_INTEGRATION" @(3, 7, 5, 5, 6) $layout300) -and
+      (Test-StatusAdapter $Identities.status_adapters."4.0.0" "4.0.0" "CURRENT" "4.0.0" "REAL_PRODUCT_INTEGRATION" @(5, 8, 5, 5, 6) $layout400)
     )
   }
   return $false

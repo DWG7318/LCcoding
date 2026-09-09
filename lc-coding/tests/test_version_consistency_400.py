@@ -125,6 +125,20 @@ assert text("README.md").startswith("# LCCoding 4.0.0\n")
 assert text("README.zh-CN.md").startswith("# LCCoding 4.0.0\n")
 assert text("lc-coding/SKILL.md").startswith("---\nname: lc-coding\n")
 assert "# LCCoding 4.0.0\n" in text("lc-coding/SKILL.md")
+for relative in (
+    "lc-coding/templates/RUN-HANDOFF.md",
+    "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
+):
+    assert "- Status schema version: 4.0.0\n" in text(relative), relative
+
+built_in_bi = text("lc-coding/references/built-in-bi.md")
+assert built_in_bi.startswith("# Built-in Project BI — LCCoding 4.0.0\n")
+for marker in (
+    "The BI ships only as part of LCCoding 4.0.0",
+    "LCCoding 4.0.0 installs one reusable current-user tool",
+    "current `LCCoding 4.0.0 derived BI` schema",
+):
+    assert marker in built_in_bi, marker
 for marker in (
     "Applicability Assessment",
     "PLATFORM_COMPLETION",
@@ -175,6 +189,13 @@ for released_claim in (
     "LCCoding BI 4.0.0 was persistently installed",
 ):
     assert released_claim not in candidate_section
+
+# Task 11 owns fresh 4.0 verification evidence. Task 10 must not relabel the
+# accepted 3.0 report as current 4.0 evidence before that independent run.
+validation_report = text("VALIDATION-REPORT.md")
+assert validation_report.startswith("# LCCoding 3.0.0 Validation Report\n")
+assert "# LCCoding 4.0.0 Validation Report" not in validation_report
+assert "PASS, 76 tests" not in validation_report
 
 package_surfaces = (
     "lc-coding/bi/scripts/package-release.ps1",

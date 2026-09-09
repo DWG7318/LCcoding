@@ -395,13 +395,13 @@ def valid_receipt(start):
 start_template = parse_fields(start_path.read_text(encoding="utf-8"))
 receipt_template = parse_fields(receipt_path.read_text(encoding="utf-8"))
 assert start_template.get("Artifact role") == START_ROLE
-assert start_template.get("Status schema version") == "3.0.0"
+assert start_template.get("Status schema version") == "4.0.0"
 assert "REAL_PRODUCT_INTEGRATION" in start_template.get("LCCoding phase scope", "")
 assert "ENGINEERING_RUNS" not in start_template.get("LCCoding phase scope", "")
 assert START_REQUIRED.union(CURRENT_PHASE3_INPUTS).issubset(start_template)
 assert not START_FORBIDDEN.intersection(start_template)
 assert receipt_template.get("Artifact role") == RECEIPT_ROLE
-assert receipt_template.get("Status schema version") == "3.0.0"
+assert receipt_template.get("Status schema version") == "4.0.0"
 assert "REAL_PRODUCT_INTEGRATION" in receipt_template.get("LCCoding phase scope", "")
 assert "ENGINEERING_RUNS" not in receipt_template.get("LCCoding phase scope", "")
 assert RECEIPT_REQUIRED.issubset(receipt_template)

@@ -211,12 +211,13 @@ for marker in [
 for product_marker in [
     "read-only projection",
     "five phases",
-    "26-step",
+    "29-step",
     "nine report joins",
     "status.json",
     "Non-goals",
 ]:
     assert product_marker in reference, product_marker
+assert "legacy `LCCoding 3.0.0 derived BI` five-phase/26-step adapter" in reference
 for agent_marker in [
     "### Agent-native candidate summary",
     "Operations Agent integration",
@@ -234,7 +235,7 @@ for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]
 release_paths = {
     ".github/workflows/release-bi.yml": "ac57a974c16da41e85297deb3adb02a5050956ec97b42ff50f3415233222fb9c",
     "lc-coding/bi/scripts/package-release.ps1": "da03c9a1a86f37e98f040bdd2cd4e0e46286943c3f42fc10fb22355de61872d4",
-    "lc-coding/bi/scripts/verify-loop-releases.ps1": "2673874828f0de95461132451fdf05695c7c9245fd7d7e1e22e5e588ddb0b7b7",
+    "lc-coding/bi/scripts/verify-loop-releases.ps1": "c0958553dc4a3961d2ea722f0290a9ef1274cae6acffcaaad0c093b0973d6c04",
     "lc-coding/bi/tests/packaging/nsis-contract.ps1": "20f9f3fd6dd22726aff421099e0e9b8560180a3aa1f4c3759a29e78145fb4c08",
     "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "e8d948c9b92d60ee73c8966b2c5aa6945c20e1115306553f22dc03d4ed272a1a",
 }

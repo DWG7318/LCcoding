@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 3.0.0
+# Built-in Project BI — LCCoding 4.0.0
 
-This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 3.0.0: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
+This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 4.0.0: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
 
 ## 1. Product boundary
 
@@ -13,7 +13,7 @@ Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
 
-LCCoding 3.0.0 installs one reusable current-user tool. Its current projection has five phases, a 26-step lifecycle, and nine report joins; exact legacy adapters remain schema-selected. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 4.0.0 installs one reusable current-user tool. Its current projection has five phases, a 29-step lifecycle, and nine report joins; exact legacy adapters remain schema-selected. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 
@@ -193,7 +193,7 @@ No Open or Back action creates an anchor, navigation request, download, file rea
 
 Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#lc-bi-002)
 
-LCCoding 2.6.0 and 2.7.0 keep the Candidate report at exactly the original identity and integrity rows. The legacy `LCCoding 2.8.0 derived BI` and current `LCCoding 3.0.0 derived BI` schemas append exactly six sanitized rows inside that same report: Operations Agent integration; Product Agent applicability / integration; safe Runtime Adapter ID/version; dual-Agent isolation; Product Slice count; and Operations Slice count. The two Slice counts remain independent. The 3.0 schema adds one read-only Real User Journey Acceptance report, so the current catalog contains exactly nine protected reports; it remains without an Agent-specific report or Agent control surface.
+LCCoding 2.6.0 and 2.7.0 keep the Candidate report at exactly the original identity and integrity rows. The legacy `LCCoding 2.8.0 derived BI` schema and legacy `LCCoding 3.0.0 derived BI` five-phase/26-step adapter, together with the current `LCCoding 4.0.0 derived BI` schema, append exactly six sanitized rows inside that same report: Operations Agent integration; Product Agent applicability / integration; safe Runtime Adapter ID/version; dual-Agent isolation; Product Slice count; and Operations Slice count. The two Slice counts remain independent. The 3.0 and 4.0 schemas include one read-only Real User Journey Acceptance report, so the current catalog contains exactly nine protected reports. The 4.0 projection adds only the sanitized LCCoding applicability and product-service-strategy rows to Proposal, plus the Service Route Map state row to Calabash; it remains without an Agent-specific report, route editor, or Agent control surface.
 
 The projection exposes only normalized status enums, bounded counts, and the allowlisted Adapter identity/version pair. It excludes every `candidate ID`, `configuration ID`, `topology ID`, `attestation ID`, `Slice ID`, `hash`, `evidence body`, `path`, `prompt`, `memory`, `credential`, and `typed event body`. It cannot open a project source file or any original evidence, and it never infers one Agent's status or Slice count from the other.
 
@@ -314,7 +314,7 @@ No free-form object or arbitrary report row crosses IPC. Production logs contain
 - Reject a symlink, junction, reparse point, non-directory project or `.lccoding` boundary, non-regular record, dangling link, identity change, or unsupported no-follow guarantee before parsing.
 - On Windows, open and inspect the root, record directory, and record with reparse-aware handles and stable volume/file identity. On Unix, retain anchored directory descriptors for the root and `.lccoding`, traverse fixed components with `openat`, and open a record with `O_RDONLY|O_NOFOLLOW|O_CLOEXEC|O_NONBLOCK`; `fstat` must prove a regular file before any read. This prevents a regular-file-to-FIFO/device race from blocking. Platform adapters must produce the same path-free error contract.
 - Before typed deserialization, the strict JSON layer enforces: UTF-8 only; nesting depth at most `32`; at most `16,384` total keys/values; at most `128` members per object; at most `2,048` items per array; at most `4,096` UTF-8 bytes per string; and at most `128` ASCII characters per numeric token. Duplicate keys at any depth, malformed/trailing data, non-finite/out-of-range numbers, and resource-limit excess fail closed. Current Status and Manifest schemas accept no JSON number fields.
-- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader, including `2.4.0`, `2.4.1`, `2.5.0`, `2.5.1`, `2.5.2`, and `2.6.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one `PhaseId`. Any other version fails as incompatible rather than being guessed.
+- Supported `status_schema_version` values are exactly the closed compatibility set implemented by the reader: `2.4.0`, `2.4.1`, `2.5.0`, `2.5.1`, `2.5.2`, `2.6.0`, `2.7.0`, `2.8.0`, `3.0.0`, and `4.0.0`. `record_role` is exactly `AUTHORITATIVE_PROJECT_STATUS`; `current_phase` is exactly one schema-selected `PhaseId`. Any other version fails as incompatible rather than being guessed.
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
@@ -402,7 +402,7 @@ Apply validation and projection in this order:
 4. Require every future phase exit gate and every future step to be pending.
 5. For the current non-final phase, a done exit gate is a stale-phase contradiction; a pending/active exit gate makes the phase active, and an error exit gate makes the phase error. A valid current child error remains a red child row while the phase stays active unless the exit gate itself is error.
 6. Require `phase_gates.ALL_REQUIRED_RUNS_ACCEPTED` and top-level `all_required_runs_accepted` to have the same normalized state. A done aggregate also requires at least one acceptance receipt, no `active_runs`, and no `open_owner_gaps`.
-7. `status.delivery` is a post-`DELIVERY_READY` Delivery fact and is never used as the Package Guard source. Before `DELIVERY_READY` it must be pending; after the gate it may truthfully describe subsequent Delivery but does not change the four-phase projection.
+7. `status.delivery` is a post-`DELIVERY_READY` Delivery fact and is never used as the Package Guard source. Before `DELIVERY_READY` it must be pending; after the gate it may truthfully describe subsequent Delivery but does not change the schema-selected lifecycle projection.
 8. For current `DELIVERY_PREPARATION`, a done `DELIVERY_READY` plus every preceding delivery-preparation step done makes the combined Package Guard/Ready row and final phase done. A done gate with any incomplete preceding step is contradictory. Pending/active makes the phase active; error makes it error.
 9. Any history/future/stale/aggregate contradiction returns the complete error Snapshot. A valid operational error is project truth, not record corruption: it renders red but does not alone change `health` from `ok`.
 
@@ -438,7 +438,7 @@ The native titlebar owns close/minimize behavior. No frontend permission is gran
 
 ## 8. Verification and visual acceptance
 
-The acceptance boundary covers the exact DTO, legacy four-phase/21-step and current five-phase/26-step order, all schema-selected report joins, bilingual and keyboard behavior, `300 × 480` visual contract, protected navigation, fail-closed error/recovery, packaging safety, and project-byte immutability. Owner visual acceptance remains required for visual-contract change. Detailed commands and harness locations remain implementation navigation, not product authority; see the [BI subtree README](../bi/README.md).
+The acceptance boundary covers the exact DTO, legacy four-phase/21-step and 3.0 five-phase/26-step orders, the current 4.0 five-phase/29-step order, all schema-selected report joins, bilingual and keyboard behavior, `300 × 480` visual contract, protected navigation, fail-closed error/recovery, packaging safety, and project-byte immutability. Owner visual acceptance remains required for visual-contract change. Detailed commands and harness locations remain implementation navigation, not product authority; see the [BI subtree README](../bi/README.md).
 
 ## 9. Non-goals
 

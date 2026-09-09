@@ -346,6 +346,31 @@ with tempfile.TemporaryDirectory(prefix="lccoding-delivery-guard-270-") as td:
         shutil.copytree(project, target)
         return target / ".lccoding"
 
+    pending_400 = case("pending-delivery-400")
+    pending_status = json.loads((pending_400 / "status.json").read_text())
+    fixtures.promote_pending_delivery_400(pending_400, pending_status)
+    pending_result = assert_fails(pending_400 / "DELIVERY-MANIFEST.json")
+    assert (
+        "LCCoding 4.0 Delivery Manifest requires current route-faithful Real User Journey Acceptance"
+        in pending_result.stdout + pending_result.stderr
+    )
+
+    unproved_agent_400 = case("unproved-agent-delivery-400")
+    unproved_agent_status = json.loads(
+        (unproved_agent_400 / "status.json").read_text()
+    )
+    fixtures.promote_pending_delivery_400(
+        unproved_agent_400,
+        unproved_agent_status,
+        strategy="AGENT_COLLABORATIVE",
+    )
+    unproved_agent_result = assert_fails(
+        unproved_agent_400 / "DELIVERY-MANIFEST.json"
+    )
+    assert "Agent-collaborative Delivery Manifest requires BOUND Agent evidence" in (
+        unproved_agent_result.stdout + unproved_agent_result.stderr
+    )
+
     for name, mutate in (
         ("wrong-candidate-hash", lambda item: item.__setitem__(
             "candidate_id", f"{fixtures.CANDIDATE_ID} / {fixtures.NEXT_HASH}"
