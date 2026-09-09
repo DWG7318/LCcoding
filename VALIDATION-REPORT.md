@@ -1,145 +1,139 @@
-# LCCoding 3.0.0 Validation Report
+# LCCoding 4.0.0 Candidate Validation Report
 
 ## Result
 
-Local source implementation candidate: **PASS**. The local package is built only after this tracked report and the integrity manifest are committed, so its exact commit and digest remain external post-commit evidence rather than a self-referential source claim. Formal installer/Release publication: **NOT ATTEMPTED**.
+Local source implementation candidate: **PASS**.
 
-LCCoding 3.0.0 uses a five-phase lifecycle and inserts screenshot-backed Real User Journey Acceptance between real Product Integration and Delivery Preparation. It preserves one current-user NSIS installer contract for `lccoding-bi.exe`, exact legacy four-phase BI adapters, one current five-phase/26-step adapter, nine protected reports, the 300×480 client area, bilingual interaction, Pin, Refresh, Open/Back, visual tokens, and `status.json` authority. It does not claim that a new installer asset or GitHub Release exists; those remain formal-release workflow outputs.
+The independently verified source, archive runner, and local installer candidate are bound to commit `3dad6223f792553aa78d486777d4adee7fa504bd`. The closing commit that contains this report and the mechanically refreshed `FILE_HASHES.json` is intentionally not embedded in the files it commits; it changes only those two evidence-record files and does not relabel the already-built package provenance.
 
-## Fresh verification
+Formal installer publication and persistent installation: **NOT ATTEMPTED**. The package is a local blocked candidate, not a GitHub Actions artifact or GitHub Release asset.
 
-- Five-phase lifecycle and journey-evidence regressions: RED on the former four-phase/current-2.8 assumptions, then PASS after schema-selected 3.0 implementation.
-- `python lc-coding/tests/run_tests.py`: PASS, 67 tests.
-- `python lc-coding/scripts/validate_repository.py .`: PASS.
-- `python lc-coding/tests/test_release_integrity.py`: PASS; release tree and SHA-256 manifest agree.
-- `core.autocrlf=true --no-hardlinks` clone regression: PASS; `.gitattributes` keeps protected text at `i/lf w/lf attr/text=auto eol=lf` and release-integrity passes inside the clone.
-- React TypeScript check: PASS.
-- Vitest DOM/accessibility/refresh tests: PASS, 95/95.
-- Vite production build to an external temporary directory: PASS.
-- Playwright installed-Chrome visual suite at 300×480: PASS, 37/37, including bilingual five-phase and protected journey-report cases.
-- Rust normal and optimized-release suites: PASS across all targets, including 8/8 Loop adapters and 16/16 project projections.
-- NSIS current-user packaging contract: source-validated with `embedBootstrapper`, exact safe basename `LCCoding-BI_3.0.0_x64-setup.exe`, installer SHA-256/overall-version/commit provenance requirements, and no independent BI version.
-- Not run for this source candidate: installed-tool smoke, uninstall smoke, GitHub Actions, tag, or GitHub Release.
-- `git diff --check`, JSON/Markdown/version consistency, and scope inspection: PASS.
+## Verification environment
 
-## Reproduction commands
+- Source worktree: `D:\LCcoding\.worktrees\LCcoding-main-252`
+- Verified source HEAD: `3dad6223f792553aa78d486777d4adee7fa504bd`
+- Source branch recorded by package provenance: `design/lccoding-4.0-service-topology`
+- External task root: `D:\LCcoding\.codex\.tmp\task11-verify-3dad6223-codex11`
+- Fresh runner: `D:\LCcoding\.codex\.tmp\task11-verify-3dad6223-codex11\runner`
+- Archive SHA-256: `c9a9d39bcfe867f149c5089cff2adc6ab7cc881edc62d0ac079a303d1bae8ddb`
+- Archive closure: 304 Git-tracked paths and exactly 304 extracted files.
+- Node.js `v24.13.1`; npm `11.8.0`.
+- Rust `rustc 1.96.0 (ac68faa20 2026-05-25)`; Cargo `1.96.0 (30a34c682 2026-05-25)`; target `x86_64-pc-windows-msvc`.
+- The shell initially omitted `C:\Users\DWG\.cargo\bin` from `PATH`. The already-installed toolchain was added only to the verification process environment; no toolchain was installed and no persistent environment setting changed.
 
-Run from the extracted repository root in PowerShell. All dependencies, builds, screenshots, Cargo output, and installer artifacts stay outside the release tree:
+## Source and contract verification
+
+The formal source gate was run from the clean source worktree with `PYTHONDONTWRITEBYTECODE=1`:
 
 ```powershell
-$ErrorActionPreference = "Stop"
-$PSNativeCommandUseErrorActionPreference = $true
-$repo = (Resolve-Path .).Path
-$tmp = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-250-fresh-verification"
-if (Test-Path $tmp) { throw "choose an empty external verification directory" }
-New-Item -ItemType Directory -Path $tmp | Out-Null
-$sourceFilesBefore = @(Get-ChildItem -LiteralPath $repo -Recurse -Force -File | ForEach-Object {
-  [IO.Path]::GetRelativePath($repo, $_.FullName)
-} | Sort-Object)
-$archive = Join-Path $tmp "source.zip"
-$runner = Join-Path $tmp "runner"
-git archive --format=zip --output=$archive HEAD
-if ($LASTEXITCODE -ne 0) { throw "git archive failed" }
-Expand-Archive -LiteralPath $archive -DestinationPath $runner
-$runnerBi = Join-Path $runner "lc-coding/bi"
-$runnerTauri = Join-Path $runnerBi "src-tauri"
-
-Push-Location $runnerBi
-npm ci --ignore-scripts
-$env:LCCODING_BI_DIST = (Join-Path $tmp "dist").Replace("\", "/")
-npm run typecheck
-npm test
-npm run build
-$env:BI_OWNER_REVIEW_DIR = Join-Path $tmp "visual-candidates"
-npm run visual:candidates
-Pop-Location
-
-$relativeDist = [IO.Path]::GetRelativePath($runnerTauri, (Join-Path $tmp "dist")).Replace("\", "/")
-$env:TAURI_CONFIG = @{ build = @{ frontendDist = $relativeDist } } | ConvertTo-Json -Compress
-$env:CARGO_TARGET_DIR = (Join-Path $tmp "cargo-target").Replace("\", "/")
-Push-Location $runnerTauri
-cargo test
-cargo test --release
-Pop-Location
-
-& lc-coding/bi/scripts/package-release.ps1 -OutputRoot (Join-Path $tmp "candidate-package") -AllowUnreleasedLoopCandidates
-$env:PYTHONDONTWRITEBYTECODE = "1"
 python lc-coding/tests/run_tests.py
 python lc-coding/scripts/validate_repository.py .
-& lc-coding/bi/tests/packaging/nsis-contract.ps1
 python lc-coding/tests/test_release_integrity.py
-git diff --check
-$sourceFilesAfter = @(Get-ChildItem -LiteralPath $repo -Recurse -Force -File | ForEach-Object {
-  [IO.Path]::GetRelativePath($repo, $_.FullName)
-} | Sort-Object)
-if (@(Compare-Object $sourceFilesBefore $sourceFilesAfter).Count -ne 0) {
-  throw "source tree physical file set changed"
-}
-if (git status --porcelain=v1) { throw "source worktree changed" }
+python lc-coding/tests/test_checkout_lf_policy.py
+git diff --check main...HEAD
 ```
 
-The candidate command deliberately writes `build_mode=LOCAL_BLOCKED_CANDIDATE` and `loop_release_dependency_gate=BLOCKED_CANDIDATE_IDENTITIES`. A formal package omits `-AllowUnreleasedLoopCandidates`; it first runs the mechanical Loop release verifier and then requires a GitHub Actions workflow/run identity bound to the exact source commit and target triple.
+Results:
 
-## Formal GitHub Windows release run
+- Python repository suite: PASS, 76/76 test files.
+- Repository structure/mainline/acceptance/security validator: PASS.
+- Release tree and `FILE_HASHES.json` integrity: PASS before and after report closure; final manifest scope is 303 payload rows.
+- LF checkout policy under the protected checkout contract: PASS.
+- `git diff --check main...HEAD`: PASS with no output.
+- Read-only NSIS contract check, `lc-coding/bi/tests/packaging/nsis-contract.ps1`: PASS.
 
-After the workflow candidate is accepted and fast-forwarded to `main`, dispatch it on the exact remote `main` commit. The commands below identify the new run without confusing it with an earlier attempt, wait for success, download only its named artifact, and verify the formal build identity and installer hash:
+One earlier full-suite attempt emitted PASS output through `test_route_faithful_journey_validation_400.py` and then its Python parent returned `-1 (0xFFFFFFFF)` before the next child produced output. This anomaly was not hidden:
+
+- `python -X faulthandler lc-coding/tests/test_run_contract_270.py`: PASS, exit 0, expected stdout, empty stderr, 58.2 seconds.
+- One serial diagnostic wrapper recorded every child: PASS, 76/76 exits were 0, 773.86 seconds.
+- The exact formal source command was then rerun from clean state: PASS, 76 tests.
+
+The `-1` did not reproduce and no production file was changed to obtain the passing results.
+
+## Fresh external BI verification
+
+The runner was created exclusively with `git archive HEAD`. Dependencies and all generated outputs stayed below the external task root; the source worktree contained no `node_modules`, `dist`, `target`, `test-results`, or `playwright-report` directory before or after verification.
+
+Commands:
 
 ```powershell
-$ErrorActionPreference = "Stop"
-$repo = "DWG7318/LCcoding"
-$releaseCommit = (gh api "repos/$repo/commits/main" --jq .sha).Trim()
-$before = @(gh run list -R $repo --workflow release-bi.yml --event workflow_dispatch --limit 50 --json databaseId | ConvertFrom-Json | ForEach-Object { [string]$_.databaseId })
-gh workflow run release-bi.yml --ref main -R $repo
-do {
-  Start-Sleep -Seconds 5
-  $matches = @(gh run list -R $repo --workflow release-bi.yml --branch main --event workflow_dispatch --limit 20 --json databaseId,headSha,status,conclusion,url | ConvertFrom-Json | Where-Object {
-    $_.headSha -eq $releaseCommit -and $before -notcontains [string]$_.databaseId
-  })
-} until ($matches.Count -eq 1)
-$runId = [string]$matches[0].databaseId
-gh run watch $runId -R $repo --exit-status
-$run = gh run view $runId -R $repo --json attempt,conclusion,headSha,url | ConvertFrom-Json
-if ($run.conclusion -ne "success" -or $run.headSha -ne $releaseCommit) { throw "formal workflow identity failed" }
-$artifactName = "lccoding-bi-formal-$releaseCommit-$runId-$($run.attempt)"
-$download = Join-Path ([IO.Path]::GetTempPath()) "lccoding-bi-formal-download-$runId"
-if (Test-Path $download) { throw "choose an empty download directory" }
-gh run download $runId -R $repo --name $artifactName --dir $download
-$provenance = Get-Content (Join-Path $download "provenance.json") -Raw | ConvertFrom-Json
-$installer = Join-Path $download "LCCoding-BI_3.0.0_x64-setup.exe"
-$sha256 = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($provenance.commit -ne $releaseCommit -or $provenance.build_mode -ne "FORMAL_GITHUB_ACTIONS" -or $provenance.build_run_id -ne $runId -or $provenance.sha256 -ne $sha256) { throw "formal provenance failed" }
-if ((Get-Content (Join-Path $download "installer.sha256") -Raw).Trim() -ne "$sha256  LCCoding-BI_3.0.0_x64-setup.exe") { throw "formal checksum failed" }
+git archive --format=zip --output=<external>\source.zip HEAD
+Expand-Archive -LiteralPath <external>\source.zip -DestinationPath <external>\runner
+
+Set-Location <external>\runner\lc-coding\bi
+npm ci --ignore-scripts
+npm run typecheck
+npm run test:dom -- --run
+$env:LCCODING_BI_DIST = '<external>/outputs/dist'
+$env:BI_OWNER_REVIEW_DIR = '<external>\outputs\visual'
+npm run visual:candidates
+
+$env:TAURI_CONFIG = '{"build":{"frontendDist":"../../../../outputs/dist"}}'
+$env:CARGO_TARGET_DIR = '<external>/outputs/cargo-target'
+Set-Location <external>\runner
+cargo test --manifest-path lc-coding/bi/src-tauri/Cargo.toml
+cargo test --release --manifest-path lc-coding/bi/src-tauri/Cargo.toml
 ```
 
-Before creating a GitHub Release for `v3.0.0`, repeat the accepted current-user installation smoke with its workflow-produced installer: install without elevation, launch `lccoding-bi.exe --project` from an environment without source/build-tool paths, verify the 300×480 non-resizable window and real project projection, compare project bytes and mtimes before/after, then run the registered uninstaller and verify install directory, PATH entry, Start Menu shortcut, and uninstall registration are removed.
+Results:
 
-## Safety and authority
+- `npm ci --ignore-scripts`: PASS; 129 packages installed in the external runner.
+- TypeScript `tsc --noEmit`: PASS.
+- Vitest DOM suite: PASS, 4/4 files and 98/98 tests.
+- Vite production build: PASS; output was external.
+- Playwright installed-Chrome visual suite: PASS, 37/37 with one worker; screenshots, test results, and HTML report were external.
+- Rust debug suite: PASS, 46 tests across all targets, 0 failed/ignored.
+- Rust release suite: PASS, 46 tests across all targets, 0 failed/ignored.
 
-- CLI and native Folder Picker share the same Rust-owned canonical root validation and immutable one-project binding.
-- `get_snapshot` accepts no path argument and joins one Rust-side in-flight projection; the React scheduler also joins one request and waits two seconds after settlement.
-- The reader is bounded, no-follow/reparse-aware, strict-schema, network-disabled, and read-only. It uses `gix` rather than Git CLI for packaged project reads.
-- Only allowlisted Snapshot fields cross IPC. Project paths, repositories, commits, hashes, evidence bodies, raw errors, URLs, secrets, and task identifiers do not reach the webview.
-- Missing or unsupported evidence projects `UNKNOWN`, `NOT_RECORDED`, or a fixed path-free error. The BI never writes project state or controls Agent/runtime behavior.
-- The Tauri ACL remains exactly `bind_project`, `choose_project`, `get_snapshot`, `is_pinned`, and `set_pinned`; no filesystem, shell, opener, HTTP, updater, or arbitrary path capability is enabled.
+The repository has no `test:visual` npm script. The BI README and `package.json` designate `npm run visual:candidates` as the visual verification command, so that existing canonical command was used for the Task 11 visual gate.
 
-## Formal release dependency gate
+## Local candidate package
 
-The adapters and formal package verifier are locked to the published SLK 2.5.0, CLK 2.5.0, and GLK 3.1.0 contract identities. The following read-only commands reproduce the canonical checks:
+Exactly one package build was run from the clean source worktree:
 
 ```powershell
-gh api repos/DWG7318/small-loop-skill/git/ref/heads/main --jq '.object.sha'
-gh api repos/DWG7318/small-loop-skill/git/ref/tags/v2.5.0
-gh release view v2.5.0 -R DWG7318/small-loop-skill
-gh api repos/DWG7318/chain-loop-skill/git/ref/heads/main --jq '.object.sha'
-gh api repos/DWG7318/chain-loop-skill/git/ref/tags/v2.5.0
-gh release view v2.5.0 -R DWG7318/chain-loop-skill
-gh api repos/DWG7318/large-loop-skill/git/ref/heads/main --jq '.object.sha'
-gh api repos/DWG7318/large-loop-skill/git/ref/tags/v3.1.0
-gh release view v3.1.0 -R DWG7318/large-loop-skill
+& lc-coding/bi/scripts/package-release.ps1 -OutputRoot 'D:\LCcoding\.codex\.tmp\task11-verify-3dad6223-codex11\candidate-package' -AllowUnreleasedLoopCandidates
 ```
 
-The verified main/tag/Release commits are respectively `0153776c84b57fd6217259fd02832a6fdcea4ccb`, `6043ce6011b7bb162f8ff6a169b144f4a24fe342`, and `2cbbd20167376e4ce57cd0e3a201e5fdb323c43f`. Each published Release is non-draft and non-prerelease, and each exact Manifest/schema/template SHA-256 matches `lc-coding/bi/release/loop-contract-identities.json`. Therefore:
+The release directory contains exactly:
 
-- the package driver ignores environment assertions and mechanically resolves canonical main/tag/Release identities plus the exact Manifest/schema/template bytes;
-- formal package generation remains fail-closed unless all identities match and GitHub Actions supplies the exact repository/workflow/run/ref/commit identity;
-- explicit local candidate builds remain visibly marked `BLOCKED_CANDIDATE_IDENTITIES` and cannot be published as formal assets.
+1. `LCCoding-BI_4.0.0_x64-setup.exe`
+2. `installer.sha256`
+3. `provenance.json`
+
+Installer evidence:
+
+- Size: 3,489,211 bytes.
+- First two bytes: `MZ` (`0x4d 0x5a`), confirming the PE header.
+- SHA-256: `b382bc16915e7c43787a26d69f3df7a099a58dfabbf06f922d16c5e151b73793`.
+- `installer.sha256`: exact lowercase digest plus exact asset basename.
+- `provenance.json`: exact 19-key schema; package-lock and Cargo-lock hashes match current source bytes.
+- Schema: `LCCoding 4.0.0 installer provenance`.
+- Overall version: `4.0.0`.
+- Commit: `3dad6223f792553aa78d486777d4adee7fa504bd`.
+- Build mode: `LOCAL_BLOCKED_CANDIDATE`.
+- Build workflow/repository: `local-manual` / `LOCAL`.
+- Build run ID: `local-e006ec2a-e46e-4e50-9d75-2eb2e7ed0fa6`.
+- Target: `x86_64-pc-windows-msvc`.
+- Installer scope/WebView2 mode: `current_user` / `embedBootstrapper`.
+- Loop release dependency gate: `BLOCKED_CANDIDATE_IDENTITIES`; `loop_release_dependencies` is `null`, as required for this non-formal candidate mode.
+
+## Loop method identity
+
+The source and staged `loop-contract-identities.json` bytes match SHA-256 `5b2f441514b23abcbfdf715454139c701215b414f6f2657854c093c751166138`. The asset schema is exactly `LCCODING_BI_COMPATIBILITY_V4`, contains only `slk`, `clk`, and `glk`, and each method is `CURRENT` with the exact seven-field normalization mapping. Rust adapter identity tests passed 8/8 in both debug and release suites.
+
+- SLK 2.6.0: commit `fa75bcf1c0819c8499d3b6c4ee9ec251dae62ae5`; manifest `b1191453bbedc5b1b8af8327176776602a392913507583bb60bd8ff643a1c339`; schema `ee3978e0b408e67d69d7f78d94bd31c43d68af2a6d0c7a56966dd9ef93f412c5`; template `3d9e7f640b6bb0ad2ea168267d7c38fb41e47e098bca4aaae113603352038e73`.
+- CLK 2.5.0: commit `6043ce6011b7bb162f8ff6a169b144f4a24fe342`; manifest `64bbaa4964a56fcafb26eeaed3a912707a20b2ece989cb1a33bdc4240b720b9d`; schema `c292658717e383dd4c95b54403a0fd2b51a590311cf94f4ef28dc6ddef227867`; template `b582d667b46eda1b468033c399a38f380a4a291f1aaf5301af749246ebfea5eb`.
+- GLK 3.1.0: commit `2cbbd20167376e4ce57cd0e3a201e5fdb323c43f`; manifest `c8d7789f0aa6792379873dc62edb2f6142842cbf2600c079002f44d7755551d7`; schema `21f33235666394e3c50df3311795cd73093f0b25954e4c40a3d67d1c58a3057b`; template `0b24cec677f7e008d0959201c9c3117a278378e4c1bf05f0aec6ca7a2dcb46ab`.
+
+## Expected skip and exclusions
+
+- Expected skip: external canonical Calabash repository verification was not run because `LCCODING_CALABASH_REPOSITORY` was unset. The committed exact Calabash method-baseline bytes were still validated.
+- Formal Loop main/tag/Release identity resolution was not run; local candidate mode deliberately records the blocked dependency gate and cannot be treated as a formal package.
+- No GitHub Actions workflow, formal artifact download, tag, GitHub Release, push, deployment, global Skill installation, or Docker action was attempted.
+- No persistent BI installation, launch-from-installed-path smoke, standard-user install smoke, uninstall smoke, PATH mutation, Start Menu verification, or uninstall-registration verification was attempted.
+- No package or source artifact was written to the Desktop.
+
+## Completion boundary
+
+This report supports only a clean local LCCoding 4.0.0 source candidate and one external local blocked installer candidate. It does not claim a formal release, published Loop dependency closure, or installed-user acceptance.
