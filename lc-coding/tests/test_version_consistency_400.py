@@ -237,12 +237,12 @@ for released_claim in (
 ):
     assert released_claim not in candidate_section
 
-# Task 11 owns fresh 4.0 verification evidence. Task 10 must not relabel the
-# accepted 3.0 report as current 4.0 evidence before that independent run.
+# Task 11 owns fresh 4.0 verification evidence and records it under the exact
+# candidate heading after the independent run.
 validation_report = text("VALIDATION-REPORT.md")
-assert validation_report.startswith("# LCCoding 3.0.0 Validation Report\n")
+assert validation_report.startswith("# LCCoding 4.0.0 Candidate Validation Report\n")
 assert "# LCCoding 4.0.0 Validation Report" not in validation_report
-assert "PASS, 76 tests" not in validation_report
+assert "PASS, 76 tests" in validation_report
 
 package_surfaces = (
     "lc-coding/bi/scripts/package-release.ps1",

@@ -126,6 +126,14 @@ The source and staged `loop-contract-identities.json` bytes match SHA-256 `5b2f4
 - CLK 2.5.0: commit `6043ce6011b7bb162f8ff6a169b144f4a24fe342`; manifest `64bbaa4964a56fcafb26eeaed3a912707a20b2ece989cb1a33bdc4240b720b9d`; schema `c292658717e383dd4c95b54403a0fd2b51a590311cf94f4ef28dc6ddef227867`; template `b582d667b46eda1b468033c399a38f380a4a291f1aaf5301af749246ebfea5eb`.
 - GLK 3.1.0: commit `2cbbd20167376e4ce57cd0e3a201e5fdb323c43f`; manifest `c8d7789f0aa6792379873dc62edb2f6142842cbf2600c079002f44d7755551d7`; schema `21f33235666394e3c50df3311795cd73093f0b25954e4c40a3d67d1c58a3057b`; template `0b24cec677f7e008d0959201c9c3117a278378e4c1bf05f0aec6ca7a2dcb46ab`.
 
+## Compatibility and formal identity guard
+
+The compatibility asset and read-only formal-package contract were reviewed for reproducibility against their protected canonical reference markers: `git/ref/heads/main`, `git/ref/tags/v2.5.0`, and `git/ref/tags/v3.1.0`. These are contract and asset identities only. Task 11 did not create or fetch those refs, create tags, resolve a formal dependency release, or perform a formal release.
+
+The separately governed formal workflow contract retains the reproduction markers `gh workflow run release-bi.yml --ref main`, `gh run watch`, `gh run download`, provenance mode `FORMAL_GITHUB_ACTIONS`, installer rehash through `Get-FileHash`, and a current-user installation smoke. They were reviewed as protected workflow requirements only; none of those formal commands or installation steps was executed by Task 11.
+
+After the local `package-release.ps1` candidate build and the evidence-record updates, the final tracked-byte closure was rerun with `python lc-coding/tests/test_release_integrity.py` and passed.
+
 ## Expected skip and exclusions
 
 - Expected skip: external canonical Calabash repository verification was not run because `LCCODING_CALABASH_REPOSITORY` was unset. The committed exact Calabash method-baseline bytes were still validated.
