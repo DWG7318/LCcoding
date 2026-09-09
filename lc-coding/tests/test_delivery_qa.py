@@ -11,6 +11,11 @@ import tempfile
 
 root = Path(__file__).resolve().parents[2]
 decision_validator = root / "lc-coding/scripts/validate_delivery_decision.py"
+decision_spec = importlib.util.spec_from_file_location(
+    "delivery_decision_helpers", decision_validator
+)
+decision_validator_module = importlib.util.module_from_spec(decision_spec)
+decision_spec.loader.exec_module(decision_validator_module)
 policy_path = root / "lc-coding/contracts/delivery-policy.json"
 GROUPS = [
     "delivery_model", "assets", "source_and_modification_rights",
@@ -507,6 +512,32 @@ def build_agent_delivery_project(project, applicability="APPLICABLE_CORE"):
     return lc, decision, status
 
 
+def promote_bound_internal_agent_400(lc, status):
+    agent_fixtures = load_agent_project_fixtures()
+    current_template = json.loads(
+        (root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
+    )
+    promoted = copy.deepcopy(status)
+    promoted["status_schema_version"] = "4.0.0"
+    promoted["lccoding_applicability"] = "WHOLE_PRODUCT_FIT"
+    promoted["product_service_strategy"] = "PLATFORM_COMPLETION"
+    promoted["service_route_map"] = "PENDING"
+    promoted["real_user_journey_acceptance"] = copy.deepcopy(
+        current_template["real_user_journey_acceptance"]
+    )
+    promoted["phase_gates"]["REAL_USER_JOURNEY_ACCEPTED"] = "PENDING"
+    applicability = promoted["agent_product_formation"][
+        "product_agent_applicability"
+    ]
+    rule, handoff, _, _, _ = agent_fixtures.fixture(applicability)
+    (Path(lc) / "AGENT-RULE.md").write_text(rule, encoding="utf-8", newline="\n")
+    (Path(lc) / "PRODUCT-BASELINE-HANDOFF.md").write_text(
+        handoff, encoding="utf-8", newline="\n"
+    )
+    (Path(lc) / "status.json").write_text(json.dumps(promoted), encoding="utf-8")
+    return promoted
+
+
 def build_delivery_project(
     project,
     *,
@@ -589,15 +620,56 @@ def execute_tests():
         unproved_agent_400 = base / "unproved-agent-delivery-400"
         agent_400_lc, _, agent_400_status = build_delivery_project(unproved_agent_400)
         promote_pending_delivery_400(
-            agent_400_lc, agent_400_status, strategy="AGENT_COLLABORATIVE"
+            agent_400_lc, agent_400_status, strategy="PLATFORM_COMPLETION"
         )
         agent_400_result = run_decision(agent_400_lc / "DELIVERY-DECISION.json")
         assert agent_400_result.returncode != 0
-        assert "Agent-collaborative Delivery requires bound Product Formation" in (
+        assert "LCCoding 4.0 Delivery requires bound internal Product Formation Agent evidence" in (
             agent_400_result.stdout + agent_400_result.stderr
         )
-        assert "Agent-collaborative Delivery requires accepted Agent Slice integration" in (
+        assert "LCCoding 4.0 Delivery requires accepted internal Agent Slice integration" in (
             agent_400_result.stdout + agent_400_result.stderr
+        )
+
+        for applicability in ("APPLICABLE_CORE", "NOT_APPLICABLE"):
+            bound_400 = base / ("bound-internal-agent-400-" + applicability.lower())
+            bound_lc, _, bound_status = build_agent_delivery_project(
+                bound_400, applicability
+            )
+            bound_status = promote_bound_internal_agent_400(bound_lc, bound_status)
+            assert decision_validator_module.agent_delivery_required(bound_status)
+            bound_errors = decision_validator_module.validate_internal_agent_delivery_evidence(
+                bound_lc, bound_status
+            )
+            assert bound_errors == [], bound_errors
+
+        current_template = json.loads(
+            (root / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
+        )
+        missing_formation = copy.deepcopy(bound_status)
+        missing_formation["agent_product_formation"] = copy.deepcopy(
+            current_template["agent_product_formation"]
+        )
+        (bound_lc / "status.json").write_text(
+            json.dumps(missing_formation), encoding="utf-8"
+        )
+        assert "LCCoding 4.0 Delivery requires bound internal Product Formation Agent evidence" in (
+            decision_validator_module.validate_internal_agent_delivery_evidence(
+                bound_lc, missing_formation
+            )
+        )
+
+        missing_slice = copy.deepcopy(bound_status)
+        missing_slice["agent_slice_integration"] = copy.deepcopy(
+            current_template["agent_slice_integration"]
+        )
+        (bound_lc / "status.json").write_text(
+            json.dumps(missing_slice), encoding="utf-8"
+        )
+        assert "LCCoding 4.0 Delivery requires accepted internal Agent Slice integration" in (
+            decision_validator_module.validate_internal_agent_delivery_evidence(
+                bound_lc, missing_slice
+            )
         )
 
         def case(name):

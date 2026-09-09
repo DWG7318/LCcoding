@@ -51,17 +51,47 @@ DELIVERY_TEST_HEADS = frozenset({
     "PLACEHOLDER", "SAMPLE", "EXAMPLE", "FAKE", "TEST", "MOCK", "STUB", "DUMMY",
 })
 AGENT_DELIVERY_SCHEMAS = frozenset({"2.8.0", "3.0.0"})
-AGENT_SERVICE_STRATEGIES = frozenset({"AGENT_COLLABORATIVE", "MIXED"})
 
 
 def agent_delivery_required(status):
     if not isinstance(status, dict):
         return False
-    schema = status.get("status_schema_version")
-    return schema in AGENT_DELIVERY_SCHEMAS or (
-        schema == "4.0.0"
-        and status.get("product_service_strategy") in AGENT_SERVICE_STRATEGIES
+    return status.get("status_schema_version") in AGENT_DELIVERY_SCHEMAS | {"4.0.0"}
+
+
+def validate_internal_agent_delivery_evidence(lc, status):
+    if not isinstance(status, dict) or status.get("status_schema_version") != "4.0.0":
+        return []
+    errors = []
+    formation = status.get("agent_product_formation")
+    agent_slice = status.get("agent_slice_integration")
+    formation_bound = (
+        isinstance(formation, dict)
+        and formation.get("state") == "PRODUCT_FORMATION_AGENT_BOUND"
     )
+    slices_accepted = (
+        isinstance(agent_slice, dict)
+        and agent_slice.get("state") == "AGENT_SLICES_ACCEPTED"
+    )
+    if not formation_bound:
+        errors.append(
+            "LCCoding 4.0 Delivery requires bound internal Product Formation Agent evidence"
+        )
+    if not slices_accepted:
+        errors.append(
+            "LCCoding 4.0 Delivery requires accepted internal Agent Slice integration"
+        )
+    if formation_bound and slices_accepted:
+        errors.extend(
+            PROJECT_VALIDATOR._AGENT_NATIVE.validate_product_formation_files(
+                lc / "AGENT-RULE.md",
+                lc / "PRODUCT-BASELINE-HANDOFF.md",
+                lc / "status.json",
+                lc / PROJECT_VALIDATOR.AGENT_CONFIGURATION_BASELINE_NAME,
+            )
+        )
+        errors.extend(PROJECT_VALIDATOR.validate_agent_slice_status(lc, status))
+    return errors
 AGENT_DECISION_GRAMMAR = {
     "runtime_and_infrastructure": {
         "runtime_responsibility": "CUSTOMER",
@@ -400,34 +430,7 @@ def validate_decision(path):
         if schema in AGENT_DELIVERY_SCHEMAS:
             errors.extend(PROJECT_VALIDATOR.validate_agent_native_artifacts(lc, status))
         else:
-            formation = status.get("agent_product_formation")
-            agent_slice = status.get("agent_slice_integration")
-            formation_bound = (
-                isinstance(formation, dict)
-                and formation.get("state") == "PRODUCT_FORMATION_AGENT_BOUND"
-            )
-            slices_accepted = (
-                isinstance(agent_slice, dict)
-                and agent_slice.get("state") == "AGENT_SLICES_ACCEPTED"
-            )
-            if not formation_bound:
-                errors.append(
-                    "Agent-collaborative Delivery requires bound Product Formation"
-                )
-            if not slices_accepted:
-                errors.append(
-                    "Agent-collaborative Delivery requires accepted Agent Slice integration"
-                )
-            if formation_bound and slices_accepted:
-                errors.extend(
-                    PROJECT_VALIDATOR._AGENT_NATIVE.validate_product_formation_files(
-                        lc / "AGENT-RULE.md",
-                        lc / "PRODUCT-BASELINE-HANDOFF.md",
-                        lc / "status.json",
-                        lc / PROJECT_VALIDATOR.AGENT_CONFIGURATION_BASELINE_NAME,
-                    )
-                )
-                errors.extend(PROJECT_VALIDATOR.validate_agent_slice_status(lc, status))
+            errors.extend(validate_internal_agent_delivery_evidence(lc, status))
         agent_slice = status.get("agent_slice_integration")
         if schema in AGENT_DELIVERY_SCHEMAS and (
             not isinstance(agent_slice, dict)

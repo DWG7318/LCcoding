@@ -470,7 +470,7 @@ def validate_manifest(path):
         if agent_required:
             if agent_delivery.get("state") != "BOUND":
                 errors.append(
-                    "Agent-collaborative Delivery Manifest requires BOUND Agent evidence"
+                    "LCCoding 4.0 Delivery Manifest requires BOUND internal Agent evidence"
                     if schema == "4.0.0"
                     else "Agent-native Delivery Manifest requires BOUND Agent evidence"
                 )

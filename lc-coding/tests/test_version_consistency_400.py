@@ -139,6 +139,43 @@ for marker in (
     "current `LCCoding 4.0.0 derived BI` schema",
 ):
     assert marker in built_in_bi, marker
+
+status_keys_match = re.search(
+    r"`status\.json` has no optional or extra top-level keys\..*?```text\n"
+    r"(?P<keys>.*?)\n```",
+    built_in_bi,
+    re.DOTALL,
+)
+assert status_keys_match is not None
+documented_status_keys = tuple(
+    key.strip()
+    for key in status_keys_match.group("keys").replace("\n", " ").split(",")
+)
+assert documented_status_keys == tuple(status)
+
+phase_gates_match = re.search(
+    r"- `phase_gates` has exactly (?P<gates>.*?)\. The direct state fields",
+    built_in_bi,
+)
+assert phase_gates_match is not None
+assert tuple(re.findall(r"`([^`]+)`", phase_gates_match.group("gates"))) == tuple(
+    status["phase_gates"]
+)
+
+phase_table_match = re.search(
+    r"\| Phase \| `StepId` \| Authoritative source and exact rule \|\n"
+    r"\|---\|---\|---\|\n(?P<rows>.*?)\n\nThe four combined rows",
+    built_in_bi,
+    re.DOTALL,
+)
+assert phase_table_match is not None
+documented_phase_steps = tuple(
+    (match.group("phase"), match.group("step"))
+    for line in phase_table_match.group("rows").splitlines()
+    if (match := re.match(
+        r"\| `(?P<phase>[^`]+)` \| `(?P<step>[^`]+)` \|", line
+    ))
+)
 for marker in (
     "Applicability Assessment",
     "PLATFORM_COMPLETION",
@@ -155,6 +192,16 @@ for marker in (
     assert marker in text("README.zh-CN.md"), marker
 
 compatibility = strict_json("lc-coding/bi/release/loop-contract-identities.json")
+current_phase_steps = tuple(
+    (phase, step)
+    for phase, steps in compatibility["status_adapters"][CURRENT][
+        "phase_steps"
+    ].items()
+    for step in steps
+)
+assert documented_phase_steps == current_phase_steps
+assert len(current_phase_steps) == 29
+assert "legacy `LCCoding 3.0.0 derived BI` five-phase/26-step adapter" in built_in_bi
 current_adapters = [
     version
     for version, adapter in compatibility["status_adapters"].items()

@@ -362,12 +362,15 @@ with tempfile.TemporaryDirectory(prefix="lccoding-delivery-guard-270-") as td:
     fixtures.promote_pending_delivery_400(
         unproved_agent_400,
         unproved_agent_status,
-        strategy="AGENT_COLLABORATIVE",
+        strategy="PLATFORM_COMPLETION",
+    )
+    assert guard_module.DECISION_VALIDATOR.agent_delivery_required(
+        json.loads((unproved_agent_400 / "status.json").read_text())
     )
     unproved_agent_result = assert_fails(
         unproved_agent_400 / "DELIVERY-MANIFEST.json"
     )
-    assert "Agent-collaborative Delivery Manifest requires BOUND Agent evidence" in (
+    assert "LCCoding 4.0 Delivery Manifest requires BOUND internal Agent evidence" in (
         unproved_agent_result.stdout + unproved_agent_result.stderr
     )
 

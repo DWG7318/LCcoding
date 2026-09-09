@@ -141,29 +141,38 @@ Default buttons use `surface/ink/control_border`; hover uses `soft/control_hover
 
 All four tokens must retain at least `4.5:1` contrast on white. The green token is already near the threshold and must never be lightened, blended with white, or rendered with opacity below `1`. Normal report values use neutral ink rather than inheriting a report-wide state color. Under `prefers-reduced-motion: reduce`, the spinner becomes a static state mark while the active text remains visible.
 
-### Four phase views
+### Five phase views
 
 The main view is one vertical, foldable sequence in this fixed order. It exposes only status facts that the current LCCoding records can support.
 
 1. `INITIAL` / 初始
+   - LCCoding Applicability Assessment / LCCoding 适用性评估
    - Proposal Readiness / 提案就绪
+   - Product Service Strategy / 产品服务策略
    - Project Initialization / 工程初始化
    - phase exit `INITIAL_READY` / 初始就绪门禁
 2. `PRODUCT_FORMATION` / 产品形成
    - Calabash Draft / Calabash 草案
+   - Service Route Map Ready / 服务路由图就绪
    - Simulation World foundation / Simulation World 基础
    - Workflow capability end / Workflow 能力端
    - UI product-surface end / UI 产品呈现端
    - phase exit `CALABASH_UPGRADE_READY` / Calabash 升级就绪门禁
-3. `ENGINEERING_RUNS` / Real Product Integration / 真实产品集成
    - Mandatory Calabash Upgrade / 强制 Calabash 升级
    - Product Baseline / 产品基线
+3. `REAL_PRODUCT_INTEGRATION` / Real Product Integration / 真实产品集成
    - Feature Slice · Execution Coverage Preflight / Feature Slice · 执行覆盖预检
    - UI-locked Integration Baseline / UI 锁定集成基线
    - Real Product Integration · D0–D3 Proof / 真实产品集成 · D0–D3 证明
    - Loop Owner Acceptance / Loop Owner 验收
    - aggregate exit `ALL_REQUIRED_RUNS_ACCEPTED` / 全部必需 Run 已验收
-4. `DELIVERY_PREPARATION` / 交付准备
+4. `REAL_USER_JOURNEY_ACCEPTANCE` / Real User Journey Acceptance / 真实用户旅程验收
+   - Journey Coverage Ready / 旅程覆盖就绪
+   - Acceptance Environment Ready / 验收环境就绪
+   - Real User Journey Round / 真实用户旅程轮次
+   - Journey Defect Closure / 旅程缺陷关闭
+   - owner exit `REAL_USER_JOURNEY_ACCEPTED` / 真实用户旅程已验收门禁
+5. `DELIVERY_PREPARATION` / 交付准备
    - Centralized Vulnerability Audit / 集中漏洞审计
    - Security Remediation / 安全修复
    - Independent Security Re-audit · Vulnerability Closure / 独立安全复审 · 漏洞关闭
@@ -177,7 +186,7 @@ Only the current phase starts expanded. Folding, scrolling, and language changes
 
 ### Protected reports
 
-Exactly eight `Open` actions are available: the existing Proposal Readiness, Canonical Candidate, Calabash, Simulation World, Workflow, and UI Baseline actions, plus Product Baseline on the existing `PRODUCT_BASELINE` step and Execution Method Governance on the compatibility `LOOP_RUN_D0_D3` step ID. No phase or step is added. `Open` replaces the body inside the same window with a fixed, sanitized report; `Back` restores the prior phase view and scroll/fold state.
+Exactly nine `Open` actions are available: Proposal Readiness, Canonical Candidate, Calabash, Simulation World, Workflow, UI Baseline, Product Baseline on `PRODUCT_BASELINE`, Execution Method Governance on the compatibility `LOOP_RUN_D0_D3` step ID, and Real User Journey Acceptance on the journey phase. `Open` replaces the body inside the same window with a fixed, sanitized report; `Back` restores the prior phase view and scroll/fold state.
 
 - Report titles, row labels, and row order come from a compiled catalog, never from project input.
 - Candidate may show only the schema-exact rows below and a validated version. Repository and commit values never reach the frontend.
@@ -243,11 +252,12 @@ All wire keys use lower `snake_case`; all enums use the exact casing below. Ever
 ```text
 Health     = "ok" | "error"
 ViewState  = "done" | "active" | "pending" | "error"
-PhaseId    = "INITIAL" | "PRODUCT_FORMATION" | "ENGINEERING_RUNS" |
-             "DELIVERY_PREPARATION"
+PhaseId    = "INITIAL" | "PRODUCT_FORMATION" | "REAL_PRODUCT_INTEGRATION" |
+             "REAL_USER_JOURNEY_ACCEPTANCE" | "DELIVERY_PREPARATION"
 PhaseValue = PhaseId | "UNKNOWN"
 ReportId   = "proposal" | "candidate" | "calabash" | "simulation" |
-             "workflow" | "ui" | "baseline" | "loop_governance"
+             "workflow" | "ui" | "baseline" | "loop_governance" |
+             "journey_acceptance"
 LockValue  = "LOCKED" | "PENDING" | "UNKNOWN"
 RecordValue = "RECORDED" | "PRESENT" | "PENDING" | "NOT_RECORDED" |
               "UNKNOWN"
@@ -318,21 +328,24 @@ No free-form object or arbitrary report row crosses IPC. Production logs contain
 - `status.json` has no optional or extra top-level keys. Its exact key set is:
 
 ```text
-record_role, status_schema_version, project_id, updated_at,
+record_role, status_schema_version, lccoding_applicability,
+product_service_strategy, service_route_map, project_id, updated_at,
 initialization_mode, continuity_decision, takeover_readiness,
 canonical_candidate, existing_project_attestation,
 existing_project_classification, current_phase, phase_gates,
+product_baseline, agent_product_formation, agent_slice_integration,
 proposal, initialization, calabash_draft, workflow, ui, simulation,
-mandatory_calabash_upgrade, product_baseline, active_slice,
+mandatory_calabash_upgrade, active_slice,
 integration_baseline, active_runs, loop_owner_acceptances,
 open_owner_gaps, all_required_runs_accepted,
+real_user_journey_acceptance,
 centralized_security_audit, security_remediation,
 vulnerability_closure, post_security_owner_acceptance,
 delivery_method_qa, delivery, last_material_change, next_action,
 evidence_pointers, blockers
 ```
 
-- `phase_gates` has exactly `INITIAL_READY`, `CALABASH_UPGRADE_READY`, `ALL_REQUIRED_RUNS_ACCEPTED`, and `DELIVERY_READY`. The direct state fields are exactly `proposal`, `initialization`, `calabash_draft`, `workflow`, `ui`, `simulation`, `mandatory_calabash_upgrade`, `product_baseline`, `all_required_runs_accepted`, `centralized_security_audit`, `security_remediation`, `vulnerability_closure`, `post_security_owner_acceptance`, `delivery_method_qa`, and `delivery`; each must normalize under section 6.
+- `phase_gates` has exactly `INITIAL_READY`, `CALABASH_UPGRADE_READY`, `ALL_REQUIRED_RUNS_ACCEPTED`, `REAL_USER_JOURNEY_ACCEPTED`, and `DELIVERY_READY`. The direct state fields are exactly `lccoding_applicability`, `product_service_strategy`, `service_route_map`, `proposal`, `initialization`, `calabash_draft`, `workflow`, `ui`, `simulation`, `mandatory_calabash_upgrade`, `product_baseline`, `all_required_runs_accepted`, `centralized_security_audit`, `security_remediation`, `vulnerability_closure`, `post_security_owner_acceptance`, `delivery_method_qa`, and `delivery`; each must normalize under section 6. The closed structured summaries `agent_product_formation`, `agent_slice_integration`, and `real_user_journey_acceptance` retain their schema-specific validators and projection rules.
 - `initialization_mode` is `NEW|EXISTING`; `continuity_decision` is `PENDING|CONTINUE|NARROW_REDIRECT|HOLD|TERMINATE`; `takeover_readiness` is `NOT_APPLICABLE|READY|BLOCKED|NOT_CONTINUING`; `existing_project_attestation` is `PENDING|NOT_APPLICABLE|CLAIMED_UNATTESTED|EVIDENCED`; and `existing_project_classification` is `PENDING|NOT_APPLICABLE|ATTESTED_COMPLETE|NEEDS_GAP_CLOSURE|PARTIAL|DIRECTION_CHANGED|NOT_CONTINUING`. `updated_at` is empty or RFC 3339. `last_material_change` and `next_action` are at most `4,096` UTF-8 bytes with no control, surrogate, or bidirectional-control character; they are validated but never projected.
 - `SafeRef` is at most `256` ASCII characters and matches `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(?:/[A-Za-z0-9][A-Za-z0-9._-]{0,63}){0,15}$`. `active_slice` and `integration_baseline` are `null`, one `SafeRef`, or an exact non-empty `{id?: SafeRef, path?: SafeRef}` object. `active_runs`, `loop_owner_acceptances`, and `evidence_pointers` are arrays of `SafeRef`. `open_owner_gaps` is an array of exact `{gap_id: SafeRef, state: "OPEN"|"IN_CLOSURE", source_acceptance: SafeRef, evidence_pointers: non-empty SafeRef[]}` index objects with unique `gap_id`. `blockers` is an array of at most `2,048` non-control strings, each at most `256` UTF-8 bytes. None is serialized.
 - The Canonical Manifest file is optional. Once present it has exactly `lccoding`, `calabash`, `slk`, `clk`, `glk`, `compatibility`, and `load_order`. Each method object has exactly string fields `version` and `hash`; version is empty or `SafeVersion`, and hash is empty or 64 hex characters with optional `sha256:` prefix. `compatibility` matches `^[A-Z][A-Z0-9_]{0,63}$`. `load_order` is an array of at most `2,048` strings, each `1..64` UTF-8 bytes with no control, surrogate, or bidirectional-control character. Missing, extra, or wrong-typed fields fail closed.
@@ -370,21 +383,29 @@ The exact phase/step tuple and source precedence are:
 
 | Phase | `StepId` | Authoritative source and exact rule |
 |---|---|---|
+| `INITIAL` | `LCCODING_APPLICABILITY_ASSESSMENT` | `status.lccoding_applicability`: `PENDING` is pending; `WHOLE_PRODUCT_FIT` or `BOUNDED_PRODUCT_FIT` is done |
 | `INITIAL` | `PROPOSAL_READINESS` | direct normalization of `status.proposal` |
+| `INITIAL` | `PRODUCT_SERVICE_STRATEGY` | `status.product_service_strategy`: `PENDING` is pending; `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or `MIXED` is done |
 | `INITIAL` | `PROJECT_INITIALIZATION` | direct normalization of `status.initialization` |
 | `INITIAL` | `INITIAL_READY` | direct normalization of `status.phase_gates.INITIAL_READY` |
 | `PRODUCT_FORMATION` | `CALABASH_DRAFT` | direct normalization of `status.calabash_draft` |
+| `PRODUCT_FORMATION` | `SERVICE_ROUTE_MAP_READY` | `status.service_route_map`: `PENDING` is pending; `DRAFT` is active; `ADOPTED` is done |
 | `PRODUCT_FORMATION` | `SIMULATION_WORLD_FOUNDATION` | direct normalization of `status.simulation` |
 | `PRODUCT_FORMATION` | `WORKFLOW_CAPABILITY_END` | direct normalization of `status.workflow` |
 | `PRODUCT_FORMATION` | `UI_PRODUCT_SURFACE_END` | direct normalization of `status.ui` |
 | `PRODUCT_FORMATION` | `CALABASH_UPGRADE_READY` | direct normalization of `status.phase_gates.CALABASH_UPGRADE_READY` |
-| `ENGINEERING_RUNS` | `MANDATORY_CALABASH_UPGRADE` | direct normalization of `status.mandatory_calabash_upgrade` |
-| `ENGINEERING_RUNS` | `PRODUCT_BASELINE` | direct normalization of `status.product_baseline` |
-| `ENGINEERING_RUNS` | `FEATURE_SLICE_EXECUTION_COVERAGE` | if aggregate is done: done; else if `active_slice` is non-null: active; else if Integration, active Run, or acceptance receipt provides a downstream fact: done; else pending |
-| `ENGINEERING_RUNS` | `UI_LOCKED_INTEGRATION_BASELINE` | valid non-null `integration_baseline`: the baseline is established/done; null: pending. This row does not claim Feature Integration implementation is complete. |
-| `ENGINEERING_RUNS` | `LOOP_RUN_D0_D3` | compatibility ID displayed as Real Product Integration proof; done aggregate: done; error aggregate: error; else non-empty Phase-3 integration `active_runs`: active; else applicable integration acceptance receipt exists: done; else pending. Cross-phase method activity outside Product Integration does not activate this row. |
-| `ENGINEERING_RUNS` | `LOOP_OWNER_ACCEPTANCE` | done aggregate + receipt(s): done; error aggregate: error; receipt(s) before done aggregate: active; no receipt: pending; done aggregate without receipt is a contradiction |
-| `ENGINEERING_RUNS` | `ALL_REQUIRED_RUNS_ACCEPTED` | direct normalization of top-level `status.all_required_runs_accepted`, which must equal the same-named phase gate after normalization |
+| `PRODUCT_FORMATION` | `MANDATORY_CALABASH_UPGRADE` | direct normalization of `status.mandatory_calabash_upgrade` |
+| `PRODUCT_FORMATION` | `PRODUCT_BASELINE` | direct normalization of `status.product_baseline` |
+| `REAL_PRODUCT_INTEGRATION` | `FEATURE_SLICE_EXECUTION_COVERAGE` | if aggregate is done: done; else if `active_slice` is non-null: active; else if Integration, active Run, or acceptance receipt provides a downstream fact: done; else pending |
+| `REAL_PRODUCT_INTEGRATION` | `UI_LOCKED_INTEGRATION_BASELINE` | valid non-null `integration_baseline`: the baseline is established/done; null: pending. This row does not claim Feature Integration implementation is complete. |
+| `REAL_PRODUCT_INTEGRATION` | `LOOP_RUN_D0_D3` | compatibility ID displayed as Real Product Integration proof; done aggregate: done; error aggregate: error; else non-empty Phase-3 integration `active_runs`: active; else applicable integration acceptance receipt exists: done; else pending. Cross-phase method activity outside Product Integration does not activate this row. |
+| `REAL_PRODUCT_INTEGRATION` | `LOOP_OWNER_ACCEPTANCE` | done aggregate + receipt(s): done; error aggregate: error; receipt(s) before done aggregate: active; no receipt: pending; done aggregate without receipt is a contradiction |
+| `REAL_PRODUCT_INTEGRATION` | `ALL_REQUIRED_RUNS_ACCEPTED` | direct normalization of top-level `status.all_required_runs_accepted`, which must equal the same-named phase gate after normalization |
+| `REAL_USER_JOURNEY_ACCEPTANCE` | `JOURNEY_COVERAGE_READY` | normalize `status.real_user_journey_acceptance.coverage_state` with the closed journey-state mapping |
+| `REAL_USER_JOURNEY_ACCEPTANCE` | `ACCEPTANCE_ENVIRONMENT_READY` | normalize `status.real_user_journey_acceptance.acceptance_environment_state` with the closed journey-state mapping |
+| `REAL_USER_JOURNEY_ACCEPTANCE` | `REAL_USER_JOURNEY_ROUND` | round zero is pending; an incomplete current round is active; a complete current round is done |
+| `REAL_USER_JOURNEY_ACCEPTANCE` | `JOURNEY_DEFECT_CLOSURE` | an open, deferred, or reopened defect is error; round zero is pending; otherwise done |
+| `REAL_USER_JOURNEY_ACCEPTANCE` | `REAL_USER_JOURNEY_OWNER_ACCEPTANCE` | normalize `status.real_user_journey_acceptance.owner_result` with the closed journey-state mapping and require agreement with `status.phase_gates.REAL_USER_JOURNEY_ACCEPTED` |
 | `DELIVERY_PREPARATION` | `CENTRALIZED_VULNERABILITY_AUDIT` | direct normalization of `status.centralized_security_audit` |
 | `DELIVERY_PREPARATION` | `SECURITY_REMEDIATION` | direct normalization of `status.security_remediation` |
 | `DELIVERY_PREPARATION` | `SECURITY_REAUDIT_VULNERABILITY_CLOSURE` | one combined row, direct normalization of `status.vulnerability_closure` |
