@@ -33,6 +33,39 @@ for marker in (
 ):
     assert marker in applicability_clause, marker
 
+proposal_reference = (ROOT / "lc-coding/references/proposal-readiness.md").read_text(
+    encoding="utf-8"
+)
+proposal_template = (ROOT / "lc-coding/templates/PROPOSAL-READINESS.md").read_text(
+    encoding="utf-8"
+)
+operator_skill = (ROOT / "lc-coding/SKILL.md").read_text(encoding="utf-8")
+for marker in (
+    "LCCoding",
+    "Calabash",
+    "SLK",
+    "CLK",
+    "GLK",
+    "Ponytail",
+    "Owner authorization",
+):
+    assert marker in applicability_clause, marker
+for marker in (
+    "Ponytail",
+    "one inquiry",
+    "does not stop",
+    "availability is not project authorization",
+):
+    assert marker in proposal_reference, marker
+for marker in (
+    "Ponytail",
+    "Owner decision: PENDING",
+    "Approved scope:",
+    "Mode:",
+):
+    assert marker in proposal_template, marker
+assert "Ponytail" in operator_skill
+
 topology_clause = clause_body("LC-INTEG-005")
 for marker in (
     "DIRECT_PRODUCT",

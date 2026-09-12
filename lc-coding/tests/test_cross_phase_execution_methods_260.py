@@ -114,6 +114,19 @@ require(
     "phase gate",
     "compatible evidence and acceptance interface",
 )
+method_selection = text("lc-coding/references/loop-method-selection.md")
+for marker in (
+    "one serial Loop path",
+    "multiple independently progressing Chains",
+    "contract-governed fusion",
+    "dependency DAG",
+    "final Fusion GO",
+    "current applicable method information",
+    "exact identity",
+):
+    assert marker in method_selection, marker
+for stale in ("ordered Stages", "full barriers"):
+    assert stale not in method_selection, stale
 require(
     "lc-coding/templates/RUN-HANDOFF.md",
     "Artifact role: RUN_START_CONTRACT",

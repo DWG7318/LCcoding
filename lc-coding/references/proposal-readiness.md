@@ -21,6 +21,8 @@ The legacy `status` reports proposal evidence completeness only; `applicability_
 
 After an admitted recommendation, load [Service Topology](service-topology.md) for the Initial product service strategy discussion. Do not require that reference merely to collect missing applicability facts.
 
+Ponytail is the only named curated external Skill in this release. If AI recommends it, make one inquiry that explains its source, proposed scope and mode, benefits, and material trade-offs before first use, then record the Owner decision in this readiness record. Approval remains reusable only inside that recorded project scope; availability is not project authorization. Rejection or non-adoption does not stop native LCCoding, and no other external Skill becomes admitted by implication.
+
 ## One-pass method
 
 1. Index all supplied material.

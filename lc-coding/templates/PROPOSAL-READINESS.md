@@ -26,6 +26,16 @@
 - Material uncertainties:
 - Unresolved Calabash topics:
 
+## Optional external Skill decision
+
+- Candidate: Ponytail
+- Recommendation: NOT_PROPOSED
+- Owner decision: PENDING
+- Source / identity:
+- Approved scope:
+- Mode:
+- Rationale and material trade-offs:
+
 ## Readiness record
 
 - Present decisions:

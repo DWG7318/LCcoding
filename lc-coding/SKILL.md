@@ -44,7 +44,7 @@ Owner decides product meaning. AI completes routine engineering autonomously ins
 Source clauses: [LC-AUTH-001](../SPEC.md#lc-auth-001), [LC-AUTH-003](../SPEC.md#lc-auth-003), [LC-PHASE-001](../SPEC.md#lc-phase-001), [LC-INTEG-003](../SPEC.md#lc-integ-003)
 
 1. Load [SPEC](../SPEC.md), Owner/project rules, the applicable contract/template, and current evidence.
-2. At Initial entry, assess LCCoding fit and, after admission, explain and recommend `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or `MIXED`; use [service strategy and topology](references/service-topology.md), [Proposal Readiness](references/proposal-readiness.md), and [Project Initialization](references/project-initialization.md).
+2. At Initial entry, assess LCCoding fit and, after admission, explain and recommend `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or `MIXED`; use [service strategy and topology](references/service-topology.md), [Proposal Readiness](references/proposal-readiness.md), and [Project Initialization](references/project-initialization.md). Ponytail remains external and may govern this project only after the one recorded Owner inquiry and authorization defined by `LC-AUTH-003`.
 3. `STOP` on `HOLD`, `TERMINATE`, contradiction, or a failed authoritative boundary; preserve evidence before changing course.
 4. Then route `NARROW_REDIRECT`, meaning change, rework, or invalidation through the calling phase and its cited focused reference.
 5. Only resume inside the accepted authority and current evidence boundary.
