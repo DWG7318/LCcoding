@@ -65,6 +65,7 @@ HISTORICAL_RECORD_HASHES = {
     "docs/superpowers/plans/2026-08-16-lccoding-bi-single-build-release-implementation-plan.md": "cc55e844eb226c52182e90587e6c43b478085ed7531ce85ada6d55909b6278c1",
     "docs/superpowers/plans/2026-09-07-lccoding-3.0.0-real-user-journey-acceptance-implementation-plan.md": "934e0ac0f5b4094ec78de3bc679966a58c5bcbe94abb191a5a8711dd8eb10db2",
     "docs/superpowers/plans/2026-09-08-lccoding-4.0.0-applicability-and-service-topology-implementation-plan.md": "236f025e91bf23689627a4a11383c8ca20130276fecae43ab6b2805257c45a68",
+    "docs/superpowers/plans/2026-09-13-lccoding-4.0.1-ponytail-external-skill-governance-implementation-plan.md": "01559c6bfc8f2763f2f921eb3e27bef5fb854226d2076fe77cd802c35fd0d621",
     "docs/superpowers/specs/2026-08-05-lccoding-bi-one-click-react-design.md": "d945eab23b20a977b906f8e38396b2ba0283284924df8ba77469ec3728af9db2",
     "docs/superpowers/specs/2026-08-06-lccoding-bi-github-windows-release-design.md": "2f1281949b527c2efbef99bf9a32b5b098aa2c04a8a9760bbfa7a865056e7f51",
     "docs/superpowers/specs/2026-08-10-cross-phase-execution-methods-design.md": "14c7460ee661c94df34d0ff8985e50b225799db57591649e3deb79ae82d92e51",
