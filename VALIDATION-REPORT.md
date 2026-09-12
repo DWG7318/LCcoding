@@ -1,4 +1,10 @@
-# LCCoding 4.0.0 Candidate Validation Report
+# LCCoding 4.0.1 Candidate Validation Report
+
+Local 4.0.1 patch verification on 2026-09-13: PASS (Python 76/76, DOM 98/98, visual 37/37, full Rust normal/release, repository/integrity/LF, both PowerShell NSIS contracts, Skill format, and formal Loop dependency verification). The exact-byte external runner contains 307/307 source files; independent pre-merge review found no actionable issues. Final clean-tree verification and exact main/formal-release CI remain pending.
+
+Project status, Service Route Map, and BI wire schemas remain 4.0.0; the global LCCoding Skill is not restored or deployed. The sections below preserve the prior 4.0.0 implementation evidence as history, not as proof of this patch's publication.
+
+## Historical 4.0.0 implementation evidence
 
 ## Result
 

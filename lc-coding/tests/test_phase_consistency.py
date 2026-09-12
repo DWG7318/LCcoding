@@ -26,7 +26,7 @@ legacy_ids = [
 
 assert phase_contract["version"] == "4.0.0"
 assert canonical_ids == current_ids
-assert manifest["version"] == "4.0.0"
+assert manifest["version"] == "4.0.1"
 assert manifest["phase_overlay"] == canonical_ids
 assert manifest["execution_method_overlay"]["available_in_phases"] == canonical_ids
 assert phase_projection["status_schema_version"] == "4.0.0"

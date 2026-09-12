@@ -38,7 +38,7 @@ current_phases = [
     "REAL_USER_JOURNEY_ACCEPTANCE",
     "DELIVERY_PREPARATION",
 ]
-assert manifest["version"] == "4.0.0"
+assert manifest["version"] == "4.0.1"
 assert manifest["phase_overlay"] == current_phases
 assert manifest["execution_method_overlay"]["available_in_phases"] == current_phases
 

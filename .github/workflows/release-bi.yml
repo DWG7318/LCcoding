@@ -60,7 +60,7 @@ jobs:
           if ($env:GITHUB_SHA -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_SHA_ENV_INVALID" }
           if ((git rev-parse HEAD).Trim() -ne $env:EXPECTED_SHA) { throw "BI_RELEASE_CHECKOUT_INVALID" }
           if (git status --porcelain=v1) { throw "BI_RELEASE_CHECKOUT_DIRTY" }
-          if ((Get-Content VERSION -Raw).Trim() -ne "4.0.0") { throw "BI_RELEASE_VERSION_INVALID" }
+          if ((Get-Content VERSION -Raw).Trim() -ne "4.0.1") { throw "BI_RELEASE_VERSION_INVALID" }
 
       - name: Validate source and formal Loop releases
         shell: pwsh
@@ -93,7 +93,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $release = Join-Path $env:RUNNER_TEMP "lccoding-bi-formal/release"
-          $installerName = "LCCoding-BI_4.0.0_x64-setup.exe"
+          $installerName = "LCCoding-BI_4.0.1_x64-setup.exe"
           $expectedFiles = @($installerName, "installer.sha256", "provenance.json") | Sort-Object
           $actualFiles = @(Get-ChildItem -LiteralPath $release -File | ForEach-Object Name | Sort-Object)
           if (@(Compare-Object $expectedFiles $actualFiles).Count -ne 0) {
@@ -137,7 +137,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           Set-StrictMode -Version Latest
           $expectedRelease = [IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP "lccoding-bi-formal/release"))
-          $expectedInstaller = [IO.Path]::GetFullPath((Join-Path $expectedRelease "LCCoding-BI_4.0.0_x64-setup.exe"))
+          $expectedInstaller = [IO.Path]::GetFullPath((Join-Path $expectedRelease "LCCoding-BI_4.0.1_x64-setup.exe"))
           if ($env:BI_RELEASE_DIRECTORY -cne $expectedRelease -or
               $env:BI_RELEASE_INSTALLER -cne $expectedInstaller) {
             throw "BI_RELEASE_FROZEN_PATH_INVALID"
@@ -163,7 +163,7 @@ jobs:
           $evidence = Get-Content -LiteralPath $evidencePath -Raw | ConvertFrom-Json
           $post = (Get-FileHash -LiteralPath $env:BI_RELEASE_INSTALLER -Algorithm SHA256).Hash.ToLowerInvariant()
           $checksumText = (Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "installer.sha256") -Raw).Trim()
-          $checksumMatch = [regex]::Match($checksumText, "^([0-9a-f]{64})  LCCoding-BI_4[.]0[.]0_x64-setup[.]exe$")
+          $checksumMatch = [regex]::Match($checksumText, "^([0-9a-f]{64})  LCCoding-BI_4[.]0[.]1_x64-setup[.]exe$")
           if (-not $checksumMatch.Success) { throw "BI_RELEASE_POST_SMOKE_CHECKSUM_INVALID" }
           $checksumSha256 = $checksumMatch.Groups[1].Value
           $provenance = Get-Content -LiteralPath (Join-Path $env:BI_RELEASE_DIRECTORY "provenance.json") -Raw | ConvertFrom-Json
@@ -179,7 +179,7 @@ jobs:
               $evidence.workflow_run_id -cne $env:GITHUB_RUN_ID -or
               $evidence.workflow_run_attempt -cne $env:GITHUB_RUN_ATTEMPT -or
               $evidence.workflow_ref -cne $env:GITHUB_REF -or
-              $evidence.installer_basename -cne "LCCoding-BI_4.0.0_x64-setup.exe" -or
+              $evidence.installer_basename -cne "LCCoding-BI_4.0.1_x64-setup.exe" -or
               $evidence.installer_path -cne $env:BI_RELEASE_INSTALLER -or
               $evidence.child_status -cne "PASS" -or
               $evidence.child_process_exit_code -ne 0 -or
@@ -203,7 +203,7 @@ jobs:
         with:
           name: lccoding-bi-formal-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding-BI_4.0.0_x64-setup.exe
+            ${{ runner.temp }}\lccoding-bi-formal\release\LCCoding-BI_4.0.1_x64-setup.exe
             ${{ runner.temp }}\lccoding-bi-formal\release\installer.sha256
             ${{ runner.temp }}\lccoding-bi-formal\release\provenance.json
           if-no-files-found: error

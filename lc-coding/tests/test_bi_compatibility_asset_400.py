@@ -180,8 +180,8 @@ for phase_id, index, replacement in (
 assert not accepted_replacements, accepted_replacements
 
 # Task 10 atomically promotes the release and authoritative STATUS carriers.
-assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "4.0.0"
-assert json.loads((ROOT / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == "4.0.0"
+assert (ROOT / "VERSION").read_text(encoding="utf-8").strip() == "4.0.1"
+assert json.loads((ROOT / "MANIFEST.json").read_text(encoding="utf-8"))["version"] == "4.0.1"
 assert json.loads(
     (ROOT / "lc-coding/templates/STATUS.json").read_text(encoding="utf-8")
 )["status_schema_version"] == "4.0.0"

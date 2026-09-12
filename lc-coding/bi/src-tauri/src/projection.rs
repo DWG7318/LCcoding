@@ -1096,7 +1096,10 @@ pub fn snapshot_from_status(
         "4.0.0" => "4.0.0",
         _ => return Err(ProjectionError::Inconsistent),
     };
-    if manifest.is_some_and(|manifest| manifest.lccoding.version != manifest_schema) {
+    if manifest.is_some_and(|manifest| {
+        manifest.lccoding.version != manifest_schema
+            && !(manifest_schema == "4.0.0" && manifest.lccoding.version == "4.0.1")
+    }) {
         return Err(ProjectionError::Inconsistent);
     }
 

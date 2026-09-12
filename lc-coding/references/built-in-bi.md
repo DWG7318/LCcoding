@@ -1,6 +1,6 @@
-# Built-in Project BI — LCCoding 4.0.0
+# Built-in Project BI — LCCoding 4.0.1
 
-This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 4.0.0: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
+This reference is the focused product contract for LCCoding's built-in project BI. The BI ships only as part of LCCoding 4.0.1: it has no independent version, repository, tag, release, lifecycle, or authority. Implementation, build, test, and release navigation lives only in the [BI subtree README](../bi/README.md).
 
 ## 1. Product boundary
 
@@ -12,8 +12,9 @@ Source clauses: [LC-BI-001](../../SPEC.md#lc-bi-001), [LC-BI-002](../../SPEC.md#
 - The desktop application is Tauri 2 with one bundled React/TypeScript frontend built by Vite and one Rust projection core. It ships no Vanilla runtime, Python/Node subprocess, second runtime, remote web application, router, state library, or unrelated UI framework.
 - Windows uses the installed WebView2 runtime. The application remains capable of using Tauri's supported native webview on other desktop platforms without changing the projection contract.
 - Every application version carrier must equal the overall LCCoding version. There is no BI-specific version field or release identity.
+- The 4.0.1 application release preserves the unchanged 4.0.0 project-status and derived-Snapshot schemas; release version and data-protocol version are distinct identities.
 
-LCCoding 4.0.0 installs one reusable current-user tool. Its current projection has five phases, a 29-step lifecycle, and nine report joins; exact legacy adapters remain schema-selected. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
+LCCoding 4.0.1 installs one reusable current-user tool. Its current projection has five phases, a 29-step lifecycle, and nine report joins; exact legacy adapters remain schema-selected. `lccoding-bi.exe --project <root>` and the native Folder Picker share one Rust validation and immutable binding; one process/window binds one project. The Rust core reads only the closed canonical record set and formally published Loop contracts, then emits one allowlisted sanitized Snapshot. Projects contain no BI source, npm, Rust, Python, Git CLI, or build requirement. Missing or unverifiable facts remain `UNKNOWN` or `NOT_RECORDED`.
 
 ## 2. Visual and interaction contract
 

@@ -5,9 +5,10 @@ import tomllib
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CURRENT = "4.0.0"
-INSTALLER = "LCCoding-BI_4.0.0_x64-setup.exe"
-PROVENANCE_SCHEMA = "LCCoding 4.0.0 installer provenance"
+CURRENT = "4.0.1"
+CURRENT_SCHEMA = "4.0.0"
+INSTALLER = "LCCoding-BI_4.0.1_x64-setup.exe"
+PROVENANCE_SCHEMA = "LCCoding 4.0.1 installer provenance"
 
 
 def text(relative):
@@ -30,7 +31,7 @@ for relative in (
     "lc-coding/contracts/lifecycle.json",
     "lc-coding/contracts/phases.json",
 ):
-    assert strict_json(relative)["version"] == CURRENT, relative
+    assert strict_json(relative)["version"] == CURRENT_SCHEMA, relative
 
 canonical = strict_json("lc-coding/templates/CANONICAL-MANIFEST.json")
 assert canonical["lccoding"]["version"] == CURRENT
@@ -40,7 +41,7 @@ assert canonical["calabash"] == {
 }
 
 status = strict_json("lc-coding/templates/STATUS.json")
-assert status["status_schema_version"] == CURRENT
+assert status["status_schema_version"] == CURRENT_SCHEMA
 assert {
     "lccoding_applicability": status["lccoding_applicability"],
     "product_service_strategy": status["product_service_strategy"],
@@ -96,7 +97,7 @@ assert set(status) == {
 }
 
 phase_status = strict_json("lc-coding/templates/PHASE-STATUS.json")
-assert phase_status["status_schema_version"] == CURRENT
+assert phase_status["status_schema_version"] == CURRENT_SCHEMA
 assert tuple(phase_status["phases"]) == (
     "INITIAL",
     "PRODUCT_FORMATION",
@@ -121,10 +122,10 @@ lccoding_packages = [
 assert [package["version"] for package in lccoding_packages] == [CURRENT]
 assert strict_json("lc-coding/bi/src-tauri/tauri.conf.json")["version"] == CURRENT
 
-assert text("README.md").startswith("# LCCoding 4.0.0\n")
-assert text("README.zh-CN.md").startswith("# LCCoding 4.0.0\n")
+assert text("README.md").startswith("# LCCoding 4.0.1\n")
+assert text("README.zh-CN.md").startswith("# LCCoding 4.0.1\n")
 assert text("lc-coding/SKILL.md").startswith("---\nname: lc-coding\n")
-assert "# LCCoding 4.0.0\n" in text("lc-coding/SKILL.md")
+assert "# LCCoding 4.0.1\n" in text("lc-coding/SKILL.md")
 for relative in (
     "lc-coding/templates/RUN-HANDOFF.md",
     "lc-coding/templates/LOOP-OWNER-ACCEPTANCE.md",
@@ -132,10 +133,10 @@ for relative in (
     assert "- Status schema version: 4.0.0\n" in text(relative), relative
 
 built_in_bi = text("lc-coding/references/built-in-bi.md")
-assert built_in_bi.startswith("# Built-in Project BI — LCCoding 4.0.0\n")
+assert built_in_bi.startswith("# Built-in Project BI — LCCoding 4.0.1\n")
 for marker in (
-    "The BI ships only as part of LCCoding 4.0.0",
-    "LCCoding 4.0.0 installs one reusable current-user tool",
+    "The BI ships only as part of LCCoding 4.0.1",
+    "LCCoding 4.0.1 installs one reusable current-user tool",
     "current `LCCoding 4.0.0 derived BI` schema",
 ):
     assert marker in built_in_bi, marker
@@ -194,7 +195,7 @@ for marker in (
 compatibility = strict_json("lc-coding/bi/release/loop-contract-identities.json")
 current_phase_steps = tuple(
     (phase, step)
-    for phase, steps in compatibility["status_adapters"][CURRENT][
+    for phase, steps in compatibility["status_adapters"][CURRENT_SCHEMA][
         "phase_steps"
     ].items()
     for step in steps
@@ -207,8 +208,8 @@ current_adapters = [
     for version, adapter in compatibility["status_adapters"].items()
     if adapter["compatibility_status"] == "CURRENT"
 ]
-assert current_adapters == [CURRENT]
-assert compatibility["status_adapters"][CURRENT]["minimum_bi_version"] == CURRENT
+assert current_adapters == [CURRENT_SCHEMA]
+assert compatibility["status_adapters"][CURRENT_SCHEMA]["minimum_bi_version"] == CURRENT_SCHEMA
 assert compatibility["status_adapters"]["3.0.0"]["compatibility_status"] == "SUPPORTED_LEGACY"
 assert {
     method: identity["version"]
@@ -217,31 +218,33 @@ assert {
 
 assert (ROOT / "MIGRATION-3.0.0-TO-4.0.0.md").is_file()
 assert (ROOT / "lc-coding/scripts/migrate_project_300_to_400.py").is_file()
+assert (ROOT / "MIGRATION-4.0.0-TO-4.0.1.md").is_file()
+assert "release version and data-protocol version are distinct identities" in built_in_bi
 
 changelog = text("CHANGELOG.md")
-candidate_heading = "## Unreleased - 4.0.0 candidate"
+candidate_heading = "## Unreleased - 4.0.1 candidate"
 assert changelog.startswith("# Changelog\n\n" + candidate_heading + "\n")
-candidate_section = changelog[: changelog.index("\n## 3.0.0\n")]
+candidate_section = changelog[: changelog.index("\n## Unreleased - 4.0.0 candidate\n")]
 for marker in (
-    "Applicability Assessment",
-    "Service Route Map",
-    "route-faithful",
+    "Ponytail",
+    "external Skill",
+    "Owner authorization",
     "This candidate does not create a tag or GitHub Release, deploy the global Skill, or perform a persistent BI installation.",
 ):
     assert marker in candidate_section, marker
 for released_claim in (
-    "4.0.0 has been released",
-    "formal 4.0.0 release is complete",
-    "global 4.0.0 Skill was deployed",
-    "LCCoding BI 4.0.0 was persistently installed",
+    "4.0.1 has been released",
+    "formal 4.0.1 release is complete",
+    "global 4.0.1 Skill was deployed",
+    "LCCoding BI 4.0.1 was persistently installed",
 ):
     assert released_claim not in candidate_section
 
 # Task 11 owns fresh 4.0 verification evidence and records it under the exact
 # candidate heading after the independent run.
 validation_report = text("VALIDATION-REPORT.md")
-assert validation_report.startswith("# LCCoding 4.0.0 Candidate Validation Report\n")
-assert "# LCCoding 4.0.0 Validation Report" not in validation_report
+assert validation_report.startswith("# LCCoding 4.0.1 Candidate Validation Report\n")
+assert "# LCCoding 4.0.1 Validation Report" not in validation_report
 assert "PASS, 76 tests" in validation_report
 
 package_surfaces = (
@@ -257,7 +260,7 @@ for relative in package_surfaces:
     assert INSTALLER in text(relative), relative
 assert PROVENANCE_SCHEMA in text("lc-coding/bi/scripts/package-release.ps1")
 assert PROVENANCE_SCHEMA in text("lc-coding/bi/tests/packaging/install-smoke.ps1")
-assert 'VERSION -Raw).Trim() -ne "4.0.0"' in text(
+assert 'VERSION -Raw).Trim() -ne "4.0.1"' in text(
     ".github/workflows/release-bi.yml"
 )
 
@@ -273,7 +276,7 @@ for forbidden in (
     assert forbidden not in workflow
 
 repository_validator = text("lc-coding/scripts/validate_repository.py")
-assert "!='4.0.0'" in repository_validator
+assert "!='4.0.1'" in repository_validator
 assert "!='3.0.0'" not in repository_validator
 
-print("PASS: LCCoding 4.0 candidate carriers and package identity are consistent")
+print("PASS: LCCoding 4.0.1 release identity preserves the 4.0.0 project and BI schemas")

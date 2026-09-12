@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased - 4.0.1 candidate
+
+- Added one curated external Skill decision for Ponytail during Initial: explain its source, recommendation, scope, mode, benefits, and tradeoffs, then use it only after affirmative Owner authorization. Declining it continues native LCCoding without stopping the project.
+- Clarified current SLK, CLK, and GLK selection wording without adding a phase, role, gate, subskill, or BI capability.
+- Prepared 4.0.1 method, BI, installer, and provenance release identities while preserving the unchanged 4.0.0 project/data schemas, Calabash baseline, and independent Loop release identities. This candidate does not create a tag or GitHub Release, deploy the global Skill, or perform a persistent BI installation.
+
 ## Unreleased - 4.0.0 candidate
 
 - Added LCCoding Applicability Assessment and the product service-strategy discussion before lifecycle admission. Admitted products select `PLATFORM_COMPLETION`, `AGENT_COLLABORATIVE`, or both as `MIXED`; Calabash owns one Service Route Map that binds required direct-product, Personal Agent, and Service Center routes to one shared Workflow/Backend/Core capability system.

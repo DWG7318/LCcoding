@@ -4,7 +4,7 @@ import tomllib
 
 
 root = Path(__file__).resolve().parents[2]
-release_current = "4.0.0"
+release_current = "4.0.1"
 phase_projection_current = "4.0.0"
 
 assert (root / "VERSION").read_text(encoding="utf-8").strip() == release_current
@@ -17,7 +17,7 @@ for relative in [
     "lc-coding/contracts/version-policy.json",
     "lc-coding/contracts/vulnerability-closure.json",
 ]:
-    assert json.loads((root / relative).read_text(encoding="utf-8"))["version"] == release_current
+    assert json.loads((root / relative).read_text(encoding="utf-8"))["version"] == phase_projection_current
 
 lifecycle = json.loads(
     (root / "lc-coding/contracts/lifecycle.json").read_text(encoding="utf-8")
@@ -25,8 +25,8 @@ lifecycle = json.loads(
 phases = json.loads(
     (root / "lc-coding/contracts/phases.json").read_text(encoding="utf-8")
 )
-assert lifecycle["version"] == release_current
-assert phases["version"] == release_current
+assert lifecycle["version"] == phase_projection_current
+assert phases["version"] == phase_projection_current
 current_phase_ids = [phase["id"] for phase in phases["phases"]]
 assert current_phase_ids == [
     "INITIAL",
@@ -46,8 +46,8 @@ status = json.loads((root / "lc-coding/templates/STATUS.json").read_text(encodin
 phase_status = json.loads(
     (root / "lc-coding/templates/PHASE-STATUS.json").read_text(encoding="utf-8")
 )
-assert status["status_schema_version"] == release_current
-assert phase_status["status_schema_version"] == release_current
+assert status["status_schema_version"] == phase_projection_current
+assert phase_status["status_schema_version"] == phase_projection_current
 assert list(phase_status["phases"]) == current_phase_ids
 
 bi_root = root / "lc-coding/bi"
@@ -90,7 +90,7 @@ projection_schema_mapping = '''schema: match status.status_schema_version.as_str
 assert projection.count(projection_schema_mapping) == 1
 assert (root / "MIGRATION-2.5.2-TO-2.6.0.md").is_file()
 changelog = (root / "CHANGELOG.md").read_text(encoding="utf-8")
-final_heading = "## Unreleased - 4.0.0 candidate"
+final_heading = "## Unreleased - 4.0.1 candidate"
 release_heading = "## 3.0.0"
 next_heading = "## 2.8.0"
 assert changelog.startswith("# Changelog\n\n" + final_heading + "\n")
@@ -112,10 +112,10 @@ for marker in [
 ]:
     assert marker in final_section
 for stale_claim in [
-    "4.0.0 has been released",
-    "formal 4.0.0 release is complete",
-    "global 4.0.0 Skill was deployed",
-    "LCCoding BI 4.0.0 was persistently installed",
+    "4.0.1 has been released",
+    "formal 4.0.1 release is complete",
+    "global 4.0.1 Skill was deployed",
+    "LCCoding BI 4.0.1 was persistently installed",
 ]:
     assert stale_claim not in final_section
 release_section = changelog[release_start:release_end]
@@ -134,11 +134,11 @@ for stale_claim in [
     assert stale_claim not in release_section
 
 package_driver = (bi_root / "scripts/package-release.ps1").read_text(encoding="utf-8")
-assert 'schema = "LCCoding 4.0.0 installer provenance"' in package_driver
-assert '$releaseInstallerName = "LCCoding-BI_4.0.0_x64-setup.exe"' in package_driver
+assert 'schema = "LCCoding 4.0.1 installer provenance"' in package_driver
+assert '$releaseInstallerName = "LCCoding-BI_4.0.1_x64-setup.exe"' in package_driver
 workflow = (root / ".github/workflows/release-bi.yml").read_text(encoding="utf-8")
-assert 'VERSION -Raw).Trim() -ne "4.0.0"' in workflow
-assert "LCCoding-BI_4.0.0_x64-setup.exe" in workflow
+assert 'VERSION -Raw).Trim() -ne "4.0.1"' in workflow
+assert "LCCoding-BI_4.0.1_x64-setup.exe" in workflow
 
 loop_identities = json.loads(
     (bi_root / "release/loop-contract-identities.json").read_text(encoding="utf-8")

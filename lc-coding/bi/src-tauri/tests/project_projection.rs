@@ -1046,6 +1046,14 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
     let status = parse_status(&initial_status()).unwrap();
     assert!(snapshot_from_status(&status, Some(&manifest)).is_ok());
 
+    let mut release_manifest: Value = serde_json::from_str(manifest_text).unwrap();
+    release_manifest["lccoding"]["version"] = Value::String("4.0.1".into());
+    let patch_manifest = parse_manifest(&release_manifest.to_string()).unwrap();
+    assert!(snapshot_from_status(&status, Some(&patch_manifest)).is_ok());
+    release_manifest["lccoding"]["version"] = Value::String("4.0.0".into());
+    let legacy_manifest = parse_manifest(&release_manifest.to_string()).unwrap();
+    assert!(snapshot_from_status(&status, Some(&legacy_manifest)).is_ok());
+
     let duplicate = manifest_text.replacen(
         "\"compatibility\": \"PENDING\"",
         "\"compatibility\": \"PENDING\",\n  \"compatibility\": \"OTHER\"",
@@ -1056,8 +1064,8 @@ fn canonical_manifest_is_closed_and_must_match_the_status_adapter_family() {
         "BI_RECORD_INVALID"
     );
 
-    let mismatched = manifest_text.replacen("\"version\": \"4.0.0\"", "\"version\": \"2.4.1\"", 1);
-    let manifest = parse_manifest(&mismatched).unwrap();
+    release_manifest["lccoding"]["version"] = Value::String("2.4.1".into());
+    let manifest = parse_manifest(&release_manifest.to_string()).unwrap();
     assert_eq!(
         snapshot_from_status(&status, Some(&manifest))
             .unwrap_err()

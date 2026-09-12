@@ -1,4 +1,4 @@
-# LCCoding 4.0.0
+# LCCoding 4.0.1
 
 Owner-led, AI-executed enterprise product development with visible incremental acceptance and centralized independent security closure.
 

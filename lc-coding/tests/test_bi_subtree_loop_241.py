@@ -233,14 +233,14 @@ for forbidden_element in ["<a", "href=", "download=", "clipboard", "navigator."]
     assert forbidden_element not in protected_report, forbidden_element
 
 release_paths = {
-    ".github/workflows/release-bi.yml": "542b5194595407cc8acfdbf0e4baeba318856c12e505c59d18e7fb3ea1186771",
-    "lc-coding/bi/scripts/package-release.ps1": "da03c9a1a86f37e98f040bdd2cd4e0e46286943c3f42fc10fb22355de61872d4",
+    ".github/workflows/release-bi.yml": "6b04b13012eebbd5ea0ce38951bb1e9ce5d5daaae227caa8cd296aca2b90ab05",
+    "lc-coding/bi/scripts/package-release.ps1": "ceb1ed7153243cccd69ca5e0f872dabb96029317965a3c7955e84c0df2716e0c",
     "lc-coding/bi/scripts/verify-loop-releases.ps1": "c0958553dc4a3961d2ea722f0290a9ef1274cae6acffcaaad0c093b0973d6c04",
-    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "20f9f3fd6dd22726aff421099e0e9b8560180a3aa1f4c3759a29e78145fb4c08",
-    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "e8d948c9b92d60ee73c8966b2c5aa6945c20e1115306553f22dc03d4ed272a1a",
+    "lc-coding/bi/tests/packaging/nsis-contract.ps1": "1685a5bbbebebd853974aa7c708eacf5aee55f773bb29293a8f854dbf111af5d",
+    "lc-coding/bi/tests/packaging/run-standard-user-install-smoke.ps1": "c5807678dcec4642cd6751e5b105c2a94f9d05929406570d7131396277b267cf",
 }
 for relative, expected_hash in release_paths.items():
     assert hashlib.sha256((root / relative).read_bytes()).hexdigest() == expected_hash
 
-assert (root / "VERSION").read_text(encoding="utf-8").strip() == "4.0.0"
+assert (root / "VERSION").read_text(encoding="utf-8").strip() == "4.0.1"
 print("PASS: BI keeps protected subtree and Execution Method Governance reports")

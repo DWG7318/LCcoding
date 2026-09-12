@@ -85,7 +85,7 @@ assert "if-no-files-found: error" in evidence_block
 
 release_root = "${{ runner.temp }}\\lccoding-bi-formal\\release\\"
 uploads = {
-    f"{release_root}LCCoding-BI_4.0.0_x64-setup.exe",
+    f"{release_root}LCCoding-BI_4.0.1_x64-setup.exe",
     f"{release_root}installer.sha256",
     f"{release_root}provenance.json",
 }
@@ -108,7 +108,7 @@ for identity_join in (
 
 post_smoke_checksum = re.search(r"(?m)^\s*\$checksumMatch = .*?$", text)
 assert post_smoke_checksum, "formal post-smoke checksum parser is missing"
-assert "LCCoding-BI_4[.]0[.]0_x64-setup[.]exe" in post_smoke_checksum.group(0)
+assert "LCCoding-BI_4[.]0[.]1_x64-setup[.]exe" in post_smoke_checksum.group(0)
 assert "LCCoding-BI_3[.]0[.]0_x64-setup[.]exe" not in post_smoke_checksum.group(0)
 
 for forbidden in [

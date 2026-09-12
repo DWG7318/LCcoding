@@ -137,7 +137,7 @@ assert 'expect(buttonClasses).toEqual([' in visual_spec
 assert config_path.is_file(), "missing Tauri desktop configuration"
 config = json.loads(config_path.read_text(encoding="utf-8"))
 assert config["productName"] == "LCCoding BI"
-assert config["version"] == "4.0.0"
+assert config["version"] == "4.0.1"
 assert config["identifier"] == "com.lccoding.desktop"
 assert config["build"] == {"frontendDist": "../dist"}
 assert config["plugins"] == {}
@@ -266,7 +266,7 @@ cargo = tomllib.loads((tauri_root / "Cargo.toml").read_text(encoding="utf-8"))
 assert cargo["bin"] == [{"name": "lccoding-bi", "path": "src/main.rs"}]
 assert cargo["package"] == {
     "name": "lccoding",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "edition": "2024",
     "rust-version": "1.96",
     "publish": False,
